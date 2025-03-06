@@ -421,6 +421,14 @@ static PHP_GINIT_FUNCTION(firebird)
 
 static zend_class_entry *firebird_connection_ce;
 
+PHP_METHOD(Connection, __destruct) {
+    zval rv;
+    zval *error_msg = zend_read_property(firebird_connection_ce, Z_OBJ_P(ZEND_THIS), "error_msg", sizeof("error_msg") - 1, 1, &rv);
+    if(!Z_ISNULL_P(error_msg)) {
+        zval_delref_p(error_msg);
+    }
+}
+
 PHP_METHOD(Connection, __construct) {
     zend_string *database = NULL, *username = NULL, *password = NULL, *charset = NULL, *role = NULL;
     zend_long buffers = 0, dialect = 0;
@@ -600,7 +608,8 @@ PHP_METHOD(Connection, connect) {
 }
 
 const zend_function_entry firebird_connection_functions[] = {
-    PHP_ME(Connection, __construct, arginfo_firebird_construct, ZEND_ACC_PUBLIC | ZEND_ACC_CTOR)
+    PHP_ME(Connection, __construct, arginfo_firebird_construct, ZEND_ACC_PUBLIC)
+    PHP_ME(Connection, __destruct, arginfo_firebird_void, ZEND_ACC_PUBLIC)
     PHP_ME(Connection, connect, arginfo_firebird_void, ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
