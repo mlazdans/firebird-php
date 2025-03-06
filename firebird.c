@@ -57,16 +57,10 @@ ZEND_DECLARE_MODULE_GLOBALS(firebird)
 static PHP_GINIT_FUNCTION(firebird);
 
 /* {{{ arginfo */
-ZEND_BEGIN_ARG_INFO(arginfo_firebird_errmsg, 0)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_firebird_void, 0, 0, 0)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO(arginfo_firebird_errcode, 0)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(arginfo_void, 0, 0, 0)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_INFO_EX(arginfo_ibase_connect, 0, 0, 0)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_firebird_construct, 0, 0, 0)
     ZEND_ARG_TYPE_INFO(0, database, IS_STRING, 0)
     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, username, IS_STRING, 1, "null")
     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, password, IS_STRING, 1, "null")
@@ -78,8 +72,6 @@ ZEND_END_ARG_INFO()
 
 /* {{{ extension definition structures */
 static const zend_function_entry firebird_functions[] = {
-    // PHP_FE(firebird_errmsg, 		arginfo_firebird_errmsg)
-    // PHP_FE(firebird_errcode, 		arginfo_firebird_errcode)
     PHP_FE_END
 };
 
@@ -483,10 +475,10 @@ PHP_METHOD(Connection, __construct) {
     }
 }
 
-void dump_buffer(const char *buffer, int len){
+void dump_buffer(const unsigned char *buffer, int len){
     for (int i=0; i<len; i++) {
-        if(buffer[i] < 32 || buffer[i] > 126)
-            php_printf("\\%02u", buffer[i]);
+        if(buffer[i] < 31 || buffer[i] > 126)
+            php_printf("0x%02x ", buffer[i]);
         else
             php_printf("%c", buffer[i]);
     }
@@ -502,10 +494,8 @@ PHP_METHOD(Connection, connect) {
     zval *database, *val;
 
     long SQLCODE;
-    ISC_STATUS status[20];
+    ISC_STATUS_ARRAY status;
     isc_db_handle db = 0;
-    char msg[512];
-    const ISC_STATUS* pstatus = status;
 
     static char const dpb_args_str[] = { isc_dpb_user_name, isc_dpb_password, isc_dpb_lc_ctype, isc_dpb_sql_role_name };
     const char *class_args_str[] = { "username", "password", "charset", "role" };
@@ -513,7 +503,7 @@ PHP_METHOD(Connection, connect) {
     database = zend_read_property(firebird_connection_ce, Z_OBJ_P(ZEND_THIS), "database", sizeof("database") - 1, 1, &rv);
     if (!Z_STRLEN_P(database)) {
         zend_throw_exception_ex(zend_ce_value_error, 0, "Database parameter not set");
-        return;
+        RETURN_FALSE;
     }
 
     char dpb_buffer[257] = {0}, *dpb;
@@ -543,7 +533,7 @@ PHP_METHOD(Connection, connect) {
         buf_len -= dpb_len;
     }
 
-    // TODO: something does not add up here. isc_spb_prp_wm_sync is related to services, why the val == isc_spb_prp_wm_sync chec?
+    // TODO: something does not add up here. isc_spb_prp_wm_sync is related to services, why the val == isc_spb_prp_wm_sync check?
     //       Disabling for now
     // val = zend_read_property(firebird_connection_ce, Z_OBJ_P(ZEND_THIS), "sync", sizeof("sync") - 1, 1, &rv);
     // if (!Z_ISNULL_P(val)) {
@@ -560,29 +550,58 @@ PHP_METHOD(Connection, connect) {
     buf_len -= dpb_len;
 #endif
 
-    dump_buffer(dpb_buffer, dpb-dpb_buffer);
-
     if (isc_attach_database(status, (short)Z_STRLEN_P(database), Z_STRVAL_P(database), &db, (short)(dpb-dpb_buffer), dpb_buffer)) {
         if (status[0] == 1 && status[1]){
-            while(fb_interpret(msg, sizeof(msg), &pstatus)) {
-                php_printf("%x\n", msg);
+            char msg[1024] = {0};
+            char *s = msg;
+            const ISC_STATUS* pstatus = status;
+
+            while ((s - msg) < sizeof(msg) && fb_interpret(s, sizeof(msg) - (s - msg), &pstatus)) {
+                s = msg + strlen(msg);
+                *s++ = '\n';
             }
-            // SQLCODE = isc_sqlcode(status);
-            // isc_print_sqlerror(SQLCODE, status);
-            /* An error occurred. */
-            // isc_print_status (status);
+
+            if(s != msg){
+                zval *error_msg = zend_read_property(firebird_connection_ce, Z_OBJ_P(ZEND_THIS), "error_msg", sizeof("error_msg") - 1, 1, &rv);
+                php_printf("%s\n", msg);
+                ZVAL_STRINGL(error_msg, msg, s - msg - 1); // -1 trim last newline
+                zend_update_property(firebird_connection_ce, Z_OBJ_P(getThis()), "error_msg", sizeof("error_msg") - 1, error_msg);
+            }
+
+            // smart_string buf = {0};
+            // if(fb_interpret(msg, sizeof(msg), &pstatus))smart_string_appends(&buf, msg);
+            // while(fb_interpret(msg, sizeof(msg), &pstatus)) {
+            //     smart_string_appends(&buf, "\n");
+            //     smart_string_appends(&buf, msg);
+            // }
+            // if(buf.c){
+            //     zval *error_msg = zend_read_property(firebird_connection_ce, Z_OBJ_P(ZEND_THIS), "error_msg", sizeof("error_msg") - 1, 1, &rv);
+            //     smart_string_0(&buf);
+            //     php_printf("%s\n", buf.c);
+            //     ZVAL_STRING(error_msg, buf.c);
+            //     zend_update_property(firebird_connection_ce, Z_OBJ_P(getThis()), "error_msg", sizeof("error_msg") - 1, error_msg);
+            // }
+            // smart_string_free(&buf);
+
+            zval *error_code = zend_read_property(firebird_connection_ce, Z_OBJ_P(ZEND_THIS), "error_code", sizeof("error_code") - 1, 1, &rv);
+            ZVAL_LONG(error_code, (zend_long)isc_sqlcode(status));
+            zend_update_property(firebird_connection_ce, Z_OBJ_P(getThis()), "error_code", sizeof("error_code") - 1, error_code);
+
+            zval *error_code_long = zend_read_property(firebird_connection_ce, Z_OBJ_P(ZEND_THIS), "error_code_long", sizeof("error_code_long") - 1, 1, &rv);
+            ZVAL_LONG(error_code_long, (zend_long)isc_portable_integer((const ISC_UCHAR*)&status[1], 4));
+            zend_update_property(firebird_connection_ce, Z_OBJ_P(getThis()), "error_code_long", sizeof("error_code_long") - 1, error_code_long);
         }
-        return;
+        RETURN_FALSE;
     }
 
     php_printf("Connected!\n");
 
-    return;
+    RETURN_TRUE;
 }
 
 const zend_function_entry firebird_connection_functions[] = {
-    PHP_ME(Connection, __construct, arginfo_ibase_connect, ZEND_ACC_PUBLIC | ZEND_ACC_CTOR)
-    PHP_ME(Connection, connect, arginfo_void, ZEND_ACC_PUBLIC)
+    PHP_ME(Connection, __construct, arginfo_firebird_construct, ZEND_ACC_PUBLIC | ZEND_ACC_CTOR)
+    PHP_ME(Connection, connect, arginfo_firebird_void, ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
 
@@ -645,8 +664,10 @@ PHP_MINIT_FUNCTION(firebird)
     DECLARE_PROP_INT(firebird_connection_ce, buffers);
     DECLARE_PROP_INT(firebird_connection_ce, dialect);
     DECLARE_PROP_STRING(firebird_connection_ce, role);
-    DECLARE_PROP_INT(firebird_connection_ce, sync);
 
+    DECLARE_PROP_STRING(firebird_connection_ce, error_msg);
+    DECLARE_PROP_INT(firebird_connection_ce, error_code);
+    DECLARE_PROP_INT(firebird_connection_ce, error_code_long);
     // bcmath_number_ce->default_object_handlers = &bcmath_number_obj_handlers;
     // memcpy(&bcmath_number_obj_handlers, &std_object_handlers, sizeof(zend_object_handlers));
     // bcmath_number_obj_handlers.offset = XtOffsetOf(bcmath_number_obj_t, std);
@@ -745,48 +766,6 @@ PHP_MINFO_FUNCTION(firebird)
 
 }
 /* }}} */
-
-// int _php_firebird_attach_db(char **args, size_t *len, zend_long *largs, isc_db_handle *db) /* {{{ */
-// {
-//     short i, dpb_len, buf_len = 257-2;  /* version byte at the front, and a null at the end */
-//     char dpb_buffer[257] = { isc_dpb_version1, 0 }, *dpb;
-
-//     dpb = dpb_buffer + 1;
-
-//     for (i = 0; i < sizeof(dpb_args); ++i) {
-//         if (dpb_args[i] && args[i] && len[i] && buf_len > 0) {
-//             dpb_len = slprintf(dpb, buf_len, "%c%c%s", dpb_args[i],(unsigned char)len[i],args[i]);
-//             dpb += dpb_len;
-//             buf_len -= dpb_len;
-//         }
-//     }
-//     if (largs[BUF] && buf_len > 0) {
-//         dpb_len = slprintf(dpb, buf_len, "%c\2%c%c", isc_dpb_num_buffers,
-//             (char)(largs[BUF] >> 8), (char)(largs[BUF] & 0xff));
-//         dpb += dpb_len;
-//         buf_len -= dpb_len;
-//     }
-//     if (largs[SYNC] && buf_len > 0) {
-//         dpb_len = slprintf(dpb, buf_len, "%c\1%c", isc_dpb_force_write, largs[SYNC] == isc_spb_prp_wm_sync);
-//         dpb += dpb_len;
-//         buf_len -= dpb_len;
-//     }
-
-// #if FB_API_VER >= 40
-//     // Do not handle directly INT128 or DECFLOAT, convert to VARCHAR at server instead
-//     const char *compat = "int128 to varchar;decfloat to varchar";
-//     dpb_len = slprintf(dpb, buf_len, "%c%c%s", isc_dpb_set_bind, strlen(compat), compat);
-//     dpb += dpb_len;
-//     buf_len -= dpb_len;
-// #endif
-
-//     if (isc_attach_database(IB_STATUS, (short)len[DB], args[DB], db, (short)(dpb-dpb_buffer), dpb_buffer)) {
-//         _php_firebird_error();
-//         return FAILURE;
-//     }
-//     return SUCCESS;
-// }
-// /* }}} */
 
 // static void _php_firebird_connect(INTERNAL_FUNCTION_PARAMETERS, int persistent) /* {{{ */
 // {

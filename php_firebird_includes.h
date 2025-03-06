@@ -36,7 +36,7 @@
 #define METADATALENGTH 68
 #endif
 
-#define RESET_ERRMSG do { IBG(errmsg)[0] = '\0'; IBG(sql_code) = 0; } while (0)
+// #define RESET_ERRMSG do { IBG(errmsg)[0] = '\0'; IBG(sql_code) = 0; } while (0)
 
 // #define IB_STATUS (IBG(status))
 
@@ -48,14 +48,14 @@
 #define IBDEBUG(a)
 #endif
 
-extern int le_link, le_plink, le_trans;
+// extern int le_link, le_plink, le_trans;
 
-#define LE_LINK "Firebird/InterBase link"
-#define LE_PLINK "Firebird/InterBase persistent link"
-#define LE_TRANS "Firebird/InterBase transaction"
+// #define LE_LINK "Firebird/InterBase link"
+// #define LE_PLINK "Firebird/InterBase persistent link"
+// #define LE_TRANS "Firebird/InterBase transaction"
 
-#define IBASE_MSGSIZE 512
-#define MAX_ERRMSG (IBASE_MSGSIZE*2)
+// #define IBASE_MSGSIZE 512
+// #define MAX_ERRMSG (IBASE_MSGSIZE*2)
 
 #define IB_DEF_DATE_FMT "%Y-%m-%d"
 #define IB_DEF_TIME_FMT "%H:%M:%S"
