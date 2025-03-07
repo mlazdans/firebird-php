@@ -64,75 +64,80 @@
 #define IBASE_BLOB_SEG 4096
 
 ZEND_BEGIN_MODULE_GLOBALS(firebird)
-	// ISC_STATUS status[20];
-	// zend_resource *default_link;
-	// zend_long num_links, num_persistent;
-	// char errmsg[MAX_ERRMSG];
-	// zend_long sql_code;
-	zend_long default_trans_params;
-	zend_long default_lock_timeout; // only used togetger with trans_param IBASE_LOCK_TIMEOUT
+    // ISC_STATUS status[20];
+    // zend_resource *default_link;
+    // zend_long num_links, num_persistent;
+    // char errmsg[MAX_ERRMSG];
+    // zend_long sql_code;
+    zend_long default_trans_params;
+    zend_long default_lock_timeout; // only used togetger with trans_param IBASE_LOCK_TIMEOUT
 ZEND_END_MODULE_GLOBALS(firebird)
 
 ZEND_EXTERN_MODULE_GLOBALS(firebird)
 
 typedef struct {
-	isc_db_handle handle;
-	// struct tr_list *tr_list;
-	// unsigned short dialect;
-	// struct event *event_head;
+    isc_db_handle handle;
+    // struct tr_list *tr_list;
+    // unsigned short dialect;
+    // struct event *event_head;
+    zend_object std;
 } firebird_db_link;
 
 typedef struct {
-	isc_tr_handle handle;
-	unsigned short link_cnt;
-	unsigned long affected_rows;
-	firebird_db_link *db_link[1]; /* last member */
+    isc_tr_handle handle;
+    unsigned short link_cnt;
+    unsigned long affected_rows;
+    firebird_db_link *db_link[1]; /* last member */
 } firebird_trans;
 
 typedef struct tr_list {
-	firebird_trans *trans;
-	struct tr_list *next;
+    firebird_trans *trans;
+    struct tr_list *next;
 } firebird_tr_list;
 
 typedef struct {
-	isc_blob_handle bl_handle;
-	unsigned short type;
-	ISC_QUAD bl_qd;
+    isc_blob_handle bl_handle;
+    unsigned short type;
+    ISC_QUAD bl_qd;
 } firebird_blob;
 
 typedef struct event {
-	firebird_db_link *link;
-	zend_resource* link_res;
-	ISC_LONG event_id;
-	unsigned short event_count;
-	char **events;
+    firebird_db_link *link;
+    zend_resource* link_res;
+    ISC_LONG event_id;
+    unsigned short event_count;
+    char **events;
     unsigned char *event_buffer, *result_buffer;
-	zval callback;
-	void *thread_ctx;
-	struct event *event_next;
-	enum event_state { NEW, ACTIVE, DEAD } state;
+    zval callback;
+    void *thread_ctx;
+    struct event *event_next;
+    enum event_state { NEW, ACTIVE, DEAD } state;
 } firebird_event;
 
 enum php_firebird_option {
-	PHP_FIREBIRD_DEFAULT            = 0,
-	PHP_FIREBIRD_CREATE             = 0,
-	/* fetch flags */
-	PHP_FIREBIRD_FETCH_BLOBS        = 1,
-	PHP_FIREBIRD_FETCH_ARRAYS       = 2,
-	PHP_FIREBIRD_UNIXTIME           = 4,
-	/* transaction access mode */
-	PHP_FIREBIRD_WRITE              = 1,
-	PHP_FIREBIRD_READ               = 2,
-	/* transaction isolation level */
-	PHP_FIREBIRD_CONCURRENCY        = 4,
-	PHP_FIREBIRD_COMMITTED          = 8,
-		PHP_FIREBIRD_REC_NO_VERSION = 32,
-		PHP_FIREBIRD_REC_VERSION    = 64,
-	PHP_FIREBIRD_CONSISTENCY        = 16,
-	/* transaction lock resolution */
-	PHP_FIREBIRD_WAIT               = 128,
-	PHP_FIREBIRD_NOWAIT             = 256,
-		PHP_FIREBIRD_LOCK_TIMEOUT   = 512,
+    PHP_FIREBIRD_DEFAULT            = 0,
+    PHP_FIREBIRD_CREATE             = 0,
+
+    /* fetch flags */
+    PHP_FIREBIRD_FETCH_BLOBS        = 1,
+    PHP_FIREBIRD_FETCH_ARRAYS       = 2,
+    PHP_FIREBIRD_UNIXTIME           = 4,
+
+    /* transaction access mode */
+    PHP_FIREBIRD_WRITE              = 1,
+    PHP_FIREBIRD_READ               = 2,
+
+    /* transaction isolation level */
+    PHP_FIREBIRD_CONCURRENCY        = 4,
+    PHP_FIREBIRD_COMMITTED          = 8,
+        PHP_FIREBIRD_REC_NO_VERSION = 32,
+        PHP_FIREBIRD_REC_VERSION    = 64,
+    PHP_FIREBIRD_CONSISTENCY        = 16,
+
+    /* transaction lock resolution */
+    PHP_FIREBIRD_WAIT               = 128,
+    PHP_FIREBIRD_NOWAIT             = 256,
+        PHP_FIREBIRD_LOCK_TIMEOUT   = 512,
 };
 
 #define IBG(v) ZEND_MODULE_GLOBALS_ACCESSOR(firebird, v)
@@ -164,23 +169,23 @@ typedef void (*info_func_t)(char*);
 
 void _php_firebird_error(void);
 void _php_firebird_module_error(char *, ...)
-	PHP_ATTRIBUTE_FORMAT(printf,1,2);
+    PHP_ATTRIBUTE_FORMAT(printf,1,2);
 
 /* determine if a resource is a link or transaction handle */
 #define PHP_FIREBIRD_LINK_TRANS(zv, lh, th)                                                    \
-		do {                                                                                \
-			if (!zv) {                                                                      \
-				lh = (firebird_db_link *)zend_fetch_resource2(                                 \
-					IBG(default_link), "InterBase link", le_link, le_plink);                \
-			} else {                                                                        \
-				_php_firebird_get_link_trans(INTERNAL_FUNCTION_PARAM_PASSTHRU, zv, &lh, &th);  \
-			}                                                                               \
-			if (SUCCESS != _php_firebird_def_trans(lh, &th)) { RETURN_FALSE; }                 \
-		} while (0)
+        do {                                                                                \
+            if (!zv) {                                                                      \
+                lh = (firebird_db_link *)zend_fetch_resource2(                                 \
+                    IBG(default_link), "InterBase link", le_link, le_plink);                \
+            } else {                                                                        \
+                _php_firebird_get_link_trans(INTERNAL_FUNCTION_PARAM_PASSTHRU, zv, &lh, &th);  \
+            }                                                                               \
+            if (SUCCESS != _php_firebird_def_trans(lh, &th)) { RETURN_FALSE; }                 \
+        } while (0)
 
 int _php_firebird_def_trans(firebird_db_link *ib_link, firebird_trans **trans);
 void _php_firebird_get_link_trans(INTERNAL_FUNCTION_PARAMETERS, zval *link_id,
-	firebird_db_link **ib_link, firebird_trans **trans);
+    firebird_db_link **ib_link, firebird_trans **trans);
 
 /* provided by firebird_query.c */
 void php_firebird_query_minit(INIT_FUNC_ARGS);

@@ -101,14 +101,6 @@ PHP_MINFO_FUNCTION(firebird);
 // PHP_FUNCTION(firebird_set_event_handler);
 // PHP_FUNCTION(firebird_free_event_handler);
 
-typedef struct _firebird_connection_obj_t {
-    isc_db_handle handle;
-    // zend_string *value;
-    // size_t scale;
-    // bc_num num;
-    zend_object std;
-} firebird_connection_obj_t;
-
 #else
 
 #define phpext_firebird_ptr NULL

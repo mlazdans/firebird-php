@@ -431,10 +431,10 @@ static zend_object_handlers firebird_connection_object_handlers;
 // }
 
 #define Z_CONNECTION_P(zv) \
-    ((firebird_connection_obj_t*)((char*)(Z_OBJ_P(zv)) - XtOffsetOf(firebird_connection_obj_t, std)))
+    ((firebird_db_link*)((char*)(Z_OBJ_P(zv)) - XtOffsetOf(firebird_db_link, std)))
 
 #define Z_CONNECTION_O(obj) \
-    ((firebird_connection_obj_t*)((char*)(obj) - XtOffsetOf(firebird_connection_obj_t, std)))
+    ((firebird_db_link*)((char*)(obj) - XtOffsetOf(firebird_db_link, std)))
 
 PHP_METHOD(Connection, __construct) {
     zend_string *database = NULL, *username = NULL, *password = NULL, *charset = NULL, *role = NULL;
@@ -508,7 +508,7 @@ PHP_METHOD(Connection, connect) {
 
     long SQLCODE;
     ISC_STATUS_ARRAY status;
-    firebird_connection_obj_t *conn = Z_CONNECTION_P(ZEND_THIS);
+    firebird_db_link *conn = Z_CONNECTION_P(ZEND_THIS);
 
     static char const dpb_args_str[] = { isc_dpb_user_name, isc_dpb_password, isc_dpb_lc_ctype, isc_dpb_sql_role_name };
     const char *class_args_str[] = { "username", "password", "charset", "role" };
@@ -622,7 +622,7 @@ const zend_function_entry firebird_connection_functions[] = {
 static zend_object *firebird_connection_create(zend_class_entry *ce)
 {
     php_printf("firebird_connection_create\n");
-    firebird_connection_obj_t *conn = zend_object_alloc(sizeof(firebird_connection_obj_t), ce);
+    firebird_db_link *conn = zend_object_alloc(sizeof(firebird_db_link), ce);
 
     zend_object_std_init(&conn->std, ce);
     object_properties_init(&conn->std, ce);
@@ -635,7 +635,7 @@ static zend_object *firebird_connection_create(zend_class_entry *ce)
 static void firebird_connection_free_obj(zend_object *obj)
 {
     php_printf("firebird_connection_free_obj\n");
-    firebird_connection_obj_t *conn = Z_CONNECTION_O(obj);
+    firebird_db_link *conn = Z_CONNECTION_O(obj);
 
     zval rv;
     zval *error_msg = zend_read_property(firebird_connection_ce, obj, "error_msg", sizeof("error_msg") - 1, 1, &rv);
@@ -722,7 +722,7 @@ PHP_MINIT_FUNCTION(firebird)
 
     memcpy(&firebird_connection_object_handlers, &std_object_handlers, sizeof(zend_object_handlers));
 
-    firebird_connection_object_handlers.offset = XtOffsetOf(firebird_connection_obj_t, std);
+    firebird_connection_object_handlers.offset = XtOffsetOf(firebird_db_link, std);
     firebird_connection_object_handlers.free_obj = firebird_connection_free_obj;
     // bcmath_number_obj_handlers.clone_obj = bcmath_number_clone;
     // bcmath_number_obj_handlers.do_operation = bcmath_number_do_operation;
