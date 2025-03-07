@@ -4,7 +4,7 @@
 #include "zend_attributes.h"
 #include "php_firebird_includes.h"
 
-static zend_class_entry *firebird_connection_ce;
+zend_class_entry *firebird_connection_ce;
 static zend_object_handlers firebird_connection_object_handlers;
 
 PHP_METHOD(Connection, connect) {

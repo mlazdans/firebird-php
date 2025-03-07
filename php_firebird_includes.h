@@ -243,4 +243,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_firebird_construct, 0, 0, 0)
     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, role, IS_STRING, 1, "null")
 ZEND_END_ARG_INFO()
 
+extern zend_class_entry *firebird_connection_ce;
+extern void register_connection_ce();
+
 #endif /* PHP_FIREBIRD_INCLUDES_H */
