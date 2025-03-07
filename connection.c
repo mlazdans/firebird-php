@@ -7,10 +7,30 @@
 zend_class_entry *firebird_connection_ce;
 static zend_object_handlers firebird_connection_object_handlers;
 
+PHP_METHOD(Connection, close) {
+    ZEND_PARSE_PARAMETERS_NONE();
+
+    php_printf("Connection::close()\n");
+
+    firebird_db_link *conn = Z_CONNECTION_P(ZEND_THIS);
+
+    if(conn->handle) {
+        ISC_STATUS_ARRAY status;
+        php_printf("Closing handle: %d\n", conn->handle);
+        if(isc_detach_database(status, &conn->handle)){
+            update_err_props(status, firebird_connection_ce, Z_OBJ_P(ZEND_THIS));
+        } else {
+            RETURN_TRUE;
+        }
+    }
+
+    RETURN_FALSE;
+}
+
 PHP_METHOD(Connection, connect) {
     ZEND_PARSE_PARAMETERS_NONE();
 
-    php_printf("connect()\n");
+    php_printf("Connection::connect()\n");
 
     zval rv;
     zval *database, *val;
@@ -146,6 +166,7 @@ const zend_function_entry firebird_connection_methods[] = {
     PHP_ME(Connection, __construct, arginfo_firebird_construct, ZEND_ACC_PUBLIC)
     // PHP_ME(Connection, __destruct, arginfo_firebird_void, ZEND_ACC_PUBLIC)
     PHP_ME(Connection, connect, arginfo_firebird_bool, ZEND_ACC_PUBLIC)
+    PHP_ME(Connection, close, arginfo_firebird_bool, ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
 
