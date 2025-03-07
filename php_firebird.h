@@ -36,5 +36,7 @@ PHP_MSHUTDOWN_FUNCTION(firebird);
 PHP_RSHUTDOWN_FUNCTION(firebird);
 PHP_MINFO_FUNCTION(firebird);
 
+zend_class_entry *firebird_connection_ce;
+void register_connection_ce();
 
 #endif /* PHP_FIREBIRD_H */

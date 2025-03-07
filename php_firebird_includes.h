@@ -221,4 +221,26 @@ void php_firebird_service_minit(INIT_FUNC_ARGS);
         (zend_type) ZEND_TYPE_INIT_MASK(type));                                       \
 } while (0)
 
+#define Z_CONNECTION_P(zv) \
+    ((firebird_db_link*)((char*)(Z_OBJ_P(zv)) - XtOffsetOf(firebird_db_link, std)))
+
+#define Z_CONNECTION_O(obj) \
+    ((firebird_db_link*)((char*)(obj) - XtOffsetOf(firebird_db_link, std)))
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_firebird_void, 0, 0, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_firebird_bool, 0, 0, _IS_BOOL, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_firebird_construct, 0, 0, 0)
+    ZEND_ARG_TYPE_INFO(0, database, IS_STRING, 0)
+    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, username, IS_STRING, 1, "null")
+    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, password, IS_STRING, 1, "null")
+    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, charset, IS_STRING, 1, "null")
+    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, buffers, IS_LONG, 1, "null")
+    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, dialect, IS_LONG, 1, "null")
+    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, role, IS_STRING, 1, "null")
+ZEND_END_ARG_INFO()
+
 #endif /* PHP_FIREBIRD_INCLUDES_H */
