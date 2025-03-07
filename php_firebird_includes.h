@@ -210,4 +210,15 @@ void php_firebird_service_minit(INIT_FUNC_ARGS);
 #define max(a,b) ((a)>(b)?(a):(b))
 #endif
 
+#define DECLARE_PROP_INT(class_ce, name, visibilty) DECLARE_PROP(class_ce, name, MAY_BE_LONG, visibilty)
+#define DECLARE_PROP_STRING(class_ce, name, visibilty) DECLARE_PROP(class_ce, name, MAY_BE_STRING, visibilty)
+#define DECLARE_PROP(class_ce, name, type, visibilty) do {                            \
+    zval prop_##name##_def_val;                                                       \
+    ZVAL_UNDEF(&prop_##name##_def_val);                                               \
+    zend_string *prop_##name##_name = zend_string_init(#name, sizeof(#name) - 1, 1);  \
+    zend_declare_typed_property(class_ce, prop_##name##_name, &prop_##name##_def_val, \
+        visibilty, NULL,                                                              \
+        (zend_type) ZEND_TYPE_INIT_MASK(type));                                       \
+} while (0)
+
 #endif /* PHP_FIREBIRD_INCLUDES_H */
