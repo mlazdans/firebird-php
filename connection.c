@@ -23,7 +23,7 @@ PHP_METHOD(Connection, connect) {
     const char *class_args_str[] = { "username", "password", "charset", "role" };
 
     database = zend_read_property(firebird_connection_ce, Z_OBJ_P(ZEND_THIS), "database", sizeof("database") - 1, 1, &rv);
-    if (!Z_STRLEN_P(database)) {
+    if ((Z_TYPE_P(database) != IS_STRING) || !Z_STRLEN_P(database)) {
         zend_throw_exception_ex(zend_ce_value_error, 0, "Database parameter not set");
         RETURN_FALSE;
     }
@@ -39,7 +39,7 @@ PHP_METHOD(Connection, connect) {
     int len = sizeof(class_args_str) / sizeof(class_args_str[0]);
     for(int i = 0; i < len; i++){
         val = zend_read_property(firebird_connection_ce, Z_OBJ_P(ZEND_THIS), class_args_str[i], strlen(class_args_str[i]), 1, &rv);
-        if (!Z_ISNULL_P(val) && Z_STRLEN_P(val)) {
+        if (Z_TYPE_P(val) == IS_STRING && Z_STRLEN_P(val)) {
             php_printf("arg%d: %s = %s\n", i, class_args_str[i], Z_STRVAL_P(val));
             dpb_len = slprintf(dpb, buf_len, "%c%c%s", dpb_args_str[i], (unsigned char)Z_STRLEN_P(val), Z_STRVAL_P(val));
             dpb += dpb_len;
@@ -167,11 +167,11 @@ static void firebird_connection_free_obj(zend_object *obj)
     php_printf("firebird_connection_free_obj\n");
     firebird_db_link *conn = Z_CONNECTION_O(obj);
 
-    zval rv;
-    zval *error_msg = zend_read_property(firebird_connection_ce, obj, "error_msg", sizeof("error_msg") - 1, 1, &rv);
-    if(!Z_ISNULL_P(error_msg)) {
-        zval_delref_p(error_msg);
-    }
+    // zval rv;
+    // zval *error_msg = zend_read_property(firebird_connection_ce, obj, "error_msg", sizeof("error_msg") - 1, 1, &rv);
+    // if(!Z_ISNULL_P(error_msg)) {
+    //     zval_delref_p(error_msg);
+    // }
 
     if(conn->handle) {
         ISC_STATUS_ARRAY status;
