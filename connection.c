@@ -222,7 +222,7 @@ static void firebird_connection_free_obj(zend_object *obj)
     zend_object_std_dtor(&conn->std);
 }
 
-void register_connection_ce()
+void firebird_register_connection_ce()
 {
     zend_class_entry tmp_ce;
     INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "Connection", firebird_connection_methods);
@@ -236,9 +236,7 @@ void register_connection_ce()
     DECLARE_PROP_INT(firebird_connection_ce, dialect, ZEND_ACC_PROTECTED);
     DECLARE_PROP_STRING(firebird_connection_ce, role, ZEND_ACC_PROTECTED);
 
-    DECLARE_PROP_STRING(firebird_connection_ce, error_msg, ZEND_ACC_PROTECTED_SET);
-    DECLARE_PROP_INT(firebird_connection_ce, error_code, ZEND_ACC_PROTECTED_SET);
-    DECLARE_PROP_INT(firebird_connection_ce, error_code_long, ZEND_ACC_PROTECTED_SET);
+    ADD_ERR_PROPS(firebird_connection_ce);
 
     // Sensitive attribute can't be added to properties. Maybe someday
     zend_add_parameter_attribute(zend_hash_str_find_ptr(&firebird_connection_ce->function_table,

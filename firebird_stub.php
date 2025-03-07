@@ -2,12 +2,16 @@
 
 namespace FireBird;
 
-class Connection
-{
+// It's actually not a trait internally
+trait Error {
     protected(set) string $error_msg;
     protected(set) int $error_code;
     protected(set) int $error_code_long;
+}
 
+class Connection
+{
+    use Error;
     function __construct(
         protected string $database,
         protected ?string $username = null,

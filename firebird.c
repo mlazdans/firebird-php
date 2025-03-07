@@ -366,7 +366,7 @@ PHP_MINIT_FUNCTION(firebird)
     SIGG(check) = 0;
 #endif
 
-    register_connection_ce();
+    firebird_register_connection_ce();
 
     return SUCCESS;
 }

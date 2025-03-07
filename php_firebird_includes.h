@@ -244,6 +244,13 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_firebird_construct, 0, 0, 0)
 ZEND_END_ARG_INFO()
 
 extern zend_class_entry *firebird_connection_ce;
-extern void register_connection_ce();
+extern void firebird_register_connection_ce();
+
+#define ADD_ERR_PROPS(class_ce)                                              \
+    do {                                                                     \
+        DECLARE_PROP_STRING(class_ce, error_msg, ZEND_ACC_PROTECTED_SET);    \
+        DECLARE_PROP_INT(class_ce, error_code, ZEND_ACC_PROTECTED_SET);      \
+        DECLARE_PROP_INT(class_ce, error_code_long, ZEND_ACC_PROTECTED_SET); \
+    } while(0)
 
 #endif /* PHP_FIREBIRD_INCLUDES_H */
