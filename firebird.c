@@ -420,21 +420,26 @@ static PHP_GINIT_FUNCTION(firebird)
 }
 
 static zend_class_entry *firebird_connection_ce;
+static zend_object_handlers firebird_connection_object_handlers;
 
-PHP_METHOD(Connection, __destruct) {
-    zval rv;
-    zval *error_msg = zend_read_property(firebird_connection_ce, Z_OBJ_P(ZEND_THIS), "error_msg", sizeof("error_msg") - 1, 1, &rv);
-    if(!Z_ISNULL_P(error_msg)) {
-        zval_delref_p(error_msg);
-    }
-}
+// PHP_METHOD(Connection, __destruct) {
+//     zval rv;
+//     zval *error_msg = zend_read_property(firebird_connection_ce, Z_OBJ_P(ZEND_THIS), "error_msg", sizeof("error_msg") - 1, 1, &rv);
+//     if(!Z_ISNULL_P(error_msg)) {
+//         zval_delref_p(error_msg);
+//     }
+// }
+
+#define Z_CONNECTION_P(zv) \
+    ((firebird_connection_obj_t*)((char*)(Z_OBJ_P(zv)) - XtOffsetOf(firebird_connection_obj_t, std)))
+
+#define Z_CONNECTION_O(obj) \
+    ((firebird_connection_obj_t*)((char*)(obj) - XtOffsetOf(firebird_connection_obj_t, std)))
 
 PHP_METHOD(Connection, __construct) {
     zend_string *database = NULL, *username = NULL, *password = NULL, *charset = NULL, *role = NULL;
     zend_long buffers = 0, dialect = 0;
     bool buffers_is_null = 1, dialect_is_null = 1;
-
-    php_printf("__construct\n");
 
     ZEND_PARSE_PARAMETERS_START(1, 7)
         Z_PARAM_STR(database)
@@ -503,7 +508,7 @@ PHP_METHOD(Connection, connect) {
 
     long SQLCODE;
     ISC_STATUS_ARRAY status;
-    isc_db_handle db = 0;
+    firebird_connection_obj_t *conn = Z_CONNECTION_P(ZEND_THIS);
 
     static char const dpb_args_str[] = { isc_dpb_user_name, isc_dpb_password, isc_dpb_lc_ctype, isc_dpb_sql_role_name };
     const char *class_args_str[] = { "username", "password", "charset", "role" };
@@ -558,7 +563,7 @@ PHP_METHOD(Connection, connect) {
     buf_len -= dpb_len;
 #endif
 
-    if (isc_attach_database(status, (short)Z_STRLEN_P(database), Z_STRVAL_P(database), &db, (short)(dpb-dpb_buffer), dpb_buffer)) {
+    if (isc_attach_database(status, (short)Z_STRLEN_P(database), Z_STRVAL_P(database), &conn->handle, (short)(dpb-dpb_buffer), dpb_buffer)) {
         if (status[0] == 1 && status[1]){
             char msg[1024] = {0};
             char *s = msg;
@@ -609,10 +614,44 @@ PHP_METHOD(Connection, connect) {
 
 const zend_function_entry firebird_connection_functions[] = {
     PHP_ME(Connection, __construct, arginfo_firebird_construct, ZEND_ACC_PUBLIC)
-    PHP_ME(Connection, __destruct, arginfo_firebird_void, ZEND_ACC_PUBLIC)
+    // PHP_ME(Connection, __destruct, arginfo_firebird_void, ZEND_ACC_PUBLIC)
     PHP_ME(Connection, connect, arginfo_firebird_void, ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
+
+static zend_object *firebird_connection_create(zend_class_entry *ce)
+{
+    php_printf("firebird_connection_create\n");
+    firebird_connection_obj_t *conn = zend_object_alloc(sizeof(firebird_connection_obj_t), ce);
+
+    zend_object_std_init(&conn->std, ce);
+    object_properties_init(&conn->std, ce);
+
+    conn->handle = 0;
+
+    return &conn->std;
+}
+
+static void firebird_connection_free_obj(zend_object *obj)
+{
+    php_printf("firebird_connection_free_obj\n");
+    firebird_connection_obj_t *conn = Z_CONNECTION_O(obj);
+
+    zval rv;
+    zval *error_msg = zend_read_property(firebird_connection_ce, obj, "error_msg", sizeof("error_msg") - 1, 1, &rv);
+    if(!Z_ISNULL_P(error_msg)) {
+        zval_delref_p(error_msg);
+    }
+
+    if(conn->handle) {
+        ISC_STATUS_ARRAY status;
+        php_printf("Closing handle: %d\n", conn->handle);
+        // TODO: report errors?
+        isc_detach_database(status, &conn->handle);
+    }
+
+    zend_object_std_dtor(&conn->std);
+}
 
 PHP_MINIT_FUNCTION(firebird)
 {
@@ -655,32 +694,36 @@ PHP_MINIT_FUNCTION(firebird)
     INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "Connection", firebird_connection_functions);
     firebird_connection_ce = zend_register_internal_class(&tmp_ce);
 
-#define DECLARE_PROP_INT(class_ce, name) DECLARE_PROP(class_ce, name, MAY_BE_LONG)
-#define DECLARE_PROP_STRING(class_ce, name) DECLARE_PROP(class_ce, name, MAY_BE_STRING)
-#define DECLARE_PROP(class_ce, name, type) do {                                       \
+#define DECLARE_PROP_INT(class_ce, name, visibilty) DECLARE_PROP(class_ce, name, MAY_BE_LONG, visibilty)
+#define DECLARE_PROP_STRING(class_ce, name, visibilty) DECLARE_PROP(class_ce, name, MAY_BE_STRING, visibilty)
+#define DECLARE_PROP(class_ce, name, type, visibilty) do {                                       \
     zval prop_##name##_def_val;                                                       \
     ZVAL_UNDEF(&prop_##name##_def_val);                                               \
     zend_string *prop_##name##_name = zend_string_init(#name, sizeof(#name) - 1, 1);  \
     zend_declare_typed_property(class_ce, prop_##name##_name, &prop_##name##_def_val, \
-        ZEND_ACC_PROTECTED, NULL,                                                     \
+        visibilty, NULL,                                                     \
         (zend_type) ZEND_TYPE_INIT_MASK(type));                                       \
 } while (0)
 
-    DECLARE_PROP_STRING(firebird_connection_ce, database);
-    DECLARE_PROP_STRING(firebird_connection_ce, username);
-    DECLARE_PROP_STRING(firebird_connection_ce, password);
-    DECLARE_PROP_STRING(firebird_connection_ce, charset);
-    DECLARE_PROP_INT(firebird_connection_ce, buffers);
-    DECLARE_PROP_INT(firebird_connection_ce, dialect);
-    DECLARE_PROP_STRING(firebird_connection_ce, role);
+    DECLARE_PROP_STRING(firebird_connection_ce, database, ZEND_ACC_PROTECTED);
+    DECLARE_PROP_STRING(firebird_connection_ce, username, ZEND_ACC_PROTECTED);
+    DECLARE_PROP_STRING(firebird_connection_ce, password, ZEND_ACC_PROTECTED);
+    DECLARE_PROP_STRING(firebird_connection_ce, charset, ZEND_ACC_PROTECTED);
+    DECLARE_PROP_INT(firebird_connection_ce, buffers, ZEND_ACC_PROTECTED);
+    DECLARE_PROP_INT(firebird_connection_ce, dialect, ZEND_ACC_PROTECTED);
+    DECLARE_PROP_STRING(firebird_connection_ce, role, ZEND_ACC_PROTECTED);
 
-    DECLARE_PROP_STRING(firebird_connection_ce, error_msg);
-    DECLARE_PROP_INT(firebird_connection_ce, error_code);
-    DECLARE_PROP_INT(firebird_connection_ce, error_code_long);
-    // bcmath_number_ce->default_object_handlers = &bcmath_number_obj_handlers;
-    // memcpy(&bcmath_number_obj_handlers, &std_object_handlers, sizeof(zend_object_handlers));
-    // bcmath_number_obj_handlers.offset = XtOffsetOf(bcmath_number_obj_t, std);
-    // bcmath_number_obj_handlers.free_obj = bcmath_number_free;
+    DECLARE_PROP_STRING(firebird_connection_ce, error_msg, ZEND_ACC_PROTECTED_SET);
+    DECLARE_PROP_INT(firebird_connection_ce, error_code, ZEND_ACC_PROTECTED_SET);
+    DECLARE_PROP_INT(firebird_connection_ce, error_code_long, ZEND_ACC_PROTECTED_SET);
+
+    firebird_connection_ce->create_object = firebird_connection_create;
+    firebird_connection_ce->default_object_handlers = &firebird_connection_object_handlers;
+
+    memcpy(&firebird_connection_object_handlers, &std_object_handlers, sizeof(zend_object_handlers));
+
+    firebird_connection_object_handlers.offset = XtOffsetOf(firebird_connection_obj_t, std);
+    firebird_connection_object_handlers.free_obj = firebird_connection_free_obj;
     // bcmath_number_obj_handlers.clone_obj = bcmath_number_clone;
     // bcmath_number_obj_handlers.do_operation = bcmath_number_do_operation;
     // bcmath_number_obj_handlers.compare = bcmath_number_compare;

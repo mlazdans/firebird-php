@@ -77,9 +77,9 @@ ZEND_EXTERN_MODULE_GLOBALS(firebird)
 
 typedef struct {
 	isc_db_handle handle;
-	struct tr_list *tr_list;
-	unsigned short dialect;
-	struct event *event_head;
+	// struct tr_list *tr_list;
+	// unsigned short dialect;
+	// struct event *event_head;
 } firebird_db_link;
 
 typedef struct {

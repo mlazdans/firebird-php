@@ -30,6 +30,7 @@
 extern zend_module_entry firebird_module_entry;
 #define phpext_firebird_ptr &firebird_module_entry
 
+#include <ibase.h>
 #include "php_version.h"
 #define PHP_FIREBIRD_VERSION "0.0.1-alpha"
 
@@ -99,6 +100,14 @@ PHP_MINFO_FUNCTION(firebird);
 // PHP_FUNCTION(firebird_wait_event);
 // PHP_FUNCTION(firebird_set_event_handler);
 // PHP_FUNCTION(firebird_free_event_handler);
+
+typedef struct _firebird_connection_obj_t {
+    isc_db_handle handle;
+    // zend_string *value;
+    // size_t scale;
+    // bc_num num;
+    zend_object std;
+} firebird_connection_obj_t;
 
 #else
 
