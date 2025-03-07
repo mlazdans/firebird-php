@@ -28,6 +28,8 @@
 
 #include <ibase.h>
 
+#define PHP_FIREBIRD_VERSION "0.0.1-alpha"
+
 #ifndef SQLDA_CURRENT_VERSION
 #define SQLDA_CURRENT_VERSION SQLDA_VERSION1
 #endif
