@@ -925,4 +925,38 @@ void dump_buffer(const unsigned char *buffer, int len){
     php_printf("\n");
 }
 
+bool update_err_props(ISC_STATUS_ARRAY status, zend_class_entry *class_ce, zend_object *obj) {
+    if (!(status[0] == 1 && status[1])){
+        return false;
+    }
+
+    zval rv;
+    char msg[1024] = {0};
+    char *s = msg;
+    const ISC_STATUS* pstatus = status;
+
+    while ((s - msg) < sizeof(msg) && fb_interpret(s, sizeof(msg) - (s - msg), &pstatus)) {
+        s = msg + strlen(msg);
+        *s++ = '\n';
+    }
+
+    if(s != msg){
+        zval *error_msg = zend_read_property(class_ce, obj, "error_msg", sizeof("error_msg") - 1, 1, &rv);
+        php_printf("%s\n", msg);
+        ZVAL_STRINGL(error_msg, msg, s - msg - 1); // -1 trim last newline
+        zend_update_property(class_ce, obj, "error_msg", sizeof("error_msg") - 1, error_msg);
+    }
+
+    zval *error_code = zend_read_property(class_ce, obj, "error_code", sizeof("error_code") - 1, 1, &rv);
+    ZVAL_LONG(error_code, (zend_long)isc_sqlcode(status));
+    zend_update_property(class_ce, obj, "error_code", sizeof("error_code") - 1, error_code);
+
+    zval *error_code_long = zend_read_property(class_ce, obj, "error_code_long", sizeof("error_code_long") - 1, 1, &rv);
+    ZVAL_LONG(error_code_long, (zend_long)isc_portable_integer((const ISC_UCHAR*)&status[1], 4));
+    zend_update_property(class_ce, obj, "error_code_long", sizeof("error_code_long") - 1, error_code_long);
+
+    return true;
+}
+
+
 #endif /* HAVE_FIREBIRD */

@@ -73,46 +73,7 @@ PHP_METHOD(Connection, connect) {
 #endif
 
     if (isc_attach_database(status, (short)Z_STRLEN_P(database), Z_STRVAL_P(database), &conn->handle, (short)(dpb-dpb_buffer), dpb_buffer)) {
-        if (status[0] == 1 && status[1]){
-            char msg[1024] = {0};
-            char *s = msg;
-            const ISC_STATUS* pstatus = status;
-
-            while ((s - msg) < sizeof(msg) && fb_interpret(s, sizeof(msg) - (s - msg), &pstatus)) {
-                s = msg + strlen(msg);
-                *s++ = '\n';
-            }
-
-            if(s != msg){
-                zval *error_msg = zend_read_property(firebird_connection_ce, Z_OBJ_P(ZEND_THIS), "error_msg", sizeof("error_msg") - 1, 1, &rv);
-                php_printf("%s\n", msg);
-                ZVAL_STRINGL(error_msg, msg, s - msg - 1); // -1 trim last newline
-                zend_update_property(firebird_connection_ce, Z_OBJ_P(getThis()), "error_msg", sizeof("error_msg") - 1, error_msg);
-            }
-
-            // smart_string buf = {0};
-            // if(fb_interpret(msg, sizeof(msg), &pstatus))smart_string_appends(&buf, msg);
-            // while(fb_interpret(msg, sizeof(msg), &pstatus)) {
-            //     smart_string_appends(&buf, "\n");
-            //     smart_string_appends(&buf, msg);
-            // }
-            // if(buf.c){
-            //     zval *error_msg = zend_read_property(firebird_connection_ce, Z_OBJ_P(ZEND_THIS), "error_msg", sizeof("error_msg") - 1, 1, &rv);
-            //     smart_string_0(&buf);
-            //     php_printf("%s\n", buf.c);
-            //     ZVAL_STRING(error_msg, buf.c);
-            //     zend_update_property(firebird_connection_ce, Z_OBJ_P(getThis()), "error_msg", sizeof("error_msg") - 1, error_msg);
-            // }
-            // smart_string_free(&buf);
-
-            zval *error_code = zend_read_property(firebird_connection_ce, Z_OBJ_P(ZEND_THIS), "error_code", sizeof("error_code") - 1, 1, &rv);
-            ZVAL_LONG(error_code, (zend_long)isc_sqlcode(status));
-            zend_update_property(firebird_connection_ce, Z_OBJ_P(getThis()), "error_code", sizeof("error_code") - 1, error_code);
-
-            zval *error_code_long = zend_read_property(firebird_connection_ce, Z_OBJ_P(ZEND_THIS), "error_code_long", sizeof("error_code_long") - 1, 1, &rv);
-            ZVAL_LONG(error_code_long, (zend_long)isc_portable_integer((const ISC_UCHAR*)&status[1], 4));
-            zend_update_property(firebird_connection_ce, Z_OBJ_P(getThis()), "error_code_long", sizeof("error_code_long") - 1, error_code_long);
-        }
+        update_err_props(status, firebird_connection_ce, Z_OBJ_P(ZEND_THIS));
         RETURN_FALSE;
     }
 
@@ -249,13 +210,4 @@ void firebird_register_connection_ce()
 
     firebird_connection_object_handlers.offset = XtOffsetOf(firebird_db_link, std);
     firebird_connection_object_handlers.free_obj = firebird_connection_free_obj;
-    // bcmath_number_obj_handlers.clone_obj = bcmath_number_clone;
-    // bcmath_number_obj_handlers.do_operation = bcmath_number_do_operation;
-    // bcmath_number_obj_handlers.compare = bcmath_number_compare;
-    // bcmath_number_obj_handlers.write_property = bcmath_number_write_property;
-    // bcmath_number_obj_handlers.unset_property = bcmath_number_unset_property;
-    // bcmath_number_obj_handlers.has_property = bcmath_number_has_property;
-    // bcmath_number_obj_handlers.read_property = bcmath_number_read_property;
-    // bcmath_number_obj_handlers.get_properties_for = bcmath_number_get_properties_for;
-    // bcmath_number_obj_handlers.cast_object = bcmath_number_cast_object;
 }

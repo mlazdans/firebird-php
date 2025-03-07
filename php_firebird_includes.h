@@ -253,4 +253,7 @@ extern void firebird_register_connection_ce();
         DECLARE_PROP_INT(class_ce, error_code_long, ZEND_ACC_PROTECTED_SET); \
     } while(0)
 
+void dump_buffer(const unsigned char *buffer, int len);
+bool update_err_props(ISC_STATUS_ARRAY status, zend_class_entry *class_ce, zend_object *obj);
+
 #endif /* PHP_FIREBIRD_INCLUDES_H */
