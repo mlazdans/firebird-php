@@ -44,6 +44,7 @@
 #include "php_firebird_includes.h"
 #include "SAPI.h"
 #include "zend_interfaces.h"
+#include "zend_attributes.h"
 
 #include <time.h>
 
@@ -58,6 +59,9 @@ static PHP_GINIT_FUNCTION(firebird);
 
 /* {{{ arginfo */
 ZEND_BEGIN_ARG_INFO_EX(arginfo_firebird_void, 0, 0, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_firebird_bool, 0, 0, _IS_BOOL, 0)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_firebird_construct, 0, 0, 0)
@@ -411,16 +415,6 @@ PHP_METHOD(Connection, __construct) {
     }
 }
 
-void dump_buffer(const unsigned char *buffer, int len){
-    for (int i=0; i<len; i++) {
-        if(buffer[i] < 31 || buffer[i] > 126)
-            php_printf("0x%02x ", buffer[i]);
-        else
-            php_printf("%c", buffer[i]);
-    }
-    php_printf("\n");
-}
-
 PHP_METHOD(Connection, connect) {
     ZEND_PARSE_PARAMETERS_NONE();
 
@@ -538,7 +532,7 @@ PHP_METHOD(Connection, connect) {
 const zend_function_entry firebird_connection_functions[] = {
     PHP_ME(Connection, __construct, arginfo_firebird_construct, ZEND_ACC_PUBLIC)
     // PHP_ME(Connection, __destruct, arginfo_firebird_void, ZEND_ACC_PUBLIC)
-    PHP_ME(Connection, connect, arginfo_firebird_void, ZEND_ACC_PUBLIC)
+    PHP_ME(Connection, connect, arginfo_firebird_bool, ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
 
@@ -628,6 +622,10 @@ PHP_MINIT_FUNCTION(firebird)
     DECLARE_PROP_STRING(firebird_connection_ce, error_msg, ZEND_ACC_PROTECTED_SET);
     DECLARE_PROP_INT(firebird_connection_ce, error_code, ZEND_ACC_PROTECTED_SET);
     DECLARE_PROP_INT(firebird_connection_ce, error_code_long, ZEND_ACC_PROTECTED_SET);
+
+    // Sensitive attribute can't be added to properties. Maybe someday
+	zend_add_parameter_attribute(zend_hash_str_find_ptr(&firebird_connection_ce->function_table,
+        "__construct", sizeof("__construct") - 1), 2, ZSTR_KNOWN(ZEND_STR_SENSITIVEPARAMETER), 0);
 
     firebird_connection_ce->create_object = firebird_connection_create;
     firebird_connection_ce->default_object_handlers = &firebird_connection_object_handlers;
@@ -1192,5 +1190,15 @@ void _php_firebird_populate_trans(zend_long trans_argl, zend_long trans_timeout,
 // }
 
 /* }}} */
+
+void dump_buffer(const unsigned char *buffer, int len){
+    for (int i=0; i<len; i++) {
+        if(buffer[i] < 31 || buffer[i] > 126)
+            php_printf("0x%02x ", buffer[i]);
+        else
+            php_printf("%c", buffer[i]);
+    }
+    php_printf("\n");
+}
 
 #endif /* HAVE_FIREBIRD */
