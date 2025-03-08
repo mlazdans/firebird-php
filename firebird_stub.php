@@ -37,6 +37,9 @@ class Connection
 class Transaction {
     use Error;
 
+    /**
+     * @param ?int $lock_timeout set lock timeout in seconds when $trans_args are set to WAIT | LOCK_TIMEOUT. Valid range 1-32767
+     */
     function __construct(
         protected Connection $db,
         protected ?int $trans_args = null,
@@ -60,6 +63,18 @@ class Transaction {
     // function query(string $query, ...$bind_args) {}
     // function prepare(string $query) {}
 }
+
+namespace FireBird\Transaction;
+const WRITE = 1;
+const READ = 2;
+const COMMITTED = 8;
+const CONSISTENCY = 16;
+const CONCURRENCY = 4;
+const REC_VERSION = 64;
+const REC_NO_VERSION = 32;
+const NOWAIT = 256;
+const WAIT = 128;
+const LOCK_TIMEOUT = 512;
 
 // class Query {
 //     function execute(...$bind_args) {}
