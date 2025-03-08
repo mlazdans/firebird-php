@@ -43,6 +43,8 @@ class Transaction {
         protected ?int $lock_timeout = null,
     ) {}
 
+    /** @return bool */
+    function start() {}
     function commit() {}
     function commit_ret() {}
     function rollback() {}

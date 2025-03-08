@@ -195,9 +195,10 @@ static void FireBird_Connection_free_obj(zend_object *obj)
 
     if(conn->handle) {
         ISC_STATUS_ARRAY status;
-        php_printf("Closing handle: %d\n", conn->handle);
-        // TODO: report errors?
-        isc_detach_database(status, &conn->handle);
+        if(isc_detach_database(status, &conn->handle)) {
+            // TODO: report errors?
+        }
+        conn->handle = 0;
     }
 
     zend_object_std_dtor(&conn->std);
