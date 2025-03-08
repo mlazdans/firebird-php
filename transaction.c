@@ -209,14 +209,10 @@ void populate_trans(zend_long trans_argl, zend_long trans_timeout, char *last_tp
     } else if (PHP_FIREBIRD_WAIT == (trans_argl & PHP_FIREBIRD_WAIT)) {
         last_tpb[tpb_len++] = isc_tpb_wait;
         if (PHP_FIREBIRD_LOCK_TIMEOUT == (trans_argl & PHP_FIREBIRD_LOCK_TIMEOUT)) {
-            if (trans_timeout <= 0 || trans_timeout > 0x7FFF) {
-                php_error_docref(NULL, E_WARNING, "Invalid lock timeout parameter");
-            } else {
-                last_tpb[tpb_len++] = isc_tpb_lock_timeout;
-                last_tpb[tpb_len++] = sizeof(ISC_SHORT);
-                last_tpb[tpb_len] = (ISC_SHORT)trans_timeout;
-                tpb_len += sizeof(ISC_SHORT);
-            }
+            last_tpb[tpb_len++] = isc_tpb_lock_timeout;
+            last_tpb[tpb_len++] = sizeof(ISC_SHORT);
+            last_tpb[tpb_len] = (ISC_SHORT)trans_timeout;
+            tpb_len += sizeof(ISC_SHORT);
         }
     }
 
