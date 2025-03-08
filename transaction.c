@@ -31,20 +31,20 @@ PHP_METHOD(Transaction, __construct) {
 
 const zend_function_entry FireBird_Transaction_methods[] = {
     PHP_ME(Transaction, __construct, arginfo_FireBird_Transaction_construct, ZEND_ACC_PUBLIC)
+    PHP_ME(Transaction, start, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
 
 static zend_object *FireBird_Transaction_create(zend_class_entry *ce)
 {
-    php_printf("firebird_transaction_create\n");
-    firebird_trans *conn = zend_object_alloc(sizeof(firebird_trans), ce);
+    firebird_trans *tr = zend_object_alloc(sizeof(firebird_trans), ce);
 
-    zend_object_std_init(&conn->std, ce);
-    object_properties_init(&conn->std, ce);
+    zend_object_std_init(&tr->std, ce);
+    object_properties_init(&tr->std, ce);
 
-    conn->handle = 0;
+    tr->handle = 0;
 
-    return &conn->std;
+    return &tr->std;
 }
 
 static void FireBird_Transaction_free_obj(zend_object *obj)
@@ -74,7 +74,7 @@ void register_FireBird_Transaction_ce()
     FireBird_Transaction_object_handlers.free_obj = FireBird_Transaction_free_obj;
 }
 
-void _php_ibase_populate_trans(zend_long trans_argl, zend_long trans_timeout, char *last_tpb, unsigned short *len)
+void populate_trans(zend_long trans_argl, zend_long trans_timeout, char *last_tpb, unsigned short *len)
 {
     unsigned short tpb_len = 0;
 

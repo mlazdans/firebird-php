@@ -38,6 +38,8 @@
 #define METADATALENGTH 68
 #endif
 
+#define TPB_MAX_SIZE (8*sizeof(char))
+
 // #define RESET_ERRMSG do { IBG(errmsg)[0] = '\0'; IBG(sql_code) = 0; } while (0)
 
 // #define IB_STATUS (IBG(status))
@@ -83,13 +85,13 @@ typedef struct {
     // unsigned short dialect;
     // struct event *event_head;
     zend_object std;
-} firebird_db_link;
+} firebird_db_connection;
 
 typedef struct {
     isc_tr_handle handle;
     // unsigned short link_cnt;
     // unsigned long affected_rows;
-    // firebird_db_link *db_link[1]; /* last member */
+    // firebird_db_connection *db_link[1]; /* last member */
     zend_object std;
 } firebird_trans;
 
@@ -105,7 +107,7 @@ typedef struct {
 } firebird_blob;
 
 typedef struct event {
-    firebird_db_link *link;
+    firebird_db_connection *link;
     zend_resource* link_res;
     ISC_LONG event_id;
     unsigned short event_count;
@@ -178,7 +180,7 @@ void _php_firebird_module_error(char *, ...)
 #define PHP_FIREBIRD_LINK_TRANS(zv, lh, th)                                                    \
         do {                                                                                \
             if (!zv) {                                                                      \
-                lh = (firebird_db_link *)zend_fetch_resource2(                                 \
+                lh = (firebird_db_connection *)zend_fetch_resource2(                                 \
                     IBG(default_link), "InterBase link", le_link, le_plink);                \
             } else {                                                                        \
                 _php_firebird_get_link_trans(INTERNAL_FUNCTION_PARAM_PASSTHRU, zv, &lh, &th);  \
@@ -186,9 +188,9 @@ void _php_firebird_module_error(char *, ...)
             if (SUCCESS != _php_firebird_def_trans(lh, &th)) { RETURN_FALSE; }                 \
         } while (0)
 
-int _php_firebird_def_trans(firebird_db_link *ib_link, firebird_trans **trans);
+int _php_firebird_def_trans(firebird_db_connection *ib_link, firebird_trans **trans);
 void _php_firebird_get_link_trans(INTERNAL_FUNCTION_PARAMETERS, zval *link_id,
-    firebird_db_link **ib_link, firebird_trans **trans);
+    firebird_db_connection **ib_link, firebird_trans **trans);
 
 /* provided by firebird_query.c */
 void php_firebird_query_minit(INIT_FUNC_ARGS);
@@ -224,10 +226,10 @@ void php_firebird_service_minit(INIT_FUNC_ARGS);
 } while (0)
 
 #define Z_CONNECTION_P(zv) \
-    ((firebird_db_link*)((char*)(Z_OBJ_P(zv)) - XtOffsetOf(firebird_db_link, std)))
+    ((firebird_db_connection*)((char*)(Z_OBJ_P(zv)) - XtOffsetOf(firebird_db_connection, std)))
 
 #define Z_CONNECTION_O(obj) \
-    ((firebird_db_link*)((char*)(obj) - XtOffsetOf(firebird_db_link, std)))
+    ((firebird_db_connection*)((char*)(obj) - XtOffsetOf(firebird_db_connection, std)))
 
 #define Z_TRANSACTION_P(zv) \
     ((firebird_trans*)((char*)(Z_OBJ_P(zv)) - XtOffsetOf(firebird_trans, std)))
@@ -235,10 +237,7 @@ void php_firebird_service_minit(INIT_FUNC_ARGS);
 #define Z_TRANSACTION_O(obj) \
     ((firebird_trans*)((char*)(obj) - XtOffsetOf(firebird_trans, std)))
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_firebird_void, 0, 0, 0)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_firebird_bool, 0, 0, _IS_BOOL, 0)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_none_return_bool, 0, 0, _IS_BOOL, 0)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_FireBird_Connection_construct, 0, 0, 0)
@@ -271,6 +270,7 @@ extern void register_FireBird_Transaction_ce();
 
 void dump_buffer(const unsigned char *buffer, int len);
 bool update_err_props(ISC_STATUS_ARRAY status, zend_class_entry *class_ce, zend_object *obj);
+void populate_trans(zend_long trans_argl, zend_long trans_timeout, char *last_tpb, unsigned short *len);
 
 // C++ experiments
 // #ifdef __cplusplus

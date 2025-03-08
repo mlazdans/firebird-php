@@ -88,7 +88,7 @@ ZEND_GET_MODULE(firebird)
 
 /* Fill ib_link and trans with the correct database link and transaction. */
 // void _php_firebird_get_link_trans(INTERNAL_FUNCTION_PARAMETERS, /* {{{ */
-// 	zval *link_id, firebird_db_link **ib_link, firebird_trans **trans)
+// 	zval *link_id, firebird_db_connection **ib_link, firebird_trans **trans)
 // {
 // 	IBDEBUG("Transaction or database link?");
 // 	if (Z_RES_P(link_id)->type == le_trans) {
@@ -107,13 +107,13 @@ ZEND_GET_MODULE(firebird)
 // 	IBDEBUG("Type is le_[p]link or id not found");
 // 	/* Database link resource, use default transaction. */
 // 	*trans = NULL;
-// 	*ib_link = (firebird_db_link *)zend_fetch_resource2_ex(link_id, LE_LINK, le_link, le_plink);
+// 	*ib_link = (firebird_db_connection *)zend_fetch_resource2_ex(link_id, LE_LINK, le_link, le_plink);
 // }
 /* }}} */
 
 /* destructors ---------------------- */
 
-// static void _php_firebird_commit_link(firebird_db_link *link) /* {{{ */
+// static void _php_firebird_commit_link(firebird_db_connection *link) /* {{{ */
 // {
 // 	unsigned short i = 0, j;
 // 	firebird_tr_list *l;
@@ -163,7 +163,7 @@ ZEND_GET_MODULE(firebird)
 
 // static void php_firebird_commit_link_rsrc(zend_resource *rsrc) /* {{{ */
 // {
-// 	firebird_db_link *link = (firebird_db_link *) rsrc->ptr;
+// 	firebird_db_connection *link = (firebird_db_connection *) rsrc->ptr;
 
 // 	_php_firebird_commit_link(link);
 // }
@@ -171,7 +171,7 @@ ZEND_GET_MODULE(firebird)
 
 // static void _php_firebird_close_link(zend_resource *rsrc) /* {{{ */
 // {
-// 	firebird_db_link *link = (firebird_db_link *) rsrc->ptr;
+// 	firebird_db_connection *link = (firebird_db_connection *) rsrc->ptr;
 
 // 	_php_firebird_commit_link(link);
 // 	if (link->handle != 0) {
@@ -185,7 +185,7 @@ ZEND_GET_MODULE(firebird)
 
 // static void _php_firebird_close_plink(zend_resource *rsrc) /* {{{ */
 // {
-// 	firebird_db_link *link = (firebird_db_link *) rsrc->ptr;
+// 	firebird_db_connection *link = (firebird_db_connection *) rsrc->ptr;
 
 // 	_php_firebird_commit_link(link);
 // 	IBDEBUG("Closing permanent link...");
@@ -484,7 +484,7 @@ PHP_MINFO_FUNCTION(firebird)
 // PHP_FUNCTION(firebird_drop_db)
 // {
 // 	zval *link_arg = NULL;
-// 	firebird_db_link *ib_link;
+// 	firebird_db_connection *ib_link;
 // 	firebird_tr_list *l;
 // 	zend_resource *link_res;
 
@@ -502,7 +502,7 @@ PHP_MINFO_FUNCTION(firebird)
 // 		link_res = Z_RES_P(link_arg);
 // 	}
 
-// 	ib_link = (firebird_db_link *)zend_fetch_resource2(link_res, LE_LINK, le_link, le_plink);
+// 	ib_link = (firebird_db_connection *)zend_fetch_resource2(link_res, LE_LINK, le_link, le_plink);
 
 // 	if (!ib_link) {
 // 		RETURN_FALSE;
@@ -527,14 +527,12 @@ PHP_MINFO_FUNCTION(firebird)
 /* {{{ proto resource firebird_trans([int trans_args [, resource link_identifier [, ... ], int trans_args [, resource link_identifier [, ... ]] [, ...]]])
    Start a transaction over one or several databases */
 
-#define TPB_MAX_SIZE (8*sizeof(char))
-
 // PHP_FUNCTION(firebird_trans)
 // {
 // 	unsigned short i, link_cnt = 0, tpb_len = 0;
 // 	int argn = ZEND_NUM_ARGS();
 // 	char last_tpb[TPB_MAX_SIZE];
-// 	firebird_db_link **ib_link = NULL;
+// 	firebird_db_connection **ib_link = NULL;
 // 	firebird_trans *ib_trans;
 // 	isc_tr_handle tr_handle = 0;
 // 	ISC_STATUS result;
@@ -542,7 +540,7 @@ PHP_MINFO_FUNCTION(firebird)
 // 	RESET_ERRMSG;
 
 // 	/* (1+argn) is an upper bound for the number of links this trans connects to */
-// 	ib_link = (firebird_db_link **) safe_emalloc(sizeof(firebird_db_link *),1+argn,0);
+// 	ib_link = (firebird_db_connection **) safe_emalloc(sizeof(firebird_db_connection *),1+argn,0);
 
 // 	if (argn > 0) {
 // 		zend_long trans_argl = 0;
@@ -565,7 +563,7 @@ PHP_MINFO_FUNCTION(firebird)
 
 // 			if (Z_TYPE(args[i]) == IS_RESOURCE) {
 
-// 				if ((ib_link[link_cnt] = (firebird_db_link *)zend_fetch_resource2_ex(&args[i], LE_LINK, le_link, le_plink)) == NULL) {
+// 				if ((ib_link[link_cnt] = (firebird_db_connection *)zend_fetch_resource2_ex(&args[i], LE_LINK, le_link, le_plink)) == NULL) {
 // 					efree(teb);
 // 					efree(tpb);
 // 					efree(ib_link);
@@ -616,7 +614,7 @@ PHP_MINFO_FUNCTION(firebird)
 
 // 	if (link_cnt == 0) {
 // 		link_cnt = 1;
-// 		if ((ib_link[0] = (firebird_db_link *)zend_fetch_resource2(IBG(default_link), LE_LINK, le_link, le_plink)) == NULL) {
+// 		if ((ib_link[0] = (firebird_db_connection *)zend_fetch_resource2(IBG(default_link), LE_LINK, le_link, le_plink)) == NULL) {
 // 			efree(ib_link);
 // 			RETURN_FALSE;
 // 		}
@@ -631,7 +629,7 @@ PHP_MINFO_FUNCTION(firebird)
 // 	}
 
 // 	/* register the transaction in our own data structures */
-// 	ib_trans = (firebird_trans *) safe_emalloc(link_cnt-1, sizeof(firebird_db_link *), sizeof(firebird_trans));
+// 	ib_trans = (firebird_trans *) safe_emalloc(link_cnt-1, sizeof(firebird_db_connection *), sizeof(firebird_trans));
 // 	ib_trans->handle = tr_handle;
 // 	ib_trans->link_cnt = link_cnt;
 // 	ib_trans->affected_rows = 0;
@@ -658,7 +656,7 @@ PHP_MINFO_FUNCTION(firebird)
 // }
 /* }}} */
 
-// int _php_firebird_def_trans(firebird_db_link *ib_link, firebird_trans **trans) /* {{{ */
+// int _php_firebird_def_trans(firebird_db_connection *ib_link, firebird_trans **trans) /* {{{ */
 // {
 // 	if (ib_link == NULL) {
 // 		php_error_docref(NULL, E_WARNING, "Invalid database link");
@@ -713,7 +711,7 @@ PHP_MINFO_FUNCTION(firebird)
 // 	firebird_trans *trans = NULL;
 // 	int res_id = 0;
 // 	ISC_STATUS result;
-// 	firebird_db_link *ib_link;
+// 	firebird_db_connection *ib_link;
 // 	zval *arg = NULL;
 
 // 	RESET_ERRMSG;
@@ -723,7 +721,7 @@ PHP_MINFO_FUNCTION(firebird)
 // 	}
 
 // 	if (ZEND_NUM_ARGS() == 0) {
-// 		ib_link = (firebird_db_link *)zend_fetch_resource2(IBG(default_link), LE_LINK, le_link, le_plink);
+// 		ib_link = (firebird_db_connection *)zend_fetch_resource2(IBG(default_link), LE_LINK, le_link, le_plink);
 // 		if (ib_link->tr_list == NULL || ib_link->tr_list->trans == NULL) {
 // 			/* this link doesn't have a default transaction */
 // 			_php_firebird_module_error("Default link has no default transaction");
@@ -736,7 +734,7 @@ PHP_MINFO_FUNCTION(firebird)
 // 			trans = (firebird_trans *)zend_fetch_resource_ex(arg, LE_TRANS, le_trans);
 // 			res_id = Z_RES_P(arg)->handle;
 // 		} else {
-// 			ib_link = (firebird_db_link *)zend_fetch_resource2_ex(arg, LE_LINK, le_link, le_plink);
+// 			ib_link = (firebird_db_connection *)zend_fetch_resource2_ex(arg, LE_LINK, le_link, le_plink);
 
 // 			if (ib_link->tr_list == NULL || ib_link->tr_list->trans == NULL) {
 // 				/* this link doesn't have a default transaction */
@@ -815,7 +813,7 @@ PHP_MINFO_FUNCTION(firebird)
 // 	char query[128], *generator;
 // 	size_t gen_len;
 // 	zend_long inc = 1;
-// 	firebird_db_link *ib_link;
+// 	firebird_db_connection *ib_link;
 // 	firebird_trans *trans = NULL;
 // 	XSQLDA out_sqlda;
 // 	ISC_INT64 result;
