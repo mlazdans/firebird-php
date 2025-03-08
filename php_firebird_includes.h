@@ -257,7 +257,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_FireBird_Transaction_construct, 0, 0, 1)
     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, lock_timeout, IS_LONG, 1, "null")
 ZEND_END_ARG_INFO()
 
-extern zend_class_entry *firebird_connection_ce;
+extern zend_class_entry *FireBird_Connection_ce;
 extern zend_class_entry *Firebird_Transaction_ce;
 extern void register_FireBird_Connection_ce();
 extern void register_FireBird_Transaction_ce();

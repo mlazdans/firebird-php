@@ -16,7 +16,7 @@ PHP_METHOD(Transaction, __construct) {
     bool trans_args_is_null = 1, lock_timeout_is_null = 1;
 
     ZEND_PARSE_PARAMETERS_START(1, 3)
-        Z_PARAM_OBJECT_OF_CLASS(connection_obj, firebird_connection_ce)
+        Z_PARAM_OBJECT_OF_CLASS(connection_obj, FireBird_Connection_ce)
         Z_PARAM_OPTIONAL
         Z_PARAM_LONG_OR_NULL(trans_args, trans_args_is_null)
         Z_PARAM_LONG_OR_NULL(lock_timeout, lock_timeout_is_null)
