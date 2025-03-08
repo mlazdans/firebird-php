@@ -34,20 +34,22 @@ class Connection
     // }
 }
 
-// class Transaction {
-//     function __construct(
-//         private Connection $db,
-//         private int $trans_args
-//     ) {
-//     }
+class Transaction {
+    use Error;
 
-//     function commit() {}
-//     function commit_ret() {}
-//     function rollback() {}
-//     function rollback_ret() {}
-//     function query(string $query, ...$bind_args) {}
-//     function prepare(string $query) {}
-// }
+    function __construct(
+        protected Connection $db,
+        protected ?int $trans_args = null,
+        protected ?int $lock_timeout = null,
+    ) {}
+
+    function commit() {}
+    function commit_ret() {}
+    function rollback() {}
+    function rollback_ret() {}
+    // function query(string $query, ...$bind_args) {}
+    // function prepare(string $query) {}
+}
 
 // class Query {
 //     function execute(...$bind_args) {}
