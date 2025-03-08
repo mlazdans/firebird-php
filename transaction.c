@@ -14,7 +14,6 @@ static zend_object_handlers FireBird_Transaction_object_handlers;
 PHP_METHOD(Transaction, __construct) {
     zend_long trans_args = 0, lock_timeout = 0;
     zval *connection;
-
     bool trans_args_is_null = 1, lock_timeout_is_null = 1;
 
     ZEND_PARSE_PARAMETERS_START(1, 3)
@@ -26,7 +25,7 @@ PHP_METHOD(Transaction, __construct) {
 
     zend_update_property(FireBird_Transaction_ce, Z_OBJ_P(ZEND_THIS), "connection", sizeof("connection") - 1, connection);
 
-    if(!lock_timeout_is_null) zend_update_property_long(FireBird_Transaction_ce, Z_OBJ_P(ZEND_THIS), "trans_args", sizeof("trans_args") - 1, trans_args);
+    if(!trans_args_is_null) zend_update_property_long(FireBird_Transaction_ce, Z_OBJ_P(ZEND_THIS), "trans_args", sizeof("trans_args") - 1, trans_args);
     if(!lock_timeout_is_null) zend_update_property_long(FireBird_Transaction_ce, Z_OBJ_P(ZEND_THIS), "lock_timeout", sizeof("lock_timeout") - 1, lock_timeout);
 }
 
