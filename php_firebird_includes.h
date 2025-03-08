@@ -87,9 +87,10 @@ typedef struct {
 
 typedef struct {
     isc_tr_handle handle;
-    unsigned short link_cnt;
-    unsigned long affected_rows;
-    firebird_db_link *db_link[1]; /* last member */
+    // unsigned short link_cnt;
+    // unsigned long affected_rows;
+    // firebird_db_link *db_link[1]; /* last member */
+    zend_object std;
 } firebird_trans;
 
 typedef struct tr_list {
@@ -228,6 +229,12 @@ void php_firebird_service_minit(INIT_FUNC_ARGS);
 #define Z_CONNECTION_O(obj) \
     ((firebird_db_link*)((char*)(obj) - XtOffsetOf(firebird_db_link, std)))
 
+#define Z_TRANSACTION_P(zv) \
+    ((firebird_trans*)((char*)(Z_OBJ_P(zv)) - XtOffsetOf(firebird_trans, std)))
+
+#define Z_TRANSACTION_O(obj) \
+    ((firebird_trans*)((char*)(obj) - XtOffsetOf(firebird_trans, std)))
+
 ZEND_BEGIN_ARG_INFO_EX(arginfo_firebird_void, 0, 0, 0)
 ZEND_END_ARG_INFO()
 
@@ -250,7 +257,8 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_FireBird_Transaction_construct, 0, 0, 1)
     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, lock_timeout, IS_LONG, 1, "null")
 ZEND_END_ARG_INFO()
 
-extern zend_class_entry *irebird_connection_ce;
+extern zend_class_entry *firebird_connection_ce;
+extern zend_class_entry *Firebird_Transaction_ce;
 extern void register_FireBird_Connection_ce();
 extern void register_FireBird_Transaction_ce();
 

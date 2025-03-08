@@ -366,7 +366,8 @@ PHP_MINIT_FUNCTION(firebird)
     SIGG(check) = 0;
 #endif
 
-    firebird_register_connection_ce();
+    register_FireBird_Connection_ce();
+    register_FireBird_Transaction_ce();
 
     return SUCCESS;
 }
@@ -527,54 +528,6 @@ PHP_MINFO_FUNCTION(firebird)
    Start a transaction over one or several databases */
 
 #define TPB_MAX_SIZE (8*sizeof(char))
-
-void _php_firebird_populate_trans(zend_long trans_argl, zend_long trans_timeout, char *last_tpb, unsigned short *len) /* {{{ */
-{
-    unsigned short tpb_len = 0;
-    if (trans_argl != PHP_FIREBIRD_DEFAULT) {
-        last_tpb[tpb_len++] = isc_tpb_version3;
-
-        /* access mode */
-        if (PHP_FIREBIRD_READ == (trans_argl & PHP_FIREBIRD_READ)) {
-            last_tpb[tpb_len++] = isc_tpb_read;
-        } else if (PHP_FIREBIRD_WRITE == (trans_argl & PHP_FIREBIRD_WRITE)) {
-            last_tpb[tpb_len++] = isc_tpb_write;
-        }
-
-        /* isolation level */
-        if (PHP_FIREBIRD_COMMITTED == (trans_argl & PHP_FIREBIRD_COMMITTED)) {
-            last_tpb[tpb_len++] = isc_tpb_read_committed;
-            if (PHP_FIREBIRD_REC_VERSION == (trans_argl & PHP_FIREBIRD_REC_VERSION)) {
-                last_tpb[tpb_len++] = isc_tpb_rec_version;
-            } else if (PHP_FIREBIRD_REC_NO_VERSION == (trans_argl & PHP_FIREBIRD_REC_NO_VERSION)) {
-                last_tpb[tpb_len++] = isc_tpb_no_rec_version;
-            }
-        } else if (PHP_FIREBIRD_CONSISTENCY == (trans_argl & PHP_FIREBIRD_CONSISTENCY)) {
-            last_tpb[tpb_len++] = isc_tpb_consistency;
-        } else if (PHP_FIREBIRD_CONCURRENCY == (trans_argl & PHP_FIREBIRD_CONCURRENCY)) {
-            last_tpb[tpb_len++] = isc_tpb_concurrency;
-        }
-
-        /* lock resolution */
-        if (PHP_FIREBIRD_NOWAIT == (trans_argl & PHP_FIREBIRD_NOWAIT)) {
-            last_tpb[tpb_len++] = isc_tpb_nowait;
-        } else if (PHP_FIREBIRD_WAIT == (trans_argl & PHP_FIREBIRD_WAIT)) {
-            last_tpb[tpb_len++] = isc_tpb_wait;
-            if (PHP_FIREBIRD_LOCK_TIMEOUT == (trans_argl & PHP_FIREBIRD_LOCK_TIMEOUT)) {
-                if (trans_timeout <= 0 || trans_timeout > 0x7FFF) {
-                    php_error_docref(NULL, E_WARNING, "Invalid timeout parameter");
-                } else {
-                    last_tpb[tpb_len++] = isc_tpb_lock_timeout;
-                    last_tpb[tpb_len++] = sizeof(ISC_SHORT);
-                    last_tpb[tpb_len] = (ISC_SHORT)trans_timeout;
-                    tpb_len += sizeof(ISC_SHORT);
-                }
-            }
-        }
-    }
-    *len = tpb_len;
-}
-/* }}} */
 
 // PHP_FUNCTION(firebird_trans)
 // {
