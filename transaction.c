@@ -7,6 +7,10 @@
 zend_class_entry *FireBird_Transaction_ce;
 static zend_object_handlers FireBird_Transaction_object_handlers;
 
+#define ROLLBACK    0
+#define COMMIT      1
+#define RETAIN      2
+
 PHP_METHOD(Transaction, __construct) {
     zend_long trans_args = 0, lock_timeout = 0;
     zval *connection;
@@ -57,9 +61,66 @@ PHP_METHOD(Transaction, start) {
     RETURN_TRUE;
 }
 
+bool process_trans(zend_object *obj, int commit) {
+    zval rv, *val;
+    ISC_STATUS result;
+    ISC_STATUS_ARRAY status;
+
+    val = zend_read_property(FireBird_Transaction_ce, obj, "connection", sizeof("connection") - 1, 0, &rv);
+    firebird_db_connection *conn = Z_CONNECTION_P(val);
+    firebird_trans *tr = Z_TRANSACTION_O(obj);
+
+    switch (commit) {
+        default: /* == case ROLLBACK: */
+            result = isc_rollback_transaction(status, &tr->handle);
+            break;
+        case COMMIT:
+            result = isc_commit_transaction(status, &tr->handle);
+            break;
+        case (ROLLBACK | RETAIN):
+            result = isc_rollback_retaining(status, &tr->handle);
+            break;
+        case (COMMIT | RETAIN):
+            result = isc_commit_retaining(status, &tr->handle);
+            break;
+    }
+
+    if (result) {
+        update_err_props(status, FireBird_Transaction_ce, obj);
+        return false;
+    } else {
+        return true;
+    }
+}
+
+PHP_METHOD(Transaction, commit) {
+    ZEND_PARSE_PARAMETERS_NONE();
+    RETURN_BOOL(process_trans(Z_OBJ_P(ZEND_THIS), COMMIT));
+}
+
+PHP_METHOD(Transaction, commit_ret) {
+    ZEND_PARSE_PARAMETERS_NONE();
+    RETURN_BOOL(process_trans(Z_OBJ_P(ZEND_THIS), COMMIT | RETAIN));
+}
+
+PHP_METHOD(Transaction, rollback) {
+    ZEND_PARSE_PARAMETERS_NONE();
+    RETURN_BOOL(process_trans(Z_OBJ_P(ZEND_THIS), ROLLBACK));
+}
+
+PHP_METHOD(Transaction, rollback_ret) {
+    ZEND_PARSE_PARAMETERS_NONE();
+    RETURN_BOOL(process_trans(Z_OBJ_P(ZEND_THIS), ROLLBACK | RETAIN));
+}
+
 const zend_function_entry FireBird_Transaction_methods[] = {
     PHP_ME(Transaction, __construct, arginfo_FireBird_Transaction_construct, ZEND_ACC_PUBLIC)
     PHP_ME(Transaction, start, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
+    PHP_ME(Transaction, commit, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
+    PHP_ME(Transaction, commit_ret, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
+    PHP_ME(Transaction, rollback, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
+    PHP_ME(Transaction, rollback_ret, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
+
     PHP_FE_END
 };
 

@@ -45,9 +45,17 @@ class Transaction {
 
     /** @return bool */
     function start() {}
+
+    /** @return bool */
     function commit() {}
+
+    /** @return bool */
     function commit_ret() {}
+
+    /** @return bool */
     function rollback() {}
+
+    /** @return bool */
     function rollback_ret() {}
     // function query(string $query, ...$bind_args) {}
     // function prepare(string $query) {}
