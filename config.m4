@@ -69,7 +69,7 @@ if test "$PHP_FIREBIRD" != "no"; then
     [PHP_ADD_SOURCES_X([$ext_dir],
       [$PHP_FIREBIRD_CXX_SOURCES],
       [$PHP_FIREBIRD_STDCXX],
-      [shared_objects_FIREBIRD],
+      [shared_objects_firebird],
       [yes])])
 
 fi
