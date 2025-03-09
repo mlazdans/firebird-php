@@ -60,6 +60,7 @@ PHP_METHOD(Query, query)
 
     stmt->db_handle = q->db_handle;
     stmt->tr_handle = q->tr_handle;
+    stmt->has_more_rows = 1;
 
     if (isc_dsql_allocate_statement(status, &stmt->db_handle, &stmt->stmt_handle)) {
         update_err_props(status, FireBird_Query_ce, Z_OBJ_P(ZEND_THIS));

@@ -104,7 +104,7 @@ typedef struct firebird_stmt {
     isc_tr_handle tr_handle;
     isc_stmt_handle stmt_handle;
     XSQLDA *in_sqlda, *out_sqlda;
-    char statement_type;
+    unsigned char statement_type, has_more_rows;
     firebird_array *in_array, *out_array;
     unsigned short in_array_cnt, out_array_cnt;
     // unsigned short dialect;
