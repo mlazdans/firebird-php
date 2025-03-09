@@ -106,6 +106,11 @@ typedef struct firebird_stmt {
     zend_object std;
 } firebird_stmt;
 
+typedef struct firebird_vary {
+	unsigned short vary_length;
+	char vary_string[1];
+} firebird_vary;
+
 // typedef struct tr_list {
 //     firebird_trans *trans;
 //     struct tr_list *next;
@@ -275,6 +280,12 @@ ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Transacti
     ZEND_ARG_VARIADIC_INFO(0, bind_args)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_FireBird_Statement_fetch_row, 0, 0, MAY_BE_ARRAY|MAY_BE_FALSE|MAY_BE_NULL)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_FireBird_Statement_fetch_object, 0, 0, MAY_BE_OBJECT|MAY_BE_FALSE|MAY_BE_NULL)
+ZEND_END_ARG_INFO()
+
 extern zend_class_entry *FireBird_Connection_ce;
 extern zend_class_entry *FireBird_Transaction_ce;
 extern zend_class_entry *FireBird_Statement_ce;
@@ -303,7 +314,7 @@ void dump_buffer(const unsigned char *buffer, int len);
 bool update_err_props_ex(ISC_STATUS_ARRAY status, zend_class_entry *class_ce, zend_object *obj, const char *file_name, size_t line_num);
 void populate_trans(zend_long trans_argl, zend_long trans_timeout, char *last_tpb, unsigned short *len);
 
-#define update_err_props(status, class_ce, obj) update_err_props_ex(status, class_ce, obj, __FILE__, __LINE__);
+#define update_err_props(status, class_ce, obj) update_err_props_ex(status, class_ce, obj, __FILE__, __LINE__)
 
 // C++ experiments
 // #ifdef __cplusplus

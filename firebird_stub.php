@@ -70,13 +70,13 @@ class Transaction {
 class Statement {
     use Error;
 
-    /** @return object | false */
+    /** @return object | false | null */
     function fetch_object() {}
 
-    /** @return array | false */
+    /** @return array | false | null */
     function fetch_array() {}
 
-    /** @return array | false */
+    /** @return array | false | null */
     function fetch_row() {}
 }
 
