@@ -64,6 +64,16 @@ class Transaction {
     // function prepare(string $query) {}
 }
 
+class Statement {
+    use Error;
+
+    /** @return object | false */
+    function fetch_object() {}
+
+    /** @return array | false */
+    function fetch_array() {}
+}
+
 class Query {
     use Error;
 
@@ -71,6 +81,7 @@ class Query {
         protected Transaction $tr,
     ) {}
 
+    /** @return Statement | false */
     function query(string $sql, ...$bind_args) {}
 }
 

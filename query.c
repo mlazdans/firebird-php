@@ -7,8 +7,7 @@
 zend_class_entry *FireBird_Query_ce;
 static zend_object_handlers FireBird_Query_object_handlers;
 
-static int alloc_array(firebird_array **ib_arrayp, unsigned short *array_cnt, XSQLDA *sqlda, zend_object *obj);
-static void free_query(firebird_query *ib_query);
+// static int alloc_array(firebird_array **ib_arrayp, unsigned short *array_cnt, XSQLDA *sqlda, zend_object *obj);
 
 PHP_METHOD(Query, __construct)
 {
@@ -51,92 +50,93 @@ PHP_METHOD(Query, query)
     php_printf("sql=%s\n", ZSTR_VAL(sql));
     for (i = 0; i < num_bind_args; i++) {
         php_printf("    arg=%s\n", zend_zval_type_name(&bind_args[i]));
-        // php_compact_var(symbol_table, return_value, &args[i], i + 1);
     }
 
-    if (isc_dsql_allocate_statement(status, &q->db_handle, &q->stmt_handle)) {
+    // zval *v = emalloc(sizeof(zval));
+    zval v;
+    object_init_ex(&v, FireBird_Statement_ce);
+    zend_object *stmt_o = Z_OBJ(v);
+    firebird_stmt *stmt = Z_STMT_O(stmt_o);
+
+    stmt->db_handle = q->db_handle;
+    stmt->tr_handle = q->tr_handle;
+
+    if (isc_dsql_allocate_statement(status, &stmt->db_handle, &stmt->stmt_handle)) {
         update_err_props(status, FireBird_Query_ce, Z_OBJ_P(ZEND_THIS));
-        goto query_error;
+        RETURN_FALSE;
     }
 
-    q->out_sqlda = (XSQLDA *) emalloc(XSQLDA_LENGTH(1));
-    q->out_sqlda->sqln = 1;
-    q->out_sqlda->version = SQLDA_CURRENT_VERSION;
+    stmt->out_sqlda = (XSQLDA *) emalloc(XSQLDA_LENGTH(1));
+    stmt->out_sqlda->sqln = 1;
+    stmt->out_sqlda->version = SQLDA_CURRENT_VERSION;
 
-    if (isc_dsql_prepare(status, &q->tr_handle, &q->stmt_handle, 0, ZSTR_VAL(sql), SQL_DIALECT_CURRENT, q->out_sqlda)) {
+    if (isc_dsql_prepare(status, &stmt->tr_handle, &stmt->stmt_handle, 0, ZSTR_VAL(sql), SQL_DIALECT_CURRENT, stmt->out_sqlda)) {
         update_err_props(status, FireBird_Query_ce, Z_OBJ_P(ZEND_THIS));
-        goto query_error;
+        RETURN_FALSE;
     }
 
     static char info_type[] = { isc_info_sql_stmt_type };
     char result[8];
 
     /* find out what kind of statement was prepared */
-    if (isc_dsql_sql_info(status, &q->stmt_handle, sizeof(info_type), info_type, sizeof(result), result)) {
+    if (isc_dsql_sql_info(status, &stmt->stmt_handle, sizeof(info_type), info_type, sizeof(result), result)) {
         update_err_props(status, FireBird_Query_ce, Z_OBJ_P(ZEND_THIS));
-        goto query_error;
+        RETURN_FALSE;
     }
 
-    q->statement_type = result[3];
+    stmt->statement_type = result[3];
 
-    if (q->out_sqlda->sqld > q->out_sqlda->sqln) {
-        q->out_sqlda = erealloc(q->out_sqlda, XSQLDA_LENGTH(q->out_sqlda->sqld));
-        q->out_sqlda->sqln = q->out_sqlda->sqld;
-        q->out_sqlda->version = SQLDA_CURRENT_VERSION;
-        if (isc_dsql_describe(status, &q->stmt_handle, SQLDA_CURRENT_VERSION, q->out_sqlda)) {
+    if (stmt->out_sqlda->sqld > stmt->out_sqlda->sqln) {
+        stmt->out_sqlda = erealloc(stmt->out_sqlda, XSQLDA_LENGTH(stmt->out_sqlda->sqld));
+        stmt->out_sqlda->sqln = stmt->out_sqlda->sqld;
+        stmt->out_sqlda->version = SQLDA_CURRENT_VERSION;
+        if (isc_dsql_describe(status, &stmt->stmt_handle, SQLDA_CURRENT_VERSION, stmt->out_sqlda)) {
             update_err_props(status, FireBird_Query_ce, Z_OBJ_P(ZEND_THIS));
-            goto query_error;
+            RETURN_FALSE;
         }
     }
 
     /* maybe have input placeholders? */
-    q->in_sqlda = emalloc(XSQLDA_LENGTH(1));
-    q->in_sqlda->sqln = 1;
-    q->in_sqlda->version = SQLDA_CURRENT_VERSION;
-    if (isc_dsql_describe_bind(status, &q->stmt_handle, SQLDA_CURRENT_VERSION, q->in_sqlda)) {
+    stmt->in_sqlda = emalloc(XSQLDA_LENGTH(1));
+    stmt->in_sqlda->sqln = 1;
+    stmt->in_sqlda->version = SQLDA_CURRENT_VERSION;
+    if (isc_dsql_describe_bind(status, &stmt->stmt_handle, SQLDA_CURRENT_VERSION, stmt->in_sqlda)) {
         update_err_props(status, FireBird_Query_ce, Z_OBJ_P(ZEND_THIS));
-        goto query_error;
+        RETURN_FALSE;
     }
 
     /* not enough input variables ? */
-    if (q->in_sqlda->sqln < q->in_sqlda->sqld) {
-        q->in_sqlda = erealloc(q->in_sqlda, XSQLDA_LENGTH(q->in_sqlda->sqld));
-        q->in_sqlda->sqln = q->in_sqlda->sqld;
-        q->in_sqlda->version = SQLDA_CURRENT_VERSION;
+    if (stmt->in_sqlda->sqln < stmt->in_sqlda->sqld) {
+        stmt->in_sqlda = erealloc(stmt->in_sqlda, XSQLDA_LENGTH(stmt->in_sqlda->sqld));
+        stmt->in_sqlda->sqln = stmt->in_sqlda->sqld;
+        stmt->in_sqlda->version = SQLDA_CURRENT_VERSION;
 
-        if (isc_dsql_describe_bind(status, &q->stmt_handle, SQLDA_CURRENT_VERSION, q->in_sqlda)) {
+        if (isc_dsql_describe_bind(status, &stmt->stmt_handle, SQLDA_CURRENT_VERSION, stmt->in_sqlda)) {
             update_err_props(status, FireBird_Query_ce, Z_OBJ_P(ZEND_THIS));
-            goto query_error;
+            RETURN_FALSE;
         }
     }
 
+    RETVAL_OBJ(stmt_o);
+
+    // TODO: handle SQL_ARRAY
+
     /* no, haven't placeholders at all */
-    if (q->in_sqlda->sqld == 0) {
-        efree(q->in_sqlda);
-        q->in_sqlda = NULL;
-    } else if (FAILURE == alloc_array(&q->in_array, &q->in_array_cnt, q->in_sqlda, Z_OBJ_P(ZEND_THIS))) {
-        // update_err_props(status, FireBird_Query_ce, Z_OBJ_P(ZEND_THIS));
-        goto query_error;
-    }
+    // if (q->in_sqlda->sqld == 0) {
+    //     efree(q->in_sqlda);
+    //     q->in_sqlda = NULL;
+    // // } else if (FAILURE == alloc_arraqy(&q->in_array, &q->in_array_cnt, q->in_sqlda, Z_OBJ_P(ZEND_THIS))) {
+    // //     // update_err_props(status, FireBird_Query_ce, Z_OBJ_P(ZEND_THIS));
+    // //     goto query_error;
+    // }
 
-    if (q->out_sqlda->sqld == 0) {
-        efree(q->out_sqlda);
-        q->out_sqlda = NULL;
-    } else if (FAILURE == alloc_array(&q->out_array, &q->out_array_cnt, q->out_sqlda, Z_OBJ_P(ZEND_THIS))) {
-        // update_err_props(status, FireBird_Query_ce, Z_OBJ_P(ZEND_THIS));
-        goto query_error;
-    }
-
-    RETURN_TRUE;
-
-query_error:
-    if (q->out_sqlda) {
-        efree(q->out_sqlda);
-    }
-    if (q->in_sqlda) {
-        efree(q->in_sqlda);
-    }
-    RETURN_FALSE;
+    // if (q->out_sqlda->sqld == 0) {
+    //     efree(q->out_sqlda);
+    //     q->out_sqlda = NULL;
+    // // } else if (FAILURE == alloc_array(&q->out_array, &q->out_array_cnt, q->out_sqlda, Z_OBJ_P(ZEND_THIS))) {
+    // //     // update_err_props(status, FireBird_Query_ce, Z_OBJ_P(ZEND_THIS));
+    // //     goto query_error;
+    // }
 }
 
 const zend_function_entry FireBird_Query_methods[] = {
@@ -161,8 +161,6 @@ static void FireBird_Query_free_obj(zend_object *obj)
     php_printf("FireBird_Query_free_obj\n");
     firebird_query *q = Z_QUERY_O(obj);
 
-    free_query(q);
-
     zend_object_std_dtor(&q->std);
 }
 
@@ -184,147 +182,132 @@ void register_FireBird_Query_ce()
     FireBird_Query_object_handlers.free_obj = FireBird_Query_free_obj;
 }
 
-static int alloc_array(firebird_array **ib_arrayp, unsigned short *array_cnt, XSQLDA *sqlda, zend_object *obj)
-{
-    unsigned short i, n;
-    firebird_array *ar;
-    ISC_STATUS_ARRAY status;
-    firebird_query *q = Z_QUERY_O(obj);
+// static int alloc_array(firebird_array **ib_arrayp, unsigned short *array_cnt, XSQLDA *sqlda, zend_object *obj)
+// {
+//     unsigned short i, n;
+//     firebird_array *ar;
+//     ISC_STATUS_ARRAY status;
+//     firebird_query *q = Z_QUERY_O(obj);
 
-    /* first check if we have any arrays at all */
-    for (i = *array_cnt = 0; i < sqlda->sqld; ++i) {
-        if ((sqlda->sqlvar[i].sqltype & ~1) == SQL_ARRAY) {
-            ++*array_cnt;
-        }
-    }
-    if (! *array_cnt) return SUCCESS;
+//     /* first check if we have any arrays at all */
+//     for (i = *array_cnt = 0; i < sqlda->sqld; ++i) {
+//         if ((sqlda->sqlvar[i].sqltype & ~1) == SQL_ARRAY) {
+//             ++*array_cnt;
+//         }
+//     }
+//     if (! *array_cnt) return SUCCESS;
 
-    ar = safe_emalloc(sizeof(firebird_array), *array_cnt, 0);
+//     ar = safe_emalloc(sizeof(firebird_array), *array_cnt, 0);
 
-    for (i = n = 0; i < sqlda->sqld; ++i) {
-        unsigned short dim;
-        zend_ulong ar_size = 1;
-        XSQLVAR *var = &sqlda->sqlvar[i];
+//     for (i = n = 0; i < sqlda->sqld; ++i) {
+//         unsigned short dim;
+//         zend_ulong ar_size = 1;
+//         XSQLVAR *var = &sqlda->sqlvar[i];
 
-        if ((var->sqltype & ~1) == SQL_ARRAY) {
-            firebird_array *a = &ar[n++];
-            ISC_ARRAY_DESC *ar_desc = &a->ar_desc;
+//         if ((var->sqltype & ~1) == SQL_ARRAY) {
+//             firebird_array *a = &ar[n++];
+//             ISC_ARRAY_DESC *ar_desc = &a->ar_desc;
 
-            if (isc_array_lookup_bounds(status, &q->db_handle, &q->tr_handle, var->relname, var->sqlname, ar_desc)) {
-                update_err_props(status, FireBird_Query_ce, obj);
-                efree(ar);
-                return FAILURE;
-            }
+//             if (isc_array_lookup_bounds(status, &q->db_handle, &q->tr_handle, var->relname, var->sqlname, ar_desc)) {
+//                 update_err_props(status, FireBird_Query_ce, obj);
+//                 efree(ar);
+//                 return FAILURE;
+//             }
 
-            switch (ar_desc->array_desc_dtype) {
-                case blr_text:
-                case blr_text2:
-                    a->el_type = SQL_TEXT;
-                    a->el_size = ar_desc->array_desc_length;
-                    break;
-#ifdef SQL_BOOLEAN
-                case blr_bool:
-                    a->el_type = SQL_BOOLEAN;
-                    a->el_size = sizeof(FB_BOOLEAN);
-                    break;
-#endif
-                case blr_short:
-                    a->el_type = SQL_SHORT;
-                    a->el_size = sizeof(short);
-                    break;
-                case blr_long:
-                    a->el_type = SQL_LONG;
-                    a->el_size = sizeof(ISC_LONG);
-                    break;
-                case blr_float:
-                    a->el_type = SQL_FLOAT;
-                    a->el_size = sizeof(float);
-                    break;
-                case blr_double:
-                    a->el_type = SQL_DOUBLE;
-                    a->el_size = sizeof(double);
-                    break;
-                case blr_int64:
-                    a->el_type = SQL_INT64;
-                    a->el_size = sizeof(ISC_INT64);
-                    break;
-                case blr_timestamp:
-                    a->el_type = SQL_TIMESTAMP;
-                    a->el_size = sizeof(ISC_TIMESTAMP);
-                    break;
-                case blr_sql_date:
-                    a->el_type = SQL_TYPE_DATE;
-                    a->el_size = sizeof(ISC_DATE);
-                    break;
-                case blr_sql_time:
-                    a->el_type = SQL_TYPE_TIME;
-                    a->el_size = sizeof(ISC_TIME);
-                    break;
-#if FB_API_VER >= 40
-                // These are converted to VARCHAR via isc_dpb_set_bind tag at connect
-                // blr_dec64
-                // blr_dec128
-                // blr_int128
-                case blr_sql_time_tz:
-                    a->el_type = SQL_TIME_TZ;
-                    a->el_size = sizeof(ISC_TIME_TZ);
-                    break;
-                case blr_timestamp_tz:
-                    a->el_type = SQL_TIMESTAMP_TZ;
-                    a->el_size = sizeof(ISC_TIMESTAMP_TZ);
-                    break;
-#endif
-                case blr_varying:
-                case blr_varying2:
-                    /**
-                     * IB has a strange way of handling VARCHAR arrays. It doesn't store
-                     * the length in the first short, as with VARCHAR fields. It does,
-                     * however, expect the extra short to be allocated for each element.
-                     */
-                    a->el_type = SQL_TEXT;
-                    a->el_size = ar_desc->array_desc_length + sizeof(short);
-                    break;
-                case blr_quad:
-                case blr_blob_id:
-                case blr_cstring:
-                case blr_cstring2:
-                    /**
-                     * These types are mentioned as array types in the manual, but I
-                     * wouldn't know how to create an array field with any of these
-                     * types. I assume these types are not applicable to arrays, and
-                     * were mentioned erroneously.
-                     */
-                default:
-                    _php_firebird_module_error("Unsupported array type %d in relation '%s' column '%s'",
-                        ar_desc->array_desc_dtype, var->relname, var->sqlname);
-                    efree(ar);
-                    return FAILURE;
-            } /* switch array_desc_type */
+//             switch (ar_desc->array_desc_dtype) {
+//                 case blr_text:
+//                 case blr_text2:
+//                     a->el_type = SQL_TEXT;
+//                     a->el_size = ar_desc->array_desc_length;
+//                     break;
+// #ifdef SQL_BOOLEAN
+//                 case blr_bool:
+//                     a->el_type = SQL_BOOLEAN;
+//                     a->el_size = sizeof(FB_BOOLEAN);
+//                     break;
+// #endif
+//                 case blr_short:
+//                     a->el_type = SQL_SHORT;
+//                     a->el_size = sizeof(short);
+//                     break;
+//                 case blr_long:
+//                     a->el_type = SQL_LONG;
+//                     a->el_size = sizeof(ISC_LONG);
+//                     break;
+//                 case blr_float:
+//                     a->el_type = SQL_FLOAT;
+//                     a->el_size = sizeof(float);
+//                     break;
+//                 case blr_double:
+//                     a->el_type = SQL_DOUBLE;
+//                     a->el_size = sizeof(double);
+//                     break;
+//                 case blr_int64:
+//                     a->el_type = SQL_INT64;
+//                     a->el_size = sizeof(ISC_INT64);
+//                     break;
+//                 case blr_timestamp:
+//                     a->el_type = SQL_TIMESTAMP;
+//                     a->el_size = sizeof(ISC_TIMESTAMP);
+//                     break;
+//                 case blr_sql_date:
+//                     a->el_type = SQL_TYPE_DATE;
+//                     a->el_size = sizeof(ISC_DATE);
+//                     break;
+//                 case blr_sql_time:
+//                     a->el_type = SQL_TYPE_TIME;
+//                     a->el_size = sizeof(ISC_TIME);
+//                     break;
+// #if FB_API_VER >= 40
+//                 // These are converted to VARCHAR via isc_dpb_set_bind tag at connect
+//                 // blr_dec64
+//                 // blr_dec128
+//                 // blr_int128
+//                 case blr_sql_time_tz:
+//                     a->el_type = SQL_TIME_TZ;
+//                     a->el_size = sizeof(ISC_TIME_TZ);
+//                     break;
+//                 case blr_timestamp_tz:
+//                     a->el_type = SQL_TIMESTAMP_TZ;
+//                     a->el_size = sizeof(ISC_TIMESTAMP_TZ);
+//                     break;
+// #endif
+//                 case blr_varying:
+//                 case blr_varying2:
+//                     /**
+//                      * IB has a strange way of handling VARCHAR arrays. It doesn't store
+//                      * the length in the first short, as with VARCHAR fields. It does,
+//                      * however, expect the extra short to be allocated for each element.
+//                      */
+//                     a->el_type = SQL_TEXT;
+//                     a->el_size = ar_desc->array_desc_length + sizeof(short);
+//                     break;
+//                 case blr_quad:
+//                 case blr_blob_id:
+//                 case blr_cstring:
+//                 case blr_cstring2:
+//                     /**
+//                      * These types are mentioned as array types in the manual, but I
+//                      * wouldn't know how to create an array field with any of these
+//                      * types. I assume these types are not applicable to arrays, and
+//                      * were mentioned erroneously.
+//                      */
+//                 default:
+//                     _php_firebird_module_error("Unsupported array type %d in relation '%s' column '%s'",
+//                         ar_desc->array_desc_dtype, var->relname, var->sqlname);
+//                     efree(ar);
+//                     return FAILURE;
+//             } /* switch array_desc_type */
 
-            /* calculate elements count */
-            for (dim = 0; dim < ar_desc->array_desc_dimensions; dim++) {
-                ar_size *= 1 + ar_desc->array_desc_bounds[dim].array_bound_upper
-                    -ar_desc->array_desc_bounds[dim].array_bound_lower;
-            }
-            a->ar_size = a->el_size * ar_size;
-        } /* if SQL_ARRAY */
-    } /* for column */
-    *ib_arrayp = ar;
-    return SUCCESS;
-}
+//             /* calculate elements count */
+//             for (dim = 0; dim < ar_desc->array_desc_dimensions; dim++) {
+//                 ar_size *= 1 + ar_desc->array_desc_bounds[dim].array_bound_upper
+//                     -ar_desc->array_desc_bounds[dim].array_bound_lower;
+//             }
+//             a->ar_size = a->el_size * ar_size;
+//         } /* if SQL_ARRAY */
+//     } /* for column */
+//     *ib_arrayp = ar;
+//     return SUCCESS;
+// }
 
-static void free_query(firebird_query *ib_query)
-{
-    if (ib_query->in_sqlda) {
-        efree(ib_query->in_sqlda);
-    }
-    if (ib_query->out_sqlda) {
-        efree(ib_query->out_sqlda);
-    }
-    if (ib_query->in_array) {
-        efree(ib_query->in_array);
-    }
-    if (ib_query->out_array) {
-        efree(ib_query->out_array);
-    }
-}

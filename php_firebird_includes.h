@@ -90,13 +90,16 @@ typedef struct {
 typedef struct {
     isc_db_handle db_handle;
     isc_tr_handle tr_handle;
-    // unsigned short link_cnt;
-    // unsigned long affected_rows;
-    // firebird_connection *db_link[1]; /* last member */
     zend_object std;
 } firebird_trans;
 
 typedef struct firebird_query {
+    isc_db_handle db_handle;
+    isc_tr_handle tr_handle;
+    zend_object std;
+} firebird_query;
+
+typedef struct firebird_stmt {
     isc_db_handle db_handle;
     isc_tr_handle tr_handle;
     isc_stmt_handle stmt_handle;
@@ -104,16 +107,10 @@ typedef struct firebird_query {
     char statement_type;
     firebird_array *in_array, *out_array;
     unsigned short in_array_cnt, out_array_cnt;
-
-    // zend_resource *result_res;
-    // zend_resource *stmt_res;
-    // XSQLDA *in_sqlda, *out_sqlda;
     // unsigned short dialect;
-    // char statement_type;
     // char *query;
-    // zend_resource *trans_res;
     zend_object std;
-} firebird_query;
+} firebird_stmt;
 
 // typedef struct tr_list {
 //     firebird_trans *trans;
@@ -263,6 +260,12 @@ void php_firebird_service_minit(INIT_FUNC_ARGS);
 #define Z_QUERY_O(obj) \
     ((firebird_query*)((char*)(obj) - XtOffsetOf(firebird_query, std)))
 
+#define Z_STMT_P(zv) \
+    ((firebird_stmt*)((char*)(Z_OBJ_P(zv)) - XtOffsetOf(firebird_stmt, std)))
+
+#define Z_STMT_O(obj) \
+    ((firebird_stmt*)((char*)(obj) - XtOffsetOf(firebird_stmt, std)))
+
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_none_return_bool, 0, 0, _IS_BOOL, 0)
 ZEND_END_ARG_INFO()
 
@@ -286,7 +289,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_FireBird_Query_construct, 0, 0, 1)
     ZEND_ARG_OBJ_INFO(0, transaction, FireBird\\Transaction, 0)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_FireBird_Query_query, 0, 0, 1)
+ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Query_query, 0, 1, FireBird\\Statement, MAY_BE_FALSE)
     ZEND_ARG_TYPE_INFO(0, sql, IS_STRING, 0)
     ZEND_ARG_VARIADIC_INFO(0, bind_args)
 ZEND_END_ARG_INFO()
@@ -294,9 +297,11 @@ ZEND_END_ARG_INFO()
 extern zend_class_entry *FireBird_Connection_ce;
 extern zend_class_entry *FireBird_Transaction_ce;
 extern zend_class_entry *FireBird_Query_ce;
+extern zend_class_entry *FireBird_Statement_ce;
 extern void register_FireBird_Connection_ce();
 extern void register_FireBird_Transaction_ce();
 extern void register_FireBird_Query_ce();
+extern void register_FireBird_Statement_ce();
 
 #define ADD_ERR_PROPS(class_ce)                                              \
     do {                                                                     \

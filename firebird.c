@@ -369,6 +369,7 @@ PHP_MINIT_FUNCTION(firebird)
     register_FireBird_Connection_ce();
     register_FireBird_Transaction_ce();
     register_FireBird_Query_ce();
+    register_FireBird_Statement_ce();
 
     return SUCCESS;
 }
