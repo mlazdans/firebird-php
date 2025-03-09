@@ -9,6 +9,7 @@ static zend_object_handlers FireBird_Transaction_object_handlers;
 
 // static int alloc_array(firebird_array **ib_arrayp, unsigned short *array_cnt, XSQLDA *sqlda, zend_object *obj);
 static void _php_firebird_alloc_xsqlda(XSQLDA *sqlda);
+static int _php_firebird_bind(INTERNAL_FUNCTION_PARAMETERS, XSQLDA *sqlda, zval *b_vars, zend_object *stmt_o);
 
 #define ROLLBACK    0
 #define COMMIT      1
@@ -211,6 +212,17 @@ PHP_METHOD(Transaction, query)
         }
     }
 
+    /* has placeholders */
+    if (stmt->in_sqlda->sqld > 0) {
+        firebird_bind_buf *bind_buf = NULL;
+        // in_sqlda = emalloc(XSQLDA_LENGTH(stmt->in_sqlda->sqld));
+        // memcpy(in_sqlda, stmt->in_sqlda, XSQLDA_LENGTH(stmt->in_sqlda->sqld));
+        if (_php_firebird_bind(INTERNAL_FUNCTION_PARAM_PASSTHRU, stmt->in_sqlda, bind_args, stmt_o) == FAILURE) {
+            zval_ptr_dtor(&rv);
+            RETURN_FALSE;
+        }
+    }
+
     ISC_STATUS isc_result;
     if (stmt->statement_type == isc_info_sql_stmt_exec_procedure) {
         assert(false && "TODO: isc_info_sql_stmt_exec_procedure");
@@ -247,6 +259,252 @@ PHP_METHOD(Transaction, query)
     // //     // update_err_props(status, FireBird_Transaction_ce, Z_OBJ_P(ZEND_THIS));
     // //     goto query_error;
     // }
+}
+
+static int _php_firebird_bind(INTERNAL_FUNCTION_PARAMETERS, XSQLDA *sqlda, zval *b_vars, zend_object *stmt_o)
+{
+    int i, array_cnt = 0, rv = SUCCESS;
+    firebird_stmt *stmt = Z_STMT_O(stmt_o);
+
+    if(sqlda->sqld > 0) {
+        stmt->bind_buf = safe_emalloc(sizeof(firebird_bind_buf), stmt->in_sqlda->sqld, 0);
+    }
+
+    for (i = 0; i < sqlda->sqld; ++i) {
+        zval *b_var = &b_vars[i];
+        XSQLVAR *var = &sqlda->sqlvar[i];
+
+        var->sqlind = &stmt->bind_buf[i].sqlind;
+
+        // XXX: Just pass NULL if you need NULL. No?
+        if (Z_TYPE_P(b_var) == IS_NULL) {
+            stmt->bind_buf[i].sqlind = -1;
+            sqlda->sqlvar->sqldata = NULL;
+            if (var->sqltype & SQL_ARRAY) ++array_cnt;
+            continue;
+        }
+
+        /* check if a NULL should be inserted */
+//         switch (Z_TYPE_P(b_var)) {
+//             int force_null;
+
+//             case IS_STRING:
+
+//                 force_null = 0;
+
+//                 /* for these types, an empty string can be handled like a NULL value */
+//                 switch (var->sqltype & ~1) {
+//                     case SQL_SHORT:
+//                     case SQL_LONG:
+//                     case SQL_INT64:
+//                     case SQL_FLOAT:
+//                     case SQL_DOUBLE:
+//                     case SQL_TIMESTAMP:
+//                     case SQL_TYPE_DATE:
+//                     case SQL_TYPE_TIME:
+// #if FB_API_VER >= 40
+//                     case SQL_INT128:
+//                     case SQL_DEC16:
+//                     case SQL_DEC34:
+//                     case SQL_TIMESTAMP_TZ:
+//                     case SQL_TIME_TZ:
+// #endif
+//                         force_null = (Z_STRLEN_P(b_var) == 0);
+//                 }
+
+//                 if (! force_null) break;
+
+//             case IS_NULL:
+//                 buf[i].sqlind = -1;
+//                 sqlda->sqlvar->sqldata = NULL;
+
+//                 if (var->sqltype & SQL_ARRAY) ++array_cnt;
+
+//                 continue;
+//         }
+
+        /* if we make it to this point, we must provide a value for the parameter */
+
+        stmt->bind_buf[i].sqlind = 0;
+
+        var->sqldata = (void*)&stmt->bind_buf[i].val;
+
+        switch (var->sqltype & ~1) {
+            struct tm t;
+
+            case SQL_TIMESTAMP:
+            // TODO:
+            // case SQL_TIMESTAMP_TZ:
+            // case SQL_TIME_TZ:
+            case SQL_TYPE_DATE:
+            case SQL_TYPE_TIME:
+                if (Z_TYPE_P(b_var) == IS_LONG) {
+                    struct tm *res;
+                    res = php_gmtime_r(&Z_LVAL_P(b_var), &t);
+                    if (!res) {
+                        return FAILURE;
+                    }
+                } else {
+#ifdef HAVE_STRPTIME
+                    char *format = INI_STR("ibase.timestampformat");
+
+                    convert_to_string(b_var);
+
+                    switch (var->sqltype & ~1) {
+                        case SQL_TYPE_DATE:
+                            format = INI_STR("ibase.dateformat");
+                            break;
+                        case SQL_TYPE_TIME:
+                        // TODO:
+                        // case SQL_TIME_TZ:
+                            format = INI_STR("ibase.timeformat");
+                    }
+                    if (!strptime(Z_STRVAL_P(b_var), format, &t)) {
+                        /* strptime() cannot handle it, so let IB have a try */
+                        break;
+                    }
+#else /* ifndef HAVE_STRPTIME */
+                    break; /* let IB parse it as a string */
+#endif
+                }
+
+                switch (var->sqltype & ~1) {
+                    default: /* == case SQL_TIMESTAMP */
+                        isc_encode_timestamp(&t, &stmt->bind_buf[i].val.tsval);
+                        break;
+                    case SQL_TYPE_DATE:
+                        isc_encode_sql_date(&t, &stmt->bind_buf[i].val.dtval);
+                        break;
+                    case SQL_TYPE_TIME:
+                    // TODO:
+                    // case SQL_TIME_TZ:
+                        isc_encode_sql_time(&t, &stmt->bind_buf[i].val.tmval);
+                        break;
+                }
+                continue;
+
+            case SQL_BLOB:
+                assert(false && "TODO: bind SQL_BLOB");
+                // convert_to_string(b_var);
+
+                // if (Z_STRLEN_P(b_var) != BLOB_ID_LEN ||
+                //     !_php_firebird_string_to_quad(Z_STRVAL_P(b_var), &buf[i].val.qval)) {
+
+                //     ibase_blob ib_blob = { 0, BLOB_INPUT };
+
+                //     if (isc_create_blob(IB_STATUS, &ib_query->link->handle,
+                //             &ib_query->trans->handle, &ib_blob.bl_handle, &ib_blob.bl_qd)) {
+                //         _php_firebird_error();
+                //         return FAILURE;
+                //     }
+
+                //     if (_php_firebird_blob_add(b_var, &ib_blob) != SUCCESS) {
+                //         return FAILURE;
+                //     }
+
+                //     if (isc_close_blob(IB_STATUS, &ib_blob.bl_handle)) {
+                //         _php_firebird_error();
+                //         return FAILURE;
+                //     }
+                //     buf[i].val.qval = ib_blob.bl_qd;
+                // }
+                continue;
+#ifdef SQL_BOOLEAN
+            case SQL_BOOLEAN:
+
+                switch (Z_TYPE_P(b_var)) {
+                    case IS_LONG:
+                    case IS_DOUBLE:
+                    case IS_TRUE:
+                    case IS_FALSE:
+                        *(FB_BOOLEAN *)var->sqldata = zend_is_true(b_var) ? FB_TRUE : FB_FALSE;
+                        break;
+                    case IS_STRING:
+                    {
+                        zend_long lval;
+                        double dval;
+
+                        if ((Z_STRLEN_P(b_var) == 0)) {
+                            *(FB_BOOLEAN *)var->sqldata = FB_FALSE;
+                            break;
+                        }
+
+                        switch (is_numeric_string(Z_STRVAL_P(b_var), Z_STRLEN_P(b_var), &lval, &dval, 0)) {
+                            case IS_LONG:
+                                *(FB_BOOLEAN *)var->sqldata = (lval != 0) ? FB_TRUE : FB_FALSE;
+                                break;
+                            case IS_DOUBLE:
+                                *(FB_BOOLEAN *)var->sqldata = (dval != 0) ? FB_TRUE : FB_FALSE;
+                                break;
+                            default:
+                                if (!zend_binary_strncasecmp(Z_STRVAL_P(b_var), Z_STRLEN_P(b_var), "true", 4, 4)) {
+                                    *(FB_BOOLEAN *)var->sqldata = FB_TRUE;
+                                } else if (!zend_binary_strncasecmp(Z_STRVAL_P(b_var), Z_STRLEN_P(b_var), "false", 5, 5)) {
+                                    *(FB_BOOLEAN *)var->sqldata = FB_FALSE;
+                                } else {
+                                    _php_firebird_module_error("Parameter %d: cannot convert string to boolean", i+1);
+                                    rv = FAILURE;
+                                    continue;
+                                }
+                        }
+                        break;
+                    }
+                    case IS_NULL:
+                        stmt->bind_buf[i].sqlind = -1;
+                        break;
+                    default:
+                        _php_firebird_module_error("Parameter %d: must be boolean", i+1);
+                        rv = FAILURE;
+                        continue;
+                }
+                var->sqltype = SQL_BOOLEAN;
+                continue;
+#endif
+            case SQL_ARRAY:
+                assert(false && "TODO: bind SQL_ARRAY");
+                // if (Z_TYPE_P(b_var) != IS_ARRAY) {
+                //     convert_to_string(b_var);
+
+                //     if (Z_STRLEN_P(b_var) != BLOB_ID_LEN ||
+                //         !_php_firebird_string_to_quad(Z_STRVAL_P(b_var), &buf[i].val.qval)) {
+
+                //         _php_firebird_module_error("Parameter %d: invalid array ID",i+1);
+                //         rv = FAILURE;
+                //     }
+                // } else {
+                //     /* convert the array data into something IB can understand */
+                //     ibase_array *ar = &ib_query->in_array[array_cnt];
+                //     void *array_data = emalloc(ar->ar_size);
+                //     ISC_QUAD array_id = { 0, 0 };
+
+                //     if (FAILURE == _php_firebird_bind_array(b_var, array_data, ar->ar_size,
+                //             ar, 0)) {
+                //         _php_firebird_module_error("Parameter %d: failed to bind array argument", i+1);
+                //         efree(array_data);
+                //         rv = FAILURE;
+                //         continue;
+                //     }
+
+                //     if (isc_array_put_slice(IB_STATUS, &ib_query->link->handle, &ib_query->trans->handle,
+                //             &array_id, &ar->ar_desc, array_data, &ar->ar_size)) {
+                //         _php_firebird_error();
+                //         efree(array_data);
+                //         return FAILURE;
+                //     }
+                //     buf[i].val.qval = array_id;
+                //     efree(array_data);
+                // }
+                // ++array_cnt;
+                continue;
+        } /* switch */
+
+        /* we end up here if none of the switch cases handled the field */
+        convert_to_string(b_var);
+        var->sqldata = Z_STRVAL_P(b_var);
+        var->sqllen	 = Z_STRLEN_P(b_var);
+        var->sqltype = SQL_TEXT;
+    } /* for */
+    return rv;
 }
 
 const zend_function_entry FireBird_Transaction_methods[] = {
@@ -743,6 +1001,7 @@ static void _php_firebird_alloc_xsqlda(XSQLDA *sqlda)
                 break;
         } /* switch */
 
+        // XXX: Engine should allocate this for outbound XSQLDA? No?
         if (var->sqltype & 1) { /* sql NULL flag */
             var->sqlind = emalloc(sizeof(short));
         } else {

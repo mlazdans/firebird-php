@@ -106,7 +106,7 @@ void register_FireBird_Statement_ce()
 static void free_stmt(firebird_stmt *s)
 {
     if (s->in_sqlda) {
-        _php_firebird_free_xsqlda(s->in_sqlda);
+        efree(s->in_sqlda);
     }
     if (s->out_sqlda) {
         _php_firebird_free_xsqlda(s->out_sqlda);
@@ -116,6 +116,9 @@ static void free_stmt(firebird_stmt *s)
     }
     if (s->out_array) {
         efree(s->out_array);
+    }
+    if(s->bind_buf) {
+        efree(s->bind_buf);
     }
 }
 
@@ -462,7 +465,7 @@ static void _php_firebird_free_xsqlda(XSQLDA *sqlda)
         var = sqlda->sqlvar;
         for (i = 0; i < sqlda->sqld; i++, var++) {
             efree(var->sqldata);
-            if (var->sqlind) {
+            if (var->sqlind) { // XXX: should free for out sqlda or not?
                 efree(var->sqlind);
             }
         }

@@ -87,11 +87,27 @@ typedef struct {
     zend_object std;
 } firebird_connection;
 
-typedef struct {
+typedef struct firebird_trans {
     isc_db_handle db_handle;
     isc_tr_handle tr_handle;
     zend_object std;
 } firebird_trans;
+
+typedef struct firebird_bind_buf {
+    union {
+#ifdef SQL_BOOLEAN
+        FB_BOOLEAN bval;
+#endif
+        short sval;
+        float fval;
+        ISC_LONG lval;
+        ISC_QUAD qval;
+        ISC_TIMESTAMP tsval;
+        ISC_DATE dtval;
+        ISC_TIME tmval;
+    } val;
+    short sqlind;
+} firebird_bind_buf;
 
 typedef struct firebird_stmt {
     isc_db_handle db_handle;
@@ -101,14 +117,15 @@ typedef struct firebird_stmt {
     unsigned char statement_type, has_more_rows;
     firebird_array *in_array, *out_array;
     unsigned short in_array_cnt, out_array_cnt;
+    firebird_bind_buf *bind_buf;
     // unsigned short dialect;
     // char *query;
     zend_object std;
 } firebird_stmt;
 
 typedef struct firebird_vary {
-	unsigned short vary_length;
-	char vary_string[1];
+    unsigned short vary_length;
+    char vary_string[1];
 } firebird_vary;
 
 // typedef struct tr_list {
