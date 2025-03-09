@@ -282,16 +282,28 @@ extern void register_FireBird_Connection_ce();
 extern void register_FireBird_Transaction_ce();
 extern void register_FireBird_Statement_ce();
 
+#ifdef PHP_DEBUG
+#define ADD_ERR_PROPS(class_ce)                                              \
+    do {                                                                     \
+        DECLARE_PROP_STRING(class_ce, error_msg, ZEND_ACC_PROTECTED_SET);    \
+        DECLARE_PROP_INT(class_ce, error_code, ZEND_ACC_PROTECTED_SET);      \
+        DECLARE_PROP_INT(class_ce, error_code_long, ZEND_ACC_PROTECTED_SET); \
+        DECLARE_PROP_STRING(class_ce, error_line, ZEND_ACC_PROTECTED_SET);   \
+    } while(0)
+#else
 #define ADD_ERR_PROPS(class_ce)                                              \
     do {                                                                     \
         DECLARE_PROP_STRING(class_ce, error_msg, ZEND_ACC_PROTECTED_SET);    \
         DECLARE_PROP_INT(class_ce, error_code, ZEND_ACC_PROTECTED_SET);      \
         DECLARE_PROP_INT(class_ce, error_code_long, ZEND_ACC_PROTECTED_SET); \
     } while(0)
+#endif
 
 void dump_buffer(const unsigned char *buffer, int len);
-bool update_err_props(ISC_STATUS_ARRAY status, zend_class_entry *class_ce, zend_object *obj);
+bool update_err_props_ex(ISC_STATUS_ARRAY status, zend_class_entry *class_ce, zend_object *obj, const char *file_name, size_t line_num);
 void populate_trans(zend_long trans_argl, zend_long trans_timeout, char *last_tpb, unsigned short *len);
+
+#define update_err_props(status, class_ce, obj) update_err_props_ex(status, class_ce, obj, __FILE__, __LINE__);
 
 // C++ experiments
 // #ifdef __cplusplus
