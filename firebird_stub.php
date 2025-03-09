@@ -72,6 +72,9 @@ class Statement {
 
     /** @return array | false */
     function fetch_array() {}
+
+    /** @return array | false */
+    function fetch_row() {}
 }
 
 class Query {
