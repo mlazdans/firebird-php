@@ -27,6 +27,10 @@ PHP_METHOD(Transaction, __construct) {
 
     if(!trans_args_is_null) zend_update_property_long(FireBird_Transaction_ce, Z_OBJ_P(ZEND_THIS), "trans_args", sizeof("trans_args") - 1, trans_args);
     if(!lock_timeout_is_null) zend_update_property_long(FireBird_Transaction_ce, Z_OBJ_P(ZEND_THIS), "lock_timeout", sizeof("lock_timeout") - 1, lock_timeout);
+
+    firebird_connection *conn = Z_CONNECTION_P(connection);
+    firebird_trans *tr = Z_TRANSACTION_P(ZEND_THIS);
+    tr->db_handle = conn->handle;
 }
 
 PHP_METHOD(Transaction, start) {
@@ -38,9 +42,6 @@ PHP_METHOD(Transaction, start) {
     ISC_STATUS result;
     char tpb[TPB_MAX_SIZE];
     unsigned short tpb_len = 0;
-
-    val = zend_read_property(FireBird_Transaction_ce, Z_OBJ_P(ZEND_THIS), "connection", sizeof("connection") - 1, 0, &rv);
-    firebird_db_connection *conn = Z_CONNECTION_P(val);
     firebird_trans *tr = Z_TRANSACTION_P(ZEND_THIS);
 
     val = zend_read_property(FireBird_Transaction_ce, Z_OBJ_P(ZEND_THIS), "trans_args", sizeof("trans_args") - 1, 1, &rv);
@@ -52,7 +53,7 @@ PHP_METHOD(Transaction, start) {
     php_printf("trans_args=%d, lock_timeout=%d\n", trans_args, lock_timeout);
 
     populate_trans(trans_args, lock_timeout, tpb, &tpb_len);
-    if(isc_start_transaction(status, &tr->handle, 1, &conn->handle, tpb_len, tpb)) {
+    if(isc_start_transaction(status, &tr->tr_handle, 1, &tr->db_handle, tpb_len, tpb)) {
         update_err_props(status, FireBird_Transaction_ce, Z_OBJ_P(ZEND_THIS));
         RETURN_FALSE;
     }
@@ -64,23 +65,20 @@ bool process_trans(zend_object *obj, int commit) {
     zval rv, *val;
     ISC_STATUS result;
     ISC_STATUS_ARRAY status;
-
-    val = zend_read_property(FireBird_Transaction_ce, obj, "connection", sizeof("connection") - 1, 0, &rv);
-    firebird_db_connection *conn = Z_CONNECTION_P(val);
     firebird_trans *tr = Z_TRANSACTION_O(obj);
 
     switch (commit) {
         default: /* == case ROLLBACK: */
-            result = isc_rollback_transaction(status, &tr->handle);
+            result = isc_rollback_transaction(status, &tr->tr_handle);
             break;
         case COMMIT:
-            result = isc_commit_transaction(status, &tr->handle);
+            result = isc_commit_transaction(status, &tr->tr_handle);
             break;
         case (ROLLBACK | RETAIN):
-            result = isc_rollback_retaining(status, &tr->handle);
+            result = isc_rollback_retaining(status, &tr->tr_handle);
             break;
         case (COMMIT | RETAIN):
-            result = isc_commit_retaining(status, &tr->handle);
+            result = isc_commit_retaining(status, &tr->tr_handle);
             break;
     }
 
@@ -130,8 +128,6 @@ static zend_object *FireBird_Transaction_create(zend_class_entry *ce)
     zend_object_std_init(&tr->std, ce);
     object_properties_init(&tr->std, ce);
 
-    tr->handle = 0;
-
     return &tr->std;
 }
 
@@ -140,12 +136,12 @@ static void FireBird_Transaction_free_obj(zend_object *obj)
     php_printf("FireBird_Transaction_free_obj\n");
     firebird_trans *tr = Z_TRANSACTION_O(obj);
 
-    if(tr->handle) {
+    if(tr->tr_handle) {
         ISC_STATUS_ARRAY status;
-        if(isc_rollback_transaction(status, &tr->handle)) {
+        if(isc_rollback_transaction(status, &tr->tr_handle)) {
             // TODO: report errors?
         }
-        tr->handle = 0;
+        tr->tr_handle = 0;
     }
     zend_object_std_dtor(&tr->std);
 }

@@ -88,10 +88,11 @@ typedef struct {
 } firebird_db_connection;
 
 typedef struct {
-    isc_tr_handle handle;
+    isc_db_handle db_handle;
+    isc_tr_handle tr_handle;
     // unsigned short link_cnt;
     // unsigned long affected_rows;
-    // firebird_db_connection *db_link[1]; /* last member */
+    // firebird_connection *db_link[1]; /* last member */
     zend_object std;
 } firebird_trans;
 
