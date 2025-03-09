@@ -64,6 +64,16 @@ class Transaction {
     // function prepare(string $query) {}
 }
 
+class Query {
+    use Error;
+
+    function __construct(
+        protected Transaction $tr,
+    ) {}
+
+    function query(string $sql, ...$bind_args) {}
+}
+
 namespace FireBird\Transaction;
 const WRITE = 1;
 const READ = 2;
@@ -75,10 +85,6 @@ const REC_NO_VERSION = 32;
 const NOWAIT = 256;
 const WAIT = 128;
 const LOCK_TIMEOUT = 512;
-
-// class Query {
-//     function execute(...$bind_args) {}
-// }
 
 // class Prepared_Query {
 // }

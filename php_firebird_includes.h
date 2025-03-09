@@ -52,12 +52,6 @@
 #define IBDEBUG(a)
 #endif
 
-// extern int le_link, le_plink, le_trans;
-
-// #define LE_LINK "Firebird/InterBase link"
-// #define LE_PLINK "Firebird/InterBase persistent link"
-// #define LE_TRANS "Firebird/InterBase transaction"
-
 // #define IBASE_MSGSIZE 512
 // #define MAX_ERRMSG (IBASE_MSGSIZE*2)
 
@@ -80,6 +74,12 @@ ZEND_END_MODULE_GLOBALS(firebird)
 ZEND_EXTERN_MODULE_GLOBALS(firebird)
 
 typedef struct {
+    ISC_ARRAY_DESC ar_desc;
+    ISC_LONG ar_size; /* size of entire array in bytes */
+    unsigned short el_type, el_size;
+} firebird_array;
+
+typedef struct {
     isc_db_handle handle;
     // struct tr_list *tr_list;
     // unsigned short dialect;
@@ -96,29 +96,48 @@ typedef struct {
     zend_object std;
 } firebird_trans;
 
-typedef struct tr_list {
-    firebird_trans *trans;
-    struct tr_list *next;
-} firebird_tr_list;
+typedef struct firebird_query {
+    isc_db_handle db_handle;
+    isc_tr_handle tr_handle;
+    isc_stmt_handle stmt_handle;
+    XSQLDA *in_sqlda, *out_sqlda;
+    char statement_type;
+    firebird_array *in_array, *out_array;
+    unsigned short in_array_cnt, out_array_cnt;
 
-typedef struct {
-    isc_blob_handle bl_handle;
-    unsigned short type;
-    ISC_QUAD bl_qd;
-} firebird_blob;
+    // zend_resource *result_res;
+    // zend_resource *stmt_res;
+    // XSQLDA *in_sqlda, *out_sqlda;
+    // unsigned short dialect;
+    // char statement_type;
+    // char *query;
+    // zend_resource *trans_res;
+    zend_object std;
+} firebird_query;
 
-typedef struct event {
-    firebird_db_connection *link;
-    zend_resource* link_res;
-    ISC_LONG event_id;
-    unsigned short event_count;
-    char **events;
-    unsigned char *event_buffer, *result_buffer;
-    zval callback;
-    void *thread_ctx;
-    struct event *event_next;
-    enum event_state { NEW, ACTIVE, DEAD } state;
-} firebird_event;
+// typedef struct tr_list {
+//     firebird_trans *trans;
+//     struct tr_list *next;
+// } firebird_tr_list;
+
+// typedef struct {
+//     isc_blob_handle bl_handle;
+//     unsigned short type;
+//     ISC_QUAD bl_qd;
+// } firebird_blob;
+
+// typedef struct event {
+//     firebird_connection *link;
+//     zend_resource* link_res;
+//     ISC_LONG event_id;
+//     unsigned short event_count;
+//     char **events;
+//     unsigned char *event_buffer, *result_buffer;
+//     zval callback;
+//     void *thread_ctx;
+//     struct event *event_next;
+//     enum event_state { NEW, ACTIVE, DEAD } state;
+// } firebird_event;
 
 enum php_firebird_option {
     PHP_FIREBIRD_DEFAULT            = 0,
@@ -181,7 +200,7 @@ void _php_firebird_module_error(char *, ...)
 #define PHP_FIREBIRD_LINK_TRANS(zv, lh, th)                                                    \
         do {                                                                                \
             if (!zv) {                                                                      \
-                lh = (firebird_db_connection *)zend_fetch_resource2(                                 \
+                lh = (firebird_connection *)zend_fetch_resource2(                                 \
                     IBG(default_link), "InterBase link", le_link, le_plink);                \
             } else {                                                                        \
                 _php_firebird_get_link_trans(INTERNAL_FUNCTION_PARAM_PASSTHRU, zv, &lh, &th);  \
@@ -197,15 +216,15 @@ void _php_firebird_get_link_trans(INTERNAL_FUNCTION_PARAMETERS, zval *link_id,
 void php_firebird_query_minit(INIT_FUNC_ARGS);
 
 /* provided by firebird_blobs.c */
-void php_firebird_blobs_minit(INIT_FUNC_ARGS);
-int _php_firebird_string_to_quad(char const *id, ISC_QUAD *qd);
-zend_string *_php_firebird_quad_to_string(ISC_QUAD const qd);
-int _php_firebird_blob_get(zval *return_value, firebird_blob *ib_blob, zend_ulong max_len);
-int _php_firebird_blob_add(zval *string_arg, firebird_blob *ib_blob);
+// void php_firebird_blobs_minit(INIT_FUNC_ARGS);
+// int _php_firebird_string_to_quad(char const *id, ISC_QUAD *qd);
+// zend_string *_php_firebird_quad_to_string(ISC_QUAD const qd);
+// int _php_firebird_blob_get(zval *return_value, firebird_blob *ib_blob, zend_ulong max_len);
+// int _php_firebird_blob_add(zval *string_arg, firebird_blob *ib_blob);
 
 /* provided by firebird_events.c */
-void php_firebird_events_minit(INIT_FUNC_ARGS);
-void _php_firebird_free_event(firebird_event *event);
+// void php_firebird_events_minit(INIT_FUNC_ARGS);
+// void _php_firebird_free_event(firebird_event *event);
 
 /* provided by firebird_service.c */
 void php_firebird_service_minit(INIT_FUNC_ARGS);
@@ -238,6 +257,12 @@ void php_firebird_service_minit(INIT_FUNC_ARGS);
 #define Z_TRANSACTION_O(obj) \
     ((firebird_trans*)((char*)(obj) - XtOffsetOf(firebird_trans, std)))
 
+#define Z_QUERY_P(zv) \
+    ((firebird_query*)((char*)(Z_OBJ_P(zv)) - XtOffsetOf(firebird_query, std)))
+
+#define Z_QUERY_O(obj) \
+    ((firebird_query*)((char*)(obj) - XtOffsetOf(firebird_query, std)))
+
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_none_return_bool, 0, 0, _IS_BOOL, 0)
 ZEND_END_ARG_INFO()
 
@@ -257,10 +282,21 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_FireBird_Transaction_construct, 0, 0, 1)
     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, lock_timeout, IS_LONG, 1, "null")
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_FireBird_Query_construct, 0, 0, 1)
+    ZEND_ARG_OBJ_INFO(0, transaction, FireBird\\Transaction, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_FireBird_Query_query, 0, 0, 1)
+    ZEND_ARG_TYPE_INFO(0, sql, IS_STRING, 0)
+    ZEND_ARG_VARIADIC_INFO(0, bind_args)
+ZEND_END_ARG_INFO()
+
 extern zend_class_entry *FireBird_Connection_ce;
 extern zend_class_entry *FireBird_Transaction_ce;
+extern zend_class_entry *FireBird_Query_ce;
 extern void register_FireBird_Connection_ce();
 extern void register_FireBird_Transaction_ce();
+extern void register_FireBird_Query_ce();
 
 #define ADD_ERR_PROPS(class_ce)                                              \
     do {                                                                     \
