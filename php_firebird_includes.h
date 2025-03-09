@@ -85,7 +85,7 @@ typedef struct {
     // unsigned short dialect;
     // struct event *event_head;
     zend_object std;
-} firebird_db_connection;
+} firebird_connection;
 
 typedef struct {
     isc_db_handle db_handle;
@@ -189,9 +189,9 @@ void _php_firebird_module_error(char *, ...)
             if (SUCCESS != _php_firebird_def_trans(lh, &th)) { RETURN_FALSE; }                 \
         } while (0)
 
-int _php_firebird_def_trans(firebird_db_connection *ib_link, firebird_trans **trans);
+int _php_firebird_def_trans(firebird_connection *ib_link, firebird_trans **trans);
 void _php_firebird_get_link_trans(INTERNAL_FUNCTION_PARAMETERS, zval *link_id,
-    firebird_db_connection **ib_link, firebird_trans **trans);
+    firebird_connection **ib_link, firebird_trans **trans);
 
 /* provided by firebird_query.c */
 void php_firebird_query_minit(INIT_FUNC_ARGS);
@@ -227,10 +227,10 @@ void php_firebird_service_minit(INIT_FUNC_ARGS);
 } while (0)
 
 #define Z_CONNECTION_P(zv) \
-    ((firebird_db_connection*)((char*)(Z_OBJ_P(zv)) - XtOffsetOf(firebird_db_connection, std)))
+    ((firebird_connection*)((char*)(Z_OBJ_P(zv)) - XtOffsetOf(firebird_connection, std)))
 
 #define Z_CONNECTION_O(obj) \
-    ((firebird_db_connection*)((char*)(obj) - XtOffsetOf(firebird_db_connection, std)))
+    ((firebird_connection*)((char*)(obj) - XtOffsetOf(firebird_connection, std)))
 
 #define Z_TRANSACTION_P(zv) \
     ((firebird_trans*)((char*)(Z_OBJ_P(zv)) - XtOffsetOf(firebird_trans, std)))
@@ -258,7 +258,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_FireBird_Transaction_construct, 0, 0, 1)
 ZEND_END_ARG_INFO()
 
 extern zend_class_entry *FireBird_Connection_ce;
-extern zend_class_entry *Firebird_Transaction_ce;
+extern zend_class_entry *FireBird_Transaction_ce;
 extern void register_FireBird_Connection_ce();
 extern void register_FireBird_Transaction_ce();
 

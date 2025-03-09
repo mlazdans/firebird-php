@@ -12,7 +12,7 @@ PHP_METHOD(Connection, close) {
 
     php_printf("Connection::close()\n");
 
-    firebird_db_connection *conn = Z_CONNECTION_P(ZEND_THIS);
+    firebird_connection *conn = Z_CONNECTION_P(ZEND_THIS);
 
     if(conn->handle) {
         ISC_STATUS_ARRAY status;
@@ -37,7 +37,7 @@ PHP_METHOD(Connection, connect) {
 
     long SQLCODE;
     ISC_STATUS_ARRAY status;
-    firebird_db_connection *conn = Z_CONNECTION_P(ZEND_THIS);
+    firebird_connection *conn = Z_CONNECTION_P(ZEND_THIS);
 
     static char const dpb_args_str[] = { isc_dpb_user_name, isc_dpb_password, isc_dpb_lc_ctype, isc_dpb_sql_role_name };
     const char *class_args_str[] = { "username", "password", "charset", "role" };
@@ -172,7 +172,7 @@ const zend_function_entry FireBird_Connection_methods[] = {
 static zend_object *FireBird_Connection_create(zend_class_entry *ce)
 {
     php_printf("FireBird_Connection_create\n");
-    firebird_db_connection *conn = zend_object_alloc(sizeof(firebird_db_connection), ce);
+    firebird_connection *conn = zend_object_alloc(sizeof(firebird_connection), ce);
 
     zend_object_std_init(&conn->std, ce);
     object_properties_init(&conn->std, ce);
@@ -185,7 +185,7 @@ static zend_object *FireBird_Connection_create(zend_class_entry *ce)
 static void FireBird_Connection_free_obj(zend_object *obj)
 {
     php_printf("FireBird_Connection_free_obj\n");
-    firebird_db_connection *conn = Z_CONNECTION_O(obj);
+    firebird_connection *conn = Z_CONNECTION_O(obj);
 
     // zval rv;
     // zval *error_msg = zend_read_property(FireBird_Connection_ce, obj, "error_msg", sizeof("error_msg") - 1, 1, &rv);
@@ -229,6 +229,6 @@ void register_FireBird_Connection_ce()
 
     memcpy(&FireBird_Connection_object_handlers, &std_object_handlers, sizeof(zend_object_handlers));
 
-    FireBird_Connection_object_handlers.offset = XtOffsetOf(firebird_db_connection, std);
+    FireBird_Connection_object_handlers.offset = XtOffsetOf(firebird_connection, std);
     FireBird_Connection_object_handlers.free_obj = FireBird_Connection_free_obj;
 }
