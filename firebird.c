@@ -355,12 +355,6 @@ PHP_MINIT_FUNCTION(firebird)
     REGISTER_NS_LONG_CONSTANT("FireBird\\Transaction", "NOWAIT", PHP_FIREBIRD_NOWAIT, CONST_PERSISTENT);
     REGISTER_NS_LONG_CONSTANT("FireBird\\Transaction", "WAIT", PHP_FIREBIRD_WAIT, CONST_PERSISTENT);
     REGISTER_NS_LONG_CONSTANT("FireBird\\Transaction", "LOCK_TIMEOUT", PHP_FIREBIRD_LOCK_TIMEOUT, CONST_PERSISTENT);
-
-    // php_firebird_query_minit(INIT_FUNC_ARGS_PASSTHRU);
-    // php_firebird_blobs_minit(INIT_FUNC_ARGS_PASSTHRU);
-    // php_firebird_events_minit(INIT_FUNC_ARGS_PASSTHRU);
-    // php_firebird_service_minit(INIT_FUNC_ARGS_PASSTHRU);
-
 #ifdef ZEND_SIGNALS
     // firebird replaces some signals at runtime, suppress warnings.
     SIGG(check) = 0;
@@ -368,7 +362,6 @@ PHP_MINIT_FUNCTION(firebird)
 
     register_FireBird_Connection_ce();
     register_FireBird_Transaction_ce();
-    register_FireBird_Query_ce();
     register_FireBird_Statement_ce();
 
     return SUCCESS;

@@ -60,7 +60,10 @@ class Transaction {
 
     /** @return bool */
     function rollback_ret() {}
-    // function query(string $query, ...$bind_args) {}
+
+    /** @return Statement | false */
+    function query(string $sql, ...$bind_args) {}
+
     // function prepare(string $query) {}
 }
 
@@ -75,17 +78,6 @@ class Statement {
 
     /** @return array | false */
     function fetch_row() {}
-}
-
-class Query {
-    use Error;
-
-    function __construct(
-        protected Transaction $tr,
-    ) {}
-
-    /** @return Statement | false */
-    function query(string $sql, ...$bind_args) {}
 }
 
 namespace FireBird\Transaction;
