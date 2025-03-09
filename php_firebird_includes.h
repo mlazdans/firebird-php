@@ -243,6 +243,10 @@ void php_firebird_service_minit(INIT_FUNC_ARGS);
 #define max(a,b) ((a)>(b)?(a):(b))
 #endif
 
+#ifndef min
+#define min(a,b) ((a)<(b)?(a):(b))
+#endif
+
 #define DECLARE_PROP_OBJ(class_ce, name, obj_name, visibilty) DECLARE_PROP(class_ce, name, ZEND_TYPE_INIT_CLASS(zend_string_init(#obj_name, sizeof(#obj_name)-1, 1), 0, 0), visibilty)
 #define DECLARE_PROP_INT(class_ce, name, visibilty) DECLARE_PROP(class_ce, name, ZEND_TYPE_INIT_MASK(MAY_BE_LONG), visibilty)
 #define DECLARE_PROP_STRING(class_ce, name, visibilty) DECLARE_PROP(class_ce, name, ZEND_TYPE_INIT_MASK(MAY_BE_STRING), visibilty)

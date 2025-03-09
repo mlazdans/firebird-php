@@ -164,18 +164,6 @@ PHP_METHOD(Transaction, query)
         RETURN_FALSE;
     }
 
-    static char info_type[] = { isc_info_sql_stmt_type };
-    char result[8];
-
-    /* find out what kind of statement was prepared */
-    if (isc_dsql_sql_info(status, &stmt->stmt_handle, sizeof(info_type), info_type, sizeof(result), result)) {
-        update_err_props(status, FireBird_Transaction_ce, Z_OBJ_P(ZEND_THIS));
-        zval_ptr_dtor(&rv);
-        RETURN_FALSE;
-    }
-
-    stmt->statement_type = result[3];
-
     if (stmt->out_sqlda->sqld > stmt->out_sqlda->sqln) {
         stmt->out_sqlda = erealloc(stmt->out_sqlda, XSQLDA_LENGTH(stmt->out_sqlda->sqld));
         stmt->out_sqlda->sqln = stmt->out_sqlda->sqld;
@@ -212,6 +200,12 @@ PHP_METHOD(Transaction, query)
         }
     }
 
+    if (num_bind_args != stmt->in_sqlda->sqld) {
+        zend_throw_exception_ex(zend_ce_argument_count_error, 0, "Statement expects %d arguments, %d given", stmt->in_sqlda->sqld, num_bind_args);
+        zval_ptr_dtor(&rv);
+        RETURN_FALSE;
+    }
+
     /* has placeholders */
     if (stmt->in_sqlda->sqld > 0) {
         firebird_bind_buf *bind_buf = NULL;
@@ -222,6 +216,18 @@ PHP_METHOD(Transaction, query)
             RETURN_FALSE;
         }
     }
+
+    static char info_type[] = { isc_info_sql_stmt_type };
+    char result[8];
+
+    /* find out what kind of statement was prepared */
+    if (isc_dsql_sql_info(status, &stmt->stmt_handle, sizeof(info_type), info_type, sizeof(result), result)) {
+        update_err_props(status, FireBird_Transaction_ce, Z_OBJ_P(ZEND_THIS));
+        zval_ptr_dtor(&rv);
+        RETURN_FALSE;
+    }
+
+    stmt->statement_type = result[3];
 
     ISC_STATUS isc_result;
     if (stmt->statement_type == isc_info_sql_stmt_exec_procedure) {
