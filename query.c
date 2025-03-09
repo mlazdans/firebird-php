@@ -63,6 +63,7 @@ PHP_METHOD(Query, query)
 
     if (isc_dsql_allocate_statement(status, &stmt->db_handle, &stmt->stmt_handle)) {
         update_err_props(status, FireBird_Query_ce, Z_OBJ_P(ZEND_THIS));
+        zval_ptr_dtor(&v);
         RETURN_FALSE;
     }
 
@@ -72,6 +73,7 @@ PHP_METHOD(Query, query)
 
     if (isc_dsql_prepare(status, &stmt->tr_handle, &stmt->stmt_handle, 0, ZSTR_VAL(sql), SQL_DIALECT_CURRENT, stmt->out_sqlda)) {
         update_err_props(status, FireBird_Query_ce, Z_OBJ_P(ZEND_THIS));
+        zval_ptr_dtor(&v);
         RETURN_FALSE;
     }
 
@@ -81,6 +83,7 @@ PHP_METHOD(Query, query)
     /* find out what kind of statement was prepared */
     if (isc_dsql_sql_info(status, &stmt->stmt_handle, sizeof(info_type), info_type, sizeof(result), result)) {
         update_err_props(status, FireBird_Query_ce, Z_OBJ_P(ZEND_THIS));
+        zval_ptr_dtor(&v);
         RETURN_FALSE;
     }
 
@@ -92,6 +95,7 @@ PHP_METHOD(Query, query)
         stmt->out_sqlda->version = SQLDA_CURRENT_VERSION;
         if (isc_dsql_describe(status, &stmt->stmt_handle, SQLDA_CURRENT_VERSION, stmt->out_sqlda)) {
             update_err_props(status, FireBird_Query_ce, Z_OBJ_P(ZEND_THIS));
+            zval_ptr_dtor(&v);
             RETURN_FALSE;
         }
     }
@@ -102,6 +106,7 @@ PHP_METHOD(Query, query)
     stmt->in_sqlda->version = SQLDA_CURRENT_VERSION;
     if (isc_dsql_describe_bind(status, &stmt->stmt_handle, SQLDA_CURRENT_VERSION, stmt->in_sqlda)) {
         update_err_props(status, FireBird_Query_ce, Z_OBJ_P(ZEND_THIS));
+        zval_ptr_dtor(&v);
         RETURN_FALSE;
     }
 
@@ -113,10 +118,12 @@ PHP_METHOD(Query, query)
 
         if (isc_dsql_describe_bind(status, &stmt->stmt_handle, SQLDA_CURRENT_VERSION, stmt->in_sqlda)) {
             update_err_props(status, FireBird_Query_ce, Z_OBJ_P(ZEND_THIS));
+            zval_ptr_dtor(&v);
             RETURN_FALSE;
         }
     }
 
+    zval_ptr_dtor(&v);
     RETVAL_OBJ(stmt_o);
 
     // TODO: handle SQL_ARRAY
