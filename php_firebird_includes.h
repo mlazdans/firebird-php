@@ -55,8 +55,8 @@
 // #define IBASE_MSGSIZE 512
 // #define MAX_ERRMSG (IBASE_MSGSIZE*2)
 
-#define IB_DEF_DATE_FMT "%Y-%m-%d"
-#define IB_DEF_TIME_FMT "%H:%M:%S"
+#define FIREBIRD_DATE_FMT "%Y-%m-%d"
+#define FIREBIRD_TIME_FMT "%H:%M:%S"
 
 /* this value should never be > USHRT_MAX */
 #define IBASE_BLOB_SEG 4096
@@ -298,9 +298,11 @@ ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Transacti
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_FireBird_Statement_fetch_row, 0, 0, MAY_BE_ARRAY|MAY_BE_FALSE|MAY_BE_NULL)
+    ZEND_ARG_TYPE_INFO(0, flags, IS_LONG, 0)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_FireBird_Statement_fetch_object, 0, 0, MAY_BE_OBJECT|MAY_BE_FALSE|MAY_BE_NULL)
+    ZEND_ARG_TYPE_INFO(0, flags, IS_LONG, 0)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Statement_execute, 0, 0, _IS_BOOL, 0)

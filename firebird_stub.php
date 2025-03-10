@@ -2,6 +2,10 @@
 
 namespace FireBird;
 
+const FETCH_BLOBS    = 1;
+const FETCH_ARRAYS   = 2;
+const FETCH_UNIXTIME = 4;
+
 // It's actually not a trait internally
 trait Error {
     protected(set) string $error_msg;
@@ -34,6 +38,7 @@ class Connection
     // }
 }
 
+// TODO: auto commit/rollback flag?
 class Transaction {
     use Error;
 
@@ -72,13 +77,13 @@ class Statement {
     use Error;
 
     /** @return object | false | null */
-    function fetch_object() {}
+    function fetch_object(int $flags = 0) {}
 
     /** @return array | false | null */
-    function fetch_array() {}
+    function fetch_array(int $flags = 0) {}
 
     /** @return array | false | null */
-    function fetch_row() {}
+    function fetch_row(int $flags = 0) {}
 
     /** @return bool */
     function execute(...$bind_args) {}
@@ -88,16 +93,16 @@ class Statement {
 }
 
 namespace FireBird\Transaction;
-const WRITE = 1;
-const READ = 2;
-const COMMITTED = 8;
-const CONSISTENCY = 16;
-const CONCURRENCY = 4;
-const REC_VERSION = 64;
+const WRITE          = 1;
+const READ           = 2;
+const COMMITTED      = 8;
+const CONSISTENCY    = 16;
+const CONCURRENCY    = 4;
+const REC_VERSION    = 64;
 const REC_NO_VERSION = 32;
-const NOWAIT = 256;
-const WAIT = 128;
-const LOCK_TIMEOUT = 512;
+const NOWAIT         = 256;
+const WAIT           = 128;
+const LOCK_TIMEOUT   = 512;
 
 // class Prepared_Query {
 // }

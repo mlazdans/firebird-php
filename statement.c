@@ -140,7 +140,7 @@ static void _php_firebird_free_stmt(firebird_stmt *s)
     }
 }
 
-static int _php_firebird_var_zval(zval *val, void *data, int type, int len, int scale, int flag)
+static int _php_firebird_var_zval(zval *val, void *data, int type, int len, int scale, int flags)
 {
     static ISC_INT64 const scales[] = { 1, 10, 100, 1000,
         10000,
@@ -239,12 +239,12 @@ static int _php_firebird_var_zval(zval *val, void *data, int type, int len, int 
             unsigned year, month, day, hours, minutes, seconds, fractions;
 
             if((type & ~1) == SQL_TIME_TZ){
-                format = INI_STR("ibase.timeformat");
+                format = INI_STR("firebird.timeformat");
                 fb_decode_time_tz((ISC_TIME_TZ *) data, &hours, &minutes, &seconds, &fractions, sizeof(timeZoneBuffer), timeZoneBuffer);
                 ISC_TIME time = fb_encode_time(hours, minutes, seconds, fractions);
                 isc_decode_sql_time(&time, &t);
             } else {
-                format = INI_STR("ibase.timestampformat");
+                format = INI_STR("firebird.timestampformat");
                 fb_decode_timestamp_tz((ISC_TIMESTAMP_TZ *) data, &year, &month, &day, &hours, &minutes, &seconds, &fractions, sizeof(timeZoneBuffer), timeZoneBuffer);
                 ISC_TIMESTAMP ts;
                 ts.timestamp_date = fb_encode_date(year, month, day);
@@ -252,7 +252,7 @@ static int _php_firebird_var_zval(zval *val, void *data, int type, int len, int 
                 isc_decode_timestamp(&ts, &t);
             }
 
-            if (flag & PHP_FIREBIRD_UNIXTIME) {
+            if (flags & PHP_FIREBIRD_UNIXTIME) {
                 ZVAL_LONG(val, mktime(&t));
             } else {
                 char timeBuf[80] = {0};
@@ -267,15 +267,15 @@ static int _php_firebird_var_zval(zval *val, void *data, int type, int len, int 
             break;
 #endif
         case SQL_DATE: /* == case SQL_TIMESTAMP: */
-            format = INI_STR("ibase.timestampformat");
+            format = INI_STR("firebird.timestampformat");
             isc_decode_timestamp((ISC_TIMESTAMP *) data, &t);
             goto format_date_time;
         case SQL_TYPE_DATE:
-            format = INI_STR("ibase.dateformat");
+            format = INI_STR("firebird.dateformat");
             isc_decode_sql_date((ISC_DATE *) data, &t);
             goto format_date_time;
         case SQL_TYPE_TIME:
-            format = INI_STR("ibase.timeformat");
+            format = INI_STR("firebird.timeformat");
             isc_decode_sql_time((ISC_TIME *) data, &t);
 
 format_date_time:
@@ -287,7 +287,7 @@ format_date_time:
 #if HAVE_STRUCT_TM_TM_ZONE
             t.tm_zone = tzname[0];
 #endif
-            if (flag & PHP_FIREBIRD_UNIXTIME) {
+            if (flags & PHP_FIREBIRD_UNIXTIME) {
                 ZVAL_LONG(val, mktime(&t));
             } else {
                 l = strftime(string_data, sizeof(string_data), format, &t);
@@ -301,7 +301,7 @@ format_date_time:
 static void _php_firebird_fetch_hash(INTERNAL_FUNCTION_PARAMETERS, int fetch_type)
 {
     zval *result_arg;
-    zend_long flag = 0;
+    zend_long flags = 0;
     zend_long i, array_cnt = 0;
     firebird_stmt *ib_result = Z_STMT_P(ZEND_THIS);
     ISC_STATUS_ARRAY status;
@@ -309,6 +309,11 @@ static void _php_firebird_fetch_hash(INTERNAL_FUNCTION_PARAMETERS, int fetch_typ
     if (ib_result->out_sqlda == NULL || !ib_result->has_more_rows) {
         RETURN_NULL();
     }
+
+    ZEND_PARSE_PARAMETERS_START(0, 1)
+        Z_PARAM_OPTIONAL
+        Z_PARAM_LONG(flags)
+    ZEND_PARSE_PARAMETERS_END();
 
     if (ib_result->statement_type != isc_info_sql_stmt_exec_procedure) {
         if (isc_dsql_fetch(status, &ib_result->stmt_handle, 1, ib_result->out_sqlda)) {
@@ -359,13 +364,13 @@ static void _php_firebird_fetch_hash(INTERNAL_FUNCTION_PARAMETERS, int fetch_typ
             switch (var->sqltype & ~1) {
 
                 default:
-                    _php_firebird_var_zval(&result, var->sqldata, var->sqltype, var->sqllen, var->sqlscale, flag);
+                    _php_firebird_var_zval(&result, var->sqldata, var->sqltype, var->sqllen, var->sqlscale, flags);
                     break;
                 case SQL_BLOB:
-                    if (true || flag & PHP_FIREBIRD_FETCH_BLOBS) { /* fetch blob contents into hash */
+                    if (flags & PHP_FIREBIRD_FETCH_BLOBS) { /* fetch blob contents into hash */
                         firebird_blob blob_handle;
                         zend_ulong max_len = 0;
-                        static char bl_items[] = {isc_info_blob_total_length};
+                        static char bl_items[] = { isc_info_blob_total_length };
                         char bl_info[20];
                         unsigned short i;
 

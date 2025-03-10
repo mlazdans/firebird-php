@@ -165,10 +165,10 @@ PHP_INI_BEGIN()
     // PHP_INI_ENTRY("ibase.default_db", NULL, PHP_INI_SYSTEM, NULL)
     // PHP_INI_ENTRY("ibase.default_user", NULL, PHP_INI_ALL, NULL)
     // PHP_INI_ENTRY_EX("ibase.default_password", NULL, PHP_INI_ALL, NULL, php_firebird_password_displayer_cb)
-    // PHP_INI_ENTRY("ibase.default_charset", NULL, PHP_INI_ALL, NULL)
-    // PHP_INI_ENTRY("ibase.timestampformat", IB_DEF_DATE_FMT " " IB_DEF_TIME_FMT, PHP_INI_ALL, NULL)
-    // PHP_INI_ENTRY("ibase.dateformat", IB_DEF_DATE_FMT, PHP_INI_ALL, NULL)
-    // PHP_INI_ENTRY("ibase.timeformat", IB_DEF_TIME_FMT, PHP_INI_ALL, NULL)
+    PHP_INI_ENTRY("firebird.default_charset", NULL, PHP_INI_ALL, NULL)
+    PHP_INI_ENTRY("firebird.timestampformat", FIREBIRD_DATE_FMT " " FIREBIRD_TIME_FMT, PHP_INI_ALL, NULL)
+    PHP_INI_ENTRY("firebird.dateformat", FIREBIRD_DATE_FMT, PHP_INI_ALL, NULL)
+    PHP_INI_ENTRY("firebird.timeformat", FIREBIRD_TIME_FMT, PHP_INI_ALL, NULL)
     // STD_PHP_INI_ENTRY_EX("ibase.default_trans_params", "0", PHP_INI_ALL, OnUpdateLongGEZero, default_trans_params, zend_firebird_globals, firebird_globals, php_firebird_trans_displayer)
     // STD_PHP_INI_ENTRY_EX("ibase.default_lock_timeout", "0", PHP_INI_ALL, OnUpdateLongGEZero, default_lock_timeout, zend_firebird_globals, firebird_globals, display_link_numbers)
 PHP_INI_END()
@@ -187,16 +187,9 @@ PHP_MINIT_FUNCTION(firebird)
 {
     REGISTER_INI_ENTRIES();
 
-    // le_link = zend_register_list_destructors_ex(_php_firebird_close_link, NULL, LE_LINK, module_number);
-    // le_plink = zend_register_list_destructors_ex(php_firebird_commit_link_rsrc, _php_firebird_close_plink, LE_PLINK, module_number);
-    // le_trans = zend_register_list_destructors_ex(_php_firebird_free_trans, NULL, LE_TRANS, module_number);
-
-    REGISTER_LONG_CONSTANT("FIREBIRD_DEFAULT", PHP_FIREBIRD_DEFAULT, CONST_PERSISTENT);
-    REGISTER_LONG_CONSTANT("FIREBIRD_CREATE", PHP_FIREBIRD_CREATE, CONST_PERSISTENT);
-    REGISTER_LONG_CONSTANT("FIREBIRD_TEXT", PHP_FIREBIRD_FETCH_BLOBS, CONST_PERSISTENT); /* deprecated, for BC only */
-    REGISTER_LONG_CONSTANT("FIREBIRD_FETCH_BLOBS", PHP_FIREBIRD_FETCH_BLOBS, CONST_PERSISTENT);
-    REGISTER_LONG_CONSTANT("FIREBIRD_FETCH_ARRAYS", PHP_FIREBIRD_FETCH_ARRAYS, CONST_PERSISTENT);
-    REGISTER_LONG_CONSTANT("FIREBIRD_UNIXTIME", PHP_FIREBIRD_UNIXTIME, CONST_PERSISTENT);
+    REGISTER_NS_LONG_CONSTANT("FireBird", "FETCH_BLOBS", PHP_FIREBIRD_FETCH_BLOBS, CONST_PERSISTENT);
+    REGISTER_NS_LONG_CONSTANT("FireBird", "FETCH_ARRAYS", PHP_FIREBIRD_FETCH_ARRAYS, CONST_PERSISTENT);
+    REGISTER_NS_LONG_CONSTANT("FireBird", "FETCH_UNIXTIME", PHP_FIREBIRD_UNIXTIME, CONST_PERSISTENT);
 
     /* transactions */
     REGISTER_NS_LONG_CONSTANT("FireBird\\Transaction", "WRITE", PHP_FIREBIRD_WRITE, CONST_PERSISTENT);

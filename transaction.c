@@ -579,18 +579,18 @@ int _php_firebird_bind(ISC_STATUS_ARRAY status, XSQLDA *sqlda, zval *b_vars, zen
                     }
                 } else {
 #ifdef HAVE_STRPTIME
-                    char *format = INI_STR("ibase.timestampformat");
+                    char *format = INI_STR("firebird.timestampformat");
 
                     convert_to_string(b_var);
 
                     switch (var->sqltype & ~1) {
                         case SQL_TYPE_DATE:
-                            format = INI_STR("ibase.dateformat");
+                            format = INI_STR("firebird.dateformat");
                             break;
                         case SQL_TYPE_TIME:
                         // TODO:
                         // case SQL_TIME_TZ:
-                            format = INI_STR("ibase.timeformat");
+                            format = INI_STR("firebird.timeformat");
                     }
                     if (!strptime(Z_STRVAL_P(b_var), format, &t)) {
                         /* strptime() cannot handle it, so let IB have a try */
