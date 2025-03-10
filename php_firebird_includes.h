@@ -133,11 +133,18 @@ typedef struct firebird_vary {
 //     struct tr_list *next;
 // } firebird_tr_list;
 
-// typedef struct {
-//     isc_blob_handle bl_handle;
-//     unsigned short type;
-//     ISC_QUAD bl_qd;
-// } firebird_blob;
+typedef struct firebird_blob {
+    isc_blob_handle bl_handle;
+    unsigned short type;
+    ISC_QUAD bl_qd;
+} firebird_blob;
+
+typedef struct firebird_blobinfo {
+    ISC_LONG  max_segment;  // Length of longest segment
+    ISC_LONG  num_segments; // Total number of segments
+    ISC_LONG  total_length; // Total length of blob
+    int       bl_stream;    // blob is stream ?
+} firebird_blobinfo;
 
 // typedef struct event {
 //     firebird_connection *link;
@@ -205,7 +212,6 @@ typedef void (__stdcall *info_func_t)(char*);
 typedef void (*info_func_t)(char*);
 #endif
 
-void _php_firebird_error(void);
 void _php_firebird_module_error(char *, ...)
     PHP_ATTRIBUTE_FORMAT(printf,1,2);
 
@@ -224,20 +230,6 @@ void _php_firebird_module_error(char *, ...)
 int _php_firebird_def_trans(firebird_connection *ib_link, firebird_trans **trans);
 void _php_firebird_get_link_trans(INTERNAL_FUNCTION_PARAMETERS, zval *link_id,
     firebird_connection **ib_link, firebird_trans **trans);
-
-/* provided by firebird_blobs.c */
-// void php_firebird_blobs_minit(INIT_FUNC_ARGS);
-// int _php_firebird_string_to_quad(char const *id, ISC_QUAD *qd);
-// zend_string *_php_firebird_quad_to_string(ISC_QUAD const qd);
-// int _php_firebird_blob_get(zval *return_value, firebird_blob *ib_blob, zend_ulong max_len);
-// int _php_firebird_blob_add(zval *string_arg, firebird_blob *ib_blob);
-
-/* provided by firebird_events.c */
-// void php_firebird_events_minit(INIT_FUNC_ARGS);
-// void _php_firebird_free_event(firebird_event *event);
-
-/* provided by firebird_service.c */
-void php_firebird_service_minit(INIT_FUNC_ARGS);
 
 #ifndef max
 #define max(a,b) ((a)>(b)?(a):(b))
@@ -343,6 +335,10 @@ void dump_buffer(const unsigned char *buffer, int len);
 bool update_err_props_ex(ISC_STATUS_ARRAY status, zend_class_entry *class_ce, zend_object *obj, const char *file_name, size_t line_num);
 int _php_firebird_bind(XSQLDA *sqlda, zval *b_vars, zend_object *stmt_o);
 int _php_firebird_execute(zval *bind_args, uint32_t num_bind_args, zend_object *stmt_o, ISC_STATUS_ARRAY status);
+int _php_firebird_string_to_quad(char const *id, ISC_QUAD *qd);
+int _php_firebird_blob_add(ISC_STATUS_ARRAY status, zval *string_arg, firebird_blob *ib_blob);
+int _php_firebird_blob_get(ISC_STATUS_ARRAY status, zval *return_value, firebird_blob *ib_blob, zend_ulong max_len);
+zend_string *_php_firebird_quad_to_string(ISC_QUAD const qd);
 
 #define update_err_props(status, class_ce, obj) update_err_props_ex(status, class_ce, obj, __FILE__, __LINE__)
 

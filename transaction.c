@@ -388,201 +388,6 @@ static void _php_firebird_populate_tpb(zend_long trans_argl, zend_long trans_tim
 //     return SUCCESS;
 // }
 
-// static int _php_firebird_exec(INTERNAL_FUNCTION_PARAMETERS, ibase_result **ib_resultp,
-//     ibase_query *ib_query, zval *args)
-// {
-//     XSQLDA *in_sqlda = NULL, *out_sqlda = NULL;
-//     BIND_BUF *bind_buf = NULL;
-//     int i, rv = FAILURE;
-//     static char info_count[] = { isc_info_sql_records };
-//     char result[64];
-//     ISC_STATUS isc_result;
-//     int argc = ib_query->in_sqlda ? ib_query->in_sqlda->sqld : 0;
-
-//     RESET_ERRMSG;
-
-//     for (i = 0; i < argc; ++i) {
-//         SEPARATE_ZVAL(&args[i]);
-//     }
-
-//     switch (ib_query->statement_type) {
-//         isc_tr_handle tr;
-//         ibase_tr_list **l;
-//         ibase_trans *trans;
-
-//         case isc_info_sql_stmt_start_trans:
-
-//             /* a SET TRANSACTION statement should be executed with a NULL trans handle */
-//             tr = 0;
-
-//             if (isc_dsql_execute_immediate(IB_STATUS, &ib_query->link->handle, &tr, 0,
-//                     ib_query->query, ib_query->dialect, NULL)) {
-//                 _php_firebird_error();
-//                 goto _php_firebird_exec_error;
-//             }
-
-//             trans = (ibase_trans *) emalloc(sizeof(ibase_trans));
-//             trans->handle = tr;
-//             trans->link_cnt = 1;
-//             trans->affected_rows = 0;
-//             trans->db_link[0] = ib_query->link;
-
-//             if (ib_query->link->tr_list == NULL) {
-//                 ib_query->link->tr_list = (ibase_tr_list *) emalloc(sizeof(ibase_tr_list));
-//                 ib_query->link->tr_list->trans = NULL;
-//                 ib_query->link->tr_list->next = NULL;
-//             }
-
-//             /* link the transaction into the connection-transaction list */
-//             for (l = &ib_query->link->tr_list; *l != NULL; l = &(*l)->next);
-//             *l = (ibase_tr_list *) emalloc(sizeof(ibase_tr_list));
-//             (*l)->trans = trans;
-//             (*l)->next = NULL;
-
-//             RETVAL_RES(zend_register_resource(trans, le_trans));
-//             Z_TRY_ADDREF_P(return_value);
-
-//             return SUCCESS;
-
-//         case isc_info_sql_stmt_commit:
-//         case isc_info_sql_stmt_rollback:
-
-//             if (isc_dsql_execute_immediate(IB_STATUS, &ib_query->link->handle,
-//                     &ib_query->trans->handle, 0, ib_query->query, ib_query->dialect, NULL)) {
-//                 _php_firebird_error();
-//                 goto _php_firebird_exec_error;
-//             }
-
-//             if (ib_query->trans->handle == 0 && ib_query->trans_res != NULL) {
-//                 /* transaction was released by the query and was a registered resource,
-//                    so we have to release it */
-//                 zend_list_delete(ib_query->trans_res);
-//                 ib_query->trans_res = NULL;
-//             }
-
-//             RETVAL_TRUE;
-
-//             return SUCCESS;
-
-//         default:
-//             RETVAL_FALSE;
-//     }
-
-//     /* allocate sqlda and output buffers */
-//     if (ib_query->out_sqlda) { /* output variables in select, select for update */
-//         ibase_result *res;
-
-//         IBDEBUG("Query wants XSQLDA for output");
-//         res = emalloc(sizeof(ibase_result)+sizeof(ibase_array)*max(0,ib_query->out_array_cnt-1));
-//         res->link = ib_query->link;
-//         res->trans = ib_query->trans;
-//         res->stmt = ib_query->stmt;
-//         GC_ADDREF(res->stmt_res = ib_query->stmt_res);
-
-//         res->statement_type = ib_query->statement_type;
-//         res->has_more_rows = 1;
-
-//         out_sqlda = res->out_sqlda = emalloc(XSQLDA_LENGTH(ib_query->out_sqlda->sqld));
-//         memcpy(out_sqlda, ib_query->out_sqlda, XSQLDA_LENGTH(ib_query->out_sqlda->sqld));
-//         _php_firebird_alloc_xsqlda(out_sqlda);
-
-//         if (ib_query->out_array) {
-//             memcpy(&res->out_array, ib_query->out_array, sizeof(ibase_array)*ib_query->out_array_cnt);
-//         }
-//         *ib_resultp = res;
-//     }
-
-//     if (ib_query->in_sqlda) { /* has placeholders */
-//         IBDEBUG("Query wants XSQLDA for input");
-//         in_sqlda = emalloc(XSQLDA_LENGTH(ib_query->in_sqlda->sqld));
-//         memcpy(in_sqlda, ib_query->in_sqlda, XSQLDA_LENGTH(ib_query->in_sqlda->sqld));
-//         bind_buf = safe_emalloc(sizeof(BIND_BUF), ib_query->in_sqlda->sqld, 0);
-//         if (_php_firebird_bind(in_sqlda, args, bind_buf, ib_query) == FAILURE) {
-//             IBDEBUG("Could not bind input XSQLDA");
-//             goto _php_firebird_exec_error;
-//         }
-//     }
-
-//     if (ib_query->statement_type == isc_info_sql_stmt_exec_procedure) {
-//         isc_result = isc_dsql_execute2(IB_STATUS, &ib_query->trans->handle,
-//             &ib_query->stmt, SQLDA_CURRENT_VERSION, in_sqlda, out_sqlda);
-//     } else {
-//         isc_result = isc_dsql_execute(IB_STATUS, &ib_query->trans->handle,
-//             &ib_query->stmt, SQLDA_CURRENT_VERSION, in_sqlda);
-//     }
-//     if (isc_result) {
-//         IBDEBUG("Could not execute query");
-//         _php_firebird_error();
-//         goto _php_firebird_exec_error;
-//     }
-//     ib_query->trans->affected_rows = 0;
-
-//     switch (ib_query->statement_type) {
-
-//         unsigned long affected_rows;
-
-//         case isc_info_sql_stmt_insert:
-//         case isc_info_sql_stmt_update:
-//         case isc_info_sql_stmt_delete:
-//         case isc_info_sql_stmt_exec_procedure:
-
-//             if (isc_dsql_sql_info(IB_STATUS, &ib_query->stmt, sizeof(info_count),
-//                     info_count, sizeof(result), result)) {
-//                 _php_firebird_error();
-//                 goto _php_firebird_exec_error;
-//             }
-
-//             affected_rows = 0;
-
-//             if (result[0] == isc_info_sql_records) {
-//                 unsigned i = 3, result_size = isc_vax_integer(&result[1],2);
-
-//                 while (result[i] != isc_info_end && i < result_size) {
-//                     short len = (short)isc_vax_integer(&result[i+1],2);
-//                     if (result[i] != isc_info_req_select_count) {
-//                         affected_rows += isc_vax_integer(&result[i+3],len);
-//                     }
-//                     i += len+3;
-//                 }
-//             }
-
-//             ib_query->trans->affected_rows = affected_rows;
-
-//             if (!ib_query->out_sqlda) { /* no result set is being returned */
-//                 if (affected_rows) {
-//                     RETVAL_LONG(affected_rows);
-//                 } else {
-//                     RETVAL_TRUE;
-//                 }
-//                 break;
-//             }
-//         default:
-//             RETVAL_TRUE;
-//     }
-
-//     rv = SUCCESS;
-
-// _php_firebird_exec_error:
-
-//     if (in_sqlda) {
-//         efree(in_sqlda);
-//     }
-//     if (bind_buf)
-//         efree(bind_buf);
-
-//     if (rv == FAILURE) {
-//         if (*ib_resultp) {
-//             efree(*ib_resultp);
-//             *ib_resultp = NULL;
-//         }
-//         if (out_sqlda) {
-//             _php_firebird_free_xsqlda(out_sqlda);
-//         }
-//     }
-
-//     return rv;
-// }
-
 static void _php_firebird_alloc_xsqlda(XSQLDA *sqlda)
 {
     int i;
@@ -686,7 +491,7 @@ static void _php_firebird_process_trans(INTERNAL_FUNCTION_PARAMETERS, int commit
     }
 }
 
-int _php_firebird_bind(XSQLDA *sqlda, zval *b_vars, zend_object *stmt_o)
+int _php_firebird_bind(XSQLDA *sqlda, zval *b_vars, zend_object *stmt_o, ISC_STATUS_ARRAY status)
 {
     int i, array_cnt = 0, rv = SUCCESS;
     firebird_stmt *stmt = Z_STMT_O(stmt_o);
@@ -815,30 +620,27 @@ int _php_firebird_bind(XSQLDA *sqlda, zval *b_vars, zend_object *stmt_o)
                 continue;
 
             case SQL_BLOB:
-                assert(false && "TODO: bind SQL_BLOB");
-                // convert_to_string(b_var);
+                convert_to_string(b_var);
 
-                // if (Z_STRLEN_P(b_var) != BLOB_ID_LEN ||
-                //     !_php_firebird_string_to_quad(Z_STRVAL_P(b_var), &buf[i].val.qval)) {
+                if (Z_STRLEN_P(b_var) != BLOB_ID_LEN ||
+                    !_php_firebird_string_to_quad(Z_STRVAL_P(b_var), &stmt->bind_buf[i].val.qval)) {
 
-                //     ibase_blob ib_blob = { 0, BLOB_INPUT };
+                    firebird_blob ib_blob = { 0, BLOB_INPUT };
 
-                //     if (isc_create_blob(IB_STATUS, &ib_query->link->handle,
-                //             &ib_query->trans->handle, &ib_blob.bl_handle, &ib_blob.bl_qd)) {
-                //         _php_firebird_error();
-                //         return FAILURE;
-                //     }
+                    if (isc_create_blob(status, &stmt->db_handle, &stmt->tr_handle, &ib_blob.bl_handle, &ib_blob.bl_qd)) {
+                        return FAILURE;
+                    }
 
-                //     if (_php_firebird_blob_add(b_var, &ib_blob) != SUCCESS) {
-                //         return FAILURE;
-                //     }
+                    if (_php_firebird_blob_add(status, b_var, &ib_blob) != SUCCESS) {
+                        return FAILURE;
+                    }
 
-                //     if (isc_close_blob(IB_STATUS, &ib_blob.bl_handle)) {
-                //         _php_firebird_error();
-                //         return FAILURE;
-                //     }
-                //     buf[i].val.qval = ib_blob.bl_qd;
-                // }
+                    if (isc_close_blob(status, &ib_blob.bl_handle)) {
+                        return FAILURE;
+                    }
+
+                    stmt->bind_buf[i].val.qval = ib_blob.bl_qd;
+                }
                 continue;
 #ifdef SQL_BOOLEAN
             case SQL_BOOLEAN:

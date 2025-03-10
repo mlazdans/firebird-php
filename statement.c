@@ -306,8 +306,6 @@ static void _php_firebird_fetch_hash(INTERNAL_FUNCTION_PARAMETERS, int fetch_typ
     firebird_stmt *ib_result = Z_STMT_P(ZEND_THIS);
     ISC_STATUS_ARRAY status;
 
-    // RESET_ERRMSG;
-
     if (ib_result->out_sqlda == NULL || !ib_result->has_more_rows) {
         RETURN_NULL();
     }
@@ -364,72 +362,68 @@ static void _php_firebird_fetch_hash(INTERNAL_FUNCTION_PARAMETERS, int fetch_typ
                     _php_firebird_var_zval(&result, var->sqldata, var->sqltype, var->sqllen, var->sqlscale, flag);
                     break;
                 case SQL_BLOB:
-                    assert(false && "TODO: SQL_BLOB");
-                    // if (flag & PHP_IBASE_FETCH_BLOBS) { /* fetch blob contents into hash */
+                    if (true || flag & PHP_FIREBIRD_FETCH_BLOBS) { /* fetch blob contents into hash */
+                        firebird_blob blob_handle;
+                        zend_ulong max_len = 0;
+                        static char bl_items[] = {isc_info_blob_total_length};
+                        char bl_info[20];
+                        unsigned short i;
 
-                    //     ibase_blob blob_handle;
-                    //     zend_ulong max_len = 0;
-                    //     static char bl_items[] = {isc_info_blob_total_length};
-                    //     char bl_info[20];
-                    //     unsigned short i;
+                        blob_handle.bl_handle = 0;
+                        blob_handle.bl_qd = *(ISC_QUAD *) var->sqldata;
 
-                    //     blob_handle.bl_handle = 0;
-                    //     blob_handle.bl_qd = *(ISC_QUAD *) var->sqldata;
+                        if (isc_open_blob(status, &ib_result->db_handle, &ib_result->tr_handle,
+                            &blob_handle.bl_handle, &blob_handle.bl_qd)) {
+                                update_err_props(status, FireBird_Statement_ce, Z_OBJ_P(ZEND_THIS));
+                                goto _php_firebird_fetch_error;
+                        }
 
-                    //     if (isc_open_blob(IB_STATUS, &ib_result->link->handle, &ib_result->trans->handle,
-                    //             &blob_handle.bl_handle, &blob_handle.bl_qd)) {
-                    //         _php_firebird_error();
-                    //         goto _php_firebird_fetch_error;
-                    //     }
+                        if (isc_blob_info(status, &blob_handle.bl_handle, sizeof(bl_items),
+                            bl_items, sizeof(bl_info), bl_info)) {
+                                update_err_props(status, FireBird_Statement_ce, Z_OBJ_P(ZEND_THIS));
+                                goto _php_firebird_fetch_error;
+                        }
 
-                    //     if (isc_blob_info(IB_STATUS, &blob_handle.bl_handle, sizeof(bl_items),
-                    //             bl_items, sizeof(bl_info), bl_info)) {
-                    //         _php_firebird_error();
-                    //         goto _php_firebird_fetch_error;
-                    //     }
+                        /* find total length of blob's data */
+                        for (i = 0; i < sizeof(bl_info); ) {
+                            unsigned short item_len;
+                            char item = bl_info[i++];
 
-                    //     /* find total length of blob's data */
-                    //     for (i = 0; i < sizeof(bl_info); ) {
-                    //         unsigned short item_len;
-                    //         char item = bl_info[i++];
+                            if (item == isc_info_end || item == isc_info_truncated ||
+                                item == isc_info_error || i >= sizeof(bl_info)) {
+                                    _php_firebird_module_error("Could not determine BLOB size (internal error)");
+                                    goto _php_firebird_fetch_error;
+                            }
 
-                    //         if (item == isc_info_end || item == isc_info_truncated ||
-                    //             item == isc_info_error || i >= sizeof(bl_info)) {
+                            item_len = (unsigned short) isc_vax_integer(&bl_info[i], 2);
 
-                    //             _php_firebird_module_error("Could not determine BLOB size (internal error)"
-                    //                 );
-                    //             goto _php_firebird_fetch_error;
-                    //         }
+                            if (item == isc_info_blob_total_length) {
+                                max_len = isc_vax_integer(&bl_info[i+2], item_len);
+                                break;
+                            }
+                            i += item_len+2;
+                        }
 
-                    //         item_len = (unsigned short) isc_vax_integer(&bl_info[i], 2);
+                        if (max_len == 0) {
+                            ZVAL_STRING(&result, "");
+                        } else if (SUCCESS != _php_firebird_blob_get(status, &result, &blob_handle, max_len)) {
+                            update_err_props(status, FireBird_Statement_ce, Z_OBJ_P(ZEND_THIS));
+                            goto _php_firebird_fetch_error;
+                        }
 
-                    //         if (item == isc_info_blob_total_length) {
-                    //             max_len = isc_vax_integer(&bl_info[i+2], item_len);
-                    //             break;
-                    //         }
-                    //         i += item_len+2;
-                    //     }
+                        if (isc_close_blob(status, &blob_handle.bl_handle)) {
+                            update_err_props(status, FireBird_Statement_ce, Z_OBJ_P(ZEND_THIS));
+                            goto _php_firebird_fetch_error;
+                        }
 
-                    //     if (max_len == 0) {
-                    //         ZVAL_STRING(&result, "");
-                    //     } else if (SUCCESS != _php_firebird_blob_get(&result, &blob_handle,
-                    //             max_len)) {
-                    //         goto _php_firebird_fetch_error;
-                    //     }
-
-                    //     if (isc_close_blob(IB_STATUS, &blob_handle.bl_handle)) {
-                    //         _php_firebird_error();
-                    //         goto _php_firebird_fetch_error;
-                    //     }
-
-                    // } else { /* blob id only */
-                    //     ISC_QUAD bl_qd = *(ISC_QUAD *) var->sqldata;
-                    //     ZVAL_NEW_STR(&result, _php_firebird_quad_to_string(bl_qd));
-                    // }
+                    } else { /* blob id only */
+                        ISC_QUAD bl_qd = *(ISC_QUAD *) var->sqldata;
+                        ZVAL_NEW_STR(&result, _php_firebird_quad_to_string(bl_qd));
+                    }
                     break;
                 case SQL_ARRAY:
                     assert(false && "TODO: SQL_ARRAY");
-                    // if (flag & PHP_IBASE_FETCH_ARRAYS) { /* array can be *huge* so only fetch if asked */
+                    // if (flag & PHP_FIREBIRD_FETCH_ARRAYS) { /* array can be *huge* so only fetch if asked */
                     //     ISC_QUAD ar_qd = *(ISC_QUAD *) var->sqldata;
                     //     ibase_array *ib_array = &ib_result->out_array[array_cnt++];
                     //     void *ar_data = emalloc(ib_array->ar_size);
@@ -503,7 +497,7 @@ int _php_firebird_execute(zval *bind_args, uint32_t num_bind_args, zend_object *
 
     /* has placeholders */
     if (stmt->in_sqlda->sqld > 0) {
-        if (FAILURE == _php_firebird_bind(stmt->in_sqlda, bind_args, stmt_o)) {
+        if (FAILURE == _php_firebird_bind(stmt->in_sqlda, bind_args, stmt_o, status)) {
             return FAILURE;
         }
     }
