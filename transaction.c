@@ -124,7 +124,7 @@ PHP_METHOD(Transaction, query)
 
     zend_object *stmt_o = Z_OBJ(rv);
 
-    if (FAILURE == _php_firebird_execute(bind_args, num_bind_args, stmt_o, status)) {
+    if (FAILURE == _php_firebird_execute(status, bind_args, num_bind_args, stmt_o)) {
         zval_ptr_dtor(&rv);
         update_err_props(status, FireBird_Transaction_ce, Z_OBJ_P(ZEND_THIS));
         RETURN_FALSE;
@@ -491,16 +491,13 @@ static void _php_firebird_process_trans(INTERNAL_FUNCTION_PARAMETERS, int commit
     }
 }
 
-int _php_firebird_bind(XSQLDA *sqlda, zval *b_vars, zend_object *stmt_o, ISC_STATUS_ARRAY status)
+int _php_firebird_bind(ISC_STATUS_ARRAY status, XSQLDA *sqlda, zval *b_vars, zend_object *stmt_o)
 {
     int i, array_cnt = 0, rv = SUCCESS;
     firebird_stmt *stmt = Z_STMT_O(stmt_o);
 
     if(sqlda->sqld > 0) {
         // In case of repeated calls to execute()
-        // if(stmt->bind_buf) {
-        //     efree(stmt->bind_buf);
-        // }
         if(!stmt->bind_buf) {
             stmt->bind_buf = safe_emalloc(sizeof(firebird_bind_buf), stmt->in_sqlda->sqld, 0);
         }

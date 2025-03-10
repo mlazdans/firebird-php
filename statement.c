@@ -66,7 +66,7 @@ PHP_METHOD(Statement, execute)
         Z_PARAM_VARIADIC('+', bind_args, num_bind_args)
     ZEND_PARSE_PARAMETERS_END();
 
-    if (FAILURE == _php_firebird_execute(bind_args, num_bind_args, Z_OBJ_P(ZEND_THIS), status)) {
+    if (FAILURE == _php_firebird_execute(status, bind_args, num_bind_args, Z_OBJ_P(ZEND_THIS))) {
         update_err_props(status, FireBird_Statement_ce, Z_OBJ_P(ZEND_THIS));
         RETURN_FALSE;
     }
@@ -485,7 +485,7 @@ static void _php_firebird_free_xsqlda(XSQLDA *sqlda)
     }
 }
 
-int _php_firebird_execute(zval *bind_args, uint32_t num_bind_args, zend_object *stmt_o, ISC_STATUS_ARRAY status)
+int _php_firebird_execute(ISC_STATUS_ARRAY status, zval *bind_args, uint32_t num_bind_args, zend_object *stmt_o)
 {
     firebird_stmt *stmt = Z_STMT_O(stmt_o);
 
@@ -497,7 +497,7 @@ int _php_firebird_execute(zval *bind_args, uint32_t num_bind_args, zend_object *
 
     /* has placeholders */
     if (stmt->in_sqlda->sqld > 0) {
-        if (FAILURE == _php_firebird_bind(stmt->in_sqlda, bind_args, stmt_o, status)) {
+        if (FAILURE == _php_firebird_bind(status, stmt->in_sqlda, bind_args, stmt_o)) {
             return FAILURE;
         }
     }

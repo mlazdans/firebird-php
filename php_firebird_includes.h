@@ -333,8 +333,8 @@ extern void register_FireBird_Statement_ce();
 
 void dump_buffer(const unsigned char *buffer, int len);
 bool update_err_props_ex(ISC_STATUS_ARRAY status, zend_class_entry *class_ce, zend_object *obj, const char *file_name, size_t line_num);
-int _php_firebird_bind(XSQLDA *sqlda, zval *b_vars, zend_object *stmt_o);
-int _php_firebird_execute(zval *bind_args, uint32_t num_bind_args, zend_object *stmt_o, ISC_STATUS_ARRAY status);
+int _php_firebird_bind(ISC_STATUS_ARRAY status, XSQLDA *sqlda, zval *b_vars, zend_object *stmt_o);
+int _php_firebird_execute(ISC_STATUS_ARRAY status, zval *bind_args, uint32_t num_bind_args, zend_object *stmt_o);
 int _php_firebird_string_to_quad(char const *id, ISC_QUAD *qd);
 int _php_firebird_blob_add(ISC_STATUS_ARRAY status, zval *string_arg, firebird_blob *ib_blob);
 int _php_firebird_blob_get(ISC_STATUS_ARRAY status, zval *return_value, firebird_blob *ib_blob, zend_ulong max_len);
