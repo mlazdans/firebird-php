@@ -17,9 +17,10 @@ static void _php_firebird_free_xsqlda(XSQLDA *sqlda);
 #define FETCH_ROW       1
 #define FETCH_ARRAY     2
 
-static void free_stmt(firebird_stmt *s);
+static void _php_firebird_free_stmt(firebird_stmt *s);
 static void _php_firebird_fetch_hash(INTERNAL_FUNCTION_PARAMETERS, int fetch_type);
 
+// TODO: fetch flags
 PHP_METHOD(Statement, fetch_row)
 {
     // ISC_STATUS isc_result;
@@ -58,10 +59,75 @@ PHP_METHOD(Statement, fetch_object)
     }
 }
 
+PHP_METHOD(Statement, close)
+{
+    ZEND_PARSE_PARAMETERS_NONE();
+
+    firebird_stmt *stmt = Z_STMT_P(ZEND_THIS);
+    ISC_STATUS_ARRAY status;
+
+    if (isc_dsql_free_statement(status, &stmt->stmt_handle, DSQL_close)) {
+        update_err_props(status, FireBird_Statement_ce, Z_OBJ_P(ZEND_THIS));
+        RETURN_FALSE;
+    }
+
+    RETURN_TRUE;
+}
+
+PHP_METHOD(Statement, execute)
+{
+    zval rv, *bind_args;
+    uint32_t num_bind_args;
+
+    ZEND_PARSE_PARAMETERS_START(0, -1)
+        Z_PARAM_OPTIONAL
+        Z_PARAM_VARIADIC('+', bind_args, num_bind_args)
+    ZEND_PARSE_PARAMETERS_END();
+
+    firebird_stmt *stmt = Z_STMT_P(ZEND_THIS);
+
+    if (num_bind_args != stmt->in_sqlda->sqld) {
+        zend_throw_exception_ex(zend_ce_argument_count_error, 0,
+            "Statement expects %d arguments, %d given", stmt->in_sqlda->sqld, num_bind_args);
+        RETURN_THROWS();
+    }
+
+    /* has placeholders */
+    if (stmt->in_sqlda->sqld > 0) {
+        // in_sqlda = emalloc(XSQLDA_LENGTH(stmt->in_sqlda->sqld));
+        // memcpy(in_sqlda, stmt->in_sqlda, XSQLDA_LENGTH(stmt->in_sqlda->sqld));
+        if (FAILURE == _php_firebird_bind(stmt->in_sqlda, bind_args, Z_OBJ_P(ZEND_THIS))) {
+           RETURN_FALSE;
+        }
+    }
+
+    // TODO: code dup
+    ISC_STATUS_ARRAY status;
+    ISC_STATUS isc_result;
+    if (stmt->statement_type == isc_info_sql_stmt_exec_procedure) {
+        assert(false && "TODO: isc_info_sql_stmt_exec_procedure");
+        // isc_result = isc_dsql_execute2(IB_STATUS, &stmt->transtmt->handle,
+        //     &stmt->stmt, SQLDA_CURRENT_VERSION, in_sqlda, out_sqlda);
+    } else {
+        // isc_result = isc_dsql_execute(status, &stmt->tr_handle, &stmt->stmt_handle, SQLDA_CURRENT_VERSION, stmt->in_sqlda);
+        stmt->has_more_rows = 1;
+        isc_result = isc_dsql_execute(status, &stmt->tr_handle, &stmt->stmt_handle, SQLDA_CURRENT_VERSION, stmt->in_sqlda);
+    }
+
+    if (isc_result) {
+        update_err_props(status, FireBird_Statement_ce, Z_OBJ_P(ZEND_THIS));
+        RETURN_FALSE;
+    }
+
+    RETURN_TRUE;
+}
+
 const zend_function_entry FireBird_Statement_methods[] = {
     PHP_ME(Statement, fetch_row, arginfo_FireBird_Statement_fetch_row, ZEND_ACC_PUBLIC)
     PHP_ME(Statement, fetch_array, arginfo_FireBird_Statement_fetch_row, ZEND_ACC_PUBLIC)
     PHP_ME(Statement, fetch_object, arginfo_FireBird_Statement_fetch_object, ZEND_ACC_PUBLIC)
+    PHP_ME(Statement, execute, arginfo_FireBird_Statement_execute, ZEND_ACC_PUBLIC)
+    PHP_ME(Statement, close, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
 
@@ -81,7 +147,7 @@ static void FireBird_Statement_free_obj(zend_object *obj)
     php_printf("FireBird_Statement_free_obj\n");
     firebird_stmt *s = Z_STMT_O(obj);
 
-    free_stmt(s);
+    _php_firebird_free_stmt(s);
 
     zend_object_std_dtor(&s->std);
 }
@@ -103,7 +169,7 @@ void register_FireBird_Statement_ce()
     FireBird_Statement_object_handlers.free_obj = FireBird_Statement_free_obj;
 }
 
-static void free_stmt(firebird_stmt *s)
+static void _php_firebird_free_stmt(firebird_stmt *s)
 {
     if (s->in_sqlda) {
         efree(s->in_sqlda);

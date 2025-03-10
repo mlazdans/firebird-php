@@ -301,10 +301,18 @@ ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Transacti
     ZEND_ARG_VARIADIC_INFO(0, bind_args)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Transaction_prepare, 0, 1, FireBird\\Statement, MAY_BE_FALSE)
+    ZEND_ARG_TYPE_INFO(0, sql, IS_STRING, 0)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_FireBird_Statement_fetch_row, 0, 0, MAY_BE_ARRAY|MAY_BE_FALSE|MAY_BE_NULL)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_FireBird_Statement_fetch_object, 0, 0, MAY_BE_OBJECT|MAY_BE_FALSE|MAY_BE_NULL)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Statement_execute, 0, 0, _IS_BOOL, 0)
+    ZEND_ARG_VARIADIC_INFO(0, bind_args)
 ZEND_END_ARG_INFO()
 
 extern zend_class_entry *FireBird_Connection_ce;
@@ -333,6 +341,7 @@ extern void register_FireBird_Statement_ce();
 
 void dump_buffer(const unsigned char *buffer, int len);
 bool update_err_props_ex(ISC_STATUS_ARRAY status, zend_class_entry *class_ce, zend_object *obj, const char *file_name, size_t line_num);
+int _php_firebird_bind(XSQLDA *sqlda, zval *b_vars, zend_object *stmt_o);
 
 #define update_err_props(status, class_ce, obj) update_err_props_ex(status, class_ce, obj, __FILE__, __LINE__)
 

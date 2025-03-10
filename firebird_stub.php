@@ -64,7 +64,8 @@ class Transaction {
     /** @return Statement | false */
     function query(string $sql, ...$bind_args) {}
 
-    // function prepare(string $query) {}
+    /** @return Statement | false */
+    function prepare(string $sql) {}
 }
 
 class Statement {
@@ -78,6 +79,12 @@ class Statement {
 
     /** @return array | false | null */
     function fetch_row() {}
+
+    /** @return bool */
+    function execute(...$bind_args) {}
+
+    /** @return bool */
+    function close() {}
 }
 
 namespace FireBird\Transaction;

@@ -9,9 +9,9 @@ static zend_object_handlers FireBird_Transaction_object_handlers;
 
 // static int alloc_array(firebird_array **ib_arrayp, unsigned short *array_cnt, XSQLDA *sqlda, zend_object *obj);
 static void _php_firebird_alloc_xsqlda(XSQLDA *sqlda);
-static  int _php_firebird_bind(INTERNAL_FUNCTION_PARAMETERS, XSQLDA *sqlda, zval *b_vars, zend_object *stmt_o);
 static void _php_firebird_process_trans(INTERNAL_FUNCTION_PARAMETERS, int commit);
 static void _php_firebird_populate_tpb(zend_long trans_argl, zend_long trans_timeout, char *last_tpb, unsigned short *len);
+static  int _php_firebird_prepare(INTERNAL_FUNCTION_PARAMETERS, const ISC_SCHAR *sql, zval *zstmt);
 
 #define ROLLBACK    0
 #define COMMIT      1
@@ -87,20 +87,36 @@ PHP_METHOD(Transaction, rollback_ret) {
     _php_firebird_process_trans(INTERNAL_FUNCTION_PARAM_PASSTHRU, ROLLBACK | RETAIN);
 }
 
+PHP_METHOD(Transaction, prepare)
+{
+    zval rv;
+    zend_string *sql;
+
+    firebird_trans *tr = Z_TRANSACTION_P(ZEND_THIS);
+    ISC_STATUS_ARRAY status;
+
+    ZEND_PARSE_PARAMETERS_START(1, -1)
+        Z_PARAM_STR(sql)
+    ZEND_PARSE_PARAMETERS_END();
+
+    if (FAILURE == _php_firebird_prepare(INTERNAL_FUNCTION_PARAM_PASSTHRU, ZSTR_VAL(sql), &rv)) {
+        RETURN_FALSE;
+    }
+
+    zend_object *stmt_o = Z_OBJ(rv);
+    // firebird_stmt *stmt = Z_STMT_O(stmt_o);
+
+    RETVAL_OBJ(stmt_o);
+}
+
 PHP_METHOD(Transaction, query)
 {
-    zval rv, *val;
-    zend_long trans_args = 0, lock_timeout = 0;
-    ISC_STATUS_ARRAY status;
-    char tpb[TPB_MAX_SIZE];
-    unsigned short tpb_len = 0;
-    zend_string *sql = NULL;
+    zval rv, *bind_args;
+    uint32_t num_bind_args;
+    zend_string *sql;
 
-    // val = zend_read_property(FireBird_Transaction_ce, Z_OBJ_P(ZEND_THIS), "transaction", sizeof("transaction") - 1, 0, &rv);
     firebird_trans *tr = Z_TRANSACTION_P(ZEND_THIS);
-
-    zval *bind_args = NULL;
-    uint32_t num_bind_args, i;
+    ISC_STATUS_ARRAY status;
 
     ZEND_PARSE_PARAMETERS_START(1, -1)
         Z_PARAM_STR(sql)
@@ -108,99 +124,29 @@ PHP_METHOD(Transaction, query)
         Z_PARAM_VARIADIC('+', bind_args, num_bind_args)
     ZEND_PARSE_PARAMETERS_END();
 
-    php_printf("sql=%s\n", ZSTR_VAL(sql));
-    for (i = 0; i < num_bind_args; i++) {
-        php_printf("    arg=%s\n", zend_zval_type_name(&bind_args[i]));
+    if (FAILURE == _php_firebird_prepare(INTERNAL_FUNCTION_PARAM_PASSTHRU, ZSTR_VAL(sql), &rv)) {
+        RETURN_FALSE;
     }
 
-    object_init_ex(&rv, FireBird_Statement_ce);
     zend_object *stmt_o = Z_OBJ(rv);
     firebird_stmt *stmt = Z_STMT_O(stmt_o);
 
-    stmt->db_handle = tr->db_handle;
-    stmt->tr_handle = tr->tr_handle;
-    stmt->has_more_rows = 1;
-
-    if (isc_dsql_allocate_statement(status, &stmt->db_handle, &stmt->stmt_handle)) {
-        update_err_props(status, FireBird_Transaction_ce, Z_OBJ_P(ZEND_THIS));
-        zval_ptr_dtor(&rv);
-        RETURN_FALSE;
-    }
-
-    stmt->out_sqlda = (XSQLDA *) emalloc(XSQLDA_LENGTH(1));
-    stmt->out_sqlda->sqln = 1;
-    stmt->out_sqlda->version = SQLDA_CURRENT_VERSION;
-
-    if (isc_dsql_prepare(status, &stmt->tr_handle, &stmt->stmt_handle, 0, ZSTR_VAL(sql), SQL_DIALECT_CURRENT, stmt->out_sqlda)) {
-        update_err_props(status, FireBird_Transaction_ce, Z_OBJ_P(ZEND_THIS));
-        zval_ptr_dtor(&rv);
-        RETURN_FALSE;
-    }
-
-    if (stmt->out_sqlda->sqld > stmt->out_sqlda->sqln) {
-        stmt->out_sqlda = erealloc(stmt->out_sqlda, XSQLDA_LENGTH(stmt->out_sqlda->sqld));
-        stmt->out_sqlda->sqln = stmt->out_sqlda->sqld;
-        stmt->out_sqlda->version = SQLDA_CURRENT_VERSION;
-        if (isc_dsql_describe(status, &stmt->stmt_handle, SQLDA_CURRENT_VERSION, stmt->out_sqlda)) {
-            update_err_props(status, FireBird_Transaction_ce, Z_OBJ_P(ZEND_THIS));
-            zval_ptr_dtor(&rv);
-            RETURN_FALSE;
-        }
-    }
-
-    _php_firebird_alloc_xsqlda(stmt->out_sqlda);
-
-    /* maybe have input placeholders? */
-    stmt->in_sqlda = emalloc(XSQLDA_LENGTH(1));
-    stmt->in_sqlda->sqln = 1;
-    stmt->in_sqlda->version = SQLDA_CURRENT_VERSION;
-    if (isc_dsql_describe_bind(status, &stmt->stmt_handle, SQLDA_CURRENT_VERSION, stmt->in_sqlda)) {
-        update_err_props(status, FireBird_Transaction_ce, Z_OBJ_P(ZEND_THIS));
-        zval_ptr_dtor(&rv);
-        RETURN_FALSE;
-    }
-
-    /* not enough input variables ? */
-    if (stmt->in_sqlda->sqln < stmt->in_sqlda->sqld) {
-        stmt->in_sqlda = erealloc(stmt->in_sqlda, XSQLDA_LENGTH(stmt->in_sqlda->sqld));
-        stmt->in_sqlda->sqln = stmt->in_sqlda->sqld;
-        stmt->in_sqlda->version = SQLDA_CURRENT_VERSION;
-
-        if (isc_dsql_describe_bind(status, &stmt->stmt_handle, SQLDA_CURRENT_VERSION, stmt->in_sqlda)) {
-            update_err_props(status, FireBird_Transaction_ce, Z_OBJ_P(ZEND_THIS));
-            zval_ptr_dtor(&rv);
-            RETURN_FALSE;
-        }
-    }
-
     if (num_bind_args != stmt->in_sqlda->sqld) {
-        zend_throw_exception_ex(zend_ce_argument_count_error, 0, "Statement expects %d arguments, %d given", stmt->in_sqlda->sqld, num_bind_args);
+        zend_throw_exception_ex(zend_ce_argument_count_error, 0,
+            "Statement expects %d arguments, %d given", stmt->in_sqlda->sqld, num_bind_args);
         zval_ptr_dtor(&rv);
-        RETURN_FALSE;
+        RETURN_THROWS();
     }
 
     /* has placeholders */
     if (stmt->in_sqlda->sqld > 0) {
-        firebird_bind_buf *bind_buf = NULL;
         // in_sqlda = emalloc(XSQLDA_LENGTH(stmt->in_sqlda->sqld));
         // memcpy(in_sqlda, stmt->in_sqlda, XSQLDA_LENGTH(stmt->in_sqlda->sqld));
-        if (_php_firebird_bind(INTERNAL_FUNCTION_PARAM_PASSTHRU, stmt->in_sqlda, bind_args, stmt_o) == FAILURE) {
+        if (FAILURE == _php_firebird_bind(stmt->in_sqlda, bind_args, stmt_o)) {
             zval_ptr_dtor(&rv);
-            RETURN_FALSE;
+           RETURN_FALSE;
         }
     }
-
-    static char info_type[] = { isc_info_sql_stmt_type };
-    char result[8];
-
-    /* find out what kind of statement was prepared */
-    if (isc_dsql_sql_info(status, &stmt->stmt_handle, sizeof(info_type), info_type, sizeof(result), result)) {
-        update_err_props(status, FireBird_Transaction_ce, Z_OBJ_P(ZEND_THIS));
-        zval_ptr_dtor(&rv);
-        RETURN_FALSE;
-    }
-
-    stmt->statement_type = result[3];
 
     ISC_STATUS isc_result;
     if (stmt->statement_type == isc_info_sql_stmt_exec_procedure) {
@@ -209,6 +155,7 @@ PHP_METHOD(Transaction, query)
         //     &stmt->stmt, SQLDA_CURRENT_VERSION, in_sqlda, out_sqlda);
     } else {
         // isc_result = isc_dsql_execute(status, &stmt->tr_handle, &stmt->stmt_handle, SQLDA_CURRENT_VERSION, stmt->in_sqlda);
+        stmt->has_more_rows = 1;
         isc_result = isc_dsql_execute(status, &stmt->tr_handle, &stmt->stmt_handle, SQLDA_CURRENT_VERSION, stmt->in_sqlda);
     }
 
@@ -248,6 +195,7 @@ const zend_function_entry FireBird_Transaction_methods[] = {
     PHP_ME(Transaction, rollback, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
     PHP_ME(Transaction, rollback_ret, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
     PHP_ME(Transaction, query, arginfo_FireBird_Transaction_query, ZEND_ACC_PUBLIC)
+    PHP_ME(Transaction, prepare, arginfo_FireBird_Transaction_prepare, ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
 
@@ -773,13 +721,19 @@ static void _php_firebird_process_trans(INTERNAL_FUNCTION_PARAMETERS, int commit
     }
 }
 
-static int _php_firebird_bind(INTERNAL_FUNCTION_PARAMETERS, XSQLDA *sqlda, zval *b_vars, zend_object *stmt_o)
+int _php_firebird_bind(XSQLDA *sqlda, zval *b_vars, zend_object *stmt_o)
 {
     int i, array_cnt = 0, rv = SUCCESS;
     firebird_stmt *stmt = Z_STMT_O(stmt_o);
 
     if(sqlda->sqld > 0) {
-        stmt->bind_buf = safe_emalloc(sizeof(firebird_bind_buf), stmt->in_sqlda->sqld, 0);
+        // In case of repeated calls to execute()
+        // if(stmt->bind_buf) {
+        //     efree(stmt->bind_buf);
+        // }
+        if(!stmt->bind_buf) {
+            stmt->bind_buf = safe_emalloc(sizeof(firebird_bind_buf), stmt->in_sqlda->sqld, 0);
+        }
     }
 
     for (i = 0; i < sqlda->sqld; ++i) {
@@ -1017,4 +971,84 @@ static int _php_firebird_bind(INTERNAL_FUNCTION_PARAMETERS, XSQLDA *sqlda, zval 
         var->sqltype = SQL_TEXT;
     } /* for */
     return rv;
+}
+
+static int _php_firebird_prepare(INTERNAL_FUNCTION_PARAMETERS, const ISC_SCHAR *sql, zval *zstmt)
+{
+    firebird_trans *tr = Z_TRANSACTION_P(ZEND_THIS);
+    ISC_STATUS_ARRAY status;
+
+    object_init_ex(zstmt, FireBird_Statement_ce);
+
+    zend_object *stmt_o = Z_OBJ_P(zstmt);
+    firebird_stmt *stmt = Z_STMT_O(stmt_o);
+
+    stmt->db_handle = tr->db_handle;
+    stmt->tr_handle = tr->tr_handle;
+
+    if (isc_dsql_allocate_statement(status, &stmt->db_handle, &stmt->stmt_handle)) {
+        update_err_props(status, FireBird_Transaction_ce, Z_OBJ_P(ZEND_THIS));
+        zval_ptr_dtor(zstmt);
+        return FAILURE;
+    }
+
+    stmt->out_sqlda = (XSQLDA *) emalloc(XSQLDA_LENGTH(1));
+    stmt->out_sqlda->sqln = 1;
+    stmt->out_sqlda->version = SQLDA_CURRENT_VERSION;
+
+    if (isc_dsql_prepare(status, &stmt->tr_handle, &stmt->stmt_handle, 0, sql, SQL_DIALECT_CURRENT, stmt->out_sqlda)) {
+        update_err_props(status, FireBird_Transaction_ce, Z_OBJ_P(ZEND_THIS));
+        zval_ptr_dtor(zstmt);
+        return FAILURE;
+    }
+
+    if (stmt->out_sqlda->sqld > stmt->out_sqlda->sqln) {
+        stmt->out_sqlda = erealloc(stmt->out_sqlda, XSQLDA_LENGTH(stmt->out_sqlda->sqld));
+        stmt->out_sqlda->sqln = stmt->out_sqlda->sqld;
+        stmt->out_sqlda->version = SQLDA_CURRENT_VERSION;
+        if (isc_dsql_describe(status, &stmt->stmt_handle, SQLDA_CURRENT_VERSION, stmt->out_sqlda)) {
+            update_err_props(status, FireBird_Transaction_ce, Z_OBJ_P(ZEND_THIS));
+            zval_ptr_dtor(zstmt);
+            return FAILURE;
+        }
+    }
+
+    _php_firebird_alloc_xsqlda(stmt->out_sqlda);
+
+    /* maybe have input placeholders? */
+    stmt->in_sqlda = emalloc(XSQLDA_LENGTH(1));
+    stmt->in_sqlda->sqln = 1;
+    stmt->in_sqlda->version = SQLDA_CURRENT_VERSION;
+    if (isc_dsql_describe_bind(status, &stmt->stmt_handle, SQLDA_CURRENT_VERSION, stmt->in_sqlda)) {
+        update_err_props(status, FireBird_Transaction_ce, Z_OBJ_P(ZEND_THIS));
+        zval_ptr_dtor(zstmt);
+        return FAILURE;
+    }
+
+    /* not enough input variables ? */
+    if (stmt->in_sqlda->sqln < stmt->in_sqlda->sqld) {
+        stmt->in_sqlda = erealloc(stmt->in_sqlda, XSQLDA_LENGTH(stmt->in_sqlda->sqld));
+        stmt->in_sqlda->sqln = stmt->in_sqlda->sqld;
+        stmt->in_sqlda->version = SQLDA_CURRENT_VERSION;
+
+        if (isc_dsql_describe_bind(status, &stmt->stmt_handle, SQLDA_CURRENT_VERSION, stmt->in_sqlda)) {
+            update_err_props(status, FireBird_Transaction_ce, Z_OBJ_P(ZEND_THIS));
+            zval_ptr_dtor(zstmt);
+            return FAILURE;
+        }
+    }
+
+    static char info_type[] = { isc_info_sql_stmt_type };
+    char result[8];
+
+    /* find out what kind of statement was prepared */
+    if (isc_dsql_sql_info(status, &stmt->stmt_handle, sizeof(info_type), info_type, sizeof(result), result)) {
+        update_err_props(status, FireBird_Transaction_ce, Z_OBJ_P(ZEND_THIS));
+        zval_ptr_dtor(zstmt);
+        return FAILURE;
+    }
+
+    stmt->statement_type = result[3];
+
+    return SUCCESS;
 }
