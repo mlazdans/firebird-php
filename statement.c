@@ -303,10 +303,10 @@ static void _php_firebird_fetch_hash(INTERNAL_FUNCTION_PARAMETERS, int fetch_typ
     zval *result_arg;
     zend_long flags = 0;
     zend_long i, array_cnt = 0;
-    firebird_stmt *ib_result = Z_STMT_P(ZEND_THIS);
+    firebird_stmt *stmt = Z_STMT_P(ZEND_THIS);
     ISC_STATUS_ARRAY status;
 
-    if (ib_result->out_sqlda == NULL || !ib_result->has_more_rows) {
+    if (stmt->out_sqlda == NULL || !stmt->has_more_rows) {
         RETURN_NULL();
     }
 
@@ -315,9 +315,9 @@ static void _php_firebird_fetch_hash(INTERNAL_FUNCTION_PARAMETERS, int fetch_typ
         Z_PARAM_LONG(flags)
     ZEND_PARSE_PARAMETERS_END();
 
-    if (ib_result->statement_type != isc_info_sql_stmt_exec_procedure) {
-        if (isc_dsql_fetch(status, &ib_result->stmt_handle, 1, ib_result->out_sqlda)) {
-            ib_result->has_more_rows = 0;
+    if (stmt->statement_type != isc_info_sql_stmt_exec_procedure) {
+        if (isc_dsql_fetch(status, &stmt->stmt_handle, 1, stmt->out_sqlda)) {
+            stmt->has_more_rows = 0;
             if(update_err_props(status, FireBird_Statement_ce, Z_OBJ_P(ZEND_THIS))) {
                 RETURN_FALSE;
             } else {
@@ -325,13 +325,13 @@ static void _php_firebird_fetch_hash(INTERNAL_FUNCTION_PARAMETERS, int fetch_typ
             }
         }
     } else {
-        ib_result->has_more_rows = 0;
+        stmt->has_more_rows = 0;
     }
 
     array_init(return_value);
 
-    for (i = 0; i < ib_result->out_sqlda->sqld; ++i) {
-        XSQLVAR *var = &ib_result->out_sqlda->sqlvar[i];
+    for (i = 0; i < stmt->out_sqlda->sqld; ++i) {
+        XSQLVAR *var = &stmt->out_sqlda->sqlvar[i];
         char buf[METADATALENGTH+4], *alias = var->aliasname;
 
         if (! (fetch_type & FETCH_ROW)) {
@@ -377,7 +377,7 @@ static void _php_firebird_fetch_hash(INTERNAL_FUNCTION_PARAMETERS, int fetch_typ
                         blob_handle.bl_handle = 0;
                         blob_handle.bl_qd = *(ISC_QUAD *) var->sqldata;
 
-                        if (isc_open_blob(status, &ib_result->db_handle, &ib_result->tr_handle,
+                        if (isc_open_blob(status, &stmt->db_handle, &stmt->tr_handle,
                             &blob_handle.bl_handle, &blob_handle.bl_qd)) {
                                 update_err_props(status, FireBird_Statement_ce, Z_OBJ_P(ZEND_THIS));
                                 goto _php_firebird_fetch_error;
@@ -430,11 +430,11 @@ static void _php_firebird_fetch_hash(INTERNAL_FUNCTION_PARAMETERS, int fetch_typ
                     assert(false && "TODO: SQL_ARRAY");
                     // if (flag & PHP_FIREBIRD_FETCH_ARRAYS) { /* array can be *huge* so only fetch if asked */
                     //     ISC_QUAD ar_qd = *(ISC_QUAD *) var->sqldata;
-                    //     ibase_array *ib_array = &ib_result->out_array[array_cnt++];
+                    //     ibase_array *ib_array = &stmt->out_array[array_cnt++];
                     //     void *ar_data = emalloc(ib_array->ar_size);
 
-                    //     if (isc_array_get_slice(IB_STATUS, &ib_result->link->handle,
-                    //             &ib_result->trans->handle, &ar_qd, &ib_array->ar_desc,
+                    //     if (isc_array_get_slice(IB_STATUS, &stmt->link->handle,
+                    //             &stmt->trans->handle, &ar_qd, &ib_array->ar_desc,
                     //             ar_data, &ib_array->ar_size)) {
                     //         _php_firebird_error();
                     //         efree(ar_data);
