@@ -316,12 +316,14 @@ static void _php_firebird_fetch_hash(INTERNAL_FUNCTION_PARAMETERS, int fetch_typ
     ZEND_PARSE_PARAMETERS_END();
 
     if (stmt->statement_type != isc_info_sql_stmt_exec_procedure) {
-        if (isc_dsql_fetch(status, &stmt->stmt_handle, 1, stmt->out_sqlda)) {
-            stmt->has_more_rows = 0;
-            if(update_err_props(status, FireBird_Statement_ce, Z_OBJ_P(ZEND_THIS))) {
-                RETURN_FALSE;
-            } else {
+        ISC_STATUS result = isc_dsql_fetch(status, &stmt->stmt_handle, 1, stmt->out_sqlda);
+        if (result) {
+            if (result == 100L) {
+                stmt->has_more_rows = 0;
                 RETURN_NULL();
+            } else {
+                update_err_props(status, FireBird_Statement_ce, Z_OBJ_P(ZEND_THIS));
+                RETURN_FALSE;
             }
         }
     } else {
