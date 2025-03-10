@@ -23,25 +23,6 @@ static void _php_firebird_fetch_hash(INTERNAL_FUNCTION_PARAMETERS, int fetch_typ
 // TODO: fetch flags
 PHP_METHOD(Statement, fetch_row)
 {
-    // ISC_STATUS isc_result;
-    // ISC_STATUS_ARRAY status;
-    // firebird_stmt *s = Z_STMT_P(ZEND_THIS);
-
-    // if (s->statement_type == isc_info_sql_stmt_exec_procedure) {
-    //     assert(false && "TODO: isc_info_sql_stmt_exec_procedure");
-    //     // isc_result = isc_dsql_execute2(IB_STATUS, &s->trans->handle,
-    //     //     &s->stmt, SQLDA_CURRENT_VERSION, in_sqlda, out_sqlda);
-    // } else {
-    //     isc_result = isc_dsql_execute(status, &s->tr_handle, &s->stmt_handle, SQLDA_CURRENT_VERSION, s->in_sqlda);
-    // }
-
-    // if (isc_result) {
-    //     update_err_props(status, FireBird_Statement_ce, Z_OBJ_P(ZEND_THIS));
-    //     RETURN_FALSE;
-    // }
-
-    // ib_query->affected_rows = 0;
-
     _php_firebird_fetch_hash(INTERNAL_FUNCTION_PARAM_PASSTHRU, FETCH_ROW);
 }
 
@@ -76,7 +57,8 @@ PHP_METHOD(Statement, close)
 
 PHP_METHOD(Statement, execute)
 {
-    zval rv, *bind_args;
+    ISC_STATUS_ARRAY status;
+    zval *bind_args;
     uint32_t num_bind_args;
 
     ZEND_PARSE_PARAMETERS_START(0, -1)
@@ -84,37 +66,7 @@ PHP_METHOD(Statement, execute)
         Z_PARAM_VARIADIC('+', bind_args, num_bind_args)
     ZEND_PARSE_PARAMETERS_END();
 
-    firebird_stmt *stmt = Z_STMT_P(ZEND_THIS);
-
-    if (num_bind_args != stmt->in_sqlda->sqld) {
-        zend_throw_exception_ex(zend_ce_argument_count_error, 0,
-            "Statement expects %d arguments, %d given", stmt->in_sqlda->sqld, num_bind_args);
-        RETURN_THROWS();
-    }
-
-    /* has placeholders */
-    if (stmt->in_sqlda->sqld > 0) {
-        // in_sqlda = emalloc(XSQLDA_LENGTH(stmt->in_sqlda->sqld));
-        // memcpy(in_sqlda, stmt->in_sqlda, XSQLDA_LENGTH(stmt->in_sqlda->sqld));
-        if (FAILURE == _php_firebird_bind(stmt->in_sqlda, bind_args, Z_OBJ_P(ZEND_THIS))) {
-           RETURN_FALSE;
-        }
-    }
-
-    // TODO: code dup
-    ISC_STATUS_ARRAY status;
-    ISC_STATUS isc_result;
-    if (stmt->statement_type == isc_info_sql_stmt_exec_procedure) {
-        assert(false && "TODO: isc_info_sql_stmt_exec_procedure");
-        // isc_result = isc_dsql_execute2(IB_STATUS, &stmt->transtmt->handle,
-        //     &stmt->stmt, SQLDA_CURRENT_VERSION, in_sqlda, out_sqlda);
-    } else {
-        // isc_result = isc_dsql_execute(status, &stmt->tr_handle, &stmt->stmt_handle, SQLDA_CURRENT_VERSION, stmt->in_sqlda);
-        stmt->has_more_rows = 1;
-        isc_result = isc_dsql_execute(status, &stmt->tr_handle, &stmt->stmt_handle, SQLDA_CURRENT_VERSION, stmt->in_sqlda);
-    }
-
-    if (isc_result) {
+    if (FAILURE == _php_firebird_execute(bind_args, num_bind_args, Z_OBJ_P(ZEND_THIS), status)) {
         update_err_props(status, FireBird_Statement_ce, Z_OBJ_P(ZEND_THIS));
         RETURN_FALSE;
     }
@@ -537,4 +489,39 @@ static void _php_firebird_free_xsqlda(XSQLDA *sqlda)
         }
         efree(sqlda);
     }
+}
+
+int _php_firebird_execute(zval *bind_args, uint32_t num_bind_args, zend_object *stmt_o, ISC_STATUS_ARRAY status)
+{
+    firebird_stmt *stmt = Z_STMT_O(stmt_o);
+
+    if (num_bind_args != stmt->in_sqlda->sqld) {
+        zend_throw_exception_ex(zend_ce_argument_count_error, 0,
+            "Statement expects %d arguments, %d given", stmt->in_sqlda->sqld, num_bind_args);
+        return FAILURE;
+    }
+
+    /* has placeholders */
+    if (stmt->in_sqlda->sqld > 0) {
+        if (FAILURE == _php_firebird_bind(stmt->in_sqlda, bind_args, stmt_o)) {
+            return FAILURE;
+        }
+    }
+
+    ISC_STATUS isc_result;
+    if (stmt->statement_type == isc_info_sql_stmt_exec_procedure) {
+        assert(false && "TODO: isc_info_sql_stmt_exec_procedure");
+        // isc_result = isc_dsql_execute2(IB_STATUS, &stmt->transtmt->handle,
+        //     &stmt->stmt, SQLDA_CURRENT_VERSION, in_sqlda, out_sqlda);
+    } else {
+        isc_result = isc_dsql_execute(status, &stmt->tr_handle, &stmt->stmt_handle, SQLDA_CURRENT_VERSION, stmt->in_sqlda);
+    }
+
+    if (isc_result) {
+        return FAILURE;
+    }
+
+    stmt->has_more_rows = 1;
+
+    return SUCCESS;
 }

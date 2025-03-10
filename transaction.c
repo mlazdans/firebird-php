@@ -92,9 +92,6 @@ PHP_METHOD(Transaction, prepare)
     zval rv;
     zend_string *sql;
 
-    firebird_trans *tr = Z_TRANSACTION_P(ZEND_THIS);
-    ISC_STATUS_ARRAY status;
-
     ZEND_PARSE_PARAMETERS_START(1, -1)
         Z_PARAM_STR(sql)
     ZEND_PARSE_PARAMETERS_END();
@@ -103,10 +100,7 @@ PHP_METHOD(Transaction, prepare)
         RETURN_FALSE;
     }
 
-    zend_object *stmt_o = Z_OBJ(rv);
-    // firebird_stmt *stmt = Z_STMT_O(stmt_o);
-
-    RETVAL_OBJ(stmt_o);
+    RETVAL_OBJ(Z_OBJ(rv));
 }
 
 PHP_METHOD(Transaction, query)
@@ -129,39 +123,10 @@ PHP_METHOD(Transaction, query)
     }
 
     zend_object *stmt_o = Z_OBJ(rv);
-    firebird_stmt *stmt = Z_STMT_O(stmt_o);
 
-    if (num_bind_args != stmt->in_sqlda->sqld) {
-        zend_throw_exception_ex(zend_ce_argument_count_error, 0,
-            "Statement expects %d arguments, %d given", stmt->in_sqlda->sqld, num_bind_args);
+    if (FAILURE == _php_firebird_execute(bind_args, num_bind_args, stmt_o, status)) {
         zval_ptr_dtor(&rv);
-        RETURN_THROWS();
-    }
-
-    /* has placeholders */
-    if (stmt->in_sqlda->sqld > 0) {
-        // in_sqlda = emalloc(XSQLDA_LENGTH(stmt->in_sqlda->sqld));
-        // memcpy(in_sqlda, stmt->in_sqlda, XSQLDA_LENGTH(stmt->in_sqlda->sqld));
-        if (FAILURE == _php_firebird_bind(stmt->in_sqlda, bind_args, stmt_o)) {
-            zval_ptr_dtor(&rv);
-           RETURN_FALSE;
-        }
-    }
-
-    ISC_STATUS isc_result;
-    if (stmt->statement_type == isc_info_sql_stmt_exec_procedure) {
-        assert(false && "TODO: isc_info_sql_stmt_exec_procedure");
-        // isc_result = isc_dsql_execute2(IB_STATUS, &stmt->transtmt->handle,
-        //     &stmt->stmt, SQLDA_CURRENT_VERSION, in_sqlda, out_sqlda);
-    } else {
-        // isc_result = isc_dsql_execute(status, &stmt->tr_handle, &stmt->stmt_handle, SQLDA_CURRENT_VERSION, stmt->in_sqlda);
-        stmt->has_more_rows = 1;
-        isc_result = isc_dsql_execute(status, &stmt->tr_handle, &stmt->stmt_handle, SQLDA_CURRENT_VERSION, stmt->in_sqlda);
-    }
-
-    if (isc_result) {
         update_err_props(status, FireBird_Transaction_ce, Z_OBJ_P(ZEND_THIS));
-        zval_ptr_dtor(&rv);
         RETURN_FALSE;
     }
 
