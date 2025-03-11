@@ -31,7 +31,7 @@ void statement_ctor(zval *stmt_o, zval *transaction)
     firebird_trans *tr = Z_TRANSACTION_P(transaction);
 
     stmt->db_handle = tr->db_handle;
-    stmt->tr_handle = tr->tr_handle;
+    stmt->tr_handle = &tr->tr_handle;
 }
 
 PHP_METHOD(Statement, __construct)
@@ -76,10 +76,6 @@ PHP_METHOD(Statement, close)
         RETURN_FALSE;
     }
 
-    stmt->stmt_handle = 0;
-
-    _php_firebird_free_stmt(stmt);
-
     RETURN_TRUE;
 }
 
@@ -112,7 +108,7 @@ int statement_prepare(ISC_STATUS_ARRAY status, zval *stmt_o, const ISC_SCHAR *sq
         return FAILURE;
     }
 
-    if (isc_dsql_allocate_statement(status, &stmt->db_handle, &stmt->stmt_handle)) {
+    if (isc_dsql_allocate_statement(status, stmt->db_handle, &stmt->stmt_handle)) {
         return FAILURE;
     }
 
@@ -120,7 +116,7 @@ int statement_prepare(ISC_STATUS_ARRAY status, zval *stmt_o, const ISC_SCHAR *sq
     stmt->out_sqlda->sqln = 1;
     stmt->out_sqlda->version = SQLDA_CURRENT_VERSION;
 
-    if (isc_dsql_prepare(status, &stmt->tr_handle, &stmt->stmt_handle, 0, sql, SQL_DIALECT_CURRENT, stmt->out_sqlda)) {
+    if (isc_dsql_prepare(status, stmt->tr_handle, &stmt->stmt_handle, 0, sql, SQL_DIALECT_CURRENT, stmt->out_sqlda)) {
         return FAILURE;
     }
 
@@ -255,14 +251,24 @@ static zend_object *FireBird_Statement_create(zend_class_entry *ce)
     return &s->std;
 }
 
+// TODO: able to DSQL_drop from PHP
 static void FireBird_Statement_free_obj(zend_object *obj)
 {
     php_printf("FireBird_Statement_free_obj\n");
-    firebird_stmt *s = Z_STMT_O(obj);
+    firebird_stmt *stmt = Z_STMT_O(obj);
 
-    _php_firebird_free_stmt(s);
+    if (stmt->stmt_handle) {
+        ISC_STATUS_ARRAY status;
+        if (isc_dsql_free_statement(status, &stmt->stmt_handle, DSQL_drop)) {
+            // TODO: report errors?
+        } else {
+            stmt->stmt_handle = 0;
+        }
+    }
 
-    zend_object_std_dtor(&s->std);
+    _php_firebird_free_stmt(stmt);
+
+    zend_object_std_dtor(&stmt->std);
 }
 
 void register_FireBird_Statement_ce()
@@ -540,7 +546,7 @@ static void _php_firebird_fetch_hash(INTERNAL_FUNCTION_PARAMETERS, int fetch_typ
                         blob_handle.bl_handle = 0;
                         blob_handle.bl_qd = *(ISC_QUAD *) var->sqldata;
 
-                        if (isc_open_blob(status, &stmt->db_handle, &stmt->tr_handle,
+                        if (isc_open_blob(status, stmt->db_handle, stmt->tr_handle,
                             &blob_handle.bl_handle, &blob_handle.bl_qd)) {
                                 update_err_props(status, FireBird_Statement_ce, ZEND_THIS);
                                 goto _php_firebird_fetch_error;
@@ -676,7 +682,8 @@ static int statement_execute(ISC_STATUS_ARRAY status, zval *stmt_o, zval *bind_a
         // isc_result = isc_dsql_execute2(IB_STATUS, &stmt->transtmt->handle,
         //     &stmt->stmt, SQLDA_CURRENT_VERSION, in_sqlda, out_sqlda);
     } else {
-        isc_result = isc_dsql_execute(status, &stmt->tr_handle, &stmt->stmt_handle, SQLDA_CURRENT_VERSION, stmt->in_sqlda);
+        php_printf("isc_dsql_execute: %d\n", stmt->stmt_handle);
+        isc_result = isc_dsql_execute(status, stmt->tr_handle, &stmt->stmt_handle, SQLDA_CURRENT_VERSION, stmt->in_sqlda);
     }
 
     if (isc_result) {
@@ -894,7 +901,7 @@ static int statement_bind(ISC_STATUS_ARRAY status, zval *stmt_o, XSQLDA *sqlda, 
 
                     firebird_blob ib_blob = { 0, BLOB_INPUT };
 
-                    if (isc_create_blob(status, &stmt->db_handle, &stmt->tr_handle, &ib_blob.bl_handle, &ib_blob.bl_qd)) {
+                    if (isc_create_blob(status, stmt->db_handle, stmt->tr_handle, &ib_blob.bl_handle, &ib_blob.bl_qd)) {
                         return FAILURE;
                     }
 

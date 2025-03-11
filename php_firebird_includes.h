@@ -73,6 +73,22 @@ ZEND_END_MODULE_GLOBALS(firebird)
 
 ZEND_EXTERN_MODULE_GLOBALS(firebird)
 
+typedef struct firebird_bind_buf {
+    union {
+#ifdef SQL_BOOLEAN
+        FB_BOOLEAN bval;
+#endif
+        short sval;
+        float fval;
+        ISC_LONG lval;
+        ISC_QUAD qval;
+        ISC_TIMESTAMP tsval;
+        ISC_DATE dtval;
+        ISC_TIME tmval;
+    } val;
+    short sqlind;
+} firebird_bind_buf;
+
 typedef struct {
     ISC_ARRAY_DESC ar_desc;
     ISC_LONG ar_size; /* size of entire array in bytes */
@@ -92,33 +108,17 @@ typedef struct {
 } firebird_connection;
 
 typedef struct firebird_trans {
-    isc_db_handle db_handle;
     isc_tr_handle tr_handle;
+    isc_db_handle *db_handle;
     zend_long trans_args;
     zend_long trans_timeout;
     zend_object std;
 } firebird_trans;
 
-typedef struct firebird_bind_buf {
-    union {
-#ifdef SQL_BOOLEAN
-        FB_BOOLEAN bval;
-#endif
-        short sval;
-        float fval;
-        ISC_LONG lval;
-        ISC_QUAD qval;
-        ISC_TIMESTAMP tsval;
-        ISC_DATE dtval;
-        ISC_TIME tmval;
-    } val;
-    short sqlind;
-} firebird_bind_buf;
-
 typedef struct firebird_stmt {
-    isc_db_handle db_handle;
-    isc_tr_handle tr_handle;
     isc_stmt_handle stmt_handle;
+    isc_db_handle *db_handle;
+    isc_tr_handle *tr_handle;
     XSQLDA *in_sqlda, *out_sqlda;
     unsigned char statement_type, has_more_rows;
     firebird_array *in_array, *out_array;
@@ -305,10 +305,14 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_FireBird_Database_construct, 0, 0, 1)
     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, role, IS_STRING, 1, "null")
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Database_connect, 0, 0, FireBird\\Connection, MAY_BE_FALSE)
+// Connection argument types
+ZEND_BEGIN_ARG_INFO_EX(arginfo_FireBird_Connection_construct, 0, 0, 1)
+    ZEND_ARG_OBJ_INFO(0, database, FireBird\\Database, 0)
 ZEND_END_ARG_INFO()
 
-// Connection argument types
+ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Connection_connect, 0, 0, FireBird\\Connection, MAY_BE_FALSE)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Connection_start_transaction, 0, 0, FireBird\\Transaction, MAY_BE_FALSE)
     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, trans_args, IS_LONG, 1, 0)
     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, lock_timeout, IS_LONG, 1, 0)
@@ -384,7 +388,7 @@ int _php_firebird_string_to_quad(char const *id, ISC_QUAD *qd);
 int _php_firebird_blob_add(ISC_STATUS_ARRAY status, zval *string_arg, firebird_blob *ib_blob);
 int _php_firebird_blob_get(ISC_STATUS_ARRAY status, zval *return_value, firebird_blob *ib_blob, zend_ulong max_len);
 zend_string *_php_firebird_quad_to_string(ISC_QUAD const qd);
-void transaction_ctor(zval *this, zval *connection, zend_long trans_args, zend_long lock_timeout);
+void transaction_ctor(zval *tr_o, zval *connection, zend_long trans_args, zend_long lock_timeout);
 int transaction_start(ISC_STATUS_ARRAY status, zval *tr_o);
 
 #define update_err_props(status, class_ce, obj) update_err_props_ex(status, class_ce, obj, __FILE__, __LINE__)

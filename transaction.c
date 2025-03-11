@@ -23,7 +23,7 @@ void transaction_ctor(zval *tr_o, zval *connection, zend_long trans_args, zend_l
 
     firebird_connection *conn = Z_CONNECTION_P(connection);
     firebird_trans *tr = Z_TRANSACTION_P(tr_o);
-    tr->db_handle = conn->db_handle;
+    tr->db_handle = &conn->db_handle;
 }
 
 PHP_METHOD(Transaction, __construct) {
@@ -42,24 +42,22 @@ PHP_METHOD(Transaction, __construct) {
 
 int transaction_start(ISC_STATUS_ARRAY status, zval *tr_o)
 {
-    zval rv, *val;
-    zend_long trans_args = 0, lock_timeout = 0;
+    zval rv;
+    zval *trans_args = NULL, *lock_timeout = NULL;
     ISC_STATUS result;
     char tpb[TPB_MAX_SIZE];
     unsigned short tpb_len = 0;
 
+    trans_args = zend_read_property(FireBird_Transaction_ce, O_GET(tr_o, trans_args), 1, &rv);
+    lock_timeout = zend_read_property(FireBird_Transaction_ce, O_GET(tr_o, lock_timeout), 1, &rv);
+
+    php_printf("trans_args=%d, lock_timeout=%d\n", Z_LVAL_P(trans_args), Z_LVAL_P(lock_timeout));
+
+    _php_firebird_populate_tpb(Z_LVAL_P(trans_args), Z_LVAL_P(lock_timeout), tpb, &tpb_len);
+
     firebird_trans *tr = Z_TRANSACTION_P(tr_o);
 
-    val = zend_read_property(FireBird_Transaction_ce, O_GET(tr_o, trans_args), 1, &rv);
-    trans_args = Z_LVAL_P(val);
-
-    val = zend_read_property(FireBird_Transaction_ce, O_GET(tr_o, lock_timeout), 1, &rv);
-    lock_timeout = Z_LVAL_P(val);
-
-    php_printf("trans_args=%d, lock_timeout=%d\n", trans_args, lock_timeout);
-
-    _php_firebird_populate_tpb(trans_args, lock_timeout, tpb, &tpb_len);
-    if(isc_start_transaction(status, &tr->tr_handle, 1, &tr->db_handle, tpb_len, tpb)) {
+    if(isc_start_transaction(status, &tr->tr_handle, 1, tr->db_handle, tpb_len, tpb)) {
         return FAILURE;
     }
 

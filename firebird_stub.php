@@ -27,31 +27,38 @@ class Database
     ) {}
     // function drop_db() {}
 
-    /** @return bool */
-    function close() {}
+    // /** @return Connection | false */
+    // function connect() {}
 
-    /** @return Connection | false */
-    function connect() {}
+    // /** @return bool */
+    // function disconnect() {}
 
-    /** @return bool */
-    function create() {}
+    // /** @return bool */
+    // function create() {}
 
-    /** @return bool */
-    function drop() {}
+    // /** @return bool */
+    // function drop() {}
 }
 
 class Connection
 {
     use Error;
 
-    /** @return bool */
-    function close() {}
+    function __construct(
+        protected Database $database
+    ) {}
 
     /**
      * @param ?int $lock_timeout - sets lock timeout in seconds when WAIT | LOCK_TIMEOUT $trans_args are set. Valid range 1-32767
      * @return Transaction | false
      * */
-    function start_transaction(int $trans_args = 0, int $lock_timeout = 0) {}
+    // function start_transaction(int $trans_args = 0, int $lock_timeout = 0) {}
+
+    /** @return bool */
+    function connect() {}
+
+    /** @return bool */
+    function disconnect() {}
 }
 
 // TODO: auto commit/rollback flag?

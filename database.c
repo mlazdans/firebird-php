@@ -51,89 +51,9 @@ PHP_METHOD(Database, __construct) {
     }
 }
 
-PHP_METHOD(Database, connect) {
-    ZEND_PARSE_PARAMETERS_NONE();
-
-    php_printf("Connection::connect()\n");
-
-    zval rv;
-    zval *database, *val;
-
-    long SQLCODE;
-    ISC_STATUS_ARRAY status;
-    firebird_db *db = Z_DB_P(ZEND_THIS);
-
-    static char const dpb_args_str[] = { isc_dpb_user_name, isc_dpb_password, isc_dpb_lc_ctype, isc_dpb_sql_role_name };
-    const char *class_args_str[] = { "username", "password", "charset", "role" };
-
-    database = zend_read_property(FireBird_Database_ce, Z_OBJ_P(ZEND_THIS), "database", sizeof("database") - 1, 1, &rv);
-    if ((Z_TYPE_P(database) != IS_STRING) || !Z_STRLEN_P(database)) {
-        zend_throw_exception_ex(zend_ce_value_error, 0, "Database parameter not set");
-        RETURN_FALSE;
-    }
-
-    char dpb_buffer[257] = {0}, *dpb;
-    short dpb_len, buf_len = sizeof(dpb_buffer);
-
-    dpb = dpb_buffer;
-
-    // TODO: isc_dpb_version2
-    *dpb++ = isc_dpb_version1; buf_len--;
-
-    int len = sizeof(class_args_str) / sizeof(class_args_str[0]);
-    for(int i = 0; i < len; i++){
-        val = zend_read_property(FireBird_Database_ce, Z_OBJ_P(ZEND_THIS), class_args_str[i], strlen(class_args_str[i]), 1, &rv);
-        if (Z_TYPE_P(val) == IS_STRING && Z_STRLEN_P(val)) {
-            php_printf("arg%d: %s = %s\n", i, class_args_str[i], Z_STRVAL_P(val));
-            dpb_len = slprintf(dpb, buf_len, "%c%c%s", dpb_args_str[i], (unsigned char)Z_STRLEN_P(val), Z_STRVAL_P(val));
-            dpb += dpb_len;
-            buf_len -= dpb_len;
-        }
-    }
-
-    val = zend_read_property(FireBird_Database_ce, Z_OBJ_P(ZEND_THIS), "buffers", sizeof("buffers") - 1, 1, &rv);
-    if (!Z_ISNULL_P(val)) {
-        dpb_len = slprintf(dpb, buf_len, "%c\2%c%c", isc_dpb_num_buffers,
-            (char)(Z_LVAL_P(val) >> 8), (char)(Z_LVAL_P(val) & 0xff));
-        dpb += dpb_len;
-        buf_len -= dpb_len;
-    }
-
-    // TODO: something does not add up here. isc_spb_prp_wm_sync is related to services, why the val == isc_spb_prp_wm_sync check?
-    //       Disabling for now
-    // val = zend_read_property(FireBird_Database_ce, Z_OBJ_P(ZEND_THIS), "sync", sizeof("sync") - 1, 1, &rv);
-    // if (!Z_ISNULL_P(val)) {
-    //     dpb_len = slprintf(dpb, buf_len, "%c\1%c", isc_dpb_force_write, Z_LVAL_P(val) == isc_spb_prp_wm_sync);
-    //     dpb += dpb_len;
-    //     buf_len -= dpb_len;
-    // }
-
-#if FB_API_VER >= 40
-    // Do not handle directly INT128 or DECFLOAT, convert to VARCHAR at server instead
-    const char *compat = "int128 to varchar;decfloat to varchar";
-    dpb_len = slprintf(dpb, buf_len, "%c%c%s", isc_dpb_set_bind, strlen(compat), compat);
-    dpb += dpb_len;
-    buf_len -= dpb_len;
-#endif
-
-    object_init_ex(&rv, FireBird_Connection_ce);
-    zend_object *conn_o = Z_OBJ_P(&rv);
-    firebird_connection *conn = Z_CONNECTION_O(conn_o);
-
-    if (isc_attach_database(status, (short)Z_STRLEN_P(database), Z_STRVAL_P(database), &conn->db_handle, (short)(dpb-dpb_buffer), dpb_buffer)) {
-        update_err_props(status, FireBird_Database_ce, ZEND_THIS);
-        zval_ptr_dtor(&rv);
-        RETURN_FALSE;
-    }
-
-    php_printf("Connected!\n");
-
-    RETVAL_OBJ(conn_o);
-}
-
 const zend_function_entry FireBird_Database_methods[] = {
     PHP_ME(Database, __construct, arginfo_FireBird_Database_construct, ZEND_ACC_PUBLIC)
-    PHP_ME(Database, connect, arginfo_FireBird_Database_connect, ZEND_ACC_PUBLIC)
+    // PHP_ME(Database, connect, arginfo_FireBird_Database_connect, ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
 
