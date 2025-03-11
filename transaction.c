@@ -17,50 +17,64 @@ static  int _php_firebird_prepare(INTERNAL_FUNCTION_PARAMETERS, const ISC_SCHAR 
 #define COMMIT      1
 #define RETAIN      2
 
+void transaction_ctor(zval *this, zval *connection, zend_long trans_args, zend_long lock_timeout)
+{
+    zend_update_property(FireBird_Transaction_ce, O_SET(this, connection));
+    zend_update_property_long(FireBird_Transaction_ce, O_SET(this, trans_args));
+    zend_update_property_long(FireBird_Transaction_ce, O_SET(this, lock_timeout));
+
+    firebird_connection *conn = Z_CONNECTION_P(connection);
+    firebird_trans *tr = Z_TRANSACTION_P(this);
+    tr->db_handle = conn->db_handle;
+}
+
 PHP_METHOD(Transaction, __construct) {
-    zend_long trans_args = 0, lock_timeout = 0;
     zval *connection;
-    bool trans_args_is_null = 1, lock_timeout_is_null = 1;
+    zend_long trans_args, lock_timeout;
 
     ZEND_PARSE_PARAMETERS_START(1, 3)
         Z_PARAM_OBJECT_OF_CLASS(connection, FireBird_Connection_ce)
         Z_PARAM_OPTIONAL
-        Z_PARAM_LONG_OR_NULL(trans_args, trans_args_is_null)
-        Z_PARAM_LONG_OR_NULL(lock_timeout, lock_timeout_is_null)
+        Z_PARAM_LONG(trans_args)
+        Z_PARAM_LONG(lock_timeout)
     ZEND_PARSE_PARAMETERS_END();
 
-    zend_update_property(FireBird_Transaction_ce, Z_OBJ_P(ZEND_THIS), "connection", sizeof("connection") - 1, connection);
-
-    if(!trans_args_is_null) zend_update_property_long(FireBird_Transaction_ce, Z_OBJ_P(ZEND_THIS), "trans_args", sizeof("trans_args") - 1, trans_args);
-    if(!lock_timeout_is_null) zend_update_property_long(FireBird_Transaction_ce, Z_OBJ_P(ZEND_THIS), "lock_timeout", sizeof("lock_timeout") - 1, lock_timeout);
-
-    firebird_connection *conn = Z_CONNECTION_P(connection);
-    firebird_trans *tr = Z_TRANSACTION_P(ZEND_THIS);
-    tr->db_handle = conn->handle;
+    transaction_ctor(ZEND_THIS, connection, trans_args, lock_timeout);
 }
 
-PHP_METHOD(Transaction, start) {
-    ZEND_PARSE_PARAMETERS_NONE();
-
+int transaction_start(zval *tr_o)
+{
     zval rv, *val;
     zend_long trans_args = 0, lock_timeout = 0;
+
     ISC_STATUS_ARRAY status;
     ISC_STATUS result;
     char tpb[TPB_MAX_SIZE];
     unsigned short tpb_len = 0;
-    firebird_trans *tr = Z_TRANSACTION_P(ZEND_THIS);
 
-    val = zend_read_property(FireBird_Transaction_ce, Z_OBJ_P(ZEND_THIS), "trans_args", sizeof("trans_args") - 1, 1, &rv);
+    firebird_trans *tr = Z_TRANSACTION_P(tr_o);
+
+    val = zend_read_property(FireBird_Transaction_ce, O_GET(tr_o, trans_args), 1, &rv);
     trans_args = Z_LVAL_P(val);
 
-    val = zend_read_property(FireBird_Transaction_ce, Z_OBJ_P(ZEND_THIS), "lock_timeout", sizeof("lock_timeout") - 1, 1, &rv);
+    val = zend_read_property(FireBird_Transaction_ce, O_GET(tr_o, lock_timeout), 1, &rv);
     lock_timeout = Z_LVAL_P(val);
 
     php_printf("trans_args=%d, lock_timeout=%d\n", trans_args, lock_timeout);
 
     _php_firebird_populate_tpb(trans_args, lock_timeout, tpb, &tpb_len);
     if(isc_start_transaction(status, &tr->tr_handle, 1, &tr->db_handle, tpb_len, tpb)) {
-        update_err_props(status, FireBird_Transaction_ce, Z_OBJ_P(ZEND_THIS));
+        update_err_props(status, FireBird_Transaction_ce, Z_OBJ_P(tr_o));
+        return FAILURE;
+    }
+
+    return SUCCESS;
+}
+
+PHP_METHOD(Transaction, start) {
+    ZEND_PARSE_PARAMETERS_NONE();
+
+    if(FAILURE == transaction_start(ZEND_THIS)) {
         RETURN_FALSE;
     }
 
@@ -196,9 +210,9 @@ void register_FireBird_Transaction_ce()
     INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "Transaction", FireBird_Transaction_methods);
     FireBird_Transaction_ce = zend_register_internal_class(&tmp_ce);
 
-    DECLARE_PROP_OBJ(FireBird_Transaction_ce, connection, FireBird\\Connection, ZEND_ACC_PROTECTED);
-    DECLARE_PROP_INT(FireBird_Transaction_ce, trans_args, ZEND_ACC_PROTECTED);
-    DECLARE_PROP_INT(FireBird_Transaction_ce, lock_timeout, ZEND_ACC_PROTECTED);
+    DECLARE_PROP_OBJ(FireBird_Transaction_ce, connection, FireBird\\Connection, ZEND_ACC_PROTECTED_SET);
+    DECLARE_PROP_INT(FireBird_Transaction_ce, trans_args, ZEND_ACC_PROTECTED_SET);
+    DECLARE_PROP_INT(FireBird_Transaction_ce, lock_timeout, ZEND_ACC_PROTECTED_SET);
     ADD_ERR_PROPS(FireBird_Transaction_ce);
 
     FireBird_Transaction_ce->create_object = FireBird_Transaction_create;

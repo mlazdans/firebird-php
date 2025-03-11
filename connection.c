@@ -1,4 +1,5 @@
 #include <ibase.h>
+// #include "firebird/fb_c_api.h"
 #include "php.h"
 #include "zend_exceptions.h"
 #include "zend_attributes.h"
@@ -14,10 +15,10 @@ PHP_METHOD(Connection, close) {
 
     firebird_connection *conn = Z_CONNECTION_P(ZEND_THIS);
 
-    if(conn->handle) {
+    if(conn->db_handle) {
         ISC_STATUS_ARRAY status;
-        php_printf("Closing handle: %d\n", conn->handle);
-        if(isc_detach_database(status, &conn->handle)){
+        php_printf("Closing handle: %d\n", conn->db_handle);
+        if(isc_detach_database(status, &conn->db_handle)){
             update_err_props(status, FireBird_Connection_ce, Z_OBJ_P(ZEND_THIS));
         } else {
             RETURN_TRUE;
@@ -27,145 +28,59 @@ PHP_METHOD(Connection, close) {
     RETURN_FALSE;
 }
 
-PHP_METHOD(Connection, connect) {
-    ZEND_PARSE_PARAMETERS_NONE();
+// #define dpb_insert_int(tag, value) IXpbBuilder_insertInt(dpb, st, tag, value)
+// #define dpb_insert_string(tag, value) IXpbBuilder_insertString(dpb, st, tag, value)
+// #define dpb_insert_tag(tag) IXpbBuilder_insertTag(dpb, st, tag)
 
-    php_printf("Connection::connect()\n");
+// PHP_METHOD(Connection, create) {
+//     firebird_connection *conn = Z_CONNECTION_O(ZEND_THIS);
+//     ISC_STATUS_ARRAY status;
+//     // isc_tr_handle tr = 0;
 
-    zval rv;
-    zval *database, *val;
+//     struct IMaster* master = fb_get_master_interface();
+//     struct IStatus* st = IMaster_getStatus(master);
+//     // struct IProvider* prov = IMaster_getDispatcher(master);
+//     struct IUtil* utl = IMaster_getUtilInterface(master);
+//     struct IXpbBuilder* dpb = NULL;
 
-    long SQLCODE;
-    ISC_STATUS_ARRAY status;
-    firebird_connection *conn = Z_CONNECTION_P(ZEND_THIS);
+//     dpb = IUtil_getXpbBuilder(utl, st, IXpbBuilder_DPB, NULL, 0);
 
-    static char const dpb_args_str[] = { isc_dpb_user_name, isc_dpb_password, isc_dpb_lc_ctype, isc_dpb_sql_role_name };
-    const char *class_args_str[] = { "username", "password", "charset", "role" };
+//     // dpb_insert_tag(isc_dpb_version1);
+//     dpb_insert_int(isc_dpb_page_size, 4096);
+//     // dpb_insert_string(isc_dpb_user_name, "sysdba");
+//     // dpb_insert_string(isc_dpb_password, "masterkey");
 
-    database = zend_read_property(FireBird_Connection_ce, Z_OBJ_P(ZEND_THIS), "database", sizeof("database") - 1, 1, &rv);
-    if ((Z_TYPE_P(database) != IS_STRING) || !Z_STRLEN_P(database)) {
-        zend_throw_exception_ex(zend_ce_value_error, 0, "Database parameter not set");
-        RETURN_FALSE;
-    }
+//     dump_buffer((unsigned char *)IXpbBuilder_getBuffer(dpb, st), IXpbBuilder_getBufferLength(dpb, st));
 
-    char dpb_buffer[257] = {0}, *dpb;
-    short dpb_len, buf_len = sizeof(dpb_buffer);
-
-    dpb = dpb_buffer;
-
-    // TODO: isc_dpb_version2
-    *dpb++ = isc_dpb_version1; buf_len--;
-
-    int len = sizeof(class_args_str) / sizeof(class_args_str[0]);
-    for(int i = 0; i < len; i++){
-        val = zend_read_property(FireBird_Connection_ce, Z_OBJ_P(ZEND_THIS), class_args_str[i], strlen(class_args_str[i]), 1, &rv);
-        if (Z_TYPE_P(val) == IS_STRING && Z_STRLEN_P(val)) {
-            php_printf("arg%d: %s = %s\n", i, class_args_str[i], Z_STRVAL_P(val));
-            dpb_len = slprintf(dpb, buf_len, "%c%c%s", dpb_args_str[i], (unsigned char)Z_STRLEN_P(val), Z_STRVAL_P(val));
-            dpb += dpb_len;
-            buf_len -= dpb_len;
-        }
-    }
-
-    val = zend_read_property(FireBird_Connection_ce, Z_OBJ_P(ZEND_THIS), "buffers", sizeof("buffers") - 1, 1, &rv);
-    if (!Z_ISNULL_P(val)) {
-        dpb_len = slprintf(dpb, buf_len, "%c\2%c%c", isc_dpb_num_buffers,
-            (char)(Z_LVAL_P(val) >> 8), (char)(Z_LVAL_P(val) & 0xff));
-        dpb += dpb_len;
-        buf_len -= dpb_len;
-    }
-
-    // TODO: something does not add up here. isc_spb_prp_wm_sync is related to services, why the val == isc_spb_prp_wm_sync check?
-    //       Disabling for now
-    // val = zend_read_property(FireBird_Connection_ce, Z_OBJ_P(ZEND_THIS), "sync", sizeof("sync") - 1, 1, &rv);
-    // if (!Z_ISNULL_P(val)) {
-    //     dpb_len = slprintf(dpb, buf_len, "%c\1%c", isc_dpb_force_write, Z_LVAL_P(val) == isc_spb_prp_wm_sync);
-    //     dpb += dpb_len;
-    //     buf_len -= dpb_len;
-    // }
-
-#if FB_API_VER >= 40
-    // Do not handle directly INT128 or DECFLOAT, convert to VARCHAR at server instead
-    const char *compat = "int128 to varchar;decfloat to varchar";
-    dpb_len = slprintf(dpb, buf_len, "%c%c%s", isc_dpb_set_bind, strlen(compat), compat);
-    dpb += dpb_len;
-    buf_len -= dpb_len;
-#endif
-
-    if (isc_attach_database(status, (short)Z_STRLEN_P(database), Z_STRVAL_P(database), &conn->handle, (short)(dpb-dpb_buffer), dpb_buffer)) {
-        update_err_props(status, FireBird_Connection_ce, Z_OBJ_P(ZEND_THIS));
-        RETURN_FALSE;
-    }
-
-    php_printf("Connected!\n");
-
-    RETURN_TRUE;
-}
-
-// PHP_METHOD(Connection, __destruct) {
-//     zval rv;
-//     zval *error_msg = zend_read_property(FireBird_Connection_ce, Z_OBJ_P(ZEND_THIS), "error_msg", sizeof("error_msg") - 1, 1, &rv);
-//     if(!Z_ISNULL_P(error_msg)) {
-//         zval_delref_p(error_msg);
-//     }
+//     // isc_dpb_password
+//     // isc_create_database
+//     // if (isc_dsql_execute_immediate(status, &conn->handle, &tr, 0, create_db, 1,
+//     //     NULL))
+//     RETURN_FALSE;
 // }
 
-PHP_METHOD(Connection, __construct) {
-    zend_string *database = NULL, *username = NULL, *password = NULL, *charset = NULL, *role = NULL;
-    zend_long buffers = 0, dialect = 0;
-    bool buffers_is_null = 1, dialect_is_null = 1;
+PHP_METHOD(Connection, start_transaction) {
+    object_init_ex(return_value, FireBird_Transaction_ce);
 
-    ZEND_PARSE_PARAMETERS_START(1, 7)
-        Z_PARAM_STR(database)
+    zend_long trans_args = 0, lock_timeout = 0;
+    bool trans_args_is_null = 1, lock_timeout_is_null = 1;
+
+    ZEND_PARSE_PARAMETERS_START(0, 2)
         Z_PARAM_OPTIONAL
-        Z_PARAM_STR_OR_NULL(username)
-        Z_PARAM_STR_OR_NULL(password)
-        Z_PARAM_STR_OR_NULL(charset)
-        Z_PARAM_LONG_OR_NULL(buffers, buffers_is_null)
-        Z_PARAM_LONG_OR_NULL(dialect, dialect_is_null)
-        Z_PARAM_STR_OR_NULL(role)
+        Z_PARAM_LONG(trans_args)
+        Z_PARAM_LONG(lock_timeout)
     ZEND_PARSE_PARAMETERS_END();
 
-    if(database){
-        zend_update_property_str(FireBird_Connection_ce, Z_OBJ_P(getThis()), "database", sizeof("database") - 1, database);
-        php_printf("database: %s\n", ZSTR_VAL(database));
-    }
-
-    if(username){
-        zend_update_property_str(FireBird_Connection_ce, Z_OBJ_P(getThis()), "username", sizeof("username") - 1, username);
-        php_printf("username: %s\n", ZSTR_VAL(username));
-    }
-
-    if(password){
-        zend_update_property_str(FireBird_Connection_ce, Z_OBJ_P(getThis()), "password", sizeof("password") - 1, password);
-        php_printf("password: %s\n", ZSTR_VAL(password));
-    }
-
-    if(charset){
-        zend_update_property_str(FireBird_Connection_ce, Z_OBJ_P(getThis()), "charset", sizeof("charset") - 1, charset);
-        php_printf("charset: %s\n", ZSTR_VAL(charset));
-    }
-
-    if(!buffers_is_null){
-        zend_update_property_long(FireBird_Connection_ce, Z_OBJ_P(getThis()), "buffers", sizeof("buffers") - 1, buffers);
-        php_printf("buffers: %d\n", buffers);
-    }
-
-    if(!dialect_is_null){
-        zend_update_property_long(FireBird_Connection_ce, Z_OBJ_P(getThis()), "dialect", sizeof("dialect") - 1, dialect);
-        php_printf("dialect: %d\n", dialect);
-    }
-
-    if(role){
-        zend_update_property_str(FireBird_Connection_ce, Z_OBJ_P(getThis()), "role", sizeof("role") - 1, role);
-        php_printf("role: %s\n", ZSTR_VAL(role));
+    transaction_ctor(return_value, ZEND_THIS, trans_args, lock_timeout);
+    if(FAILURE == transaction_start(return_value)) {
+        zval_ptr_dtor(return_value);
+        RETURN_FALSE;
     }
 }
 
 const zend_function_entry FireBird_Connection_methods[] = {
-    PHP_ME(Connection, __construct, arginfo_FireBird_Connection_construct, ZEND_ACC_PUBLIC)
-    PHP_ME(Connection, connect, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
     PHP_ME(Connection, close, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
+    PHP_ME(Connection, start_transaction, arginfo_FireBird_Connection_start_transaction, ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
 
@@ -177,7 +92,7 @@ static zend_object *FireBird_Connection_create(zend_class_entry *ce)
     zend_object_std_init(&conn->std, ce);
     object_properties_init(&conn->std, ce);
 
-    conn->handle = 0;
+    conn->db_handle = 0;
 
     return &conn->std;
 }
@@ -187,18 +102,12 @@ static void FireBird_Connection_free_obj(zend_object *obj)
     php_printf("FireBird_Connection_free_obj\n");
     firebird_connection *conn = Z_CONNECTION_O(obj);
 
-    // zval rv;
-    // zval *error_msg = zend_read_property(FireBird_Connection_ce, obj, "error_msg", sizeof("error_msg") - 1, 1, &rv);
-    // if(!Z_ISNULL_P(error_msg)) {
-    //     zval_delref_p(error_msg);
-    // }
-
-    if(conn->handle) {
+    if(conn->db_handle) {
         ISC_STATUS_ARRAY status;
-        if(isc_detach_database(status, &conn->handle)) {
+        if(isc_detach_database(status, &conn->db_handle)) {
             // TODO: report errors?
         }
-        conn->handle = 0;
+        conn->db_handle = 0;
     }
 
     zend_object_std_dtor(&conn->std);
@@ -210,19 +119,7 @@ void register_FireBird_Connection_ce()
     INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "Connection", FireBird_Connection_methods);
     FireBird_Connection_ce = zend_register_internal_class(&tmp_ce);
 
-    DECLARE_PROP_STRING(FireBird_Connection_ce, database, ZEND_ACC_PROTECTED);
-    DECLARE_PROP_STRING(FireBird_Connection_ce, username, ZEND_ACC_PROTECTED);
-    DECLARE_PROP_STRING(FireBird_Connection_ce, password, ZEND_ACC_PROTECTED);
-    DECLARE_PROP_STRING(FireBird_Connection_ce, charset, ZEND_ACC_PROTECTED);
-    DECLARE_PROP_INT(FireBird_Connection_ce, buffers, ZEND_ACC_PROTECTED);
-    DECLARE_PROP_INT(FireBird_Connection_ce, dialect, ZEND_ACC_PROTECTED);
-    DECLARE_PROP_STRING(FireBird_Connection_ce, role, ZEND_ACC_PROTECTED);
-
     ADD_ERR_PROPS(FireBird_Connection_ce);
-
-    // Sensitive attribute can't be added to properties. Maybe someday
-    zend_add_parameter_attribute(zend_hash_str_find_ptr(&FireBird_Connection_ce->function_table,
-        "__construct", sizeof("__construct") - 1), 2, ZSTR_KNOWN(ZEND_STR_SENSITIVEPARAMETER), 0);
 
     FireBird_Connection_ce->create_object = FireBird_Connection_create;
     FireBird_Connection_ce->default_object_handlers = &FireBird_Connection_object_handlers;

@@ -13,7 +13,7 @@ trait Error {
     protected(set) int $error_code_long;
 }
 
-class Connection
+class Database
 {
     use Error;
     function __construct(
@@ -30,12 +30,28 @@ class Connection
     /** @return bool */
     function close() {}
 
-    /** @return bool */
+    /** @return Connection | false */
     function connect() {}
 
-    // function new_transaction(int $trans_args): Transaction {
-    //     return new Transaction($this, $trans_args);
-    // }
+    /** @return bool */
+    function create() {}
+
+    /** @return bool */
+    function drop() {}
+}
+
+class Connection
+{
+    use Error;
+
+    /** @return bool */
+    function close() {}
+
+    /**
+     * @param ?int $lock_timeout - sets lock timeout in seconds when WAIT | LOCK_TIMEOUT $trans_args are set. Valid range 1-32767
+     * @return Transaction | false
+     * */
+    function start_transaction(int $trans_args = 0, int $lock_timeout = 0) {}
 }
 
 // TODO: auto commit/rollback flag?
@@ -45,11 +61,11 @@ class Transaction {
     /**
      * @param ?int $lock_timeout set lock timeout in seconds when $trans_args are set to WAIT | LOCK_TIMEOUT. Valid range 1-32767
      */
-    function __construct(
-        protected Connection $db,
-        protected ?int $trans_args = null,
-        protected ?int $lock_timeout = null,
-    ) {}
+    // function __construct(
+    //     protected Connection $connection,
+    //     protected ?int $trans_args = null,
+    //     protected ?int $lock_timeout = null,
+    // ) {}
 
     /** @return bool */
     function start() {}
@@ -103,9 +119,6 @@ const REC_NO_VERSION = 32;
 const NOWAIT         = 256;
 const WAIT           = 128;
 const LOCK_TIMEOUT   = 512;
-
-// class Prepared_Query {
-// }
 
 // class Blob {
 //     function add() {}

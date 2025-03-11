@@ -79,8 +79,12 @@ typedef struct {
     unsigned short el_type, el_size;
 } firebird_array;
 
+typedef struct firebird_db {
+    zend_object std;
+} firebird_db;
+
 typedef struct {
-    isc_db_handle handle;
+    isc_db_handle db_handle;
     // struct tr_list *tr_list;
     // unsigned short dialect;
     // struct event *event_head;
@@ -90,6 +94,8 @@ typedef struct {
 typedef struct firebird_trans {
     isc_db_handle db_handle;
     isc_tr_handle tr_handle;
+    zend_long trans_args;
+    zend_long trans_timeout;
     zend_object std;
 } firebird_trans;
 
@@ -239,6 +245,12 @@ void _php_firebird_get_link_trans(INTERNAL_FUNCTION_PARAMETERS, zval *link_id,
 #define min(a,b) ((a)<(b)?(a):(b))
 #endif
 
+#define O_SET(o, name) Z_OBJ_P(o), #name, sizeof(#name) - 1, name
+#define THIS_SET(name) O_SET(ZEND_THIS, name)
+
+#define O_GET(o, name) Z_OBJ_P(o), #name, sizeof(#name) - 1
+#define THIS_GET(name) O_GET(ZEND_THIS, name)
+
 #define DECLARE_PROP_OBJ(class_ce, name, obj_name, visibilty) DECLARE_PROP(class_ce, name, ZEND_TYPE_INIT_CLASS(zend_string_init(#obj_name, sizeof(#obj_name)-1, 1), 0, 0), visibilty)
 #define DECLARE_PROP_INT(class_ce, name, visibilty) DECLARE_PROP(class_ce, name, ZEND_TYPE_INIT_MASK(MAY_BE_LONG), visibilty)
 #define DECLARE_PROP_STRING(class_ce, name, visibilty) DECLARE_PROP(class_ce, name, ZEND_TYPE_INIT_MASK(MAY_BE_STRING), visibilty)
@@ -269,10 +281,16 @@ void _php_firebird_get_link_trans(INTERNAL_FUNCTION_PARAMETERS, zval *link_id,
 #define Z_STMT_O(obj) \
     ((firebird_stmt*)((char*)(obj) - XtOffsetOf(firebird_stmt, std)))
 
+#define Z_DB_P(zv) \
+    ((firebird_db*)((char*)(Z_OBJ_P(zv)) - XtOffsetOf(firebird_db, std)))
+
+#define Z_DB_O(obj) \
+    ((firebird_db*)((char*)(obj) - XtOffsetOf(firebird_db, std)))
+
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_none_return_bool, 0, 0, _IS_BOOL, 0)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_FireBird_Connection_construct, 0, 0, 0)
+ZEND_BEGIN_ARG_INFO_EX(arginfo_FireBird_Database_construct, 0, 0, 0)
     ZEND_ARG_TYPE_INFO(0, database, IS_STRING, 0)
     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, username, IS_STRING, 1, "null")
     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, password, IS_STRING, 1, "null")
@@ -282,10 +300,18 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_FireBird_Connection_construct, 0, 0, 0)
     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, role, IS_STRING, 1, "null")
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_FireBird_Transaction_construct, 0, 0, 1)
+ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Database_connect, 0, 0, FireBird\\Connection, MAY_BE_FALSE)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_FireBird_Transaction_construct, 0, 0, 0)
     ZEND_ARG_OBJ_INFO(0, connection, FireBird\\Connection, 0)
-    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, trans_args, IS_LONG, 1, "null")
-    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, lock_timeout, IS_LONG, 1, "null")
+    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, trans_args, IS_LONG, 1, 0)
+    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, lock_timeout, IS_LONG, 1, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Connection_start_transaction, 0, 0, FireBird\\Transaction, MAY_BE_FALSE)
+    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, trans_args, IS_LONG, 1, 0)
+    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, lock_timeout, IS_LONG, 1, 0)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Transaction_query, 0, 1, FireBird\\Statement, MAY_BE_FALSE)
@@ -309,9 +335,11 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Statement_execute, 0, 0
     ZEND_ARG_VARIADIC_INFO(0, bind_args)
 ZEND_END_ARG_INFO()
 
+extern zend_class_entry *FireBird_Database_ce;
 extern zend_class_entry *FireBird_Connection_ce;
 extern zend_class_entry *FireBird_Transaction_ce;
 extern zend_class_entry *FireBird_Statement_ce;
+extern void register_FireBird_Database_ce();
 extern void register_FireBird_Connection_ce();
 extern void register_FireBird_Transaction_ce();
 extern void register_FireBird_Statement_ce();
@@ -341,6 +369,8 @@ int _php_firebird_string_to_quad(char const *id, ISC_QUAD *qd);
 int _php_firebird_blob_add(ISC_STATUS_ARRAY status, zval *string_arg, firebird_blob *ib_blob);
 int _php_firebird_blob_get(ISC_STATUS_ARRAY status, zval *return_value, firebird_blob *ib_blob, zend_ulong max_len);
 zend_string *_php_firebird_quad_to_string(ISC_QUAD const qd);
+void transaction_ctor(zval *this, zval *connection, zend_long trans_args, zend_long lock_timeout);
+int transaction_start(zval *tr_o);
 
 #define update_err_props(status, class_ce, obj) update_err_props_ex(status, class_ce, obj, __FILE__, __LINE__)
 

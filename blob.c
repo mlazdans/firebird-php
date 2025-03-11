@@ -31,8 +31,8 @@
 #include "php_firebird.h"
 #include "php_firebird_includes.h"
 
-#define BLOB_CLOSE		1
-#define BLOB_CANCEL		2
+#define BLOB_CLOSE  1
+#define BLOB_CANCEL 2
 
 static void _php_firebird_free_blob(zend_resource *rsrc, ISC_STATUS_ARRAY status)
 {

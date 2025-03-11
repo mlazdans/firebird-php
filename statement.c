@@ -385,8 +385,8 @@ static void _php_firebird_fetch_hash(INTERNAL_FUNCTION_PARAMETERS, int fetch_typ
                                 goto _php_firebird_fetch_error;
                         }
 
-                        if (isc_blob_info(status, &blob_handle.bl_handle, sizeof(bl_items),
-                            bl_items, sizeof(bl_info), bl_info)) {
+                        if (isc_blob_info(status, &blob_handle.bl_handle, sizeof(bl_items), bl_items,
+                            sizeof(bl_info), bl_info)) {
                                 update_err_props(status, FireBird_Statement_ce, Z_OBJ_P(ZEND_THIS));
                                 goto _php_firebird_fetch_error;
                         }

@@ -207,6 +207,7 @@ PHP_MINIT_FUNCTION(firebird)
     SIGG(check) = 0;
 #endif
 
+    register_FireBird_Database_ce();
     register_FireBird_Connection_ce();
     register_FireBird_Transaction_ce();
     register_FireBird_Statement_ce();
@@ -709,13 +710,16 @@ PHP_MINFO_FUNCTION(firebird)
 /* }}} */
 
 void dump_buffer(const unsigned char *buffer, int len){
-    for (int i=0; i<len; i++) {
+    int i;
+    for (i = 0; i < len; i++) {
         if(buffer[i] < 31 || buffer[i] > 126)
             php_printf("0x%02x ", buffer[i]);
         else
             php_printf("%c", buffer[i]);
     }
-    php_printf("\n");
+    if (i > 0) {
+        php_printf("\n");
+    }
 }
 
 bool update_err_props_ex(ISC_STATUS_ARRAY status, zend_class_entry *class_ce, zend_object *obj, const char *file_name, size_t line_num)
