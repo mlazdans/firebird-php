@@ -17,14 +17,14 @@ static  int _php_firebird_prepare(INTERNAL_FUNCTION_PARAMETERS, const ISC_SCHAR 
 #define COMMIT      1
 #define RETAIN      2
 
-void transaction_ctor(zval *this, zval *connection, zend_long trans_args, zend_long lock_timeout)
+void transaction_ctor(zval *tr_o, zval *connection, zend_long trans_args, zend_long lock_timeout)
 {
-    zend_update_property(FireBird_Transaction_ce, O_SET(this, connection));
-    zend_update_property_long(FireBird_Transaction_ce, O_SET(this, trans_args));
-    zend_update_property_long(FireBird_Transaction_ce, O_SET(this, lock_timeout));
+    zend_update_property(FireBird_Transaction_ce, O_SET(tr_o, connection));
+    zend_update_property_long(FireBird_Transaction_ce, O_SET(tr_o, trans_args));
+    zend_update_property_long(FireBird_Transaction_ce, O_SET(tr_o, lock_timeout));
 
     firebird_connection *conn = Z_CONNECTION_P(connection);
-    firebird_trans *tr = Z_TRANSACTION_P(this);
+    firebird_trans *tr = Z_TRANSACTION_P(tr_o);
     tr->db_handle = conn->db_handle;
 }
 
