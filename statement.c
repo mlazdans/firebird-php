@@ -20,7 +20,6 @@ static void _php_firebird_free_xsqlda(XSQLDA *sqlda);
 static void _php_firebird_free_stmt(firebird_stmt *s);
 static void _php_firebird_fetch_hash(INTERNAL_FUNCTION_PARAMETERS, int fetch_type);
 
-// TODO: fetch flags
 PHP_METHOD(Statement, fetch_row)
 {
     _php_firebird_fetch_hash(INTERNAL_FUNCTION_PARAM_PASSTHRU, FETCH_ROW);
@@ -74,7 +73,12 @@ PHP_METHOD(Statement, execute)
     RETURN_TRUE;
 }
 
+PHP_METHOD(Statement, __construct)
+{
+}
+
 const zend_function_entry FireBird_Statement_methods[] = {
+    PHP_ME(Statement, __construct, arginfo_none, ZEND_ACC_PRIVATE)
     PHP_ME(Statement, fetch_row, arginfo_FireBird_Statement_fetch_row, ZEND_ACC_PUBLIC)
     PHP_ME(Statement, fetch_array, arginfo_FireBird_Statement_fetch_row, ZEND_ACC_PUBLIC)
     PHP_ME(Statement, fetch_object, arginfo_FireBird_Statement_fetch_object, ZEND_ACC_PUBLIC)

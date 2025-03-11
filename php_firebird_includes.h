@@ -287,6 +287,9 @@ void _php_firebird_get_link_trans(INTERNAL_FUNCTION_PARAMETERS, zval *link_id,
 #define Z_DB_O(obj) \
     ((firebird_db*)((char*)(obj) - XtOffsetOf(firebird_db, std)))
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_none, 0, 0, 0)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_none_return_bool, 0, 0, _IS_BOOL, 0)
 ZEND_END_ARG_INFO()
 
