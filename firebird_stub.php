@@ -61,11 +61,11 @@ class Transaction {
     /**
      * @param ?int $lock_timeout set lock timeout in seconds when $trans_args are set to WAIT | LOCK_TIMEOUT. Valid range 1-32767
      */
-    // function __construct(
-    //     protected Connection $connection,
-    //     protected ?int $trans_args = null,
-    //     protected ?int $lock_timeout = null,
-    // ) {}
+    function __construct(
+        protected Connection $connection,
+        protected ?int $trans_args = null,
+        protected ?int $lock_timeout = null,
+    ) {}
 
     /** @return bool */
     function start() {}
@@ -81,16 +81,20 @@ class Transaction {
 
     /** @return bool */
     function rollback_ret() {}
+}
+
+class Statement {
+    use Error;
+
+    function __construct(
+        protected Transaction $transaction
+    ) {}
 
     /** @return Statement | false */
     function query(string $sql, ...$bind_args) {}
 
     /** @return Statement | false */
     function prepare(string $sql) {}
-}
-
-class Statement {
-    use Error;
 
     /** @return object | false | null */
     function fetch_object(int $flags = 0) {}

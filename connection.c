@@ -61,9 +61,8 @@ PHP_METHOD(Connection, close) {
 // }
 
 PHP_METHOD(Connection, start_transaction) {
-    object_init_ex(return_value, FireBird_Transaction_ce);
-
     zend_long trans_args = 0, lock_timeout = 0;
+    ISC_STATUS_ARRAY status;
 
     ZEND_PARSE_PARAMETERS_START(0, 2)
         Z_PARAM_OPTIONAL
@@ -71,9 +70,12 @@ PHP_METHOD(Connection, start_transaction) {
         Z_PARAM_LONG(lock_timeout)
     ZEND_PARSE_PARAMETERS_END();
 
+    object_init_ex(return_value, FireBird_Transaction_ce);
+
     transaction_ctor(return_value, ZEND_THIS, trans_args, lock_timeout);
-    if(FAILURE == transaction_start(return_value)) {
+    if(FAILURE == transaction_start(status, return_value)) {
         zval_ptr_dtor(return_value);
+        update_err_props(status, FireBird_Connection_ce, Z_OBJ_P(ZEND_THIS));
         RETURN_FALSE;
     }
 }
