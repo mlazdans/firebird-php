@@ -72,7 +72,7 @@ PHP_METHOD(Statement, close)
     ISC_STATUS_ARRAY status;
 
     if (isc_dsql_free_statement(status, &stmt->stmt_handle, DSQL_close)) {
-        update_err_props(status, FireBird_Statement_ce, Z_OBJ_P(ZEND_THIS));
+        update_err_props(status, FireBird_Statement_ce, ZEND_THIS);
         RETURN_FALSE;
     }
 
@@ -95,7 +95,7 @@ PHP_METHOD(Statement, execute)
     ZEND_PARSE_PARAMETERS_END();
 
     if (FAILURE == statement_execute(status, ZEND_THIS, bind_args, num_bind_args)) {
-        update_err_props(status, FireBird_Statement_ce, Z_OBJ_P(ZEND_THIS));
+        update_err_props(status, FireBird_Statement_ce, ZEND_THIS);
         RETURN_FALSE;
     }
 
@@ -178,7 +178,7 @@ PHP_METHOD(Statement, prepare)
     ZEND_PARSE_PARAMETERS_END();
 
     if (FAILURE == statement_prepare(status, ZEND_THIS, ZSTR_VAL(sql))) {
-        update_err_props(status, FireBird_Statement_ce, Z_OBJ_P(ZEND_THIS));
+        update_err_props(status, FireBird_Statement_ce, ZEND_THIS);
         RETURN_FALSE;
     }
 
@@ -201,12 +201,12 @@ PHP_METHOD(Statement, query)
     ZEND_PARSE_PARAMETERS_END();
 
     if (FAILURE == statement_prepare(status, ZEND_THIS, ZSTR_VAL(sql))) {
-        update_err_props(status, FireBird_Statement_ce, Z_OBJ_P(ZEND_THIS));
+        update_err_props(status, FireBird_Statement_ce, ZEND_THIS);
         RETURN_FALSE;
     }
 
     if (FAILURE == statement_execute(status, ZEND_THIS, bind_args, num_bind_args)) {
-        update_err_props(status, FireBird_Statement_ce, Z_OBJ_P(ZEND_THIS));
+        update_err_props(status, FireBird_Statement_ce, ZEND_THIS);
         RETURN_FALSE;
     }
 
@@ -218,16 +218,16 @@ PHP_METHOD(Statement, query)
     // if (q->in_sqlda->sqld == 0) {
     //     efree(q->in_sqlda);
     //     q->in_sqlda = NULL;
-    // // } else if (FAILURE == alloc_arraqy(&q->in_array, &q->in_array_cnt, q->in_sqlda, Z_OBJ_P(ZEND_THIS))) {
-    // //     // update_err_props(status, FireBird_Transaction_ce, Z_OBJ_P(ZEND_THIS));
+    // // } else if (FAILURE == alloc_arraqy(&q->in_array, &q->in_array_cnt, q->in_sqlda, ZEND_THIS)) {
+    // //     // update_err_props(status, FireBird_Transaction_ce, ZEND_THIS);
     // //     goto query_error;
     // }
 
     // if (q->out_sqlda->sqld == 0) {
     //     efree(q->out_sqlda);
     //     q->out_sqlda = NULL;
-    // // } else if (FAILURE == alloc_array(&q->out_array, &q->out_array_cnt, q->out_sqlda, Z_OBJ_P(ZEND_THIS))) {
-    // //     // update_err_props(status, FireBird_Transaction_ce, Z_OBJ_P(ZEND_THIS));
+    // // } else if (FAILURE == alloc_array(&q->out_array, &q->out_array_cnt, q->out_sqlda,(ZEND_THIS)) {
+    // //     // update_err_props(status, FireBird_Transaction_ce, ZEND_THIS);
     // //     goto query_error;
     // }
 }
@@ -483,7 +483,7 @@ static void _php_firebird_fetch_hash(INTERNAL_FUNCTION_PARAMETERS, int fetch_typ
                 stmt->has_more_rows = 0;
                 RETURN_NULL();
             } else {
-                update_err_props(status, FireBird_Statement_ce, Z_OBJ_P(ZEND_THIS));
+                update_err_props(status, FireBird_Statement_ce, ZEND_THIS);
                 RETURN_FALSE;
             }
         }
@@ -542,13 +542,13 @@ static void _php_firebird_fetch_hash(INTERNAL_FUNCTION_PARAMETERS, int fetch_typ
 
                         if (isc_open_blob(status, &stmt->db_handle, &stmt->tr_handle,
                             &blob_handle.bl_handle, &blob_handle.bl_qd)) {
-                                update_err_props(status, FireBird_Statement_ce, Z_OBJ_P(ZEND_THIS));
+                                update_err_props(status, FireBird_Statement_ce, ZEND_THIS);
                                 goto _php_firebird_fetch_error;
                         }
 
                         if (isc_blob_info(status, &blob_handle.bl_handle, sizeof(bl_items), bl_items,
                             sizeof(bl_info), bl_info)) {
-                                update_err_props(status, FireBird_Statement_ce, Z_OBJ_P(ZEND_THIS));
+                                update_err_props(status, FireBird_Statement_ce, ZEND_THIS);
                                 goto _php_firebird_fetch_error;
                         }
 
@@ -575,12 +575,12 @@ static void _php_firebird_fetch_hash(INTERNAL_FUNCTION_PARAMETERS, int fetch_typ
                         if (max_len == 0) {
                             ZVAL_STRING(&result, "");
                         } else if (SUCCESS != _php_firebird_blob_get(status, &result, &blob_handle, max_len)) {
-                            update_err_props(status, FireBird_Statement_ce, Z_OBJ_P(ZEND_THIS));
+                            update_err_props(status, FireBird_Statement_ce, ZEND_THIS);
                             goto _php_firebird_fetch_error;
                         }
 
                         if (isc_close_blob(status, &blob_handle.bl_handle)) {
-                            update_err_props(status, FireBird_Statement_ce, Z_OBJ_P(ZEND_THIS));
+                            update_err_props(status, FireBird_Statement_ce, ZEND_THIS);
                             goto _php_firebird_fetch_error;
                         }
 

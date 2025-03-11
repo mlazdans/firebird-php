@@ -19,7 +19,7 @@ PHP_METHOD(Connection, close) {
         ISC_STATUS_ARRAY status;
         php_printf("Closing handle: %d\n", conn->db_handle);
         if(isc_detach_database(status, &conn->db_handle)){
-            update_err_props(status, FireBird_Connection_ce, Z_OBJ_P(ZEND_THIS));
+            update_err_props(status, FireBird_Connection_ce, ZEND_THIS);
         } else {
             conn->db_handle = 0;
             RETURN_TRUE;
@@ -75,7 +75,7 @@ PHP_METHOD(Connection, start_transaction) {
     transaction_ctor(return_value, ZEND_THIS, trans_args, lock_timeout);
     if(FAILURE == transaction_start(status, return_value)) {
         zval_ptr_dtor(return_value);
-        update_err_props(status, FireBird_Connection_ce, Z_OBJ_P(ZEND_THIS));
+        update_err_props(status, FireBird_Connection_ce, ZEND_THIS);
         RETURN_FALSE;
     }
 }

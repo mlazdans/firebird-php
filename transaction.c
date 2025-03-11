@@ -72,7 +72,7 @@ PHP_METHOD(Transaction, start) {
     ZEND_PARSE_PARAMETERS_NONE();
 
     if(FAILURE == transaction_start(status, ZEND_THIS)) {
-        update_err_props(status, FireBird_Transaction_ce, Z_OBJ_P(ZEND_THIS));
+        update_err_props(status, FireBird_Transaction_ce, ZEND_THIS);
         RETURN_FALSE;
     }
 
@@ -356,7 +356,7 @@ static void _php_firebird_process_trans(INTERNAL_FUNCTION_PARAMETERS, int commit
     }
 
     if (result) {
-        update_err_props(status, FireBird_Transaction_ce, Z_OBJ_P(ZEND_THIS));
+        update_err_props(status, FireBird_Transaction_ce, ZEND_THIS);
         RETVAL_FALSE;
     } else {
         RETVAL_TRUE;

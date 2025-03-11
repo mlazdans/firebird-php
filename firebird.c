@@ -722,7 +722,7 @@ void dump_buffer(const unsigned char *buffer, int len){
     }
 }
 
-void update_err_props_ex(ISC_STATUS_ARRAY status, zend_class_entry *class_ce, zend_object *obj, const char *file_name, size_t line_num)
+void update_err_props_ex(ISC_STATUS_ARRAY status, zend_class_entry *class_ce, zval *obj, const char *file_name, size_t line_num)
 {
     if (!(status[0] == 1 && status[1])){
         return;
@@ -738,15 +738,15 @@ void update_err_props_ex(ISC_STATUS_ARRAY status, zend_class_entry *class_ce, ze
         *s++ = '\n';
     }
 
-    zend_update_property_stringl(class_ce, obj, "error_msg", sizeof("error_msg") - 1, msg, s - msg - 1);
-    zend_update_property_long(class_ce, obj, "error_code", sizeof("error_code") - 1, (zend_long)isc_sqlcode(status));
-    zend_update_property_long(class_ce, obj, "error_code_long", sizeof("error_code_long") - 1,
+    zend_update_property_stringl(class_ce, Z_OBJ_P(obj), "error_msg", sizeof("error_msg") - 1, msg, s - msg - 1);
+    zend_update_property_long(class_ce, Z_OBJ_P(obj), "error_code", sizeof("error_code") - 1, (zend_long)isc_sqlcode(status));
+    zend_update_property_long(class_ce, Z_OBJ_P(obj), "error_code_long", sizeof("error_code_long") - 1,
         (zend_long)isc_portable_integer((const ISC_UCHAR*)&status[1], 4));
 
 #ifdef PHP_DEBUG
     char *line;
     size_t line_len = spprintf(&line, 0, "%s:%d", file_name, line_num);
-    zend_update_property_stringl(class_ce, obj, "error_line", sizeof("error_line") - 1, line, line_len);
+    zend_update_property_stringl(class_ce, Z_OBJ_P(obj), "error_line", sizeof("error_line") - 1, line, line_len);
     efree(line);
 #endif
 }

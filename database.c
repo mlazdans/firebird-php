@@ -121,7 +121,7 @@ PHP_METHOD(Database, connect) {
     firebird_connection *conn = Z_CONNECTION_O(conn_o);
 
     if (isc_attach_database(status, (short)Z_STRLEN_P(database), Z_STRVAL_P(database), &conn->db_handle, (short)(dpb-dpb_buffer), dpb_buffer)) {
-        update_err_props(status, FireBird_Database_ce, Z_OBJ_P(ZEND_THIS));
+        update_err_props(status, FireBird_Database_ce, ZEND_THIS);
         zval_ptr_dtor(&rv);
         RETURN_FALSE;
     }
