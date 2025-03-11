@@ -29,8 +29,8 @@ void transaction_ctor(zval *this, zval *connection, zend_long trans_args, zend_l
 }
 
 PHP_METHOD(Transaction, __construct) {
-    zval *connection;
-    zend_long trans_args, lock_timeout;
+    zval *connection = NULL;
+    zend_long trans_args = 0, lock_timeout = 0;
 
     ZEND_PARSE_PARAMETERS_START(1, 3)
         Z_PARAM_OBJECT_OF_CLASS(connection, FireBird_Connection_ce)

@@ -21,6 +21,7 @@ PHP_METHOD(Connection, close) {
         if(isc_detach_database(status, &conn->db_handle)){
             update_err_props(status, FireBird_Connection_ce, Z_OBJ_P(ZEND_THIS));
         } else {
+            conn->db_handle = 0;
             RETURN_TRUE;
         }
     }
@@ -63,7 +64,6 @@ PHP_METHOD(Connection, start_transaction) {
     object_init_ex(return_value, FireBird_Transaction_ce);
 
     zend_long trans_args = 0, lock_timeout = 0;
-    bool trans_args_is_null = 1, lock_timeout_is_null = 1;
 
     ZEND_PARSE_PARAMETERS_START(0, 2)
         Z_PARAM_OPTIONAL
