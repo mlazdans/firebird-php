@@ -68,6 +68,7 @@ tests/*.log
 tests/*.out
 tests/*.php
 tests/*.sh
+tests/config.inc
 
 # coverage
 /coverage.info
