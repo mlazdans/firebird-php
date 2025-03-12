@@ -724,6 +724,21 @@ void dump_buffer(const unsigned char *buffer, int len){
     }
 }
 
+int status_err_msg(const ISC_STATUS *status, char *msg, unsigned short msg_size)
+{
+    // char msg[1024] = {0};
+    char *s = msg;
+    const ISC_STATUS* pstatus = status;
+
+    while ((s - msg) < msg_size && fb_interpret(s, msg_size - (s - msg), &pstatus)) {
+        s = msg + strlen(msg);
+        *s++ = '\n';
+    }
+
+    // strip last newline
+    return s - msg > 0 ? s - msg - 1 : 0;
+}
+
 void update_err_props_ex(ISC_STATUS_ARRAY status, zend_class_entry *class_ce, zval *obj, const char *file_name, size_t line_num)
 {
     if (!(status[0] == 1 && status[1])){
@@ -740,6 +755,10 @@ void update_err_props_ex(ISC_STATUS_ARRAY status, zend_class_entry *class_ce, zv
         *s++ = '\n';
     }
 
+    if(s == msg) {
+        return;
+    }
+
     zend_update_property_stringl(class_ce, Z_OBJ_P(obj), "error_msg", sizeof("error_msg") - 1, msg, s - msg - 1);
     zend_update_property_long(class_ce, Z_OBJ_P(obj), "error_code", sizeof("error_code") - 1, (zend_long)isc_sqlcode(status));
     zend_update_property_long(class_ce, Z_OBJ_P(obj), "error_code_long", sizeof("error_code_long") - 1,
@@ -753,5 +772,20 @@ void update_err_props_ex(ISC_STATUS_ARRAY status, zend_class_entry *class_ce, zv
 #endif
 }
 
+void _php_firebird_module_error(char *msg, ...)
+{
+    va_list ap;
+    char buf[1024] = {0};
+
+    va_start(ap, msg);
+
+    /* vsnprintf NUL terminates the buf and writes at most n-1 chars+NUL */
+    vsnprintf(buf, sizeof(buf), msg, ap);
+    va_end(ap);
+
+    // IBG(sql_code) = -999; /* no SQL error */
+
+    php_error_docref(NULL, E_WARNING, "%s", buf);
+}
 
 #endif /* HAVE_FIREBIRD */

@@ -1,4 +1,4 @@
-#include <ibase.h>
+// #include <ibase.h>
 #include "firebird/fb_c_api.h"
 #include "php.h"
 #include "zend_exceptions.h"
@@ -152,58 +152,59 @@ void register_FireBird_Database_ce()
     FireBird_Database_object_handlers.free_obj = FireBird_Database_free_obj;
 }
 
-static char dpb_args_str[] = { isc_dpb_user_name, isc_dpb_password, isc_dpb_lc_ctype, isc_dpb_sql_role_name };
-static char *class_args_str[] = { "username", "password", "charset", "role" };
+#define dpb_insert(f, ...) do { \
+    IXpbBuilder_insert##f(__VA_ARGS__); \
+    if (IStatus_getState(st) & IStatus_STATE_ERRORS) { \
+        char msg[1024] = {0}; \
+        status_err_msg(IStatus_getErrors(st), msg, sizeof(msg)); \
+        _php_firebird_module_error(msg); \
+        return FAILURE; \
+    } \
+} while(0)
 
-int database_build_dpb(ISC_STATUS_ARRAY status, zend_class_entry *ce, zval *args_o, char *dpb_buf, unsigned short buf_len, short *num_dpb_written)
+#define dpb_insert_int(tag, value) dpb_insert(Int, dpb, st, tag, value)
+#define dpb_insert_string(tag, value) dpb_insert(String, dpb, st, tag, value)
+#define dpb_insert_tag(tag) dpb_insert(Tag, dpb, st, tag)
+
+int database_build_dpb(zend_class_entry *ce, zval *args_o, firebird_xpb_args *xpb_args, const char **dpb_buf, short *num_dpb_written)
 {
-    zval rv, *database, *val;
-    char *dpb = dpb_buf;
-    short dpb_len;
+    struct IMaster* master = fb_get_master_interface();
+    struct IStatus* st = IMaster_getStatus(master);
+    struct IUtil* utl = IMaster_getUtilInterface(master);
+    struct IXpbBuilder* dpb = IUtil_getXpbBuilder(utl, st, IXpbBuilder_DPB, NULL, 0);
+    zval rv, *val;
+    int i;
 
-    database = zend_read_property(ce, O_GET(args_o, database), 1, &rv);
-
-    if ((Z_TYPE_P(database) != IS_STRING) || !Z_STRLEN_P(database)) {
-        zend_throw_exception_ex(zend_ce_value_error, 0, "Database parameter not set");
-        return FAILURE;
-    }
-
-    // TODO: isc_dpb_version2
-    *dpb++ = isc_dpb_version1; buf_len--;
-
-    int len = sizeof(class_args_str) / sizeof(class_args_str[0]);
-    for(int i = 0; i < len; i++){
-        val = zend_read_property(ce, Z_OBJ_P(args_o), class_args_str[i], strlen(class_args_str[i]), 1, &rv);
-        if (Z_TYPE_P(val) == IS_STRING && Z_STRLEN_P(val)) {
-            FBDEBUG("arg%d: %s = %s", i, class_args_str[i], Z_STRVAL_P(val));
-            dpb_len = slprintf(dpb, buf_len, "%c%c%s", dpb_args_str[i], (unsigned char)Z_STRLEN_P(val), Z_STRVAL_P(val));
-            dpb += dpb_len;
-            buf_len -= dpb_len;
+    dpb_insert_tag(isc_dpb_version2);
+    for (int i = 0; i < xpb_args->count; i++) {
+        val = zend_read_property(ce, Z_OBJ_P(args_o), xpb_args->names[i], strlen(xpb_args->names[i]), 1, &rv);
+        switch (Z_TYPE_P(val)) {
+            case IS_STRING:
+                FBDEBUG("property: %s is string: `%s`", xpb_args->names[i], Z_STRVAL_P(val));
+                dpb_insert_string(xpb_args->tags[i], Z_STRVAL_P(val));
+                break;
+            case IS_LONG:
+                FBDEBUG("property: %s is long: `%u`", xpb_args->names[i], Z_LVAL_P(val));
+                dpb_insert_int(xpb_args->tags[i], (int)Z_LVAL_P(val));
+                break;
+            case IS_NULL:
+                break;
+            default:
+                // TODO: It's a BUG, should print warning really
+                FBDEBUG("unhandled: %s type %s", xpb_args->names[i], zend_get_type_by_const(Z_TYPE_P(val)));
+                break;
         }
-    }
-
-    val = zend_read_property(ce, O_GET(args_o, buffers), 1, &rv);
-    if (!Z_ISNULL_P(val)) {
-        dpb_len = slprintf(dpb, buf_len, "%c\2%c%c", isc_dpb_num_buffers,
-            (char)(Z_LVAL_P(val) >> 8), (char)(Z_LVAL_P(val) & 0xff));
-        dpb += dpb_len;
-        buf_len -= dpb_len;
     }
 
 #if FB_API_VER >= 40
     // Do not handle directly INT128 or DECFLOAT, convert to VARCHAR at server instead
-    const char *compat = "int128 to varchar;decfloat to varchar";
-    dpb_len = slprintf(dpb, buf_len, "%c%c%s", isc_dpb_set_bind, strlen(compat), compat);
-    dpb += dpb_len;
-    buf_len -= dpb_len;
+    dpb_insert_string(isc_dpb_set_bind, "int128 to varchar;decfloat to varchar");
 #endif
 
-    // isc_dpb_sweep_interval
-    // isc_dpb_set_page_buffers
-    // isc_dpb_page_size
-    // isc_dpb_force_write
+    // dump_buffer((unsigned char *)IXpbBuilder_getBuffer(dpb, st), IXpbBuilder_getBufferLength(dpb, st));
 
-    *num_dpb_written = (short)(dpb - dpb_buf);
+    *num_dpb_written = IXpbBuilder_getBufferLength(dpb, st);
+    *dpb_buf = IXpbBuilder_getBuffer(dpb, st);
 
     return SUCCESS;
 }

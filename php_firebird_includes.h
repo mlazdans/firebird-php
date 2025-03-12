@@ -150,6 +150,11 @@ typedef struct firebird_blobinfo {
     int       bl_stream;    // blob is stream ?
 } firebird_blobinfo;
 
+typedef struct firebird_xpb_args {
+    const char *tags, **names;
+    int count;
+} firebird_xpb_args;
+
 // typedef struct event {
 //     firebird_connection *link;
 //     zend_resource* link_res;
@@ -398,7 +403,8 @@ int _php_firebird_blob_get(ISC_STATUS_ARRAY status, zval *return_value, firebird
 zend_string *_php_firebird_quad_to_string(ISC_QUAD const qd);
 void transaction_ctor(zval *tr_o, zval *connection, zend_long trans_args, zend_long lock_timeout);
 int transaction_start(ISC_STATUS_ARRAY status, zval *tr_o);
-int database_build_dpb(ISC_STATUS_ARRAY status, zend_class_entry *ce, zval *args_o, char *dpb_buf, unsigned short buf_len, short *num_dpb_written);
+int status_err_msg(const ISC_STATUS *status, char *msg, unsigned short msg_size);
+int database_build_dpb(zend_class_entry *ce, zval *args_o, firebird_xpb_args *xpb_args, const char **dpb_buf, short *num_dpb_written);
 
 #define update_err_props(status, class_ce, obj) update_err_props_ex(status, class_ce, obj, __FILE__, __LINE__)
 

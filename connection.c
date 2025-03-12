@@ -8,37 +8,6 @@
 zend_class_entry *FireBird_Connection_ce;
 static zend_object_handlers FireBird_Connection_object_handlers;
 
-// #define dpb_insert_int(tag, value) IXpbBuilder_insertInt(dpb, st, tag, value)
-// #define dpb_insert_string(tag, value) IXpbBuilder_insertString(dpb, st, tag, value)
-// #define dpb_insert_tag(tag) IXpbBuilder_insertTag(dpb, st, tag)
-
-// PHP_METHOD(Connection, create) {
-//     firebird_connection *conn = Z_CONNECTION_O(ZEND_THIS);
-//     ISC_STATUS_ARRAY status;
-//     // isc_tr_handle tr = 0;
-
-//     struct IMaster* master = fb_get_master_interface();
-//     struct IStatus* st = IMaster_getStatus(master);
-//     // struct IProvider* prov = IMaster_getDispatcher(master);
-//     struct IUtil* utl = IMaster_getUtilInterface(master);
-//     struct IXpbBuilder* dpb = NULL;
-
-//     dpb = IUtil_getXpbBuilder(utl, st, IXpbBuilder_DPB, NULL, 0);
-
-//     // dpb_insert_tag(isc_dpb_version1);
-//     dpb_insert_int(isc_dpb_page_size, 4096);
-//     // dpb_insert_string(isc_dpb_user_name, "sysdba");
-//     // dpb_insert_string(isc_dpb_password, "masterkey");
-
-//     dump_buffer((unsigned char *)IXpbBuilder_getBuffer(dpb, st), IXpbBuilder_getBufferLength(dpb, st));
-
-//     // isc_dpb_password
-//     // isc_create_database
-//     // if (isc_dsql_execute_immediate(status, &conn->handle, &tr, 0, create_db, 1,
-//     //     NULL))
-//     RETURN_FALSE;
-// }
-
 // PHP_METHOD(Connection, start_transaction) {
 //     zend_long trans_args = 0, lock_timeout = 0;
 //     ISC_STATUS_ARRAY status;
@@ -78,21 +47,35 @@ int connection_connect(ISC_STATUS_ARRAY status, zval *conn_o)
 {
     zval rv, *args, *args_o, *database;
     firebird_connection *conn = Z_CONNECTION_P(conn_o);
-    char dpb_buffer[257] = {0};
+    const char *dpb_buffer;
     short num_dpb_written;
 
-    args_o = zend_read_property(FireBird_Connection_ce, O_GET(conn_o, args), 1, &rv);
+    firebird_xpb_args map = {
+        .tags = (const char[]) {
+            isc_dpb_user_name, isc_dpb_password, isc_dpb_lc_ctype, isc_dpb_sql_role_name, isc_dpb_num_buffers
+        },
+        .names = (const char *[]) {
+            "username", "password", "charset", "role", "buffers"
+        },
+        .count = 5
+    };
 
-    if (FAILURE == database_build_dpb(status, FireBird_Connect_Args_ce, args_o, dpb_buffer, sizeof(dpb_buffer), &num_dpb_written)) {
+    args_o = zend_read_property(FireBird_Connection_ce, O_GET(conn_o, args), 1, &rv);
+    database = zend_read_property(FireBird_Connect_Args_ce, O_GET(args_o, database), 1, &rv);
+
+    if ((Z_TYPE_P(database) != IS_STRING) || !Z_STRLEN_P(database)) {
+        zend_throw_exception_ex(zend_ce_value_error, 0, "Database parameter not set");
         return FAILURE;
     }
 
-    database = zend_read_property(FireBird_Connect_Args_ce, O_GET(args_o, database), 1, &rv);
+    if (FAILURE == database_build_dpb(FireBird_Connect_Args_ce, args_o, &map, &dpb_buffer, &num_dpb_written)) {
+        return FAILURE;
+    }
+
     FBDEBUG("connection_connect: %s", Z_STRVAL_P(database));
     if (isc_attach_database(status, (short)Z_STRLEN_P(database), Z_STRVAL_P(database), &conn->db_handle, num_dpb_written, dpb_buffer)) {
         return FAILURE;
     }
-
     FBDEBUG("Connected, handle: %d", conn->db_handle);
 
     return SUCCESS;
@@ -101,7 +84,7 @@ int connection_connect(ISC_STATUS_ARRAY status, zval *conn_o)
 PHP_METHOD(Connection, connect) {
     ZEND_PARSE_PARAMETERS_NONE();
 
-    ISC_STATUS_ARRAY status;
+    ISC_STATUS_ARRAY status = {0};
 
     if (FAILURE == connection_connect(status, ZEND_THIS)) {
         update_err_props(status, FireBird_Connection_ce, ZEND_THIS);
