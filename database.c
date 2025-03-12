@@ -91,8 +91,9 @@ void register_FireBird_Database_ce()
     DECLARE_PROP_INT(FireBird_Database_ce, buffers, ZEND_ACC_PROTECTED_SET);
     DECLARE_PROP_INT(FireBird_Database_ce, dialect, ZEND_ACC_PROTECTED_SET);
     DECLARE_PROP_STRING(FireBird_Database_ce, role, ZEND_ACC_PROTECTED_SET);
+    DECLARE_ERR_PROPS(FireBird_Database_ce);
 
-    ADD_ERR_PROPS(FireBird_Database_ce);
+    zend_class_implements(FireBird_Database_ce, 1, FireBird_IError_ce);
 
     // Sensitive attribute can't be added to properties. Maybe someday
     zend_add_parameter_attribute(zend_hash_str_find_ptr(&FireBird_Database_ce->function_table,

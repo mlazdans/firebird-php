@@ -279,7 +279,9 @@ void register_FireBird_Statement_ce()
     INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "Statement", FireBird_Statement_methods);
     FireBird_Statement_ce = zend_register_internal_class(&tmp_ce);
 
-    ADD_ERR_PROPS(FireBird_Statement_ce);
+    DECLARE_ERR_PROPS(FireBird_Statement_ce);
+
+    zend_class_implements(FireBird_Statement_ce, 1, FireBird_IError_ce);
 
     FireBird_Statement_ce->create_object = FireBird_Statement_create;
     FireBird_Statement_ce->default_object_handlers = &FireBird_Statement_object_handlers;

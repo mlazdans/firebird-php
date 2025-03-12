@@ -358,13 +358,15 @@ extern zend_class_entry *FireBird_Database_ce;
 extern zend_class_entry *FireBird_Connection_ce;
 extern zend_class_entry *FireBird_Transaction_ce;
 extern zend_class_entry *FireBird_Statement_ce;
+extern zend_class_entry *FireBird_IError_ce;
 extern void register_FireBird_Database_ce();
 extern void register_FireBird_Connection_ce();
 extern void register_FireBird_Transaction_ce();
 extern void register_FireBird_Statement_ce();
+extern void register_FireBird_IError_ce();
 
 #ifdef PHP_DEBUG
-#define ADD_ERR_PROPS(class_ce)                                              \
+#define DECLARE_ERR_PROPS(class_ce)                                              \
     do {                                                                     \
         DECLARE_PROP_STRING(class_ce, error_msg, ZEND_ACC_PROTECTED_SET);    \
         DECLARE_PROP_INT(class_ce, error_code, ZEND_ACC_PROTECTED_SET);      \
@@ -372,7 +374,7 @@ extern void register_FireBird_Statement_ce();
         DECLARE_PROP_STRING(class_ce, error_line, ZEND_ACC_PROTECTED_SET);   \
     } while(0)
 #else
-#define ADD_ERR_PROPS(class_ce)                                              \
+#define DECLARE_ERR_PROPS(class_ce)                                              \
     do {                                                                     \
         DECLARE_PROP_STRING(class_ce, error_msg, ZEND_ACC_PROTECTED_SET);    \
         DECLARE_PROP_INT(class_ce, error_code, ZEND_ACC_PROTECTED_SET);      \

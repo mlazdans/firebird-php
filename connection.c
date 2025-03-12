@@ -230,7 +230,9 @@ void register_FireBird_Connection_ce()
     FireBird_Connection_ce = zend_register_internal_class(&tmp_ce);
 
     DECLARE_PROP_OBJ(FireBird_Connection_ce, database, FireBird\\Database, ZEND_ACC_PROTECTED_SET);
-    ADD_ERR_PROPS(FireBird_Connection_ce);
+    DECLARE_ERR_PROPS(FireBird_Connection_ce);
+
+    zend_class_implements(FireBird_Connection_ce, 1, FireBird_IError_ce);
 
     FireBird_Connection_ce->create_object = FireBird_Connection_create;
     FireBird_Connection_ce->default_object_handlers = &FireBird_Connection_object_handlers;

@@ -6,14 +6,21 @@ const FETCH_BLOBS    = 1;
 const FETCH_ARRAYS   = 2;
 const FETCH_UNIXTIME = 4;
 
-// It's actually not a trait internally
-trait Error {
+interface IError
+{
+    public string $error_msg { get; }
+    public int $error_code { get; }
+    public int $error_code_long { get; }
+}
+
+trait Error
+{
     protected(set) string $error_msg;
     protected(set) int $error_code;
     protected(set) int $error_code_long;
 }
 
-class Database
+class Database implements IError
 {
     use Error;
     function __construct(
@@ -40,7 +47,7 @@ class Database
     // function drop() {}
 }
 
-class Connection
+class Connection implements IError
 {
     use Error;
 
@@ -62,7 +69,8 @@ class Connection
 }
 
 // TODO: auto commit/rollback flag?
-class Transaction {
+class Transaction implements IError
+{
     use Error;
 
     /**
@@ -90,7 +98,8 @@ class Transaction {
     function rollback_ret() {}
 }
 
-class Statement {
+class Statement implements IError
+{
     use Error;
 
     function __construct(
