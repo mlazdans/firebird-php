@@ -260,6 +260,7 @@ void _php_firebird_get_link_trans(INTERNAL_FUNCTION_PARAMETERS, zval *link_id,
     zend_declare_typed_property(class_ce, prop_##name##_name, &prop_##name##_def_val, \
         visibilty, NULL,                                                              \
         (zend_type) type);                                                            \
+    zend_string_release(prop_##name##_name); \
 } while (0)
 
 #define Z_CONNECTION_P(zv) \

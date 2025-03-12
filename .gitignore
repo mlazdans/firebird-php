@@ -2,6 +2,7 @@ build.sh
 debug.sh
 run.sh
 test.sh
+valgrind.sh
 php.ini
 test.php
 fb_connection.cc
