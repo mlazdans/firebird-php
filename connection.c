@@ -59,87 +59,37 @@ static zend_object_handlers FireBird_Connection_object_handlers;
 //     }
 // }
 
-void connection_ctor(zval *conn_o, zval *database)
+void connection_ctor(zval *conn_o, zval *args)
 {
-    zend_update_property(FireBird_Connection_ce, O_SET(conn_o, database));
+    zend_update_property(FireBird_Connection_ce, O_SET(conn_o, args));
 }
 
 PHP_METHOD(Connection, __construct) {
-    zval *database = NULL;
+    zval *args = NULL;
 
     ZEND_PARSE_PARAMETERS_START(1, 1)
-        Z_PARAM_OBJECT_OF_CLASS(database, FireBird_Database_ce)
+        Z_PARAM_OBJECT_OF_CLASS(args, FireBird_Connect_Args_ce)
     ZEND_PARSE_PARAMETERS_END();
 
-    connection_ctor(ZEND_THIS, database);
+    connection_ctor(ZEND_THIS, args);
 }
 
 int connection_connect(ISC_STATUS_ARRAY status, zval *conn_o)
 {
-    zval rv, *database, *db_o, *val;
+    zval rv, *args, *args_o, *database;
+    firebird_connection *conn = Z_CONNECTION_P(conn_o);
+    char dpb_buffer[257] = {0};
+    short num_dpb_written;
 
-    db_o = zend_read_property(FireBird_Connection_ce, O_GET(conn_o, database), 1, &rv);
-    database = zend_read_property(FireBird_Database_ce, O_GET(db_o, database), 1, &rv);
+    args_o = zend_read_property(FireBird_Connection_ce, O_GET(conn_o, args), 1, &rv);
 
-    if ((Z_TYPE_P(database) != IS_STRING) || !Z_STRLEN_P(database)) {
-        zend_throw_exception_ex(zend_ce_value_error, 0, "Database parameter not set");
+    if (FAILURE == database_build_dpb(status, FireBird_Connect_Args_ce, args_o, dpb_buffer, sizeof(dpb_buffer), &num_dpb_written)) {
         return FAILURE;
     }
 
-    firebird_connection *conn = Z_CONNECTION_P(conn_o);
-
+    database = zend_read_property(FireBird_Connect_Args_ce, O_GET(args_o, database), 1, &rv);
     FBDEBUG("connection_connect: %s", Z_STRVAL_P(database));
-
-    long SQLCODE;
-
-    static char const dpb_args_str[] = { isc_dpb_user_name, isc_dpb_password, isc_dpb_lc_ctype, isc_dpb_sql_role_name };
-    const char *class_args_str[] = { "username", "password", "charset", "role" };
-
-    char dpb_buffer[257] = {0}, *dpb;
-    short dpb_len, buf_len = sizeof(dpb_buffer);
-
-    dpb = dpb_buffer;
-
-    // TODO: isc_dpb_version2
-    *dpb++ = isc_dpb_version1; buf_len--;
-
-    int len = sizeof(class_args_str) / sizeof(class_args_str[0]);
-    for(int i = 0; i < len; i++){
-        val = zend_read_property(FireBird_Database_ce, Z_OBJ_P(db_o), class_args_str[i], strlen(class_args_str[i]), 1, &rv);
-        if (Z_TYPE_P(val) == IS_STRING && Z_STRLEN_P(val)) {
-            FBDEBUG("arg%d: %s = %s", i, class_args_str[i], Z_STRVAL_P(val));
-            dpb_len = slprintf(dpb, buf_len, "%c%c%s", dpb_args_str[i], (unsigned char)Z_STRLEN_P(val), Z_STRVAL_P(val));
-            dpb += dpb_len;
-            buf_len -= dpb_len;
-        }
-    }
-
-    val = zend_read_property(FireBird_Database_ce, Z_OBJ_P(db_o), "buffers", sizeof("buffers") - 1, 1, &rv);
-    if (!Z_ISNULL_P(val)) {
-        dpb_len = slprintf(dpb, buf_len, "%c\2%c%c", isc_dpb_num_buffers,
-            (char)(Z_LVAL_P(val) >> 8), (char)(Z_LVAL_P(val) & 0xff));
-        dpb += dpb_len;
-        buf_len -= dpb_len;
-    }
-
-    // TODO: something does not add up here. isc_spb_prp_wm_sync is related to services, why the val == isc_spb_prp_wm_sync check?
-    //       Disabling for now
-    // val = zend_read_property(FireBird_Database_ce, Z_OBJ_P(ZEND_THIS), "sync", sizeof("sync") - 1, 1, &rv);
-    // if (!Z_ISNULL_P(val)) {
-    //     dpb_len = slprintf(dpb, buf_len, "%c\1%c", isc_dpb_force_write, Z_LVAL_P(val) == isc_spb_prp_wm_sync);
-    //     dpb += dpb_len;
-    //     buf_len -= dpb_len;
-    // }
-
-#if FB_API_VER >= 40
-    // Do not handle directly INT128 or DECFLOAT, convert to VARCHAR at server instead
-    const char *compat = "int128 to varchar;decfloat to varchar";
-    dpb_len = slprintf(dpb, buf_len, "%c%c%s", isc_dpb_set_bind, strlen(compat), compat);
-    dpb += dpb_len;
-    buf_len -= dpb_len;
-#endif
-
-    if (isc_attach_database(status, (short)Z_STRLEN_P(database), Z_STRVAL_P(database), &conn->db_handle, (short)(dpb-dpb_buffer), dpb_buffer)) {
+    if (isc_attach_database(status, (short)Z_STRLEN_P(database), Z_STRVAL_P(database), &conn->db_handle, num_dpb_written, dpb_buffer)) {
         return FAILURE;
     }
 
@@ -229,7 +179,7 @@ void register_FireBird_Connection_ce()
     INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "Connection", FireBird_Connection_methods);
     FireBird_Connection_ce = zend_register_internal_class(&tmp_ce);
 
-    DECLARE_PROP_OBJ(FireBird_Connection_ce, database, FireBird\\Database, ZEND_ACC_PROTECTED_SET);
+    DECLARE_PROP_OBJ(FireBird_Connection_ce, args, FireBird\\Connect_Args, ZEND_ACC_PROTECTED_SET);
     DECLARE_ERR_PROPS(FireBird_Connection_ce);
 
     zend_class_implements(FireBird_Connection_ce, 1, FireBird_IError_ce);

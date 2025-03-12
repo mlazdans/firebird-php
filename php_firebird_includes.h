@@ -250,7 +250,8 @@ void _php_firebird_get_link_trans(INTERNAL_FUNCTION_PARAMETERS, zval *link_id,
 #define THIS_GET(name) O_GET(ZEND_THIS, name)
 
 #define DECLARE_PROP_OBJ(class_ce, name, obj_name, visibilty) DECLARE_PROP(class_ce, name, ZEND_TYPE_INIT_CLASS(zend_string_init(#obj_name, sizeof(#obj_name)-1, 1), 0, 0), visibilty)
-#define DECLARE_PROP_INT(class_ce, name, visibilty) DECLARE_PROP(class_ce, name, ZEND_TYPE_INIT_MASK(MAY_BE_LONG), visibilty)
+#define DECLARE_PROP_LONG(class_ce, name, visibilty) DECLARE_PROP(class_ce, name, ZEND_TYPE_INIT_MASK(MAY_BE_LONG), visibilty)
+#define DECLARE_PROP_BOOL(class_ce, name, visibilty) DECLARE_PROP(class_ce, name, ZEND_TYPE_INIT_MASK(MAY_BE_BOOL), visibilty)
 #define DECLARE_PROP_STRING(class_ce, name, visibilty) DECLARE_PROP(class_ce, name, ZEND_TYPE_INIT_MASK(MAY_BE_STRING), visibilty)
 #define DECLARE_PROP(class_ce, name, type, visibilty) do {                            \
     zval prop_##name##_def_val;                                                       \
@@ -258,7 +259,7 @@ void _php_firebird_get_link_trans(INTERNAL_FUNCTION_PARAMETERS, zval *link_id,
     zend_string *prop_##name##_name = zend_string_init(#name, sizeof(#name) - 1, 1);  \
     zend_declare_typed_property(class_ce, prop_##name##_name, &prop_##name##_def_val, \
         visibilty, NULL,                                                              \
-        (zend_type) type);                                       \
+        (zend_type) type);                                                            \
 } while (0)
 
 #define Z_CONNECTION_P(zv) \
@@ -293,19 +294,22 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_none_return_bool, 0, 0, _IS_BOOL
 ZEND_END_ARG_INFO()
 
 // Database argument types
-ZEND_BEGIN_ARG_INFO_EX(arginfo_FireBird_Database_construct, 0, 0, 1)
-    ZEND_ARG_TYPE_INFO(0, database, IS_STRING, 0)
-    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, username, IS_STRING, 1, "null")
-    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, password, IS_STRING, 1, "null")
-    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, charset, IS_STRING, 1, "null")
-    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, buffers, IS_LONG, 1, "null")
-    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, dialect, IS_LONG, 1, "null")
-    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, role, IS_STRING, 1, "null")
-ZEND_END_ARG_INFO()
+// ZEND_BEGIN_ARG_INFO_EX(arginfo_FireBird_Database_construct, 0, 0, 1)
+//     ZEND_ARG_TYPE_INFO(0, database, IS_STRING, 0)
+//     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, username, IS_STRING, 1, "null")
+//     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, password, IS_STRING, 1, "null")
+//     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, charset, IS_STRING, 1, "null")
+//     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, buffers, IS_LONG, 1, "null")
+//     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, role, IS_STRING, 1, "null")
+//     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, sweep_interval, IS_LONG, 1, "null")
+//     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, set_page_buffers, IS_LONG, 1, "null")
+//     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, page_size, IS_LONG, 1, "null")
+//     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, force_write, IS_LONG, 1, "null")
+// ZEND_END_ARG_INFO()
 
 // Connection argument types
 ZEND_BEGIN_ARG_INFO_EX(arginfo_FireBird_Connection_construct, 0, 0, 1)
-    ZEND_ARG_OBJ_INFO(0, database, FireBird\\Database, 0)
+    ZEND_ARG_OBJ_INFO(0, args, FireBird\\Connect_Args, 0)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Connection_connect, 0, 0, FireBird\\Connection, MAY_BE_FALSE)
@@ -354,31 +358,34 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Statement_query, 0, 1, 
     ZEND_ARG_VARIADIC_INFO(0, bind_args)
 ZEND_END_ARG_INFO()
 
-extern zend_class_entry *FireBird_Database_ce;
+extern zend_class_entry *FireBird_Connect_Args_ce;
+// extern zend_class_entry *FireBird_Database_ce;
 extern zend_class_entry *FireBird_Connection_ce;
 extern zend_class_entry *FireBird_Transaction_ce;
 extern zend_class_entry *FireBird_Statement_ce;
 extern zend_class_entry *FireBird_IError_ce;
-extern void register_FireBird_Database_ce();
+
+// extern void register_FireBird_Database_ce();
 extern void register_FireBird_Connection_ce();
 extern void register_FireBird_Transaction_ce();
 extern void register_FireBird_Statement_ce();
 extern void register_FireBird_IError_ce();
+extern void register_FireBird_Connect_Args_ce();
 
 #ifdef PHP_DEBUG
-#define DECLARE_ERR_PROPS(class_ce)                                              \
-    do {                                                                     \
-        DECLARE_PROP_STRING(class_ce, error_msg, ZEND_ACC_PROTECTED_SET);    \
-        DECLARE_PROP_INT(class_ce, error_code, ZEND_ACC_PROTECTED_SET);      \
-        DECLARE_PROP_INT(class_ce, error_code_long, ZEND_ACC_PROTECTED_SET); \
-        DECLARE_PROP_STRING(class_ce, error_line, ZEND_ACC_PROTECTED_SET);   \
+#define DECLARE_ERR_PROPS(class_ce)                                           \
+    do {                                                                      \
+        DECLARE_PROP_STRING(class_ce, error_msg, ZEND_ACC_PROTECTED_SET);     \
+        DECLARE_PROP_LONG(class_ce, error_code, ZEND_ACC_PROTECTED_SET);      \
+        DECLARE_PROP_LONG(class_ce, error_code_long, ZEND_ACC_PROTECTED_SET); \
+        DECLARE_PROP_STRING(class_ce, error_line, ZEND_ACC_PROTECTED_SET);    \
     } while(0)
 #else
-#define DECLARE_ERR_PROPS(class_ce)                                              \
-    do {                                                                     \
-        DECLARE_PROP_STRING(class_ce, error_msg, ZEND_ACC_PROTECTED_SET);    \
-        DECLARE_PROP_INT(class_ce, error_code, ZEND_ACC_PROTECTED_SET);      \
-        DECLARE_PROP_INT(class_ce, error_code_long, ZEND_ACC_PROTECTED_SET); \
+#define DECLARE_ERR_PROPS(class_ce)                                           \
+    do {                                                                      \
+        DECLARE_PROP_STRING(class_ce, error_msg, ZEND_ACC_PROTECTED_SET);     \
+        DECLARE_PROP_LONG(class_ce, error_code, ZEND_ACC_PROTECTED_SET);      \
+        DECLARE_PROP_LONG(class_ce, error_code_long, ZEND_ACC_PROTECTED_SET); \
     } while(0)
 #endif
 
@@ -390,6 +397,7 @@ int _php_firebird_blob_get(ISC_STATUS_ARRAY status, zval *return_value, firebird
 zend_string *_php_firebird_quad_to_string(ISC_QUAD const qd);
 void transaction_ctor(zval *tr_o, zval *connection, zend_long trans_args, zend_long lock_timeout);
 int transaction_start(ISC_STATUS_ARRAY status, zval *tr_o);
+int database_build_dpb(ISC_STATUS_ARRAY status, zend_class_entry *ce, zval *args_o, char *dpb_buf, unsigned short buf_len, short *num_dpb_written);
 
 #define update_err_props(status, class_ce, obj) update_err_props_ex(status, class_ce, obj, __FILE__, __LINE__)
 

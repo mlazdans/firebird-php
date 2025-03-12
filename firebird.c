@@ -207,8 +207,9 @@ PHP_MINIT_FUNCTION(firebird)
     SIGG(check) = 0;
 #endif
 
+    register_FireBird_Connect_Args_ce();
     register_FireBird_IError_ce();
-    register_FireBird_Database_ce();
+    // register_FireBird_Database_ce();
     register_FireBird_Connection_ce();
     register_FireBird_Transaction_ce();
     register_FireBird_Statement_ce();

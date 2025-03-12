@@ -20,39 +20,65 @@ trait Error
     protected(set) int $error_code_long;
 }
 
-class Database implements IError
+class Connect_Args
 {
-    use Error;
-    function __construct(
-        protected string $database,
-        protected ?string $username = null,
-        protected ?string $password = null,
-        protected ?string $charset = null,
-        protected ?int $buffers = null,
-        protected ?int $dialect = null,
-        protected ?string $role = null,
-    ) {}
-    // function drop_db() {}
-
-    // /** @return Connection | false */
-    // function connect() {}
-
-    // /** @return bool */
-    // function disconnect() {}
-
-    // /** @return bool */
-    // function create() {}
-
-    // /** @return bool */
-    // function drop() {}
+    var string $database;
+    var string $username;
+    var string $password;
+    var string $role;
+    var string $charset;
+    var int $buffers;
 }
+
+class Create_Args
+{
+    var string $database;
+    var string $username;
+    var string $password;
+    var string $charset;
+    var int $sweep_interval;
+    var int $buffers;
+    var int $page_size;
+    var bool $force_write;
+}
+
+// TODO: static class with utilities
+// class Database implements IError
+// {
+//     use Error;
+//     function __construct(
+//         protected string $database,
+//         protected ?string $username = null,
+//         protected ?string $password = null,
+//         protected ?string $charset = null,
+//         protected ?int $num_buffers = null,
+//         protected ?string $role = null,
+//         protected ?int $sweep_interval = null,
+//         protected ?int $set_page_buffers = null,
+//         protected ?int $page_size = null,
+//         protected ?int $force_write = null,
+//     ) {}
+//     // function drop_db() {}
+
+//     // /** @return Connection | false */
+//     // function connect() {}
+
+//     // /** @return bool */
+//     // function disconnect() {}
+
+//     /** @return bool */
+//     function create() {}
+
+//     // /** @return bool */
+//     // function drop() {}
+// }
 
 class Connection implements IError
 {
     use Error;
 
     function __construct(
-        protected Database $database
+        protected Connect_Args $args
     ) {}
 
     /**

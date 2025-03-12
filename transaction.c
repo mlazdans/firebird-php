@@ -141,8 +141,8 @@ void register_FireBird_Transaction_ce()
     FireBird_Transaction_ce = zend_register_internal_class(&tmp_ce);
 
     DECLARE_PROP_OBJ(FireBird_Transaction_ce, connection, FireBird\\Connection, ZEND_ACC_PROTECTED_SET);
-    DECLARE_PROP_INT(FireBird_Transaction_ce, trans_args, ZEND_ACC_PROTECTED_SET);
-    DECLARE_PROP_INT(FireBird_Transaction_ce, lock_timeout, ZEND_ACC_PROTECTED_SET);
+    DECLARE_PROP_LONG(FireBird_Transaction_ce, trans_args, ZEND_ACC_PROTECTED_SET);
+    DECLARE_PROP_LONG(FireBird_Transaction_ce, lock_timeout, ZEND_ACC_PROTECTED_SET);
     DECLARE_ERR_PROPS(FireBird_Transaction_ce);
 
     zend_class_implements(FireBird_Transaction_ce, 1, FireBird_IError_ce);
