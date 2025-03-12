@@ -59,7 +59,8 @@ const zend_function_entry FireBird_Database_methods[] = {
 
 static zend_object *FireBird_Database_create(zend_class_entry *ce)
 {
-    php_printf("FireBird_Database_create\n");
+    FBDEBUG("FireBird_Database_create");
+
     firebird_db *db = zend_object_alloc(sizeof(firebird_db), ce);
 
     zend_object_std_init(&db->std, ce);
@@ -70,7 +71,8 @@ static zend_object *FireBird_Database_create(zend_class_entry *ce)
 
 static void FireBird_Database_free_obj(zend_object *obj)
 {
-    php_printf("FireBird_Database_free_obj\n");
+    FBDEBUG("FireBird_Database_free_obj");
+
     firebird_db *db = Z_DB_O(obj);
 
     zend_object_std_dtor(&db->std);

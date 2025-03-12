@@ -51,7 +51,7 @@ int transaction_start(ISC_STATUS_ARRAY status, zval *tr_o)
     trans_args = zend_read_property(FireBird_Transaction_ce, O_GET(tr_o, trans_args), 1, &rv);
     lock_timeout = zend_read_property(FireBird_Transaction_ce, O_GET(tr_o, lock_timeout), 1, &rv);
 
-    php_printf("trans_args=%d, lock_timeout=%d\n", Z_LVAL_P(trans_args), Z_LVAL_P(lock_timeout));
+    FBDEBUG("trans_args=%d, lock_timeout=%d", Z_LVAL_P(trans_args), Z_LVAL_P(lock_timeout));
 
     _php_firebird_populate_tpb(Z_LVAL_P(trans_args), Z_LVAL_P(lock_timeout), tpb, &tpb_len);
 
@@ -119,7 +119,8 @@ static zend_object *FireBird_Transaction_create(zend_class_entry *ce)
 
 static void FireBird_Transaction_free_obj(zend_object *obj)
 {
-    php_printf("FireBird_Transaction_free_obj\n");
+    FBDEBUG("FireBird_Transaction_free_obj");
+
     firebird_trans *tr = Z_TRANSACTION_O(obj);
 
     if(tr->tr_handle) {

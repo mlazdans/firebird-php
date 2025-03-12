@@ -242,7 +242,8 @@ const zend_function_entry FireBird_Statement_methods[] = {
 
 static zend_object *FireBird_Statement_create(zend_class_entry *ce)
 {
-    php_printf("FireBird_Statement_create()\n");
+    FBDEBUG("FireBird_Statement_create()");
+
     firebird_stmt *s = zend_object_alloc(sizeof(firebird_stmt), ce);
 
     zend_object_std_init(&s->std, ce);
@@ -254,7 +255,8 @@ static zend_object *FireBird_Statement_create(zend_class_entry *ce)
 // TODO: able to DSQL_drop from PHP
 static void FireBird_Statement_free_obj(zend_object *obj)
 {
-    php_printf("FireBird_Statement_free_obj\n");
+    FBDEBUG("FireBird_Statement_free_obj");
+
     firebird_stmt *stmt = Z_STMT_O(obj);
 
     if (stmt->stmt_handle) {
@@ -682,7 +684,7 @@ static int statement_execute(ISC_STATUS_ARRAY status, zval *stmt_o, zval *bind_a
         // isc_result = isc_dsql_execute2(IB_STATUS, &stmt->transtmt->handle,
         //     &stmt->stmt, SQLDA_CURRENT_VERSION, in_sqlda, out_sqlda);
     } else {
-        php_printf("isc_dsql_execute: %d\n", stmt->stmt_handle);
+        FBDEBUG("isc_dsql_execute: %d", stmt->stmt_handle);
         isc_result = isc_dsql_execute(status, stmt->tr_handle, &stmt->stmt_handle, SQLDA_CURRENT_VERSION, stmt->in_sqlda);
     }
 

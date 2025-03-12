@@ -45,11 +45,9 @@
 // #define IB_STATUS (IBG(status))
 
 #ifdef FIREBIRD_DEBUG
-#define IBDEBUG(a) php_printf("::: %s (%s:%d)\n", a, __FILE__, __LINE__);
-#endif
-
-#ifndef IBDEBUG
-#define IBDEBUG(a)
+#define FBDEBUG(format, ...) php_printf(format " (%s:%d)\n" __VA_OPT__(,) __VA_ARGS__, __FILE__, __LINE__);
+#else
+#define FBDEBUG(args...)
 #endif
 
 // #define IBASE_MSGSIZE 512

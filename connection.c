@@ -88,7 +88,7 @@ int connection_connect(ISC_STATUS_ARRAY status, zval *conn_o)
 
     firebird_connection *conn = Z_CONNECTION_P(conn_o);
 
-    php_printf("connection_connect: %s\n", Z_STRVAL_P(database));
+    FBDEBUG("connection_connect: %s", Z_STRVAL_P(database));
 
     long SQLCODE;
 
@@ -107,7 +107,7 @@ int connection_connect(ISC_STATUS_ARRAY status, zval *conn_o)
     for(int i = 0; i < len; i++){
         val = zend_read_property(FireBird_Database_ce, Z_OBJ_P(db_o), class_args_str[i], strlen(class_args_str[i]), 1, &rv);
         if (Z_TYPE_P(val) == IS_STRING && Z_STRLEN_P(val)) {
-            php_printf("arg%d: %s = %s\n", i, class_args_str[i], Z_STRVAL_P(val));
+            FBDEBUG("arg%d: %s = %s", i, class_args_str[i], Z_STRVAL_P(val));
             dpb_len = slprintf(dpb, buf_len, "%c%c%s", dpb_args_str[i], (unsigned char)Z_STRLEN_P(val), Z_STRVAL_P(val));
             dpb += dpb_len;
             buf_len -= dpb_len;
@@ -143,7 +143,7 @@ int connection_connect(ISC_STATUS_ARRAY status, zval *conn_o)
         return FAILURE;
     }
 
-    php_printf("Connected, handle: %d\n", conn->db_handle);
+    FBDEBUG("Connected, handle: %d", conn->db_handle);
 
     return SUCCESS;
 }
@@ -164,13 +164,13 @@ PHP_METHOD(Connection, connect) {
 PHP_METHOD(Connection, disconnect) {
     ZEND_PARSE_PARAMETERS_NONE();
 
-    php_printf("Connection::disconnect()\n");
+    FBDEBUG("Connection::disconnect()");
 
     firebird_connection *conn = Z_CONNECTION_P(ZEND_THIS);
 
     if(conn->db_handle) {
         ISC_STATUS_ARRAY status;
-        php_printf("Closing handle: %d\n", conn->db_handle);
+        FBDEBUG("Closing handle: %d", conn->db_handle);
         if(isc_detach_database(status, &conn->db_handle)){
             update_err_props(status, FireBird_Connection_ce, ZEND_THIS);
         } else {
@@ -192,7 +192,8 @@ const zend_function_entry FireBird_Connection_methods[] = {
 
 static zend_object *FireBird_Connection_create(zend_class_entry *ce)
 {
-    php_printf("FireBird_Connection_create\n");
+    FBDEBUG("FireBird_Connection_create");
+
     firebird_connection *conn = zend_object_alloc(sizeof(firebird_connection), ce);
 
     zend_object_std_init(&conn->std, ce);
@@ -205,7 +206,8 @@ static zend_object *FireBird_Connection_create(zend_class_entry *ce)
 
 static void FireBird_Connection_free_obj(zend_object *obj)
 {
-    php_printf("FireBird_Connection_free_obj\n");
+    FBDEBUG("FireBird_Connection_free_obj");
+
     firebird_connection *conn = Z_CONNECTION_O(obj);
 
     // TODO: code dup with disconnect()
