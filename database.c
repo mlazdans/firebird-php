@@ -8,93 +8,158 @@
 zend_class_entry *FireBird_Database_ce;
 static zend_object_handlers FireBird_Database_object_handlers;
 
-// PHP_METHOD(Database, __construct)
+int database_connect(ISC_STATUS_ARRAY status, zval *db_o, zval *args_o)
+{
+    zval rv, *database;
+    const char *dpb_buffer;
+    short num_dpb_written;
+    firebird_db *db = Z_DB_P(db_o);
+
+    firebird_xpb_args map = {
+        .tags = (const char[]) {
+            isc_dpb_user_name, isc_dpb_password, isc_dpb_lc_ctype, isc_dpb_sql_role_name, isc_dpb_num_buffers
+        },
+        .names = (const char *[]) {
+            "username", "password", "charset", "role", "buffers"
+        },
+        .count = 5
+    };
+
+    database = zend_read_property(FireBird_Connect_Args_ce, O_GET(args_o, database), 1, &rv);
+
+    if ((Z_TYPE_P(database) != IS_STRING) || !Z_STRLEN_P(database)) {
+        zend_throw_exception_ex(zend_ce_value_error, 0, "Database parameter not set");
+        return FAILURE;
+    }
+
+    if (FAILURE == database_build_dpb(FireBird_Connect_Args_ce, args_o, &map, &dpb_buffer, &num_dpb_written)) {
+        return FAILURE;
+    }
+
+    FBDEBUG("connection_connect: %s", Z_STRVAL_P(database));
+    if (isc_attach_database(status, (short)Z_STRLEN_P(database), Z_STRVAL_P(database), &db->db_handle, num_dpb_written, dpb_buffer)) {
+        return FAILURE;
+    }
+    FBDEBUG("Connected, handle: %d", db->db_handle);
+
+    return SUCCESS;
+}
+
+PHP_METHOD(Database, connect)
+{
+    zval *args = NULL;
+    ISC_STATUS_ARRAY status = {0};
+
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+        Z_PARAM_OBJECT_OF_CLASS(args, FireBird_Connect_Args_ce)
+    ZEND_PARSE_PARAMETERS_END();
+
+    if (FAILURE == database_connect(status, ZEND_THIS, args)) {
+        RETURN_FALSE;
+    }
+
+    object_init_ex(return_value, FireBird_Connection_ce);
+    connection_ctor(return_value, ZEND_THIS);
+    zend_update_property(FireBird_Connection_ce, O_SET(return_value, args));
+}
+
+// Flags used by createDatabase() jrd/jrd.cpp
+// dpb_sweep_interval
+// dpb_length
+// dpb_auth_block
+// dpb_sql_dialect
+// dpb_org_filename
+// dpb_utf8_filename
+// dpb_owner
+// dpb_remote_address
+// dpb_working_directory
+// dpb_sec_attach
+// dpb_map_attach
+// dpb_gbak_attach
+// dpb_no_db_triggers
+// dpb_interp
+// dpb_page_size
+// dpb_overwrite
+// dpb_set_page_buffers
+// dpb_set_no_reserve
+// dpb_set_db_charset
+// dpb_online
+// dpb_shutdown
+// dpb_activate_shadow
+// dpb_parallel_workers
+// dpb_set_db_readonly
+// dpb_set_db_replica
+// dpb_replica_mode
+// dpb_session_tz
+// dpb_set_force_write
+// dpb_force_write
+// int database_create(ISC_STATUS_ARRAY status, zval *conn_o)
 // {
-//     zend_string *database = NULL, *username = NULL, *password = NULL, *charset = NULL, *role = NULL;
-//     zend_long num_buffers = 0, sweep_interval = 0, set_page_buffers = 0, page_size = 0, force_write = 0;
-//     bool num_buffers_is_null = 1, sweep_interval_is_null = 1, set_page_buffers_is_null = 1, page_size_is_null = 1, force_write_is_null = 1;
-
-//     ZEND_PARSE_PARAMETERS_START(1, 10)
-//         Z_PARAM_STR(database)
-//         Z_PARAM_OPTIONAL
-//         Z_PARAM_STR_OR_NULL(username)
-//         Z_PARAM_STR_OR_NULL(password)
-//         Z_PARAM_STR_OR_NULL(charset)
-//         Z_PARAM_LONG_OR_NULL(num_buffers, num_buffers_is_null)
-//         Z_PARAM_STR_OR_NULL(role)
-//         Z_PARAM_LONG_OR_NULL(sweep_interval, sweep_interval_is_null)
-//         Z_PARAM_LONG_OR_NULL(set_page_buffers, set_page_buffers_is_null)
-//         Z_PARAM_LONG_OR_NULL(page_size, page_size_is_null)
-//         Z_PARAM_LONG_OR_NULL(force_write, force_write_is_null)
-//     ZEND_PARSE_PARAMETERS_END();
-
-//     zend_update_property_str(FireBird_Database_ce, THIS_SET(database));
-
-//     if (username) {
-//         zend_update_property_str(FireBird_Database_ce, THIS_SET(username));
-//     }
-
-//     if (password) {
-//         zend_update_property_str(FireBird_Database_ce, THIS_SET(password));
-//     }
-
-//     if (charset) {
-//         zend_update_property_str(FireBird_Database_ce, THIS_SET(charset));
-//     }
-
-//     if (!num_buffers_is_null) {
-//         zend_update_property_long(FireBird_Database_ce, THIS_SET(num_buffers));
-//     }
-
-//     if (role) {
-//         zend_update_property_str(FireBird_Database_ce, THIS_SET(role));
-//     }
-
-//     if (!sweep_interval_is_null) {
-//         zend_update_property_long(FireBird_Database_ce, THIS_SET(sweep_interval));
-//     }
-
-//     if (!set_page_buffers_is_null) {
-//         zend_update_property_long(FireBird_Database_ce, THIS_SET(set_page_buffers));
-//     }
-
-//     if (!page_size_is_null) {
-//         zend_update_property_long(FireBird_Database_ce, THIS_SET(page_size));
-//     }
-
-//     if (!force_write_is_null) {
-//         zend_update_property_long(FireBird_Database_ce, THIS_SET(force_write));
-//     }
-// }
-
-// PHP_METHOD(Database, create)
-// {
-//     zval rv, *database, *db_o;
-//     ISC_STATUS_ARRAY status;
-//     char dpb_buffer[257] = {0};
+//     zval rv, *args, *args_o, *database;
+//     firebird_connection *conn = Z_CONNECTION_P(conn_o);
+//     const char *dpb_buffer;
 //     short num_dpb_written;
 
-//     if (FAILURE == database_build_dpb(status, ZEND_THIS, dpb_buffer, sizeof(dpb_buffer), &num_dpb_written)) {
-//         update_err_props(status, FireBird_Database_ce, ZEND_THIS);
-//         RETURN_FALSE;
+//     firebird_xpb_args map = {
+//         .tags = (const char[]) {
+//             isc_dpb_user_name, isc_dpb_password, isc_dpb_set_db_charset, isc_dpb_sweep_interval, isc_dpb_set_page_buffers
+//         },
+//         .names = (const char *[]) {
+//             "username", "password", "charset", "sweep_interval", "buffers", "page_size", "force_write"
+//         },
+//         .count = 5
+//     };
+
+//     args_o = zend_read_property(FireBird_Connection_ce, O_GET(conn_o, args), 1, &rv);
+//     database = zend_read_property(FireBird_Create_Args_ce, O_GET(args_o, database), 1, &rv);
+
+//     if ((Z_TYPE_P(database) != IS_STRING) || !Z_STRLEN_P(database)) {
+//         zend_throw_exception_ex(zend_ce_value_error, 0, "Database parameter not set");
+//         return FAILURE;
 //     }
 
-//     database = zend_read_property(FireBird_Database_ce, THIS_GET(database), 1, &rv);
-//     FBDEBUG("create: %s", Z_STRVAL_P(database));
-
-//     isc_db_handle db_h = 0;
-//     if (isc_create_database(status, (short)Z_STRLEN_P(database), Z_STRVAL_P(database), &db_h, num_dpb_written, dpb_buffer, 0)) {
-//         update_err_props(status, FireBird_Database_ce, ZEND_THIS);
-//         RETURN_FALSE;
+//     if (FAILURE == database_build_dpb(FireBird_Create_Args_ce, args_o, &map, &dpb_buffer, &num_dpb_written)) {
+//         return FAILURE;
 //     }
 
-//     RETURN_TRUE;
+//     FBDEBUG("database_create: %s", Z_STRVAL_P(database));
+//     if (isc_create_database(status, (short)Z_STRLEN_P(database), Z_STRVAL_P(database), &conn->db_handle, num_dpb_written, dpb_buffer, 0)) {
+//         return FAILURE;
+//     }
+//     FBDEBUG("Created, handle: %d", conn->db_handle);
+
+//     return SUCCESS;
 // }
 
+PHP_METHOD(Database, create)
+{
+    php_error_docref(NULL, E_WARNING, "TODO: Database::create()");
+    RETURN_FALSE;
+    // zval rv, *database, *db_o;
+    // ISC_STATUS_ARRAY status;
+    // char dpb_buffer[257] = {0};
+    // short num_dpb_written;
+
+    // if (FAILURE == database_build_dpb(status, ZEND_THIS, dpb_buffer, sizeof(dpb_buffer), &num_dpb_written)) {
+    //     update_err_props(status, FireBird_Database_ce, ZEND_THIS);
+    //     RETURN_FALSE;
+    // }
+
+    // database = zend_read_property(FireBird_Database_ce, THIS_GET(database), 1, &rv);
+    // FBDEBUG("create: %s", Z_STRVAL_P(database));
+
+    // isc_db_handle db_h = 0;
+    // if (isc_create_database(status, (short)Z_STRLEN_P(database), Z_STRVAL_P(database), &db_h, num_dpb_written, dpb_buffer, 0)) {
+    //     update_err_props(status, FireBird_Database_ce, ZEND_THIS);
+    //     RETURN_FALSE;
+    // }
+
+    // RETURN_TRUE;
+}
+
 const zend_function_entry FireBird_Database_methods[] = {
-    // PHP_ME(Database, __construct, arginfo_FireBird_Database_construct, ZEND_ACC_PUBLIC)
-    // PHP_ME(Database, create, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
-    // PHP_ME(Database, connect, arginfo_FireBird_Database_connect, ZEND_ACC_PUBLIC)
+    PHP_ME(Database, create, arginfo_FireBird_Database_create, ZEND_ACC_PUBLIC)
+    PHP_ME(Database, connect, arginfo_FireBird_Database_connect, ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
 
@@ -103,6 +168,7 @@ static zend_object *FireBird_Database_create(zend_class_entry *ce)
     FBDEBUG("FireBird_Database_create");
 
     firebird_db *db = zend_object_alloc(sizeof(firebird_db), ce);
+    db->db_handle = 0;
 
     zend_object_std_init(&db->std, ce);
     object_properties_init(&db->std, ce);
@@ -116,6 +182,18 @@ static void FireBird_Database_free_obj(zend_object *obj)
 
     firebird_db *db = Z_DB_O(obj);
 
+    if(db->db_handle) {
+        ISC_STATUS_ARRAY status;
+        if(isc_detach_database(status, &db->db_handle)) {
+            // TODO: test
+            char msg[1024] = {0};
+            status_err_msg(status, msg, sizeof(msg));
+            _php_firebird_module_error(msg);
+        } else {
+            db->db_handle = 0;
+        }
+    }
+
     zend_object_std_dtor(&db->std);
 }
 
@@ -125,23 +203,9 @@ void register_FireBird_Database_ce()
     INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "Database", FireBird_Database_methods);
     FireBird_Database_ce = zend_register_internal_class(&tmp_ce);
 
-    // DECLARE_PROP_STRING(FireBird_Database_ce, database, ZEND_ACC_PROTECTED_SET);
-    // DECLARE_PROP_STRING(FireBird_Database_ce, username, ZEND_ACC_PROTECTED_SET);
-    // DECLARE_PROP_STRING(FireBird_Database_ce, password, ZEND_ACC_PROTECTED_SET);
-    // DECLARE_PROP_STRING(FireBird_Database_ce, charset, ZEND_ACC_PROTECTED_SET);
-    // DECLARE_PROP_LONG(FireBird_Database_ce, num_buffers, ZEND_ACC_PROTECTED_SET);
-    // DECLARE_PROP_STRING(FireBird_Database_ce, role, ZEND_ACC_PROTECTED_SET);
-    // DECLARE_PROP_LONG(FireBird_Database_ce, sweep_interval, ZEND_ACC_PROTECTED_SET);
-    // DECLARE_PROP_LONG(FireBird_Database_ce, set_page_buffers, ZEND_ACC_PROTECTED_SET);
-    // DECLARE_PROP_LONG(FireBird_Database_ce, page_size, ZEND_ACC_PROTECTED_SET);
-    // DECLARE_PROP_BOOL(FireBird_Database_ce, force_write, ZEND_ACC_PROTECTED_SET);
-    // DECLARE_ERR_PROPS(FireBird_Database_ce);
+    DECLARE_ERR_PROPS(FireBird_Database_ce);
 
-    // zend_class_implements(FireBird_Database_ce, 1, FireBird_IError_ce);
-
-    // Sensitive attribute can't be added to properties. Maybe someday
-    zend_add_parameter_attribute(zend_hash_str_find_ptr(&FireBird_Database_ce->function_table,
-        "__construct", sizeof("__construct") - 1), 2, ZSTR_KNOWN(ZEND_STR_SENSITIVEPARAMETER), 0);
+    zend_class_implements(FireBird_Database_ce, 1, FireBird_IError_ce);
 
     FireBird_Database_ce->create_object = FireBird_Database_create;
     FireBird_Database_ce->default_object_handlers = &FireBird_Database_object_handlers;

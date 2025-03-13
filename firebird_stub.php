@@ -43,55 +43,39 @@ class Create_Args
 }
 
 // TODO: static class with utilities
-// class Database implements IError
-// {
-//     use Error;
-//     function __construct(
-//         protected string $database,
-//         protected ?string $username = null,
-//         protected ?string $password = null,
-//         protected ?string $charset = null,
-//         protected ?int $num_buffers = null,
-//         protected ?string $role = null,
-//         protected ?int $sweep_interval = null,
-//         protected ?int $set_page_buffers = null,
-//         protected ?int $page_size = null,
-//         protected ?int $force_write = null,
-//     ) {}
-//     // function drop_db() {}
+class Database implements IError
+{
+    use Error;
 
-//     // /** @return Connection | false */
-//     // function connect() {}
+    protected(set) Connect_Args|Create_Args $args;
 
-//     // /** @return bool */
-//     // function disconnect() {}
+    /** @return Connection|false */
+    function connect(Connect_Args $args) {}
 
-//     /** @return bool */
-//     function create() {}
-
-//     // /** @return bool */
-//     // function drop() {}
-// }
+    /** @return Connection|false */
+    function create(Create_Args $args) {}
+}
 
 class Connection implements IError
 {
     use Error;
 
-    function __construct(
-        protected Connect_Args $args
-    ) {}
+    protected(set) Database $database;
+
+    private function __construct() {}
 
     /**
      * @param ?int $lock_timeout - sets lock timeout in seconds when WAIT | LOCK_TIMEOUT $trans_args are set. Valid range 1-32767
-     * @return Transaction | false
+     * @return Transaction|false
      * */
-    // function start_transaction(int $trans_args = 0, int $lock_timeout = 0) {}
-
-    /** @return bool */
-    function connect() {}
+    function new_transaction(int $trans_args = 0, int $lock_timeout = 0) {}
+    // TODO: new_transaction w/o starting or start_transaction?
 
     /** @return bool */
     function disconnect() {}
+
+    /** @return bool */
+    function drop_database() {}
 }
 
 // TODO: auto commit/rollback flag?
@@ -99,14 +83,9 @@ class Transaction implements IError
 {
     use Error;
 
-    /**
-     * @param ?int $lock_timeout set lock timeout in seconds when $trans_args are set to WAIT | LOCK_TIMEOUT. Valid range 1-32767
-     */
-    function __construct(
-        protected Connection $connection,
-        protected ?int $trans_args = null,
-        protected ?int $lock_timeout = null,
-    ) {}
+    protected(set) Connection $connection;
+
+    private function __construct() {}
 
     /** @return bool */
     function start() {}
@@ -122,29 +101,27 @@ class Transaction implements IError
 
     /** @return bool */
     function rollback_ret() {}
+
+    /** @return Statement|false */
+    function query(string $sql, ...$bind_args) {}
+
+    /** @return Statement|false */
+    function prepare(string $sql) {}
 }
 
 class Statement implements IError
 {
     use Error;
 
-    function __construct(
-        protected Transaction $transaction
-    ) {}
+    private function __construct() {}
 
-    /** @return Statement | false */
-    function query(string $sql, ...$bind_args) {}
-
-    /** @return Statement | false */
-    function prepare(string $sql) {}
-
-    /** @return object | false | null */
+    /** @return object|false|null */
     function fetch_object(int $flags = 0) {}
 
-    /** @return array | false | null */
+    /** @return array|false|null */
     function fetch_array(int $flags = 0) {}
 
-    /** @return array | false | null */
+    /** @return array|false|null */
     function fetch_row(int $flags = 0) {}
 
     /** @return bool */

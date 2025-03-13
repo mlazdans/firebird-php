@@ -27,6 +27,8 @@ static int statement_bind(ISC_STATUS_ARRAY status, zval *stmt_o, XSQLDA *sqlda, 
 
 void statement_ctor(zval *stmt_o, zval *transaction)
 {
+    zend_update_property(FireBird_Statement_ce, O_SET(stmt_o, transaction));
+
     firebird_stmt *stmt = Z_STMT_P(stmt_o);
     firebird_trans *tr = Z_TRANSACTION_P(transaction);
 
@@ -36,13 +38,13 @@ void statement_ctor(zval *stmt_o, zval *transaction)
 
 PHP_METHOD(Statement, __construct)
 {
-    zval *transaction = NULL;
+    // zval *transaction = NULL;
 
-    ZEND_PARSE_PARAMETERS_START(1, 1)
-        Z_PARAM_OBJECT_OF_CLASS(transaction, FireBird_Transaction_ce)
-    ZEND_PARSE_PARAMETERS_END();
+    // ZEND_PARSE_PARAMETERS_START(1, 1)
+    //     Z_PARAM_OBJECT_OF_CLASS(transaction, FireBird_Transaction_ce)
+    // ZEND_PARSE_PARAMETERS_END();
 
-    statement_ctor(ZEND_THIS, transaction);
+    // statement_ctor(ZEND_THIS, transaction);
 }
 
 PHP_METHOD(Statement, fetch_row)
@@ -163,24 +165,6 @@ int statement_prepare(ISC_STATUS_ARRAY status, zval *stmt_o, const ISC_SCHAR *sq
     return SUCCESS;
 }
 
-PHP_METHOD(Statement, prepare)
-{
-    zval rv;
-    zend_string *sql;
-    ISC_STATUS_ARRAY status;
-
-    ZEND_PARSE_PARAMETERS_START(1, 1)
-        Z_PARAM_STR(sql)
-    ZEND_PARSE_PARAMETERS_END();
-
-    if (FAILURE == statement_prepare(status, ZEND_THIS, ZSTR_VAL(sql))) {
-        update_err_props(status, FireBird_Statement_ce, ZEND_THIS);
-        RETURN_FALSE;
-    }
-
-    RETURN_TRUE;
-}
-
 PHP_METHOD(Statement, query)
 {
     zval rv, *bind_args;
@@ -229,14 +213,14 @@ PHP_METHOD(Statement, query)
 }
 
 const zend_function_entry FireBird_Statement_methods[] = {
-    PHP_ME(Statement, __construct, arginfo_FireBird_Statement_construct, ZEND_ACC_PUBLIC)
+    PHP_ME(Statement, __construct, arginfo_FireBird_Statement_construct, ZEND_ACC_PRIVATE)
     PHP_ME(Statement, fetch_row, arginfo_FireBird_Statement_fetch_row, ZEND_ACC_PUBLIC)
     PHP_ME(Statement, fetch_array, arginfo_FireBird_Statement_fetch_row, ZEND_ACC_PUBLIC)
     PHP_ME(Statement, fetch_object, arginfo_FireBird_Statement_fetch_object, ZEND_ACC_PUBLIC)
     PHP_ME(Statement, execute, arginfo_FireBird_Statement_execute, ZEND_ACC_PUBLIC)
     PHP_ME(Statement, close, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
-    PHP_ME(Statement, prepare, arginfo_FireBird_Statement_prepare, ZEND_ACC_PUBLIC)
-    PHP_ME(Statement, query, arginfo_FireBird_Statement_query, ZEND_ACC_PUBLIC)
+    // PHP_ME(Statement, prepare, arginfo_FireBird_Statement_prepare, ZEND_ACC_PUBLIC)
+    // PHP_ME(Statement, query, arginfo_FireBird_Statement_query, ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
 
@@ -279,6 +263,7 @@ void register_FireBird_Statement_ce()
     INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "Statement", FireBird_Statement_methods);
     FireBird_Statement_ce = zend_register_internal_class(&tmp_ce);
 
+    DECLARE_PROP_OBJ(FireBird_Statement_ce, transaction, FireBird\\Transaction, ZEND_ACC_PROTECTED_SET);
     DECLARE_ERR_PROPS(FireBird_Statement_ce);
 
     zend_class_implements(FireBird_Statement_ce, 1, FireBird_IError_ce);

@@ -94,16 +94,17 @@ typedef struct {
 } firebird_array;
 
 typedef struct firebird_db {
+    isc_db_handle db_handle;
     zend_object std;
 } firebird_db;
 
-typedef struct {
-    isc_db_handle db_handle;
-    // struct tr_list *tr_list;
-    // unsigned short dialect;
-    // struct event *event_head;
-    zend_object std;
-} firebird_connection;
+// typedef struct {
+//     isc_db_handle *db_handle;
+//     // struct tr_list *tr_list;
+//     // unsigned short dialect;
+//     // struct event *event_head;
+//     zend_object std;
+// } firebird_connection;
 
 typedef struct firebird_trans {
     isc_tr_handle tr_handle;
@@ -224,22 +225,6 @@ typedef void (*info_func_t)(char*);
 void _php_firebird_module_error(char *, ...)
     PHP_ATTRIBUTE_FORMAT(printf,1,2);
 
-/* determine if a resource is a link or transaction handle */
-#define PHP_FIREBIRD_LINK_TRANS(zv, lh, th)                                                    \
-        do {                                                                                \
-            if (!zv) {                                                                      \
-                lh = (firebird_connection *)zend_fetch_resource2(                                 \
-                    IBG(default_link), "InterBase link", le_link, le_plink);                \
-            } else {                                                                        \
-                _php_firebird_get_link_trans(INTERNAL_FUNCTION_PARAM_PASSTHRU, zv, &lh, &th);  \
-            }                                                                               \
-            if (SUCCESS != _php_firebird_def_trans(lh, &th)) { RETURN_FALSE; }                 \
-        } while (0)
-
-int _php_firebird_def_trans(firebird_connection *ib_link, firebird_trans **trans);
-void _php_firebird_get_link_trans(INTERNAL_FUNCTION_PARAMETERS, zval *link_id,
-    firebird_connection **ib_link, firebird_trans **trans);
-
 #ifndef max
 #define max(a,b) ((a)>(b)?(a):(b))
 #endif
@@ -268,12 +253,6 @@ void _php_firebird_get_link_trans(INTERNAL_FUNCTION_PARAMETERS, zval *link_id,
     zend_string_release(prop_##name##_name); \
 } while (0)
 
-#define Z_CONNECTION_P(zv) \
-    ((firebird_connection*)((char*)(Z_OBJ_P(zv)) - XtOffsetOf(firebird_connection, std)))
-
-#define Z_CONNECTION_O(obj) \
-    ((firebird_connection*)((char*)(obj) - XtOffsetOf(firebird_connection, std)))
-
 #define Z_TRANSACTION_P(zv) \
     ((firebird_trans*)((char*)(Z_OBJ_P(zv)) - XtOffsetOf(firebird_trans, std)))
 
@@ -300,51 +279,46 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_none_return_bool, 0, 0, _IS_BOOL
 ZEND_END_ARG_INFO()
 
 // Database argument types
-// ZEND_BEGIN_ARG_INFO_EX(arginfo_FireBird_Database_construct, 0, 0, 1)
-//     ZEND_ARG_TYPE_INFO(0, database, IS_STRING, 0)
-//     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, username, IS_STRING, 1, "null")
-//     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, password, IS_STRING, 1, "null")
-//     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, charset, IS_STRING, 1, "null")
-//     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, buffers, IS_LONG, 1, "null")
-//     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, role, IS_STRING, 1, "null")
-//     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, sweep_interval, IS_LONG, 1, "null")
-//     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, set_page_buffers, IS_LONG, 1, "null")
-//     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, page_size, IS_LONG, 1, "null")
-//     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, force_write, IS_LONG, 1, "null")
-// ZEND_END_ARG_INFO()
-
-// Connection argument types
-ZEND_BEGIN_ARG_INFO_EX(arginfo_FireBird_Connection_construct, 0, 0, 1)
+ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Database_connect, 0, 1, FireBird\\Connection, MAY_BE_FALSE)
     ZEND_ARG_OBJ_INFO(0, args, FireBird\\Connect_Args, 0)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Connection_connect, 0, 0, FireBird\\Connection, MAY_BE_FALSE)
+ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Database_create, 0, 1, FireBird\\Connection, MAY_BE_FALSE)
+    ZEND_ARG_OBJ_INFO(0, args, FireBird\\Create_Args, 0)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Connection_start_transaction, 0, 0, FireBird\\Transaction, MAY_BE_FALSE)
+// Connection argument types
+// ZEND_BEGIN_ARG_INFO_EX(arginfo_FireBird_Connection_construct, 0, 0, 1)
+//     ZEND_ARG_OBJ_INFO(0, args, FireBird\\Connect_Args, 0)
+// ZEND_END_ARG_INFO()
+
+// ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Connection_connect, 0, 0, FireBird\\Connection, MAY_BE_FALSE)
+// ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Connection_new_transaction, 0, 0, FireBird\\Transaction, MAY_BE_FALSE)
     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, trans_args, IS_LONG, 1, 0)
     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, lock_timeout, IS_LONG, 1, 0)
 ZEND_END_ARG_INFO()
 
 // Transaction argument types
-ZEND_BEGIN_ARG_INFO_EX(arginfo_FireBird_Transaction_construct, 0, 0, 1)
-    ZEND_ARG_OBJ_INFO(0, connection, FireBird\\Connection, 0)
-    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, trans_args, IS_LONG, 1, 0)
-    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, lock_timeout, IS_LONG, 1, 0)
+// ZEND_BEGIN_ARG_INFO_EX(arginfo_FireBird_Transaction_construct, 0, 0, 1)
+//     ZEND_ARG_OBJ_INFO(0, connection, FireBird\\Connection, 0)
+//     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, trans_args, IS_LONG, 1, 0)
+//     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, lock_timeout, IS_LONG, 1, 0)
+// ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Transaction_prepare, 0, 0, FireBird\\Statement, MAY_BE_FALSE)
+    ZEND_ARG_TYPE_INFO(0, sql, IS_STRING, 0)
 ZEND_END_ARG_INFO()
 
-// ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Transaction_query, 0, 1, FireBird\\Statement, MAY_BE_FALSE)
-//     ZEND_ARG_TYPE_INFO(0, sql, IS_STRING, 0)
-//     ZEND_ARG_VARIADIC_INFO(0, bind_args)
-// ZEND_END_ARG_INFO()
+ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Transaction_query, 0, 1, FireBird\\Statement, MAY_BE_FALSE)
+    ZEND_ARG_TYPE_INFO(0, sql, IS_STRING, 0)
+    ZEND_ARG_VARIADIC_INFO(0, bind_args)
+ZEND_END_ARG_INFO()
 
 // Statement argument types
 ZEND_BEGIN_ARG_INFO_EX(arginfo_FireBird_Statement_construct, 0, 0, 1)
     ZEND_ARG_OBJ_INFO(0, connection, FireBird\\Transaction, 0)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Statement_prepare, 0, 0, _IS_BOOL, 0)
-    ZEND_ARG_TYPE_INFO(0, sql, IS_STRING, 0)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_FireBird_Statement_fetch_row, 0, 0, MAY_BE_ARRAY|MAY_BE_FALSE|MAY_BE_NULL)
@@ -365,18 +339,20 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Statement_query, 0, 1, 
 ZEND_END_ARG_INFO()
 
 extern zend_class_entry *FireBird_Connect_Args_ce;
-// extern zend_class_entry *FireBird_Database_ce;
+extern zend_class_entry *FireBird_Create_Args_ce;
+extern zend_class_entry *FireBird_Database_ce;
 extern zend_class_entry *FireBird_Connection_ce;
 extern zend_class_entry *FireBird_Transaction_ce;
 extern zend_class_entry *FireBird_Statement_ce;
 extern zend_class_entry *FireBird_IError_ce;
 
-// extern void register_FireBird_Database_ce();
+extern void register_FireBird_Database_ce();
 extern void register_FireBird_Connection_ce();
 extern void register_FireBird_Transaction_ce();
 extern void register_FireBird_Statement_ce();
 extern void register_FireBird_IError_ce();
 extern void register_FireBird_Connect_Args_ce();
+extern void register_FireBird_Create_Args_ce();
 
 #ifdef PHP_DEBUG
 #define DECLARE_ERR_PROPS(class_ce)                                           \
@@ -405,6 +381,9 @@ void transaction_ctor(zval *tr_o, zval *connection, zend_long trans_args, zend_l
 int transaction_start(ISC_STATUS_ARRAY status, zval *tr_o);
 int status_err_msg(const ISC_STATUS *status, char *msg, unsigned short msg_size);
 int database_build_dpb(zend_class_entry *ce, zval *args_o, firebird_xpb_args *xpb_args, const char **dpb_buf, short *num_dpb_written);
+void connection_ctor(zval *conn_o, zval *database);
+void statement_ctor(zval *stmt_o, zval *transaction);
+int statement_prepare(ISC_STATUS_ARRAY status, zval *stmt_o, const ISC_SCHAR *sql);
 
 #define update_err_props(status, class_ce, obj) update_err_props_ex(status, class_ce, obj, __FILE__, __LINE__)
 

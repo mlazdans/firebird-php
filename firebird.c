@@ -208,8 +208,9 @@ PHP_MINIT_FUNCTION(firebird)
 #endif
 
     register_FireBird_Connect_Args_ce();
+    register_FireBird_Create_Args_ce();
     register_FireBird_IError_ce();
-    // register_FireBird_Database_ce();
+    register_FireBird_Database_ce();
     register_FireBird_Connection_ce();
     register_FireBird_Transaction_ce();
     register_FireBird_Statement_ce();
@@ -498,56 +499,6 @@ PHP_MINFO_FUNCTION(firebird)
 // 	efree(ib_link);
 // 	RETVAL_RES(zend_register_resource(ib_trans, le_trans));
 // 	Z_TRY_ADDREF_P(return_value);
-// }
-/* }}} */
-
-// int _php_firebird_def_trans(firebird_connection *ib_link, firebird_trans **trans) /* {{{ */
-// {
-// 	if (ib_link == NULL) {
-// 		php_error_docref(NULL, E_WARNING, "Invalid database link");
-// 		return FAILURE;
-// 	}
-
-// 	/* the first item in the connection-transaction list is reserved for the default transaction */
-// 	if (ib_link->tr_list == NULL) {
-// 		ib_link->tr_list = (firebird_tr_list *) emalloc(sizeof(firebird_tr_list));
-// 		ib_link->tr_list->trans = NULL;
-// 		ib_link->tr_list->next = NULL;
-// 	}
-
-// 	if (*trans == NULL) {
-// 		firebird_trans *tr = ib_link->tr_list->trans;
-
-// 		if (tr == NULL) {
-// 			tr = (firebird_trans *) emalloc(sizeof(firebird_trans));
-// 			tr->handle = 0;
-// 			tr->link_cnt = 1;
-// 			tr->affected_rows = 0;
-// 			tr->db_link[0] = ib_link;
-// 			ib_link->tr_list->trans = tr;
-// 		}
-// 		if (tr->handle == 0) {
-// 			ISC_STATUS result;
-// 			zend_long trans_argl = IBG(default_trans_params);
-
-// 			if(trans_argl == PHP_FIREBIRD_DEFAULT){
-// 				result = isc_start_transaction(IB_STATUS, &tr->handle, 1, &ib_link->handle, 0, NULL);
-// 			} else {
-// 				zend_long trans_timeout = IBG(default_lock_timeout);
-// 				char last_tpb[TPB_MAX_SIZE];
-// 				unsigned short tpb_len = 0;
-// 				_php_firebird_populate_trans(trans_argl, trans_timeout, last_tpb, &tpb_len);
-// 				result = isc_start_transaction(IB_STATUS, &tr->handle, 1, &ib_link->handle, tpb_len, last_tpb);
-// 			}
-
-// 			if (result) {
-// 				_php_firebird_error();
-// 				return FAILURE;
-// 			}
-// 		}
-// 		*trans = tr;
-// 	}
-// 	return SUCCESS;
 // }
 /* }}} */
 
