@@ -64,10 +64,10 @@ PHP_METHOD(Database, connect)
 }
 
 // Flags used by createDatabase() jrd/jrd.cpp
-// dpb_sweep_interval
+// +dpb_sweep_interval
 // dpb_length
 // dpb_auth_block
-// dpb_sql_dialect
+// +dpb_sql_dialect
 // dpb_org_filename
 // dpb_utf8_filename
 // dpb_owner
@@ -78,11 +78,11 @@ PHP_METHOD(Database, connect)
 // dpb_gbak_attach
 // dpb_no_db_triggers
 // dpb_interp
-// dpb_page_size
-// dpb_overwrite
-// dpb_set_page_buffers
+// +dpb_page_size
+// +dpb_overwrite
+// +dpb_set_page_buffers
 // dpb_set_no_reserve
-// dpb_set_db_charset
+// +dpb_set_db_charset
 // dpb_online
 // dpb_shutdown
 // dpb_activate_shadow
@@ -92,7 +92,7 @@ PHP_METHOD(Database, connect)
 // dpb_replica_mode
 // dpb_session_tz
 // dpb_set_force_write
-// dpb_force_write
+// +dpb_force_write
 int database_create(ISC_STATUS_ARRAY status, zval *db_o, zval *args_o)
 {
     zval rv, *database;
@@ -240,6 +240,7 @@ int database_build_dpb(zend_class_entry *ce, zval *args_o, firebird_xpb_args *xp
     assert(count1 == count2);
 
     dpb_insert_tag(isc_dpb_version2);
+    dpb_insert_int(isc_dpb_sql_dialect, SQL_DIALECT_CURRENT);
     for (int i = 0; i < count1; i++) {
         val = zend_read_property(ce, Z_OBJ_P(args_o), xpb_args->names[i], strlen(xpb_args->names[i]), 1, &rv);
         switch (Z_TYPE_P(val)) {
