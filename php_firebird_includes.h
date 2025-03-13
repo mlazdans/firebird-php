@@ -40,33 +40,18 @@
 
 #define TPB_MAX_SIZE (8*sizeof(char))
 
-// #define RESET_ERRMSG do { IBG(errmsg)[0] = '\0'; IBG(sql_code) = 0; } while (0)
-
-// #define IB_STATUS (IBG(status))
-
 #ifdef FIREBIRD_DEBUG
 #define FBDEBUG(format, ...) php_printf(format " (%s:%d)\n" __VA_OPT__(,) __VA_ARGS__, __FILE__, __LINE__);
 #else
 #define FBDEBUG(args...)
 #endif
 
-// #define IBASE_MSGSIZE 512
-// #define MAX_ERRMSG (IBASE_MSGSIZE*2)
-
 #define FIREBIRD_DATE_FMT "%Y-%m-%d"
 #define FIREBIRD_TIME_FMT "%H:%M:%S"
-
-/* this value should never be > USHRT_MAX */
-#define IBASE_BLOB_SEG 4096
 
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
 ZEND_BEGIN_MODULE_GLOBALS(firebird)
-    // ISC_STATUS status[20];
-    // zend_resource *default_link;
-    // zend_long num_links, num_persistent;
-    // char errmsg[MAX_ERRMSG];
-    // zend_long sql_code;
     zend_long default_trans_params;
     zend_long default_lock_timeout; // only used togetger with trans_param IBASE_LOCK_TIMEOUT
 ZEND_END_MODULE_GLOBALS(firebird)
@@ -100,14 +85,6 @@ typedef struct firebird_db {
     zend_object std;
 } firebird_db;
 
-// typedef struct {
-//     isc_db_handle *db_handle;
-//     // struct tr_list *tr_list;
-//     // unsigned short dialect;
-//     // struct event *event_head;
-//     zend_object std;
-// } firebird_connection;
-
 typedef struct firebird_trans {
     isc_tr_handle tr_handle;
     isc_db_handle *db_handle;
@@ -134,11 +111,6 @@ typedef struct firebird_vary {
     unsigned short vary_length;
     char vary_string[1];
 } firebird_vary;
-
-// typedef struct tr_list {
-//     firebird_trans *trans;
-//     struct tr_list *next;
-// } firebird_tr_list;
 
 typedef struct firebird_blob {
     isc_blob_handle bl_handle;

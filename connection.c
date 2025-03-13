@@ -34,7 +34,6 @@ PHP_METHOD(Connection, __construct)
 {
 }
 
-
 PHP_METHOD(Connection, disconnect) {
     ZEND_PARSE_PARAMETERS_NONE();
 
