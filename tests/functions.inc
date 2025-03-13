@@ -83,7 +83,63 @@ function rand_number($len , $prec = -1, $sign = 1)
     return $n;
 }
 
-function print_error(\FireBird\IError $o)
+function print_error(string $cat, \FireBird\IError $o)
 {
-    print $o->error_msg;
+    if(isset($o->error_code) && isset($o->error_code_long) && isset($o->error_msg)){
+        printf("ERROR[$cat]: ($o->error_code) ($o->error_code_long) $o->error_msg%s\n", isset($o->error_line) ? ": $o->error_line" : "");
+    } else {
+        printf("ERROR[$cat]: -no error msg-\n");
+    }
+}
+
+function init_tmp_db(): \FireBird\Connection|false
+{
+    include('config.inc');
+
+    $database = tempnam(sys_get_temp_dir(),"php_firebird_test");
+
+    if($database === false) {
+        die("Could not create temporary file: $database");
+    }
+
+    if(!unlink($database)) {
+        die("Could not delete temporary file: $database");
+    }
+
+    if(!empty($host))$database = "$host:$database";
+
+    $database .= ".fdb";
+
+    $args = new \FireBird\Create_Args;
+    $args->database = $database;
+    if(!empty($user))$args->user_name = $user;
+    if(!empty($password))$args->password = $password;
+    if(!empty($charset))$args->set_db_charset = $charset;
+
+    $db = new \FireBird\Database;
+    if($conn = $db->create($args)) {
+        if(($t = $conn->new_transaction())) {
+            $sql = file_get_contents("$pwd/test_table.sql");
+            if($t->start() && ($s = $t->query($sql))) {
+                if($t->commit()) {
+                    register_shutdown_function(function() use ($db) {
+                        if(!$db->drop()) {
+                            print_error("drop", $db);
+                        }
+                    });
+                    return $conn;
+                } else {
+                    print_error("commit", $t);
+                }
+            } else {
+                print_error("query", $t);
+            }
+        } else {
+            print_error("new_transaction", $conn);
+        }
+    } else {
+        print_error("create", $db);
+    }
+
+    return false;
 }
