@@ -11,9 +11,9 @@ void register_FireBird_Connect_Args_ce()
     FireBird_Connect_Args_ce = zend_register_internal_class(&tmp_ce);
 
     DECLARE_PROP_STRING(FireBird_Connect_Args_ce, database, ZEND_ACC_PUBLIC);
-    DECLARE_PROP_STRING(FireBird_Connect_Args_ce, username, ZEND_ACC_PUBLIC);
+    DECLARE_PROP_STRING(FireBird_Connect_Args_ce, user_name, ZEND_ACC_PUBLIC);
     DECLARE_PROP_STRING(FireBird_Connect_Args_ce, password, ZEND_ACC_PUBLIC);
-    DECLARE_PROP_STRING(FireBird_Connect_Args_ce, role, ZEND_ACC_PUBLIC);
+    DECLARE_PROP_STRING(FireBird_Connect_Args_ce, role_name, ZEND_ACC_PUBLIC);
     DECLARE_PROP_STRING(FireBird_Connect_Args_ce, charset, ZEND_ACC_PUBLIC);
-    DECLARE_PROP_LONG(FireBird_Connect_Args_ce, buffers, ZEND_ACC_PUBLIC);
+    DECLARE_PROP_LONG(FireBird_Connect_Args_ce, num_buffers, ZEND_ACC_PUBLIC);
 }

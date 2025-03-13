@@ -22,7 +22,7 @@ void transaction_ctor(zval *tr_o, zval *connection, zend_long trans_args, zend_l
     zend_update_property_long(FireBird_Transaction_ce, O_SET(tr_o, lock_timeout));
 
     zval *database, rv;
-    database = zend_read_property(FireBird_Connect_Args_ce, O_GET(connection, database), 1, &rv);
+    database = zend_read_property(FireBird_Connect_Args_ce, O_GET(connection, database), 0, &rv);
     firebird_db *db = Z_DB_P(database);
 
     firebird_trans *tr = Z_TRANSACTION_P(tr_o);
@@ -41,8 +41,8 @@ int transaction_start(ISC_STATUS_ARRAY status, zval *tr_o)
     char tpb[TPB_MAX_SIZE];
     unsigned short tpb_len = 0;
 
-    trans_args = zend_read_property(FireBird_Transaction_ce, O_GET(tr_o, trans_args), 1, &rv);
-    lock_timeout = zend_read_property(FireBird_Transaction_ce, O_GET(tr_o, lock_timeout), 1, &rv);
+    trans_args = zend_read_property(FireBird_Transaction_ce, O_GET(tr_o, trans_args), 0, &rv);
+    lock_timeout = zend_read_property(FireBird_Transaction_ce, O_GET(tr_o, lock_timeout), 0, &rv);
 
     FBDEBUG("trans_args=%d, lock_timeout=%d", Z_LVAL_P(trans_args), Z_LVAL_P(lock_timeout));
 

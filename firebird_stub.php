@@ -23,21 +23,21 @@ trait Error
 class Connect_Args
 {
     var string $database;
-    var string $username;
+    var string $user_name;
     var string $password;
-    var string $role;
+    var string $role_name;
     var string $charset;
-    var int $buffers;
+    var int $num_buffers;
 }
 
 class Create_Args
 {
     var string $database;
-    var string $username;
+    var string $user_name;
     var string $password;
-    var string $charset;
+    var string $set_db_charset;
     var int $sweep_interval;
-    var int $buffers;
+    var int $set_page_buffers;
     var int $page_size;
     var bool $force_write;
     var bool $overwrite;

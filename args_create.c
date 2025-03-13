@@ -11,11 +11,11 @@ void register_FireBird_Create_Args_ce()
     FireBird_Create_Args_ce = zend_register_internal_class(&tmp_ce);
 
     DECLARE_PROP_STRING(FireBird_Create_Args_ce, database, ZEND_ACC_PUBLIC);
-    DECLARE_PROP_STRING(FireBird_Create_Args_ce, username, ZEND_ACC_PUBLIC);
+    DECLARE_PROP_STRING(FireBird_Create_Args_ce, user_name, ZEND_ACC_PUBLIC);
     DECLARE_PROP_STRING(FireBird_Create_Args_ce, password, ZEND_ACC_PUBLIC);
-    DECLARE_PROP_STRING(FireBird_Create_Args_ce, charset, ZEND_ACC_PUBLIC);
+    DECLARE_PROP_STRING(FireBird_Create_Args_ce, set_db_charset, ZEND_ACC_PUBLIC);
     DECLARE_PROP_LONG(FireBird_Create_Args_ce, sweep_interval, ZEND_ACC_PUBLIC);
-    DECLARE_PROP_LONG(FireBird_Create_Args_ce, buffers, ZEND_ACC_PUBLIC);
+    DECLARE_PROP_LONG(FireBird_Create_Args_ce, set_page_buffers, ZEND_ACC_PUBLIC);
     DECLARE_PROP_LONG(FireBird_Create_Args_ce, page_size, ZEND_ACC_PUBLIC);
     DECLARE_PROP_BOOL(FireBird_Create_Args_ce, force_write, ZEND_ACC_PUBLIC);
     DECLARE_PROP_BOOL(FireBird_Create_Args_ce, overwrite, ZEND_ACC_PUBLIC);

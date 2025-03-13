@@ -42,7 +42,7 @@ PHP_METHOD(Connection, disconnect) {
 
     FBDEBUG("Connection::disconnect()");
 
-    database = zend_read_property(FireBird_Connect_Args_ce, THIS_GET(database), 1, &rv);
+    database = zend_read_property(FireBird_Connect_Args_ce, THIS_GET(database), 0, &rv);
     firebird_db *db = Z_DB_P(database);
 
     if(db->db_handle) {

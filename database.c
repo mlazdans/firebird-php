@@ -20,11 +20,11 @@ int database_connect(ISC_STATUS_ARRAY status, zval *db_o, zval *args_o)
             isc_dpb_user_name, isc_dpb_password, isc_dpb_lc_ctype, isc_dpb_sql_role_name, isc_dpb_num_buffers
         },
         .names = (const char *[]) {
-            "username", "password", "charset", "role", "buffers"
+            "user_name", "password", "charset", "role_name", "num_buffers"
         },
     };
 
-    database = zend_read_property(FireBird_Connect_Args_ce, O_GET(args_o, database), 1, &rv);
+    database = zend_read_property(FireBird_Connect_Args_ce, O_GET(args_o, database), 0, &rv);
 
     if ((Z_TYPE_P(database) != IS_STRING) || !Z_STRLEN_P(database)) {
         zend_throw_exception_ex(zend_ce_value_error, 0, "Database parameter not set");
@@ -106,12 +106,12 @@ int database_create(ISC_STATUS_ARRAY status, zval *db_o, zval *args_o)
             isc_dpb_set_page_buffers, isc_dpb_page_size, isc_dpb_force_write, isc_dpb_overwrite
         },
         .names = (const char *[]) {
-            "username", "password", "charset", "sweep_interval",
-            "buffers", "page_size", "force_write", "overwrite"
+            "user_name", "password", "set_db_charset", "sweep_interval",
+            "set_page_buffers", "page_size", "force_write", "overwrite"
         },
     };
 
-    database = zend_read_property(FireBird_Create_Args_ce, O_GET(args_o, database), 1, &rv);
+    database = zend_read_property(FireBird_Create_Args_ce, O_GET(args_o, database), 0, &rv);
 
     if ((Z_TYPE_P(database) != IS_STRING) || !Z_STRLEN_P(database)) {
         zend_throw_exception_ex(zend_ce_value_error, 0, "Database parameter not set");
@@ -231,7 +231,9 @@ int database_build_dpb(zend_class_entry *ce, zval *args_o, firebird_xpb_args *xp
     struct IStatus* st = IMaster_getStatus(master);
     struct IUtil* utl = IMaster_getUtilInterface(master);
     struct IXpbBuilder* dpb = IUtil_getXpbBuilder(utl, st, IXpbBuilder_DPB, NULL, 0);
-    zval rv, *val;
+    zend_property_info *prop_info = NULL;
+    zend_string *prop_name = NULL;
+    zval rv, *val, *checkval;
     int i;
 
     int count1 = sizeof(xpb_args->tags) / sizeof(xpb_args->tags[0]);
@@ -242,7 +244,25 @@ int database_build_dpb(zend_class_entry *ce, zval *args_o, firebird_xpb_args *xp
     dpb_insert_tag(isc_dpb_version2);
     dpb_insert_int(isc_dpb_sql_dialect, SQL_DIALECT_CURRENT);
     for (int i = 0; i < count1; i++) {
-        val = zend_read_property(ce, Z_OBJ_P(args_o), xpb_args->names[i], strlen(xpb_args->names[i]), 1, &rv);
+        prop_name = zend_string_init(xpb_args->names[i], strlen(xpb_args->names[i]), 1);
+        if (!zend_hash_exists(&ce->properties_info, prop_name)) {
+            _php_firebird_module_fatal("BUG! Property %s does not exist for %s::%s. Verify firebird_xpb_args *xpb_args",
+                xpb_args->names[i], ZSTR_VAL(ce->name), xpb_args->names[i]);
+            zend_string_release(prop_name);
+            continue;
+        }
+
+        prop_info = zend_get_property_info(ce, prop_name, 0);
+        checkval = OBJ_PROP(Z_OBJ_P(args_o), prop_info->offset);
+        if (Z_ISUNDEF_P(checkval)) {
+            FBDEBUG("property: %s is uninitialized", xpb_args->names[i]);
+            zend_string_release(prop_name);
+            continue;
+        }
+
+        val = zend_read_property_ex(ce, Z_OBJ_P(args_o), prop_name, 0, &rv);
+        zend_string_release(prop_name);
+
         switch (Z_TYPE_P(val)) {
             case IS_STRING:
                 FBDEBUG("property: %s is string: `%s`", xpb_args->names[i], Z_STRVAL_P(val));
@@ -261,9 +281,10 @@ int database_build_dpb(zend_class_entry *ce, zval *args_o, firebird_xpb_args *xp
                 dpb_insert_false(xpb_args->tags[i]);
                 break;
             case IS_NULL:
+                FBDEBUG("property: %s is null", xpb_args->names[i]);
                 break;
             default:
-                _php_firebird_module_fatal("BUG! Unhandled: type %s for property %s->%s",
+                _php_firebird_module_fatal("BUG! Unhandled: type %s for property %s::%s",
                     zend_get_type_by_const(Z_TYPE_P(val)), ZSTR_VAL(ce->name), xpb_args->names[i]);
                 break;
         }
