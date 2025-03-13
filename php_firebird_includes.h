@@ -301,12 +301,6 @@ ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Connectio
 ZEND_END_ARG_INFO()
 
 // Transaction argument types
-// ZEND_BEGIN_ARG_INFO_EX(arginfo_FireBird_Transaction_construct, 0, 0, 1)
-//     ZEND_ARG_OBJ_INFO(0, connection, FireBird\\Connection, 0)
-//     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, trans_args, IS_LONG, 1, 0)
-//     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, lock_timeout, IS_LONG, 1, 0)
-// ZEND_END_ARG_INFO()
-
 ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Transaction_prepare, 0, 0, FireBird\\Statement, MAY_BE_FALSE)
     ZEND_ARG_TYPE_INFO(0, sql, IS_STRING, 0)
 ZEND_END_ARG_INFO()
@@ -317,10 +311,6 @@ ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Transacti
 ZEND_END_ARG_INFO()
 
 // Statement argument types
-ZEND_BEGIN_ARG_INFO_EX(arginfo_FireBird_Statement_construct, 0, 0, 1)
-    ZEND_ARG_OBJ_INFO(0, connection, FireBird\\Transaction, 0)
-ZEND_END_ARG_INFO()
-
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_FireBird_Statement_fetch_row, 0, 0, MAY_BE_ARRAY|MAY_BE_FALSE|MAY_BE_NULL)
     ZEND_ARG_TYPE_INFO(0, flags, IS_LONG, 0)
 ZEND_END_ARG_INFO()
@@ -330,11 +320,6 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_FireBird_Statement_fetch_object,
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Statement_execute, 0, 0, _IS_BOOL, 0)
-    ZEND_ARG_VARIADIC_INFO(0, bind_args)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Statement_query, 0, 1, _IS_BOOL, 0)
-    ZEND_ARG_TYPE_INFO(0, sql, IS_STRING, 0)
     ZEND_ARG_VARIADIC_INFO(0, bind_args)
 ZEND_END_ARG_INFO()
 
@@ -384,6 +369,7 @@ int database_build_dpb(zend_class_entry *ce, zval *args_o, firebird_xpb_args *xp
 void connection_ctor(zval *conn_o, zval *database);
 void statement_ctor(zval *stmt_o, zval *transaction);
 int statement_prepare(ISC_STATUS_ARRAY status, zval *stmt_o, const ISC_SCHAR *sql);
+int statement_execute(ISC_STATUS_ARRAY status, zval *stmt_o, zval *bind_args, uint32_t num_bind_args);
 
 #define update_err_props(status, class_ce, obj) update_err_props_ex(status, class_ce, obj, __FILE__, __LINE__)
 

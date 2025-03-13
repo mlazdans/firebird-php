@@ -109,6 +109,56 @@ PHP_METHOD(Transaction, prepare)
     }
 }
 
+PHP_METHOD(Transaction, query)
+{
+    zval rv, *bind_args;
+    uint32_t num_bind_args;
+    zend_string *sql;
+
+    // firebird_trans *tr = Z_TRANSACTION_P(ZEND_THIS);
+    ISC_STATUS_ARRAY status;
+
+    ZEND_PARSE_PARAMETERS_START(1, -1)
+        Z_PARAM_STR(sql)
+        Z_PARAM_OPTIONAL
+        Z_PARAM_VARIADIC('+', bind_args, num_bind_args)
+    ZEND_PARSE_PARAMETERS_END();
+
+    object_init_ex(return_value, FireBird_Statement_ce);
+    statement_ctor(return_value, ZEND_THIS);
+
+    if (FAILURE == statement_prepare(status, return_value, ZSTR_VAL(sql))) {
+        update_err_props(status, FireBird_Transaction_ce, ZEND_THIS);
+        zval_ptr_dtor(return_value);
+        RETURN_FALSE;
+    }
+
+    if (FAILURE == statement_execute(status, return_value, bind_args, num_bind_args)) {
+        update_err_props(status, FireBird_Transaction_ce, ZEND_THIS);
+        zval_ptr_dtor(return_value);
+        RETURN_FALSE;
+    }
+
+    // TODO: handle SQL_ARRAY
+
+    /* no, haven't placeholders at all */
+    // if (q->in_sqlda->sqld == 0) {
+    //     efree(q->in_sqlda);
+    //     q->in_sqlda = NULL;
+    // // } else if (FAILURE == alloc_arraqy(&q->in_array, &q->in_array_cnt, q->in_sqlda, ZEND_THIS)) {
+    // //     // update_err_props(status, FireBird_Transaction_ce, ZEND_THIS);
+    // //     goto query_error;
+    // }
+
+    // if (q->out_sqlda->sqld == 0) {
+    //     efree(q->out_sqlda);
+    //     q->out_sqlda = NULL;
+    // // } else if (FAILURE == alloc_array(&q->out_array, &q->out_array_cnt, q->out_sqlda,(ZEND_THIS)) {
+    // //     // update_err_props(status, FireBird_Transaction_ce, ZEND_THIS);
+    // //     goto query_error;
+    // }
+}
+
 const zend_function_entry FireBird_Transaction_methods[] = {
     PHP_ME(Transaction, __construct, arginfo_none, ZEND_ACC_PRIVATE)
     PHP_ME(Transaction, start, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
@@ -117,6 +167,7 @@ const zend_function_entry FireBird_Transaction_methods[] = {
     PHP_ME(Transaction, rollback, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
     PHP_ME(Transaction, rollback_ret, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
     PHP_ME(Transaction, prepare, arginfo_FireBird_Transaction_prepare, ZEND_ACC_PUBLIC)
+    PHP_ME(Transaction, query, arginfo_FireBird_Transaction_query, ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
 
