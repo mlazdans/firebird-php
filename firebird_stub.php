@@ -11,6 +11,8 @@ interface IError
     public string $error_msg { get; }
     public int $error_code { get; }
     public int $error_code_long { get; }
+    public string $error_file { get; }
+    public int $error_lineno { get; }
 }
 
 trait Error
@@ -18,6 +20,8 @@ trait Error
     protected(set) string $error_msg;
     protected(set) int $error_code;
     protected(set) int $error_code_long;
+    protected(set) string $error_file;
+    protected(set) int $error_lineno;
 }
 
 class Connect_Args

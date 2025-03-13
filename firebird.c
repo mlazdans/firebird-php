@@ -434,11 +434,13 @@ void update_err_props_ex(ISC_STATUS_ARRAY status, zend_class_entry *class_ce, zv
     zend_update_property_long(class_ce, Z_OBJ_P(obj), "error_code", sizeof("error_code") - 1, (zend_long)isc_sqlcode(status));
     zend_update_property_long(class_ce, Z_OBJ_P(obj), "error_code_long", sizeof("error_code_long") - 1,
         (zend_long)isc_portable_integer((const ISC_UCHAR*)&status[1], 4));
+    zend_update_property_string(class_ce, Z_OBJ_P(obj), "error_file", sizeof("error_file") - 1, zend_get_executed_filename());
+    zend_update_property_long(class_ce, Z_OBJ_P(obj), "error_lineno", sizeof("error_lineno") - 1, zend_get_executed_lineno());
 
 #ifdef PHP_DEBUG
     char *line;
     size_t line_len = spprintf(&line, 0, "%s:%d", file_name, line_num);
-    zend_update_property_stringl(class_ce, Z_OBJ_P(obj), "error_line", sizeof("error_line") - 1, line, line_len);
+    zend_update_property_stringl(class_ce, Z_OBJ_P(obj), "ext_error_line", sizeof("ext_error_line") - 1, line, line_len);
     efree(line);
 #endif
 }

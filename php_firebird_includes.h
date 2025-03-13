@@ -327,19 +327,23 @@ extern void register_FireBird_Connect_Args_ce();
 extern void register_FireBird_Create_Args_ce();
 
 #ifdef PHP_DEBUG
-#define DECLARE_ERR_PROPS(class_ce)                                           \
-    do {                                                                      \
-        DECLARE_PROP_STRING(class_ce, error_msg, ZEND_ACC_PROTECTED_SET);     \
-        DECLARE_PROP_LONG(class_ce, error_code, ZEND_ACC_PROTECTED_SET);      \
-        DECLARE_PROP_LONG(class_ce, error_code_long, ZEND_ACC_PROTECTED_SET); \
-        DECLARE_PROP_STRING(class_ce, error_line, ZEND_ACC_PROTECTED_SET);    \
+#define DECLARE_ERR_PROPS(class_ce)                                            \
+    do {                                                                       \
+        DECLARE_PROP_STRING(class_ce, error_msg, ZEND_ACC_PROTECTED_SET);      \
+        DECLARE_PROP_LONG(class_ce, error_code, ZEND_ACC_PROTECTED_SET);       \
+        DECLARE_PROP_LONG(class_ce, error_code_long, ZEND_ACC_PROTECTED_SET);  \
+        DECLARE_PROP_STRING(class_ce, error_file, ZEND_ACC_PROTECTED_SET);     \
+        DECLARE_PROP_LONG(class_ce, error_lineno, ZEND_ACC_PROTECTED_SET);     \
+        DECLARE_PROP_STRING(class_ce, ext_error_line, ZEND_ACC_PROTECTED_SET); \
     } while(0)
 #else
-#define DECLARE_ERR_PROPS(class_ce)                                           \
-    do {                                                                      \
-        DECLARE_PROP_STRING(class_ce, error_msg, ZEND_ACC_PROTECTED_SET);     \
-        DECLARE_PROP_LONG(class_ce, error_code, ZEND_ACC_PROTECTED_SET);      \
-        DECLARE_PROP_LONG(class_ce, error_code_long, ZEND_ACC_PROTECTED_SET); \
+#define DECLARE_ERR_PROPS(class_ce)                                            \
+    do {                                                                       \
+        DECLARE_PROP_STRING(class_ce, error_msg, ZEND_ACC_PROTECTED_SET);      \
+        DECLARE_PROP_LONG(class_ce, error_code, ZEND_ACC_PROTECTED_SET);       \
+        DECLARE_PROP_LONG(class_ce, error_code_long, ZEND_ACC_PROTECTED_SET);  \
+        DECLARE_PROP_STRING(class_ce, error_file, ZEND_ACC_PROTECTED_SET);     \
+        DECLARE_PROP_LONG(class_ce, error_lineno, ZEND_ACC_PROTECTED_SET);     \
     } while(0)
 #endif
 
