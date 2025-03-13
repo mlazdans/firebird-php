@@ -55,6 +55,9 @@ class Database implements IError
 
     /** @return Connection|false */
     function create(Create_Args $args) {}
+
+    /** @return bool */
+    function drop() {}
 }
 
 class Connection implements IError
@@ -74,9 +77,6 @@ class Connection implements IError
 
     /** @return bool */
     function disconnect() {}
-
-    /** @return bool */
-    function drop_database() {}
 }
 
 // TODO: auto commit/rollback flag?

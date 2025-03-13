@@ -131,9 +131,25 @@ PHP_METHOD(Database, create)
     zend_update_property(FireBird_Connection_ce, O_SET(return_value, args));
 }
 
+PHP_METHOD(Database, drop)
+{
+    ZEND_PARSE_PARAMETERS_NONE();
+
+    ISC_STATUS_ARRAY status = {0};
+    firebird_db *db = Z_DB_P(ZEND_THIS);
+
+    if (isc_drop_database(status, &db->db_handle)) {
+        update_err_props(status, FireBird_Database_ce, ZEND_THIS);
+        RETURN_FALSE;
+    }
+
+    RETURN_TRUE;
+}
+
 const zend_function_entry FireBird_Database_methods[] = {
     PHP_ME(Database, connect, arginfo_FireBird_Database_connect, ZEND_ACC_PUBLIC)
     PHP_ME(Database, create, arginfo_FireBird_Database_create, ZEND_ACC_PUBLIC)
+    PHP_ME(Database, drop, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
 

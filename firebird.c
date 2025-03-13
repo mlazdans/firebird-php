@@ -352,51 +352,6 @@ PHP_MINFO_FUNCTION(firebird)
 // }
 /* }}} */
 
-/* {{{ proto bool firebird_drop_db([resource link_identifier])
-   Drop an InterBase database */
-// PHP_FUNCTION(firebird_drop_db)
-// {
-// 	zval *link_arg = NULL;
-// 	firebird_connection *ib_link;
-// 	firebird_tr_list *l;
-// 	zend_resource *link_res;
-
-// 	RESET_ERRMSG;
-
-// 	if (zend_parse_parameters(ZEND_NUM_ARGS(), "|r", &link_arg) == FAILURE) {
-// 		return;
-// 	}
-
-// 	if (ZEND_NUM_ARGS() == 0) {
-// 		link_res = IBG(default_link);
-// 		CHECK_LINK(link_res);
-// 		IBG(default_link) = NULL;
-// 	} else {
-// 		link_res = Z_RES_P(link_arg);
-// 	}
-
-// 	ib_link = (firebird_connection *)zend_fetch_resource2(link_res, LE_LINK, le_link, le_plink);
-
-// 	if (!ib_link) {
-// 		RETURN_FALSE;
-// 	}
-
-// 	if (isc_drop_database(IB_STATUS, &ib_link->handle)) {
-// 		_php_firebird_error();
-// 		RETURN_FALSE;
-// 	}
-
-// 	/* isc_drop_database() doesn't invalidate the transaction handles */
-// 	for (l = ib_link->tr_list; l != NULL; l = l->next) {
-// 		if (l->trans != NULL) l->trans->handle = 0;
-// 	}
-
-// 	zend_list_delete(link_res);
-
-// 	RETURN_TRUE;
-// }
-/* }}} */
-
 /* {{{ proto resource firebird_trans([int trans_args [, resource link_identifier [, ... ], int trans_args [, resource link_identifier [, ... ]] [, ...]]])
    Start a transaction over one or several databases */
 
