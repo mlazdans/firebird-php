@@ -22,7 +22,6 @@ int database_connect(ISC_STATUS_ARRAY status, zval *db_o, zval *args_o)
         .names = (const char *[]) {
             "username", "password", "charset", "role", "buffers"
         },
-        .count = 5
     };
 
     database = zend_read_property(FireBird_Connect_Args_ce, O_GET(args_o, database), 1, &rv);
@@ -55,6 +54,7 @@ PHP_METHOD(Database, connect)
     ZEND_PARSE_PARAMETERS_END();
 
     if (FAILURE == database_connect(status, ZEND_THIS, args)) {
+        update_err_props(status, FireBird_Database_ce, ZEND_THIS);
         RETURN_FALSE;
     }
 
@@ -93,73 +93,66 @@ PHP_METHOD(Database, connect)
 // dpb_session_tz
 // dpb_set_force_write
 // dpb_force_write
-// int database_create(ISC_STATUS_ARRAY status, zval *conn_o)
-// {
-//     zval rv, *args, *args_o, *database;
-//     firebird_connection *conn = Z_CONNECTION_P(conn_o);
-//     const char *dpb_buffer;
-//     short num_dpb_written;
+int database_create(ISC_STATUS_ARRAY status, zval *db_o, zval *args_o)
+{
+    zval rv, *database;
+    const char *dpb_buffer;
+    short num_dpb_written;
+    firebird_db *db = Z_DB_P(db_o);
 
-//     firebird_xpb_args map = {
-//         .tags = (const char[]) {
-//             isc_dpb_user_name, isc_dpb_password, isc_dpb_set_db_charset, isc_dpb_sweep_interval, isc_dpb_set_page_buffers
-//         },
-//         .names = (const char *[]) {
-//             "username", "password", "charset", "sweep_interval", "buffers", "page_size", "force_write"
-//         },
-//         .count = 5
-//     };
+    firebird_xpb_args map = {
+        .tags = (const char[]) {
+            isc_dpb_user_name, isc_dpb_password, isc_dpb_set_db_charset, isc_dpb_sweep_interval,
+            isc_dpb_set_page_buffers, isc_dpb_page_size, isc_dpb_force_write, isc_dpb_overwrite
+        },
+        .names = (const char *[]) {
+            "username", "password", "charset", "sweep_interval",
+            "buffers", "page_size", "force_write", "overwrite"
+        },
+    };
 
-//     args_o = zend_read_property(FireBird_Connection_ce, O_GET(conn_o, args), 1, &rv);
-//     database = zend_read_property(FireBird_Create_Args_ce, O_GET(args_o, database), 1, &rv);
+    database = zend_read_property(FireBird_Create_Args_ce, O_GET(args_o, database), 1, &rv);
 
-//     if ((Z_TYPE_P(database) != IS_STRING) || !Z_STRLEN_P(database)) {
-//         zend_throw_exception_ex(zend_ce_value_error, 0, "Database parameter not set");
-//         return FAILURE;
-//     }
+    if ((Z_TYPE_P(database) != IS_STRING) || !Z_STRLEN_P(database)) {
+        zend_throw_exception_ex(zend_ce_value_error, 0, "Database parameter not set");
+        return FAILURE;
+    }
 
-//     if (FAILURE == database_build_dpb(FireBird_Create_Args_ce, args_o, &map, &dpb_buffer, &num_dpb_written)) {
-//         return FAILURE;
-//     }
+    if (FAILURE == database_build_dpb(FireBird_Create_Args_ce, args_o, &map, &dpb_buffer, &num_dpb_written)) {
+        return FAILURE;
+    }
 
-//     FBDEBUG("database_create: %s", Z_STRVAL_P(database));
-//     if (isc_create_database(status, (short)Z_STRLEN_P(database), Z_STRVAL_P(database), &conn->db_handle, num_dpb_written, dpb_buffer, 0)) {
-//         return FAILURE;
-//     }
-//     FBDEBUG("Created, handle: %d", conn->db_handle);
+    FBDEBUG("database_create: %s", Z_STRVAL_P(database));
+    if (isc_create_database(status, (short)Z_STRLEN_P(database), Z_STRVAL_P(database), &db->db_handle, num_dpb_written, dpb_buffer, 0)) {
+        return FAILURE;
+    }
+    FBDEBUG("Created, handle: %d", db->db_handle);
 
-//     return SUCCESS;
-// }
+    return SUCCESS;
+}
 
 PHP_METHOD(Database, create)
 {
-    php_error_docref(NULL, E_WARNING, "TODO: Database::create()");
-    RETURN_FALSE;
-    // zval rv, *database, *db_o;
-    // ISC_STATUS_ARRAY status;
-    // char dpb_buffer[257] = {0};
-    // short num_dpb_written;
+    zval *args = NULL;
+    ISC_STATUS_ARRAY status = {0};
 
-    // if (FAILURE == database_build_dpb(status, ZEND_THIS, dpb_buffer, sizeof(dpb_buffer), &num_dpb_written)) {
-    //     update_err_props(status, FireBird_Database_ce, ZEND_THIS);
-    //     RETURN_FALSE;
-    // }
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+        Z_PARAM_OBJECT_OF_CLASS(args, FireBird_Create_Args_ce)
+    ZEND_PARSE_PARAMETERS_END();
 
-    // database = zend_read_property(FireBird_Database_ce, THIS_GET(database), 1, &rv);
-    // FBDEBUG("create: %s", Z_STRVAL_P(database));
+    if (FAILURE == database_create(status, ZEND_THIS, args)) {
+        update_err_props(status, FireBird_Database_ce, ZEND_THIS);
+        RETURN_FALSE;
+    }
 
-    // isc_db_handle db_h = 0;
-    // if (isc_create_database(status, (short)Z_STRLEN_P(database), Z_STRVAL_P(database), &db_h, num_dpb_written, dpb_buffer, 0)) {
-    //     update_err_props(status, FireBird_Database_ce, ZEND_THIS);
-    //     RETURN_FALSE;
-    // }
-
-    // RETURN_TRUE;
+    object_init_ex(return_value, FireBird_Connection_ce);
+    connection_ctor(return_value, ZEND_THIS);
+    zend_update_property(FireBird_Connection_ce, O_SET(return_value, args));
 }
 
 const zend_function_entry FireBird_Database_methods[] = {
-    PHP_ME(Database, create, arginfo_FireBird_Database_create, ZEND_ACC_PUBLIC)
     PHP_ME(Database, connect, arginfo_FireBird_Database_connect, ZEND_ACC_PUBLIC)
+    PHP_ME(Database, create, arginfo_FireBird_Database_create, ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
 
@@ -226,6 +219,8 @@ void register_FireBird_Database_ce()
     } \
 } while(0)
 
+#define dpb_insert_true(tag) dpb_insert(Int, dpb, st, tag, (char)1)
+#define dpb_insert_false(tag) dpb_insert(Int, dpb, st, tag, (char)0)
 #define dpb_insert_int(tag, value) dpb_insert(Int, dpb, st, tag, value)
 #define dpb_insert_string(tag, value) dpb_insert(String, dpb, st, tag, value)
 #define dpb_insert_tag(tag) dpb_insert(Tag, dpb, st, tag)
@@ -239,8 +234,13 @@ int database_build_dpb(zend_class_entry *ce, zval *args_o, firebird_xpb_args *xp
     zval rv, *val;
     int i;
 
+    int count1 = sizeof(xpb_args->tags) / sizeof(xpb_args->tags[0]);
+    int count2 = sizeof(*xpb_args->names) / sizeof(*xpb_args->names[0]);
+
+    assert(count1 == count2);
+
     dpb_insert_tag(isc_dpb_version2);
-    for (int i = 0; i < xpb_args->count; i++) {
+    for (int i = 0; i < count1; i++) {
         val = zend_read_property(ce, Z_OBJ_P(args_o), xpb_args->names[i], strlen(xpb_args->names[i]), 1, &rv);
         switch (Z_TYPE_P(val)) {
             case IS_STRING:
@@ -251,11 +251,19 @@ int database_build_dpb(zend_class_entry *ce, zval *args_o, firebird_xpb_args *xp
                 FBDEBUG("property: %s is long: `%u`", xpb_args->names[i], Z_LVAL_P(val));
                 dpb_insert_int(xpb_args->tags[i], (int)Z_LVAL_P(val));
                 break;
+            case IS_TRUE:
+                FBDEBUG("property: %s is true", xpb_args->names[i]);
+                dpb_insert_true(xpb_args->tags[i]);
+                break;
+            case IS_FALSE:
+                FBDEBUG("property: %s is false", xpb_args->names[i]);
+                dpb_insert_false(xpb_args->tags[i]);
+                break;
             case IS_NULL:
                 break;
             default:
-                // TODO: It's a BUG, should print warning really
-                FBDEBUG("unhandled: %s type %s", xpb_args->names[i], zend_get_type_by_const(Z_TYPE_P(val)));
+                _php_firebird_module_fatal("BUG! Unhandled: type %s for property %s->%s",
+                    zend_get_type_by_const(Z_TYPE_P(val)), ZSTR_VAL(ce->name), xpb_args->names[i]);
                 break;
         }
     }

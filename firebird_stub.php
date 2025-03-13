@@ -40,6 +40,7 @@ class Create_Args
     var int $buffers;
     var int $page_size;
     var bool $force_write;
+    var bool $overwrite;
 }
 
 // TODO: static class with utilities

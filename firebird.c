@@ -739,4 +739,20 @@ void _php_firebird_module_error(char *msg, ...)
     php_error_docref(NULL, E_WARNING, "%s", buf);
 }
 
+void _php_firebird_module_fatal(char *msg, ...)
+{
+    va_list ap;
+    char buf[1024] = {0};
+
+    va_start(ap, msg);
+
+    /* vsnprintf NUL terminates the buf and writes at most n-1 chars+NUL */
+    vsnprintf(buf, sizeof(buf), msg, ap);
+    va_end(ap);
+
+    // IBG(sql_code) = -999; /* no SQL error */
+
+    php_error_docref(NULL, E_ERROR, "%s", buf);
+}
+
 #endif /* HAVE_FIREBIRD */

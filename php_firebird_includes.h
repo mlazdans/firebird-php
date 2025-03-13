@@ -153,7 +153,6 @@ typedef struct firebird_blobinfo {
 
 typedef struct firebird_xpb_args {
     const char *tags, **names;
-    int count;
 } firebird_xpb_args;
 
 // typedef struct event {
@@ -223,6 +222,8 @@ typedef void (*info_func_t)(char*);
 #endif
 
 void _php_firebird_module_error(char *, ...)
+    PHP_ATTRIBUTE_FORMAT(printf,1,2);
+void _php_firebird_module_fatal(char *, ...)
     PHP_ATTRIBUTE_FORMAT(printf,1,2);
 
 #ifndef max

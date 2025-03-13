@@ -18,4 +18,5 @@ void register_FireBird_Create_Args_ce()
     DECLARE_PROP_LONG(FireBird_Create_Args_ce, buffers, ZEND_ACC_PUBLIC);
     DECLARE_PROP_LONG(FireBird_Create_Args_ce, page_size, ZEND_ACC_PUBLIC);
     DECLARE_PROP_BOOL(FireBird_Create_Args_ce, force_write, ZEND_ACC_PUBLIC);
+    DECLARE_PROP_BOOL(FireBird_Create_Args_ce, overwrite, ZEND_ACC_PUBLIC);
 }
