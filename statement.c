@@ -725,54 +725,12 @@ static int statement_bind(ISC_STATUS_ARRAY status, zval *stmt_o, XSQLDA *sqlda, 
 
         var->sqlind = &stmt->bind_buf[i].sqlind;
 
-        // XXX: Just pass NULL if you need NULL. No?
         if (Z_TYPE_P(b_var) == IS_NULL) {
             stmt->bind_buf[i].sqlind = -1;
             sqlda->sqlvar->sqldata = NULL;
             if (var->sqltype & SQL_ARRAY) ++array_cnt;
             continue;
         }
-
-        /* check if a NULL should be inserted */
-//         switch (Z_TYPE_P(b_var)) {
-//             int force_null;
-
-//             case IS_STRING:
-
-//                 force_null = 0;
-
-//                 /* for these types, an empty string can be handled like a NULL value */
-//                 switch (var->sqltype & ~1) {
-//                     case SQL_SHORT:
-//                     case SQL_LONG:
-//                     case SQL_INT64:
-//                     case SQL_FLOAT:
-//                     case SQL_DOUBLE:
-//                     case SQL_TIMESTAMP:
-//                     case SQL_TYPE_DATE:
-//                     case SQL_TYPE_TIME:
-// #if FB_API_VER >= 40
-//                     case SQL_INT128:
-//                     case SQL_DEC16:
-//                     case SQL_DEC34:
-//                     case SQL_TIMESTAMP_TZ:
-//                     case SQL_TIME_TZ:
-// #endif
-//                         force_null = (Z_STRLEN_P(b_var) == 0);
-//                 }
-
-//                 if (! force_null) break;
-
-//             case IS_NULL:
-//                 buf[i].sqlind = -1;
-//                 sqlda->sqlvar->sqldata = NULL;
-
-//                 if (var->sqltype & SQL_ARRAY) ++array_cnt;
-
-//                 continue;
-//         }
-
-        /* if we make it to this point, we must provide a value for the parameter */
 
         stmt->bind_buf[i].sqlind = 0;
 

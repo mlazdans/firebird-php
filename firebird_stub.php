@@ -43,7 +43,6 @@ class Create_Args
     var bool $overwrite;
 }
 
-// TODO: static class with utilities
 class Database implements IError
 {
     use Error;
