@@ -241,12 +241,15 @@ int database_build_dpb(zend_class_entry *ce, zval *args_o, const firebird_xpb_ar
     dpb_insert_int(isc_dpb_sql_dialect, SQL_DIALECT_CURRENT);
     for (int i = 0; i < xpb_args->count; i++) {
         prop_name = zend_string_init(xpb_args->names[i], strlen(xpb_args->names[i]), 1);
+
+#ifdef PHP_DEBUG
         if (!zend_hash_exists(&ce->properties_info, prop_name)) {
             _php_firebird_module_fatal("BUG! Property %s does not exist for %s::%s. Verify xpb_args",
                 xpb_args->names[i], ZSTR_VAL(ce->name), xpb_args->names[i]);
             zend_string_release(prop_name);
             continue;
         }
+#endif
 
         prop_info = zend_get_property_info(ce, prop_name, 0);
         checkval = OBJ_PROP(Z_OBJ_P(args_o), prop_info->offset);
