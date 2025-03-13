@@ -59,6 +59,8 @@
 /* this value should never be > USHRT_MAX */
 #define IBASE_BLOB_SEG 4096
 
+#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
+
 ZEND_BEGIN_MODULE_GLOBALS(firebird)
     // ISC_STATUS status[20];
     // zend_resource *default_link;
@@ -153,7 +155,15 @@ typedef struct firebird_blobinfo {
 
 typedef struct firebird_xpb_args {
     const char *tags, **names;
+    const short count;
 } firebird_xpb_args;
+
+#define XPB_ARGS_INIT(t, n) { \
+    .tags = t,                \
+    .names = n,               \
+    .count = ARRAY_SIZE(t)    \
+};                            \
+_Static_assert(ARRAY_SIZE(t) == ARRAY_SIZE(n), "Array sizes do not match");
 
 // typedef struct event {
 //     firebird_connection *link;
@@ -366,7 +376,7 @@ zend_string *_php_firebird_quad_to_string(ISC_QUAD const qd);
 void transaction_ctor(zval *tr_o, zval *connection, zend_long trans_args, zend_long lock_timeout);
 int transaction_start(ISC_STATUS_ARRAY status, zval *tr_o);
 int status_err_msg(const ISC_STATUS *status, char *msg, unsigned short msg_size);
-int database_build_dpb(zend_class_entry *ce, zval *args_o, firebird_xpb_args *xpb_args, const char **dpb_buf, short *num_dpb_written);
+int database_build_dpb(zend_class_entry *ce, zval *args_o, const firebird_xpb_args *xpb_args, const char **dpb_buf, short *num_dpb_written);
 void connection_ctor(zval *conn_o, zval *database);
 void statement_ctor(zval *stmt_o, zval *transaction);
 int statement_prepare(ISC_STATUS_ARRAY status, zval *stmt_o, const ISC_SCHAR *sql);

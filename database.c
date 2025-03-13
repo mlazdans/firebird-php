@@ -1,4 +1,5 @@
 // #include <ibase.h>
+#include <stddef.h>
 #include "firebird/fb_c_api.h"
 #include "php.h"
 #include "zend_exceptions.h"
@@ -15,14 +16,14 @@ int database_connect(ISC_STATUS_ARRAY status, zval *db_o, zval *args_o)
     short num_dpb_written;
     firebird_db *db = Z_DB_P(db_o);
 
-    firebird_xpb_args map = {
-        .tags = (const char[]) {
+    const firebird_xpb_args map = XPB_ARGS_INIT(
+        ((const char []){
             isc_dpb_user_name, isc_dpb_password, isc_dpb_lc_ctype, isc_dpb_sql_role_name, isc_dpb_num_buffers
-        },
-        .names = (const char *[]) {
+        }),
+        ((const char *[]){
             "user_name", "password", "charset", "role_name", "num_buffers"
-        },
-    };
+        })
+    );
 
     database = zend_read_property(FireBird_Connect_Args_ce, O_GET(args_o, database), 0, &rv);
 
@@ -64,10 +65,10 @@ PHP_METHOD(Database, connect)
 }
 
 // Flags used by createDatabase() jrd/jrd.cpp
-// +dpb_sweep_interval
+// ✅ dpb_sweep_interval
 // dpb_length
 // dpb_auth_block
-// +dpb_sql_dialect
+// ✅ dpb_sql_dialect
 // dpb_org_filename
 // dpb_utf8_filename
 // dpb_owner
@@ -78,11 +79,11 @@ PHP_METHOD(Database, connect)
 // dpb_gbak_attach
 // dpb_no_db_triggers
 // dpb_interp
-// +dpb_page_size
-// +dpb_overwrite
-// +dpb_set_page_buffers
+// ✅ dpb_page_size
+// ✅ dpb_overwrite
+// ✅ dpb_set_page_buffers
 // dpb_set_no_reserve
-// +dpb_set_db_charset
+// ✅ dpb_set_db_charset
 // dpb_online
 // dpb_shutdown
 // dpb_activate_shadow
@@ -92,7 +93,7 @@ PHP_METHOD(Database, connect)
 // dpb_replica_mode
 // dpb_session_tz
 // dpb_set_force_write
-// +dpb_force_write
+// ✅ dpb_force_write
 int database_create(ISC_STATUS_ARRAY status, zval *db_o, zval *args_o)
 {
     zval rv, *database;
@@ -100,16 +101,16 @@ int database_create(ISC_STATUS_ARRAY status, zval *db_o, zval *args_o)
     short num_dpb_written;
     firebird_db *db = Z_DB_P(db_o);
 
-    firebird_xpb_args map = {
-        .tags = (const char[]) {
+    const firebird_xpb_args map = XPB_ARGS_INIT(
+        ((const char []){
             isc_dpb_user_name, isc_dpb_password, isc_dpb_set_db_charset, isc_dpb_sweep_interval,
             isc_dpb_set_page_buffers, isc_dpb_page_size, isc_dpb_force_write, isc_dpb_overwrite
-        },
-        .names = (const char *[]) {
+        }),
+        ((const char *[]){
             "user_name", "password", "set_db_charset", "sweep_interval",
             "set_page_buffers", "page_size", "force_write", "overwrite"
-        },
-    };
+        })
+    );
 
     database = zend_read_property(FireBird_Create_Args_ce, O_GET(args_o, database), 0, &rv);
 
@@ -225,7 +226,7 @@ void register_FireBird_Database_ce()
 #define dpb_insert_string(tag, value) dpb_insert(String, dpb, st, tag, value)
 #define dpb_insert_tag(tag) dpb_insert(Tag, dpb, st, tag)
 
-int database_build_dpb(zend_class_entry *ce, zval *args_o, firebird_xpb_args *xpb_args, const char **dpb_buf, short *num_dpb_written)
+int database_build_dpb(zend_class_entry *ce, zval *args_o, const firebird_xpb_args *xpb_args, const char **dpb_buf, short *num_dpb_written)
 {
     struct IMaster* master = fb_get_master_interface();
     struct IStatus* st = IMaster_getStatus(master);
@@ -236,17 +237,12 @@ int database_build_dpb(zend_class_entry *ce, zval *args_o, firebird_xpb_args *xp
     zval rv, *val, *checkval;
     int i;
 
-    int count1 = sizeof(xpb_args->tags) / sizeof(xpb_args->tags[0]);
-    int count2 = sizeof(*xpb_args->names) / sizeof(*xpb_args->names[0]);
-
-    assert(count1 == count2);
-
     dpb_insert_tag(isc_dpb_version2);
     dpb_insert_int(isc_dpb_sql_dialect, SQL_DIALECT_CURRENT);
-    for (int i = 0; i < count1; i++) {
+    for (int i = 0; i < xpb_args->count; i++) {
         prop_name = zend_string_init(xpb_args->names[i], strlen(xpb_args->names[i]), 1);
         if (!zend_hash_exists(&ce->properties_info, prop_name)) {
-            _php_firebird_module_fatal("BUG! Property %s does not exist for %s::%s. Verify firebird_xpb_args *xpb_args",
+            _php_firebird_module_fatal("BUG! Property %s does not exist for %s::%s. Verify xpb_args",
                 xpb_args->names[i], ZSTR_VAL(ce->name), xpb_args->names[i]);
             zend_string_release(prop_name);
             continue;
