@@ -55,6 +55,33 @@
 ZEND_DECLARE_MODULE_GLOBALS(firebird)
 static PHP_GINIT_FUNCTION(firebird);
 
+firebird_xpb_zmap database_create_zmap = XPB_ZMAP_INIT(
+    ((const char []){
+        isc_dpb_user_name, isc_dpb_password, isc_dpb_set_db_charset, isc_dpb_sweep_interval,
+        isc_dpb_set_page_buffers, isc_dpb_page_size, isc_dpb_force_write, isc_dpb_overwrite
+    }),
+    ((const char *[]){
+        "user_name", "password", "set_db_charset", "sweep_interval",
+        "set_page_buffers", "page_size", "force_write", "overwrite"
+    }),
+    ((uint32_t []) {
+        MAY_BE_STRING, MAY_BE_STRING, MAY_BE_STRING, MAY_BE_LONG,
+        MAY_BE_LONG, MAY_BE_LONG, MAY_BE_BOOL, MAY_BE_BOOL
+    })
+);
+
+firebird_xpb_zmap database_connect_zmap = XPB_ZMAP_INIT(
+    ((const char []){
+        isc_dpb_user_name, isc_dpb_password, isc_dpb_lc_ctype, isc_dpb_sql_role_name, isc_dpb_num_buffers
+    }),
+    ((const char *[]){
+        "user_name", "password", "charset", "role_name", "num_buffers"
+    }),
+    ((uint32_t []) {
+        MAY_BE_STRING, MAY_BE_STRING, MAY_BE_STRING, MAY_BE_STRING, MAY_BE_LONG
+    })
+);
+
 static const zend_function_entry firebird_functions[] = {
     PHP_FE_END
 };
@@ -753,6 +780,19 @@ void _php_firebird_module_fatal(char *msg, ...)
     // IBG(sql_code) = -999; /* no SQL error */
 
     php_error_docref(NULL, E_ERROR, "%s", buf);
+}
+
+void declare_props_zmap(zend_class_entry *ce, const firebird_xpb_zmap *xpb_zmap)
+{
+    for (int i = 0; i < xpb_zmap->count; i++) {
+        zval prop_def_val;
+        ZVAL_UNDEF(&prop_def_val);
+        zend_string *prop_name = zend_string_init(xpb_zmap->names[i], strlen(xpb_zmap->names[i]), 1);
+        zend_declare_typed_property(ce, prop_name, &prop_def_val,
+            ZEND_ACC_PUBLIC, NULL,
+            (zend_type) ZEND_TYPE_INIT_MASK(xpb_zmap->ztypes[i]));
+        zend_string_release(prop_name);
+    }
 }
 
 #endif /* HAVE_FIREBIRD */

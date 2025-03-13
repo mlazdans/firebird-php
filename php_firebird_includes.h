@@ -153,17 +153,19 @@ typedef struct firebird_blobinfo {
     int       bl_stream;    // blob is stream ?
 } firebird_blobinfo;
 
-typedef struct firebird_xpb_args {
+typedef struct firebird_xpb_zmap {
     const char *tags, **names;
+    uint32_t *ztypes;
     const short count;
-} firebird_xpb_args;
+} firebird_xpb_zmap;
 
-#define XPB_ARGS_INIT(t, n) { \
+#define XPB_ZMAP_INIT(t, n, z) (firebird_xpb_zmap) { \
     .tags = t,                \
     .names = n,               \
+    .ztypes = z,              \
     .count = ARRAY_SIZE(t)    \
 };                            \
-_Static_assert(ARRAY_SIZE(t) == ARRAY_SIZE(n), "Array sizes do not match");
+_Static_assert(ARRAY_SIZE(t) == ARRAY_SIZE(n) && ARRAY_SIZE(n) == ARRAY_SIZE(z), "Array sizes do not match");
 
 // typedef struct event {
 //     firebird_connection *link;
@@ -334,6 +336,8 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Statement_execute, 0, 0
     ZEND_ARG_VARIADIC_INFO(0, bind_args)
 ZEND_END_ARG_INFO()
 
+extern firebird_xpb_zmap database_create_zmap;
+extern firebird_xpb_zmap database_connect_zmap;
 extern zend_class_entry *FireBird_Connect_Args_ce;
 extern zend_class_entry *FireBird_Create_Args_ce;
 extern zend_class_entry *FireBird_Database_ce;
@@ -376,11 +380,12 @@ zend_string *_php_firebird_quad_to_string(ISC_QUAD const qd);
 void transaction_ctor(zval *tr_o, zval *connection, zend_long trans_args, zend_long lock_timeout);
 int transaction_start(ISC_STATUS_ARRAY status, zval *tr_o);
 int status_err_msg(const ISC_STATUS *status, char *msg, unsigned short msg_size);
-int database_build_dpb(zend_class_entry *ce, zval *args_o, const firebird_xpb_args *xpb_args, const char **dpb_buf, short *num_dpb_written);
+int database_build_dpb(zend_class_entry *ce, zval *args_o, const firebird_xpb_zmap *xpb_map, const char **dpb_buf, short *num_dpb_written);
 void connection_ctor(zval *conn_o, zval *database);
 void statement_ctor(zval *stmt_o, zval *transaction);
 int statement_prepare(ISC_STATUS_ARRAY status, zval *stmt_o, const ISC_SCHAR *sql);
 int statement_execute(ISC_STATUS_ARRAY status, zval *stmt_o, zval *bind_args, uint32_t num_bind_args);
+void declare_props_zmap(zend_class_entry *ce, const firebird_xpb_zmap *xpb_zmap);
 
 #define update_err_props(status, class_ce, obj) update_err_props_ex(status, class_ce, obj, __FILE__, __LINE__)
 
