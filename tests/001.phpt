@@ -3,12 +3,14 @@ Simple operations: create database, start transaction, some inserts and selects
 --SKIPIF--
 <?php include("skipif.inc"); ?>
 --FILE--
-<?php
+<?php declare(strict_types = 1);
+
+namespace FireBirdTests;
 
 require_once('functions.inc');
 
 (function(){
-    if(false === ($conn = init_tmp_db("001.sql"))) {
+    if(false === ($conn = init_tmp_db())) {
         return;
     }
 
@@ -18,6 +20,14 @@ require_once('functions.inc');
 
     if(false === (($t = $conn->new_transaction()) && $t->start())) {
         print_error_and_die("transaction", $conn);
+    }
+
+    if(!query_from_file($t, "001-table.sql")) {
+        print_error_and_die("create_table", $t);
+    }
+
+    if(!$t->commit_ret()) {
+        print_error_and_die("commit_ret", $t);
     }
 
     $insert_tests = [

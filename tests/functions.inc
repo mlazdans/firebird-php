@@ -1,5 +1,9 @@
 <?php declare(strict_types = 1);
 
+namespace FireBirdTests;
+
+require_once(__DIR__."/config.inc");
+
 srand(((int)(double)microtime()*1000000));
 
 function out_table($table_name)
@@ -99,10 +103,27 @@ function print_error_and_die(...$args)
     die;
 }
 
-function init_tmp_db(string $table_file): \FireBird\Connection|false
+function query_from_file(\FireBird\Transaction $t, string $file_name): \FireBird\Statement|false
 {
-    include('config.inc');
+    $path = Config::$pwd."/$file_name";
 
+    if(!is_file($path)) {
+        die("ERROR: file not found $path");
+    }
+
+    if(!is_readable($path)) {
+        die("ERROR: file is not readable $path");
+    }
+
+    if(false === ($sql = file_get_contents($path))) {
+        die("ERROR: could not load file $path");
+    }
+
+    return $t->query($sql);
+}
+
+function init_tmp_db(): \FireBird\Connection|false
+{
     $database = tempnam(sys_get_temp_dir(),"php_firebird_test");
 
     if($database === false) {
@@ -113,39 +134,26 @@ function init_tmp_db(string $table_file): \FireBird\Connection|false
         die("Could not delete temporary file: $database");
     }
 
-    if(!empty($host))$database = "$host:$database";
+    if(!empty(Config::$host))$database = Config::$host.":$database";
 
     $database .= ".fdb";
 
     $args = new \FireBird\Create_Args;
     $args->database = $database;
-    if(!empty($user))$args->user_name = $user;
-    if(!empty($password))$args->password = $password;
-    if(!empty($charset))$args->set_db_charset = $charset;
+    if(!empty(Config::$user_name))$args->user_name = Config::$user_name;
+    if(!empty(Config::$password))$args->password = Config::$password;
+    if(!empty(Config::$charset))$args->set_db_charset = Config::$charset;
 
     $db = new \FireBird\Database;
     if($conn = $db->create($args)) {
-        if(($t = $conn->new_transaction())) {
-            $sql = file_get_contents("$pwd/$table_file");
-            if($t->start() && $t->query($sql)) {
-                if($t->commit_ret()) {
-                    register_shutdown_function(function() use ($db) {
-                        if(!$db->drop()) {
-                            print_error("drop", $db);
-                        }
-                    });
-                    return $conn;
-                } else {
-                    print_error("commit", $t);
-                }
-            } else {
-                print_error("query", $t);
+        register_shutdown_function(function() use ($db) {
+            if(!$db->drop()) {
+                print_error_and_die("drop", $db);
             }
-        } else {
-            print_error("new_transaction", $conn);
-        }
+        });
+        return $conn;
     } else {
-        print_error("create", $db);
+        print_error_and_die("create", $db);
     }
 
     return false;
