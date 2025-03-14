@@ -93,7 +93,13 @@ function print_error(string $cat, \FireBird\IError $o)
     }
 }
 
-function init_tmp_db(): \FireBird\Connection|false
+function print_error_and_die(...$args)
+{
+    print_error(...$args);
+    die;
+}
+
+function init_tmp_db(string $table_file): \FireBird\Connection|false
 {
     include('config.inc');
 
@@ -120,9 +126,9 @@ function init_tmp_db(): \FireBird\Connection|false
     $db = new \FireBird\Database;
     if($conn = $db->create($args)) {
         if(($t = $conn->new_transaction())) {
-            $sql = file_get_contents("$pwd/test_table.sql");
-            if($t->start() && ($s = $t->query($sql))) {
-                if($t->commit()) {
+            $sql = file_get_contents("$pwd/$table_file");
+            if($t->start() && $t->query($sql)) {
+                if($t->commit_ret()) {
                     register_shutdown_function(function() use ($db) {
                         if(!$db->drop()) {
                             print_error("drop", $db);
@@ -143,4 +149,28 @@ function init_tmp_db(): \FireBird\Connection|false
     }
 
     return false;
+}
+
+function var_bin(mixed $v): void {
+    ob_start();
+    var_dump($v);
+    $buff = ob_get_clean();
+
+    $buff = replace_binary($buff);
+    $buff = preg_replace(["/object\(stdClass\)#\d+ \(\d+\) \{/m"], ["object {"], $buff);
+
+    print $buff;
+}
+
+function replace_binary(string $data): string
+{
+    $buff = preg_replace_callback(
+        '/[^[:print:]\s\n]/u',
+        function ($match) {
+            return sprintf("\\x%02X", ord($match[0]));
+        },
+        $data
+    );
+
+    return $buff ?? $data;
 }
