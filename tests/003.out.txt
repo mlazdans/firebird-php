@@ -1,0 +1,5 @@
+Connected
+object {
+  ["BLOB_1"]=>
+  string(23) "This should be inserted"
+}

@@ -103,10 +103,8 @@ function print_error_and_die(...$args)
     die;
 }
 
-function query_from_file(\FireBird\Transaction $t, string $file_name): \FireBird\Statement|false
+function load_file_or_die(string $path): string
 {
-    $path = Config::$pwd."/$file_name";
-
     if(!is_file($path)) {
         die("ERROR: file not found $path");
     }
@@ -115,11 +113,16 @@ function query_from_file(\FireBird\Transaction $t, string $file_name): \FireBird
         die("ERROR: file is not readable $path");
     }
 
-    if(false === ($sql = file_get_contents($path))) {
+    if(false === ($data = file_get_contents($path))) {
         die("ERROR: could not load file $path");
     }
 
-    return $t->query($sql);
+    return $data;
+}
+
+function query_from_file(\FireBird\Transaction $t, string $file_name): \FireBird\Statement|false
+{
+    return $t->query(load_file_or_die(Config::$pwd."/$file_name"));
 }
 
 function query_from_file_ddl(\FireBird\Transaction $t, string $file_name): \FireBird\Statement
@@ -231,4 +234,55 @@ function results_equal(array $test_result1, array $test_result2): bool
     };
 
     return array_udiff($test_result1, $test_result2, $f) == [];
+}
+
+function query_or_error(\FireBird\Transaction $t, string $sql, ...$bind_args): \FireBird\Statement|false
+{
+    if(false === ($s = $t->query($sql, ...$bind_args))){
+        print_error("query", $t);
+    }
+    return $s;
+}
+
+function query_or_die(...$args): \FireBird\Statement
+{
+    if($s = query_or_error(...$args)) {
+        return $s;
+    } else {
+        die;
+    }
+}
+
+function query_bulk(\FireBird\Transaction $t, array $queries): bool
+{
+    foreach($queries as $query_tuple) {
+        if(is_array($query_tuple)) {
+            [$sql, $bind_args] = $query_tuple;
+        } else {
+            $sql = $query_tuple;
+            $bind_args = [];
+        }
+        if(!query_or_error($t, $sql, ...$bind_args)){
+            return false;
+        }
+    }
+    return true;
+}
+
+function query_bulk_or_die(...$args): void
+{
+    if(!query_bulk(...$args)){
+        die;
+    }
+}
+
+function fetch_and_print_or_die(\FireBird\Statement $q, int $flags = 0): void
+{
+    while($r = $q->fetch_object($flags)) {
+        var_bin($r);
+    }
+
+    if(false === $r) {
+        print_error_and_die("fetch", $q);
+    }
 }
