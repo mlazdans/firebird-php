@@ -680,18 +680,18 @@ int statement_execute(ISC_STATUS_ARRAY status, zval *stmt_o, zval *bind_args, ui
         case isc_info_sql_stmt_commit:
         case isc_info_sql_stmt_rollback:
         case isc_info_sql_stmt_savepoint:
+        case isc_info_sql_stmt_set_generator:
         {
             exfn = EXECUTE_IMMEDIATE;
         } break;
 
         case isc_info_sql_stmt_get_segment:
         case isc_info_sql_stmt_put_segment:
-        case isc_info_sql_stmt_set_generator:
         {
 #ifdef PHP_DEBUG
             FBDEBUG("TODO: unhandled stmt->statement_type: %d", stmt->statement_type);
 #else
-            _php_firebird_module_fatal("TODO: unhandled stmt->statement_type: %d", stmt->statement_type);
+            _php_firebird_module_error("TODO: unhandled stmt->statement_type: %d", stmt->statement_type);
 #endif
             break;
         }

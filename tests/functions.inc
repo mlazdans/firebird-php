@@ -288,3 +288,8 @@ function fetch_and_print_or_die(\FireBird\Statement $q, int $flags = 0): void
         print_error_and_die("fetch", $q);
     }
 }
+
+function query_and_fetch_and_print_or_die(\FireBird\Transaction $t, string $sql, int $flags = 0): void
+{
+    fetch_and_print_or_die(query_or_die($t, $sql), $flags);
+}
