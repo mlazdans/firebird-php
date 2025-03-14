@@ -87,7 +87,7 @@ function rand_number($len , $prec = -1, $sign = 1)
     return $n;
 }
 
-function print_error(string $cat, \FireBird\IError $o)
+function print_error(string $cat, \FireBird\IError $o): void
 {
     if(isset($o->error_code) && isset($o->error_code_long) && isset($o->error_msg)){
         printf("ERROR[$cat] ($o->error_code) ($o->error_code_long) on $o->error_file:$o->error_lineno\n");
@@ -97,9 +97,9 @@ function print_error(string $cat, \FireBird\IError $o)
     }
 }
 
-function print_error_and_die(...$args)
+function print_error_and_die(string $cat, \FireBird\IError $o): void
 {
-    print_error(...$args);
+    print_error($cat, $o);
     die;
 }
 
@@ -202,10 +202,10 @@ function replace_binary(string $data): string
 function run_tests(\FireBird\Transaction $t, array $select_tests): array
 {
     $results = [];
-    foreach($select_tests as [$test_name, $sql, $args, $fetch_flags]) {
+    foreach($select_tests as [$test_name, $sql, $bind_args, $fetch_flags]) {
         $test_results = [];
         printf("%s\n", str_pad("$test_name ", 79, "-", STR_PAD_RIGHT));
-        if($s = $t->query($sql, ...$args)) {
+        if($s = $t->query($sql, ...$bind_args)) {
             print "Query OK\n";
             while($r = $s->fetch_object($fetch_flags)) {
                 print "Row data ";
@@ -244,9 +244,9 @@ function query_or_error(\FireBird\Transaction $t, string $sql, ...$bind_args): \
     return $s;
 }
 
-function query_or_die(...$args): \FireBird\Statement
+function query_or_die(\FireBird\Transaction $t, string $sql, ...$bind_args): \FireBird\Statement
 {
-    if($s = query_or_error(...$args)) {
+    if($s = query_or_error($t, $sql, ...$bind_args)) {
         return $s;
     } else {
         die;
@@ -269,9 +269,9 @@ function query_bulk(\FireBird\Transaction $t, array $queries): bool
     return true;
 }
 
-function query_bulk_or_die(...$args): void
+function query_bulk_or_die(\FireBird\Transaction $t, array $queries): void
 {
-    if(!query_bulk(...$args)){
+    if(!query_bulk($t, $queries)){
         die;
     }
 }
