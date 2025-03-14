@@ -1,12 +1,20 @@
 Connected
-Insert returned object {
+Insert DECFLOAT inline --------------------------------------------------------
+Query OK
+Row data object {
   ["ID"]=>
   int(1)
 }
-Insert returned object {
+
+Insert DECFLOAT as bind arguments ---------------------------------------------
+Query OK
+Row data object {
   ["ID"]=>
   int(2)
 }
+
+Select all fields -------------------------------------------------------------
+Query OK
 Row data object {
   ["ID"]=>
   int(1)
@@ -67,3 +75,50 @@ Row data object {
   ["SMALLINT_1"]=>
   int(1)
 }
+
+Select DECFLOAT_34 where condition inline -------------------------------------
+Query OK
+Row data object {
+  ["DECFLOAT_34"]=>
+  string(35) "3.141592653589793238462643383279502"
+}
+Row data object {
+  ["DECFLOAT_34"]=>
+  string(35) "3.141592653589793238462643383279502"
+}
+
+Select DECFLOAT_34 where condition bind ---------------------------------------
+Query OK
+Row data object {
+  ["DECFLOAT_34"]=>
+  string(35) "3.141592653589793238462643383279502"
+}
+Row data object {
+  ["DECFLOAT_34"]=>
+  string(35) "3.141592653589793238462643383279502"
+}
+
+Select DECFLOAT_16 where condition inline -------------------------------------
+Query OK
+Row data object {
+  ["DECFLOAT_16"]=>
+  string(17) "3.141592653589793"
+}
+Row data object {
+  ["DECFLOAT_16"]=>
+  string(17) "3.141592653589793"
+}
+
+Select DECFLOAT_16 where condition bind ---------------------------------------
+Query OK
+Row data object {
+  ["DECFLOAT_16"]=>
+  string(17) "3.141592653589793"
+}
+Row data object {
+  ["DECFLOAT_16"]=>
+  string(17) "3.141592653589793"
+}
+
+Test1 == Test2 == true? YES
+Test3 == Test4 == true? YES

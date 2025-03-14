@@ -14,60 +14,42 @@ require_once('functions.inc');
         return;
     }
 
-    $table = "TEST_001";
-
     print "Connected\n";
 
     if(false === (($t = $conn->new_transaction()) && $t->start())) {
         print_error_and_die("transaction", $conn);
     }
 
-    if(!query_from_file($t, "001-table.sql")) {
+    if(!query_from_file_ddl($t, "001-table.sql")) {
         print_error_and_die("create_table", $t);
     }
 
-    if(!$t->commit_ret()) {
-        print_error_and_die("commit_ret", $t);
-    }
+    $table = "TEST_001";
 
     $insert_tests = [
-        ["INSERT INTO $table (ID, DECFLOAT_16, DECFLOAT_34) VALUES (DEFAULT, 3.141592653589793, 3.141592653589793238462643383279502) RETURNING ID", [], \FireBird\FETCH_BLOBS],
-        ["INSERT INTO $table (DECFLOAT_16, DECFLOAT_34) VALUES (?, ?) RETURNING ID", ["3.141592653589793", "3.141592653589793238462643383279502"], 0],
+        ["Insert DECFLOAT inline",
+            "INSERT INTO $table (ID, DECFLOAT_16, DECFLOAT_34) VALUES (DEFAULT, 3.141592653589793, 3.141592653589793238462643383279502) RETURNING ID", [], \FireBird\FETCH_BLOBS],
+        ["Insert DECFLOAT as bind arguments",
+            "INSERT INTO $table (DECFLOAT_16, DECFLOAT_34) VALUES (?, ?) RETURNING ID", ["3.141592653589793", "3.141592653589793238462643383279502"], 0],
     ];
-
-    foreach($insert_tests as [$sql, $args, $fetch_flags]) {
-        if(false === ($s = $t->query($sql, ...$args))) {
-            print_error_and_die("query", $t);
-        }
-
-        while($r = $s->fetch_object($fetch_flags)) {
-            print "Insert returned ";
-            var_bin($r);
-        }
-
-        if(false === $r) {
-            print_error_and_die("fetch", $s);
-        }
-    }
+    run_tests($t, $insert_tests);
 
     $select_tests = [
-        ["SELECT * FROM $table", [], \FireBird\FETCH_BLOBS],
+        ["Select all fields",
+            "SELECT * FROM $table", [], \FireBird\FETCH_BLOBS],
+        ["Select DECFLOAT_34 where condition inline",
+            "SELECT DECFLOAT_34 FROM $table WHERE DECFLOAT_34 = 3.141592653589793238462643383279502", [], 0],
+        ["Select DECFLOAT_34 where condition bind",
+            "SELECT DECFLOAT_34 FROM $table WHERE DECFLOAT_34 = ?", ["3.141592653589793238462643383279502"], 0],
+        ["Select DECFLOAT_16 where condition inline",
+            "SELECT DECFLOAT_16 FROM $table WHERE DECFLOAT_16 = 3.141592653589793", [], 0],
+        ["Select DECFLOAT_16 where condition bind",
+            "SELECT DECFLOAT_16 FROM $table WHERE DECFLOAT_16 = ?", ["3.141592653589793"], 0],
+
     ];
-
-    foreach($select_tests as [$sql, $args, $fetch_flags]) {
-        if($s = $t->query($sql, ...$args)) {
-            while($r = $s->fetch_object($fetch_flags)) {
-                print "Row data ";
-                var_bin($r);
-            }
-
-            if(false === $r) {
-                print_error_and_die("fetch", $s);
-            }
-        } else {
-            print_error_and_die("query", $t);
-        }
-    }
+    $results = run_tests($t, $select_tests);
+    printf("Test1 == Test2 == true? %s\n", results_equal($results[1], $results[2]) ? "YES" : "NO");
+    printf("Test3 == Test4 == true? %s\n", results_equal($results[3], $results[4]) ? "YES" : "NO");
 
     if(!$t->commit()) {
         print_error_and_die("commit", $t);
