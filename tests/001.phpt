@@ -1,5 +1,5 @@
 --TEST--
-Simple operations: create database, start transaction, some inserts and selects
+Basic operations
 --SKIPIF--
 <?php include("skipif.inc"); ?>
 --FILE--
@@ -13,8 +13,6 @@ require_once('functions.inc');
     if(false === ($conn = init_tmp_db())) {
         return;
     }
-
-    print "Connected\n";
 
     if(false === (($t = $conn->new_transaction()) && $t->start())) {
         print_error_and_die("transaction", $conn);

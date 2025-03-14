@@ -1,5 +1,5 @@
 --TEST--
-Transaction tests
+Transactions
 --SKIPIF--
 <?php include("skipif.inc"); ?>
 --FILE--
@@ -13,8 +13,6 @@ require_once('functions.inc');
     if(false === ($conn = init_tmp_db())) {
         return;
     }
-
-    print "Connected\n";
 
     if(false === ($t = $conn->new_transaction())) {
         print_error_and_die("transaction", $conn);
@@ -41,5 +39,8 @@ require_once('functions.inc');
 })();
 
 ?>
---EXPECT_EXTERNAL--
-003.out.txt
+--EXPECT--
+object {
+  ["BLOB_1"]=>
+  string(23) "This should be inserted"
+}
