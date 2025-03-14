@@ -663,17 +663,15 @@ int statement_execute(ISC_STATUS_ARRAY status, zval *stmt_o, zval *bind_args, ui
     switch(stmt->statement_type) {
         case isc_info_sql_stmt_select:
         case isc_info_sql_stmt_select_for_upd:
-        {
             exfn = EXECUTE;
-        } break;
+            break;
 
         case isc_info_sql_stmt_exec_procedure:
         case isc_info_sql_stmt_insert:
         case isc_info_sql_stmt_update:
         case isc_info_sql_stmt_delete:
-        {
             exfn = EXECUTE2;
-        } break;
+            break;
 
         case isc_info_sql_stmt_ddl:
         case isc_info_sql_stmt_start_trans: // TODO: warn/throw about already started transaction
@@ -681,25 +679,16 @@ int statement_execute(ISC_STATUS_ARRAY status, zval *stmt_o, zval *bind_args, ui
         case isc_info_sql_stmt_rollback:
         case isc_info_sql_stmt_savepoint:
         case isc_info_sql_stmt_set_generator:
-        {
             exfn = EXECUTE_IMMEDIATE;
-        } break;
+            break;
 
+        // Seems that these are not used anymore
         case isc_info_sql_stmt_get_segment:
         case isc_info_sql_stmt_put_segment:
-        {
-#ifdef PHP_DEBUG
-            FBDEBUG("TODO: unhandled stmt->statement_type: %d", stmt->statement_type);
-#else
-            _php_firebird_module_error("TODO: unhandled stmt->statement_type: %d", stmt->statement_type);
-#endif
             break;
-        }
         default:
-        {
             _php_firebird_module_fatal("BUG: Unrecognized stmt->statement_type: %d. Possibly a new server feature.", stmt->statement_type);
             break;
-        }
     }
 
     ISC_STATUS isc_result;
