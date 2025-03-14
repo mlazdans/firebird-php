@@ -322,67 +322,6 @@ PHP_MINFO_FUNCTION(firebird)
 
 }
 
-/* {{{ proto int firebird_gen_id(string generator [, int increment [, resource link_identifier ]])
-   Increments the named generator and returns its new value */
-// PHP_FUNCTION(firebird_gen_id)
-// {
-// 	zval *link = NULL;
-// 	char query[128], *generator;
-// 	size_t gen_len;
-// 	zend_long inc = 1;
-// 	firebird_connection *ib_link;
-// 	firebird_trans *trans = NULL;
-// 	XSQLDA out_sqlda;
-// 	ISC_INT64 result;
-
-// 	RESET_ERRMSG;
-
-// 	if (FAILURE == zend_parse_parameters(ZEND_NUM_ARGS(), "s|lr", &generator, &gen_len,
-// 			&inc, &link)) {
-// 		RETURN_FALSE;
-// 	}
-
-// 	if (gen_len > 31) {
-// 		php_error_docref(NULL, E_WARNING, "Invalid generator name");
-// 		RETURN_FALSE;
-// 	}
-
-// 	PHP_FIREBIRD_LINK_TRANS(link, ib_link, trans);
-
-// 	snprintf(query, sizeof(query), "SELECT GEN_ID(%s,%ld) FROM rdb$database", generator, inc);
-
-// 	/* allocate a minimal descriptor area */
-// 	out_sqlda.sqln = out_sqlda.sqld = 1;
-// 	out_sqlda.version = SQLDA_CURRENT_VERSION;
-
-// 	/* allocate the field for the result */
-// 	out_sqlda.sqlvar[0].sqltype = SQL_INT64;
-// 	out_sqlda.sqlvar[0].sqlscale = 0;
-// 	out_sqlda.sqlvar[0].sqllen = sizeof(result);
-// 	out_sqlda.sqlvar[0].sqldata = (void*) &result;
-
-// 	/* execute the query */
-// 	if (isc_dsql_exec_immed2(IB_STATUS, &ib_link->handle, &trans->handle, 0, query,
-// 			SQL_DIALECT_CURRENT, NULL, &out_sqlda)) {
-// 		_php_firebird_error();
-// 		RETURN_FALSE;
-// 	}
-
-// 	/* don't return the generator value as a string unless it doesn't fit in a long */
-// #if SIZEOF_ZEND_LONG < 8
-// 	if (result < ZEND_LONG_MIN || result > ZEND_LONG_MAX) {
-// 		char *res;
-// 		int l;
-
-// 		l = spprintf(&res, 0, "%" LL_MASK "d", result);
-// 		RETURN_STRINGL(res, l);
-// 	}
-// #endif
-// 	RETURN_LONG((zend_long)result);
-// }
-
-/* }}} */
-
 void dump_buffer(const unsigned char *buffer, int len){
     int i;
     for (i = 0; i < len; i++) {

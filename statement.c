@@ -644,20 +644,36 @@ int statement_execute(ISC_STATUS_ARRAY status, zval *stmt_o, zval *bind_args, ui
         }
     }
 
-    // TODO: test CREATE DATABASE
-    // TODO: ­isc_dsql_execute_immediate
-    // To execute a statement that does not return any data a single time, call
-    // ­isc_dsql_execute_immediate() instead of isc_dsql_prepare() and
-    // ­isc_dsql_execute2().
+    // ### isc_dsql_exec_immed2
+        // isc_dsql_exec_immed2() prepares the DSQL statement specified in
+        // statement, executes it once, and discards it. statement can return a
+        // single set of values (i.e, it can be an EXECUTE PROCEDURE or singleton
+        // SELECT) in the output XSQLDA.
 
-    // Note: CREATE DATABASE and SET TRANSACTION cannot be executed with
-    // isc_dsql_execute() or isc_dsql_execute2(). To execute these statements,
-    // use isc_dsql_execute_immediate().
+        // If statement requires input parameter values (that is, if it contains
+        // parameter ­markers), these values must be supplied in the input XSQLDA,
+        // in_xsqlda.
 
-    // isc_dsql_allocate_statement / isc_dsql_alloc_statement2
-    // isc_dsql_execute / isc_dsql_execute2
-    // isc_dsql_execute_immediate();
-    // isc_dsql_exec_immed2();
+        // For statements that return multiple rows of data, use isc_dsql_prepare(),
+        // ­isc_dsql_execute2(), and isc_dsql_fetch().
+
+    // ### ­isc_dsql_execute_immediate
+        // To execute a statement that does not return any data a single time, call
+        // ­isc_dsql_execute_immediate() instead of isc_dsql_prepare() and
+        // ­isc_dsql_execute2().
+
+        // isc_dsql_execute_immediate() prepares the DSQL statement specified in
+        // <­statement>, executes it once, and discards it. The statement must not
+        // be one that returns data (that is, it must not be a SELECT or EXECUTE
+        // PROCEDURE ­statement).
+
+        // If <statement> requires input parameter values (that is, if it
+        // contains parameter markers), these values must be supplied in the
+        // input XSQLDA, xsqlda.
+
+        // To create a database using isc_dsql_execute_immediate(), supply a
+        // CREATE DATABASE statement and have db_handle and trans_handle point
+        // to handles with a NULL value.
 
     enum execute_fn exfn = EXECUTE;
 

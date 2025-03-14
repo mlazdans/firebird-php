@@ -50,7 +50,10 @@ int transaction_start(ISC_STATUS_ARRAY status, zval *tr_o)
 
     firebird_trans *tr = Z_TRANSACTION_P(tr_o);
 
-    // TODO: isc_start_multiple
+    // TODO: isc_start_multiple, isc_prepare_transaction, isc_prepare_transaction2
+    // isc_start_multiple()       - Begins a new transaction against multiple databases.
+    // isc_prepare_transaction()  - Executes the first phase of a two-phase commit against multiple databases.
+    // isc_prepare_transaction2() - Performs the first phase of a two-phase commit for multi-database transactions.
     if(isc_start_transaction(status, &tr->tr_handle, 1, tr->db_handle, tpb_len, tpb)) {
         return FAILURE;
     }
