@@ -142,7 +142,7 @@ function query_from_file_ddl(\FireBird\Transaction $t, string $file_name): \Fire
     return $s;
 }
 
-function init_tmp_db(): \FireBird\Connection|false
+function gen_random_db_file_name_or_die(): string
 {
     $database = tempnam(sys_get_temp_dir(),"php_firebird_test");
 
@@ -157,6 +157,13 @@ function init_tmp_db(): \FireBird\Connection|false
     if(!empty(Config::$host))$database = Config::$host.":$database";
 
     $database .= ".fdb";
+
+    return $database;
+}
+
+function init_tmp_db(): \FireBird\Connection|false
+{
+    $database = gen_random_db_file_name_or_die();
 
     $args = new \FireBird\Create_Args;
     $args->database = $database;
