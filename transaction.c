@@ -91,21 +91,37 @@ PHP_METHOD(Transaction, rollback_ret) {
     _php_firebird_process_trans(INTERNAL_FUNCTION_PARAM_PASSTHRU, ROLLBACK | RETAIN);
 }
 
+int prepare_for_transaction(INTERNAL_FUNCTION_PARAMETERS, const ISC_SCHAR* sql)
+{
+    ISC_STATUS_ARRAY status;
+
+    object_init_ex(return_value, FireBird_Statement_ce);
+    statement_ctor(return_value, ZEND_THIS);
+    if (FAILURE == statement_prepare(status, return_value, sql)) {
+        ISC_INT64 error_code_long = update_err_props(status, FireBird_Transaction_ce, ZEND_THIS);
+
+        // Do we CREATE DATABASE?
+        if (error_code_long == isc_dsql_crdb_prepare_err) {
+            _php_firebird_module_error("CREATE DATABASE detected on active connection. Use Database::create() instead.");
+        }
+
+        zval_ptr_dtor(return_value);
+        return FAILURE;
+    }
+
+    return SUCCESS;
+}
+
 PHP_METHOD(Transaction, prepare)
 {
     zval rv;
     zend_string *sql;
-    ISC_STATUS_ARRAY status;
 
     ZEND_PARSE_PARAMETERS_START(1, 1)
         Z_PARAM_STR(sql)
     ZEND_PARSE_PARAMETERS_END();
 
-    object_init_ex(return_value, FireBird_Statement_ce);
-    statement_ctor(return_value, ZEND_THIS);
-    if (FAILURE == statement_prepare(status, return_value, ZSTR_VAL(sql))) {
-        update_err_props(status, FireBird_Transaction_ce, ZEND_THIS);
-        zval_ptr_dtor(return_value);
+    if (FAILURE == prepare_for_transaction(INTERNAL_FUNCTION_PARAM_PASSTHRU, ZSTR_VAL(sql))) {
         RETURN_FALSE;
     }
 }
@@ -125,12 +141,7 @@ PHP_METHOD(Transaction, query)
         Z_PARAM_VARIADIC('+', bind_args, num_bind_args)
     ZEND_PARSE_PARAMETERS_END();
 
-    object_init_ex(return_value, FireBird_Statement_ce);
-    statement_ctor(return_value, ZEND_THIS);
-
-    if (FAILURE == statement_prepare(status, return_value, ZSTR_VAL(sql))) {
-        update_err_props(status, FireBird_Transaction_ce, ZEND_THIS);
-        zval_ptr_dtor(return_value);
+    if(FAILURE == prepare_for_transaction(INTERNAL_FUNCTION_PARAM_PASSTHRU, ZSTR_VAL(sql))) {
         RETURN_FALSE;
     }
 
