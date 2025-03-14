@@ -122,6 +122,19 @@ function query_from_file(\FireBird\Transaction $t, string $file_name): \FireBird
     return $t->query($sql);
 }
 
+function query_from_file_ddl(\FireBird\Transaction $t, string $file_name): \FireBird\Statement
+{
+    if(false === ($s = query_from_file($t, $file_name))) {
+        print_error_and_die("query_from_file_ddl", $t);
+    }
+
+    if(!$t->commit_ret()) {
+        print_error_and_die("commit_ret", $t);
+    }
+
+    return $s;
+}
+
 function init_tmp_db(): \FireBird\Connection|false
 {
     $database = tempnam(sys_get_temp_dir(),"php_firebird_test");
@@ -181,4 +194,41 @@ function replace_binary(string $data): string
     );
 
     return $buff ?? $data;
+}
+
+function run_tests(\FireBird\Transaction $t, array $select_tests): array
+{
+    $results = [];
+    foreach($select_tests as [$test_name, $sql, $args, $fetch_flags]) {
+        $test_results = [];
+        printf("%s\n", str_pad("$test_name ", 79, "-", STR_PAD_RIGHT));
+        if($s = $t->query($sql, ...$args)) {
+            print "Query OK\n";
+            while($r = $s->fetch_object($fetch_flags)) {
+                print "Row data ";
+                var_bin($r);
+                $test_results[] = $r;
+            }
+
+            if(false === $r) {
+                print_error_and_die("fetch", $s);
+            }
+        } else {
+            print_error_and_die("query", $t);
+        }
+        print "\n";
+
+        $results[] = $test_results;
+    }
+
+    return $results;
+}
+
+function results_equal(array $test_result1, array $test_result2): bool
+{
+    $f = function(object $o1, object $o2): int {
+        return $o1 == $o2 ? 0 : -1;
+    };
+
+    return array_udiff($test_result1, $test_result2, $f) == [];
 }

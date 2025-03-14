@@ -1,0 +1,155 @@
+Connected
+Insert blob returning ID ------------------------------------------------------
+Query OK
+Row data object {
+  ["ID"]=>
+  int(1)
+}
+
+Insert false returning ID -----------------------------------------------------
+Query OK
+Row data object {
+  ["ID"]=>
+  int(2)
+}
+
+Insert true returning ID ------------------------------------------------------
+Query OK
+Row data object {
+  ["ID"]=>
+  int(3)
+}
+
+Insert true with emojis returning ID ------------------------------------------
+Query OK
+Row data object {
+  ["ID"]=>
+  int(4)
+}
+
+Select from table WHERE BOOL_1 = ? (false) ------------------------------------
+Query OK
+Row data object {
+  ["ID"]=>
+  int(2)
+  ["BLOB_0"]=>
+  string(6) "BLOB_0"
+  ["BLOB_1"]=>
+  string(6) "BLOB_1"
+  ["BOOL_1"]=>
+  bool(false)
+  ["VARCHAR_1"]=>
+  string(9) "VARCHAR_1"
+}
+
+Select from table WHERE BOOL_1 = false ----------------------------------------
+Query OK
+Row data object {
+  ["ID"]=>
+  int(2)
+  ["BLOB_0"]=>
+  string(6) "BLOB_0"
+  ["BLOB_1"]=>
+  string(6) "BLOB_1"
+  ["BOOL_1"]=>
+  bool(false)
+  ["VARCHAR_1"]=>
+  string(9) "VARCHAR_1"
+}
+
+Select from table WHERE BOOL_1 = ? (true) -------------------------------------
+Query OK
+Row data object {
+  ["ID"]=>
+  int(1)
+  ["BLOB_0"]=>
+  string(17) "3.141592653589793"
+  ["BLOB_1"]=>
+  string(35) "3.141592653589793238462643383279502"
+  ["BOOL_1"]=>
+  bool(true)
+  ["VARCHAR_1"]=>
+  string(9) "VARCHAR_1"
+}
+Row data object {
+  ["ID"]=>
+  int(3)
+  ["BLOB_0"]=>
+  string(6) "BLOB_0"
+  ["BLOB_1"]=>
+  string(6) "BLOB_1"
+  ["BOOL_1"]=>
+  bool(true)
+  ["VARCHAR_1"]=>
+  string(9) "VARCHAR_1"
+}
+Row data object {
+  ["ID"]=>
+  int(4)
+  ["BLOB_0"]=>
+  string(6) "BLOB_0"
+  ["BLOB_1"]=>
+  string(6) "BLOB_1"
+  ["BOOL_1"]=>
+  bool(true)
+  ["VARCHAR_1"]=>
+  string(58) "This will insert some 😀😀😁😀😀😁😁😂🤣"
+}
+
+Select from table WHERE BOOL_1 = true -----------------------------------------
+Query OK
+Row data object {
+  ["ID"]=>
+  int(1)
+  ["BLOB_0"]=>
+  string(17) "3.141592653589793"
+  ["BLOB_1"]=>
+  string(35) "3.141592653589793238462643383279502"
+  ["BOOL_1"]=>
+  bool(true)
+  ["VARCHAR_1"]=>
+  string(9) "VARCHAR_1"
+}
+Row data object {
+  ["ID"]=>
+  int(3)
+  ["BLOB_0"]=>
+  string(6) "BLOB_0"
+  ["BLOB_1"]=>
+  string(6) "BLOB_1"
+  ["BOOL_1"]=>
+  bool(true)
+  ["VARCHAR_1"]=>
+  string(9) "VARCHAR_1"
+}
+Row data object {
+  ["ID"]=>
+  int(4)
+  ["BLOB_0"]=>
+  string(6) "BLOB_0"
+  ["BLOB_1"]=>
+  string(6) "BLOB_1"
+  ["BOOL_1"]=>
+  bool(true)
+  ["VARCHAR_1"]=>
+  string(58) "This will insert some 😀😀😁😀😀😁😁😂🤣"
+}
+
+Select ID from procedure which returns ID if BOOL_1 = true --------------------
+Query OK
+Row data object {
+  ["ID"]=>
+  int(1)
+}
+Row data object {
+  ["ID"]=>
+  int(3)
+}
+Row data object {
+  ["ID"]=>
+  int(4)
+}
+
+Test0 == Test1 == true? YES
+Test2 == Test3 == true? YES
+Did procedure returned IDs with true? YES
