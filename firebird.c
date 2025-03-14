@@ -237,6 +237,7 @@ PHP_MINIT_FUNCTION(firebird)
     register_FireBird_Connect_Args_ce();
     register_FireBird_Create_Args_ce();
     register_FireBird_IError_ce();
+    register_FireBird_Error_ce();
     register_FireBird_Database_ce();
     register_FireBird_Connection_ce();
     register_FireBird_Transaction_ce();
@@ -410,39 +411,72 @@ int status_err_msg(const ISC_STATUS *status, char *msg, unsigned short msg_size)
     return s - msg > 0 ? s - msg - 1 : 0;
 }
 
-void update_err_props_ex(ISC_STATUS_ARRAY status, zend_class_entry *class_ce, zval *obj, const char *file_name, size_t line_num)
+#define UPD_CODES() \
+    error_code = isc_sqlcode(&pstatus[0]); \
+    error_code_long = isc_portable_integer((const ISC_UCHAR*)(&pstatus[1]), 4)
+
+// Returns last error_code_long from the status array
+ISC_INT64 update_err_props_ex(ISC_STATUS_ARRAY status, zend_class_entry *ce, zval *obj, const char *file_name, size_t line_num)
 {
     if (!(status[0] == 1 && status[1])){
-        return;
+        return 0;
     }
 
-    zval rv;
     char msg[1024] = {0};
     char *s = msg;
+
+    zval rv, errors, hash_entry, ferror_o;
+    HashTable *ht_errors;
+    int errors_count = 0;
+
     const ISC_STATUS* pstatus = status;
+    ISC_LONG error_code = 0, s_len = 0;
+    ISC_INT64 error_code_long = 0;
 
-    while ((s - msg) < sizeof(msg) && fb_interpret(s, sizeof(msg) - (s - msg), &pstatus)) {
-        s = msg + strlen(msg);
+    array_init_size(&errors, 20);
+    ht_errors = Z_ARRVAL(errors);
+
+    UPD_CODES();
+
+    do {
+        if (!(s - msg < sizeof(msg) && (s_len = fb_interpret(s, sizeof(msg) - (s - msg), &pstatus)))) {
+            break;
+        }
+
+        if((&pstatus[0])[0]) {
+            UPD_CODES();
+        }
+
+        object_init_ex(&ferror_o, FireBird_Error_ce);
+        update_ferr_props(FireBird_Error_ce, Z_OBJ(ferror_o), s, s_len, error_code, error_code_long);
+        zend_hash_next_index_insert(ht_errors, &ferror_o);
+        errors_count++;
+
+        s += s_len;
         *s++ = '\n';
+    } while(1);
+
+    if(errors_count <= 0) {
+        zval_ptr_dtor(&errors);
+        return error_code_long;
     }
 
-    if(s == msg) {
-        return;
-    }
+    update_ferr_props(ce, Z_OBJ_P(obj), msg, s - msg - 1, error_code, error_code_long);
 
-    zend_update_property_stringl(class_ce, Z_OBJ_P(obj), "error_msg", sizeof("error_msg") - 1, msg, s - msg - 1);
-    zend_update_property_long(class_ce, Z_OBJ_P(obj), "error_code", sizeof("error_code") - 1, (zend_long)isc_sqlcode(status));
-    zend_update_property_long(class_ce, Z_OBJ_P(obj), "error_code_long", sizeof("error_code_long") - 1,
-        (zend_long)isc_portable_integer((const ISC_UCHAR*)&status[1], 4));
-    zend_update_property_string(class_ce, Z_OBJ_P(obj), "error_file", sizeof("error_file") - 1, zend_get_executed_filename());
-    zend_update_property_long(class_ce, Z_OBJ_P(obj), "error_lineno", sizeof("error_lineno") - 1, zend_get_executed_lineno());
+    zend_update_property_string(ce, Z_OBJ_P(obj), "error_file", sizeof("error_file") - 1, zend_get_executed_filename());
+    zend_update_property_long(ce, Z_OBJ_P(obj), "error_lineno", sizeof("error_lineno") - 1, zend_get_executed_lineno());
+
+    zend_update_property(ce, Z_OBJ_P(obj), "errors", sizeof("errors") - 1, &errors);
+    zval_ptr_dtor(&errors);
 
 #ifdef PHP_DEBUG
     char *line;
     size_t line_len = spprintf(&line, 0, "%s:%d", file_name, line_num);
-    zend_update_property_stringl(class_ce, Z_OBJ_P(obj), "ext_error_line", sizeof("ext_error_line") - 1, line, line_len);
+    zend_update_property_stringl(ce, Z_OBJ_P(obj), "ext_error_line", sizeof("ext_error_line") - 1, line, line_len);
     efree(line);
 #endif
+
+    return error_code_long;
 }
 
 void _php_firebird_module_error(char *msg, ...)

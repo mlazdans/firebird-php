@@ -6,22 +6,38 @@ const FETCH_BLOBS    = 1;
 const FETCH_ARRAYS   = 2;
 const FETCH_UNIXTIME = 4;
 
-interface IError
+// Store single Firebird error
+class Error
 {
     public string $error_msg { get; }
     public int $error_code { get; }
     public int $error_code_long { get; }
-    public string $error_file { get; }
-    public int $error_lineno { get; }
 }
 
-trait Error
+interface IError
+{
+    public string $error_msg { get; }    // Combined multi-line error message from $errors
+    public int $error_code { get; }      // Last error_code from $errors
+    public int $error_code_long { get; } // Last error_code_long from $errors
+
+    public string $error_file { get; }   // PHP file
+    public int $error_lineno { get; }    // PHP file's line number
+
+    /** @var Error[]  */
+    public array $errors { get; }
+}
+
+// There is no internal trait. Used for stub only
+trait FB_Error
 {
     protected(set) string $error_msg;
     protected(set) int $error_code;
     protected(set) int $error_code_long;
+
     protected(set) string $error_file;
     protected(set) int $error_lineno;
+
+    protected(set) array $errors;        // array of all Firebird errors
 }
 
 class Connect_Args
@@ -49,7 +65,7 @@ class Create_Args
 
 class Database implements IError
 {
-    use Error;
+    use FB_Error;
 
     protected(set) Connect_Args|Create_Args $args;
 
@@ -65,7 +81,7 @@ class Database implements IError
 
 class Connection implements IError
 {
-    use Error;
+    use FB_Error;
 
     protected(set) Database $database;
 
@@ -85,7 +101,7 @@ class Connection implements IError
 // TODO: auto commit/rollback flag?
 class Transaction implements IError
 {
-    use Error;
+    use FB_Error;
 
     protected(set) Connection $connection;
 
@@ -115,7 +131,7 @@ class Transaction implements IError
 
 class Statement implements IError
 {
-    use Error;
+    use FB_Error;
 
     private function __construct() {}
 

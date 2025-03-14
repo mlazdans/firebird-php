@@ -228,6 +228,7 @@ void _php_firebird_module_fatal(char *, ...)
 #define DECLARE_PROP_LONG(class_ce, name, visibilty) DECLARE_PROP(class_ce, name, ZEND_TYPE_INIT_MASK(MAY_BE_LONG), visibilty)
 #define DECLARE_PROP_BOOL(class_ce, name, visibilty) DECLARE_PROP(class_ce, name, ZEND_TYPE_INIT_MASK(MAY_BE_BOOL), visibilty)
 #define DECLARE_PROP_STRING(class_ce, name, visibilty) DECLARE_PROP(class_ce, name, ZEND_TYPE_INIT_MASK(MAY_BE_STRING), visibilty)
+#define DECLARE_PROP_ARRAY(class_ce, name, visibilty) DECLARE_PROP(class_ce, name, ZEND_TYPE_INIT_MASK(MAY_BE_ARRAY), visibilty)
 #define DECLARE_PROP(class_ce, name, type, visibilty) do {                            \
     zval prop_##name##_def_val;                                                       \
     ZVAL_UNDEF(&prop_##name##_def_val);                                               \
@@ -317,38 +318,44 @@ extern zend_class_entry *FireBird_Connection_ce;
 extern zend_class_entry *FireBird_Transaction_ce;
 extern zend_class_entry *FireBird_Statement_ce;
 extern zend_class_entry *FireBird_IError_ce;
+extern zend_class_entry *FireBird_Error_ce;
 
 extern void register_FireBird_Database_ce();
 extern void register_FireBird_Connection_ce();
 extern void register_FireBird_Transaction_ce();
 extern void register_FireBird_Statement_ce();
 extern void register_FireBird_IError_ce();
+extern void register_FireBird_Error_ce();
 extern void register_FireBird_Connect_Args_ce();
 extern void register_FireBird_Create_Args_ce();
 
+// TODO: fb_sqlstate()
+#define DECLARE_FERR_PROPS(ce)                                  \
+    DECLARE_PROP_STRING(ce, error_msg, ZEND_ACC_PROTECTED_SET); \
+    DECLARE_PROP_LONG(ce, error_code, ZEND_ACC_PROTECTED_SET);  \
+    DECLARE_PROP_LONG(ce, error_code_long, ZEND_ACC_PROTECTED_SET)
+
 #ifdef PHP_DEBUG
-#define DECLARE_ERR_PROPS(class_ce)                                            \
-    do {                                                                       \
-        DECLARE_PROP_STRING(class_ce, error_msg, ZEND_ACC_PROTECTED_SET);      \
-        DECLARE_PROP_LONG(class_ce, error_code, ZEND_ACC_PROTECTED_SET);       \
-        DECLARE_PROP_LONG(class_ce, error_code_long, ZEND_ACC_PROTECTED_SET);  \
-        DECLARE_PROP_STRING(class_ce, error_file, ZEND_ACC_PROTECTED_SET);     \
-        DECLARE_PROP_LONG(class_ce, error_lineno, ZEND_ACC_PROTECTED_SET);     \
-        DECLARE_PROP_STRING(class_ce, ext_error_line, ZEND_ACC_PROTECTED_SET); \
+#define DECLARE_ERR_PROPS(ce)                                            \
+    do {                                                                 \
+        DECLARE_FERR_PROPS(ce);                                          \
+        DECLARE_PROP_STRING(ce, error_file, ZEND_ACC_PROTECTED_SET);     \
+        DECLARE_PROP_LONG(ce, error_lineno, ZEND_ACC_PROTECTED_SET);     \
+        DECLARE_PROP_ARRAY(ce, errors, ZEND_ACC_PROTECTED_SET);          \
+        DECLARE_PROP_STRING(ce, ext_error_line, ZEND_ACC_PROTECTED_SET); \
     } while(0)
 #else
-#define DECLARE_ERR_PROPS(class_ce)                                            \
-    do {                                                                       \
-        DECLARE_PROP_STRING(class_ce, error_msg, ZEND_ACC_PROTECTED_SET);      \
-        DECLARE_PROP_LONG(class_ce, error_code, ZEND_ACC_PROTECTED_SET);       \
-        DECLARE_PROP_LONG(class_ce, error_code_long, ZEND_ACC_PROTECTED_SET);  \
-        DECLARE_PROP_STRING(class_ce, error_file, ZEND_ACC_PROTECTED_SET);     \
-        DECLARE_PROP_LONG(class_ce, error_lineno, ZEND_ACC_PROTECTED_SET);     \
+#define DECLARE_ERR_PROPS(ce)                                        \
+    do {                                                             \
+        DECLARE_FERR_PROPS(ce);                                      \
+        DECLARE_PROP_STRING(ce, error_file, ZEND_ACC_PROTECTED_SET); \
+        DECLARE_PROP_LONG(ce, error_lineno, ZEND_ACC_PROTECTED_SET); \
+        DECLARE_PROP_ARRAY(ce, errors, ZEND_ACC_PROTECTED_SET);      \
     } while(0)
 #endif
 
 void dump_buffer(const unsigned char *buffer, int len);
-void update_err_props_ex(ISC_STATUS_ARRAY status, zend_class_entry *class_ce, zval *obj, const char *file_name, size_t line_num);
+ISC_INT64 update_err_props_ex(ISC_STATUS_ARRAY status, zend_class_entry *ce, zval *obj, const char *file_name, size_t line_num);
 int _php_firebird_string_to_quad(char const *id, ISC_QUAD *qd);
 int _php_firebird_blob_add(ISC_STATUS_ARRAY status, zval *string_arg, firebird_blob *ib_blob);
 int _php_firebird_blob_get(ISC_STATUS_ARRAY status, zval *return_value, firebird_blob *ib_blob, zend_ulong max_len);
@@ -363,7 +370,13 @@ int statement_prepare(ISC_STATUS_ARRAY status, zval *stmt_o, const ISC_SCHAR *sq
 int statement_execute(ISC_STATUS_ARRAY status, zval *stmt_o, zval *bind_args, uint32_t num_bind_args);
 void declare_props_zmap(zend_class_entry *ce, const firebird_xpb_zmap *xpb_zmap);
 
-#define update_err_props(status, class_ce, obj) update_err_props_ex(status, class_ce, obj, __FILE__, __LINE__)
+#define update_err_props(status, ce, obj) update_err_props_ex(status, ce, obj, __FILE__, __LINE__)
+#define update_ferr_props(ce, obj, error_msg, error_msg_len, error_code, error_code_long)                      \
+    do {                                                                                                       \
+        zend_update_property_stringl(ce, obj, "error_msg", sizeof("error_msg") - 1, error_msg, error_msg_len); \
+        zend_update_property_long(ce, obj, "error_code", sizeof("error_code") - 1, error_code);                \
+        zend_update_property_long(ce, obj, "error_code_long", sizeof("error_code_long") - 1, error_code_long); \
+    } while(0)
 
 // C++ experiments
 // #ifdef __cplusplus
