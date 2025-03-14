@@ -103,7 +103,7 @@ typedef struct firebird_stmt {
     unsigned short in_array_cnt, out_array_cnt;
     firebird_bind_buf *bind_buf;
     // unsigned short dialect;
-    // char *query;
+    const ISC_SCHAR *query;
     zend_object std;
 } firebird_stmt;
 

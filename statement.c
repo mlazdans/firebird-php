@@ -105,6 +105,7 @@ int statement_prepare(ISC_STATUS_ARRAY status, zval *stmt_o, const ISC_SCHAR *sq
 
     // TODO: configure auto-close, throw or warning
     if (stmt->stmt_handle > 0) {
+        // Unreachable, unless a BUG
         zend_throw_exception_ex(spl_ce_RuntimeException, 0, "Statement already active");
         return FAILURE;
     }
@@ -141,7 +142,7 @@ int statement_prepare(ISC_STATUS_ARRAY status, zval *stmt_o, const ISC_SCHAR *sq
     }
 
     /* not enough input variables ? */
-    if (stmt->in_sqlda->sqln < stmt->in_sqlda->sqld) {
+    if (stmt->in_sqlda->sqld > stmt->in_sqlda->sqln) {
         stmt->in_sqlda = erealloc(stmt->in_sqlda, XSQLDA_LENGTH(stmt->in_sqlda->sqld));
         stmt->in_sqlda->sqln = stmt->in_sqlda->sqld;
         stmt->in_sqlda->version = SQLDA_CURRENT_VERSION;
@@ -159,7 +160,25 @@ int statement_prepare(ISC_STATUS_ARRAY status, zval *stmt_o, const ISC_SCHAR *sq
         return FAILURE;
     }
 
-    stmt->statement_type = result[3];
+    // EngineCallbackGuard guard(tdbb, *this, FB_FUNCTION);
+    // const int len = m_iscProvider.isc_vax_integer(&info_buff[1], 2);
+    // const int stmt_type = m_iscProvider.isc_vax_integer(&info_buff[3], len);
+
+    // m_stmt_selectable = (stmt_type == isc_info_sql_stmt_select ||
+    //     stmt_type == isc_info_sql_stmt_select_for_upd);
+
+    // if (stmt_type == isc_info_sql_stmt_start_trans ||
+    //     stmt_type == isc_info_sql_stmt_commit ||
+    //     stmt_type == isc_info_sql_stmt_rollback)
+    // {
+    //     ERR_build_status(&status, Arg::Gds(isc_eds_expl_tran_ctrl));
+
+    //     sWhereError = "isc_dsql_prepare";
+    //     raise(&status, tdbb, sWhereError, &sql);
+    // }
+
+    stmt->statement_type = result[3]; // TODO: should properly parse with length and vax
+    stmt->query = sql;
 
     return SUCCESS;
 }
@@ -438,6 +457,7 @@ static void _php_firebird_fetch_hash(INTERNAL_FUNCTION_PARAMETERS, int fetch_typ
 
     array_init(return_value);
 
+    // TODO: this behaviour should be configurable: add suffix, replace, ignore
     for (i = 0; i < stmt->out_sqlda->sqld; ++i) {
         XSQLVAR *var = &stmt->out_sqlda->sqlvar[i];
         char buf[METADATALENGTH+4], *alias = var->aliasname;
@@ -598,6 +618,14 @@ static void _php_firebird_free_xsqlda(XSQLDA *sqlda)
     }
 }
 
+enum execute_fn {
+    EXECUTE,
+    EXECUTE2,
+    EXECUTE_IMMEDIATE,
+};
+
+// typedef enum execute_fn execute_fn;
+
 int statement_execute(ISC_STATUS_ARRAY status, zval *stmt_o, zval *bind_args, uint32_t num_bind_args)
 {
     firebird_stmt *stmt = Z_STMT_P(stmt_o);
@@ -615,13 +643,68 @@ int statement_execute(ISC_STATUS_ARRAY status, zval *stmt_o, zval *bind_args, ui
         }
     }
 
+    // TODO: test CREATE DATABASE
+    // TODO: ­isc_dsql_execute_immediate
+    // To execute a statement that does not return any data a single time, call
+    // ­isc_dsql_execute_immediate() instead of isc_dsql_prepare() and
+    // ­isc_dsql_execute2().
+
+    // Note: CREATE DATABASE and SET TRANSACTION cannot be executed with
+    // isc_dsql_execute() or isc_dsql_execute2(). To execute these statements,
+    // use isc_dsql_execute_immediate().
+
+    // isc_dsql_allocate_statement / isc_dsql_alloc_statement2
+    // isc_dsql_execute / isc_dsql_execute2
+    // isc_dsql_execute_immediate();
+    // isc_dsql_exec_immed2();
+
+    enum execute_fn exfn = EXECUTE;
+
+    switch(stmt->statement_type) {
+        case isc_info_sql_stmt_select:
+        case isc_info_sql_stmt_select_for_upd: {
+            exfn = EXECUTE;
+        } break;
+
+        case isc_info_sql_stmt_exec_procedure:
+        case isc_info_sql_stmt_insert:
+        case isc_info_sql_stmt_update:
+        case isc_info_sql_stmt_delete: {
+            exfn = EXECUTE2;
+        } break;
+
+        case isc_info_sql_stmt_ddl: {
+            exfn = EXECUTE_IMMEDIATE;
+        } break;
+
+        case isc_info_sql_stmt_get_segment:
+        case isc_info_sql_stmt_put_segment:
+        case isc_info_sql_stmt_start_trans:
+        case isc_info_sql_stmt_commit:
+        case isc_info_sql_stmt_rollback:
+        case isc_info_sql_stmt_set_generator:
+        case isc_info_sql_stmt_savepoint: {
+            _php_firebird_module_fatal("TODO: unhandled stmt->statement_type: %d", stmt->statement_type);
+            break;
+        }
+        default: {
+            _php_firebird_module_fatal("BUG: Unrecognized stmt->statement_type: %d. Possibly a new server feature.", stmt->statement_type);
+            break;
+        }
+    }
+
     ISC_STATUS isc_result;
-    if (stmt->statement_type == isc_info_sql_stmt_exec_procedure) {
-        assert(false && "TODO: isc_info_sql_stmt_exec_procedure");
-        // isc_result = isc_dsql_execute2(IB_STATUS, &stmt->transtmt->handle,
-        //     &stmt->stmt, SQLDA_CURRENT_VERSION, in_sqlda, out_sqlda);
+    if (exfn == EXECUTE_IMMEDIATE) {
+        FBDEBUG("isc_dsql_execute_immediate(): handle=%d, type=%d", stmt->stmt_handle, stmt->statement_type);
+        if(isc_dsql_free_statement(status, &stmt->stmt_handle, DSQL_drop)) {
+            return FAILURE;
+        }
+        isc_result = isc_dsql_execute_immediate(status, stmt->db_handle, stmt->tr_handle, 0, stmt->query, SQL_DIALECT_CURRENT, stmt->in_sqlda);
+    } else if (exfn == EXECUTE2) {
+        FBDEBUG("isc_dsql_execute2(): handle=%d, type=%d", stmt->stmt_handle, stmt->statement_type);
+        isc_result = isc_dsql_execute2(status, stmt->tr_handle, &stmt->stmt_handle, SQLDA_CURRENT_VERSION, stmt->in_sqlda, stmt->out_sqlda);
     } else {
-        FBDEBUG("isc_dsql_execute: %d", stmt->stmt_handle);
+        FBDEBUG("isc_dsql_execute(): handle=%d, type=%d", stmt->stmt_handle, stmt->statement_type);
         isc_result = isc_dsql_execute(status, stmt->tr_handle, &stmt->stmt_handle, SQLDA_CURRENT_VERSION, stmt->in_sqlda);
     }
 
@@ -629,7 +712,7 @@ int statement_execute(ISC_STATUS_ARRAY status, zval *stmt_o, zval *bind_args, ui
         return FAILURE;
     }
 
-    stmt->has_more_rows = 1;
+    stmt->has_more_rows = stmt->out_sqlda->sqld > 0;
 
     return SUCCESS;
 }
