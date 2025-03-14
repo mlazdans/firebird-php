@@ -50,6 +50,7 @@ int transaction_start(ISC_STATUS_ARRAY status, zval *tr_o)
 
     firebird_trans *tr = Z_TRANSACTION_P(tr_o);
 
+    // TODO: isc_start_multiple
     if(isc_start_transaction(status, &tr->tr_handle, 1, tr->db_handle, tpb_len, tpb)) {
         return FAILURE;
     }

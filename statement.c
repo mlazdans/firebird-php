@@ -662,32 +662,41 @@ int statement_execute(ISC_STATUS_ARRAY status, zval *stmt_o, zval *bind_args, ui
 
     switch(stmt->statement_type) {
         case isc_info_sql_stmt_select:
-        case isc_info_sql_stmt_select_for_upd: {
+        case isc_info_sql_stmt_select_for_upd:
+        {
             exfn = EXECUTE;
         } break;
 
         case isc_info_sql_stmt_exec_procedure:
         case isc_info_sql_stmt_insert:
         case isc_info_sql_stmt_update:
-        case isc_info_sql_stmt_delete: {
+        case isc_info_sql_stmt_delete:
+        {
             exfn = EXECUTE2;
         } break;
 
-        case isc_info_sql_stmt_ddl: {
+        case isc_info_sql_stmt_ddl:
+        case isc_info_sql_stmt_start_trans: // TODO: warn/throw about already started transaction
+        case isc_info_sql_stmt_commit:
+        case isc_info_sql_stmt_rollback:
+        case isc_info_sql_stmt_savepoint:
+        {
             exfn = EXECUTE_IMMEDIATE;
         } break;
 
         case isc_info_sql_stmt_get_segment:
         case isc_info_sql_stmt_put_segment:
-        case isc_info_sql_stmt_start_trans:
-        case isc_info_sql_stmt_commit:
-        case isc_info_sql_stmt_rollback:
         case isc_info_sql_stmt_set_generator:
-        case isc_info_sql_stmt_savepoint: {
+        {
+#ifdef PHP_DEBUG
+            FBDEBUG("TODO: unhandled stmt->statement_type: %d", stmt->statement_type);
+#else
             _php_firebird_module_fatal("TODO: unhandled stmt->statement_type: %d", stmt->statement_type);
+#endif
             break;
         }
-        default: {
+        default:
+        {
             _php_firebird_module_fatal("BUG: Unrecognized stmt->statement_type: %d. Possibly a new server feature.", stmt->statement_type);
             break;
         }
