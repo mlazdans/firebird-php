@@ -440,6 +440,7 @@ static void _php_firebird_fetch_hash(INTERNAL_FUNCTION_PARAMETERS, int fetch_typ
         Z_PARAM_LONG(flags)
     ZEND_PARSE_PARAMETERS_END();
 
+    // TODO: other types?
     if (stmt->statement_type != isc_info_sql_stmt_exec_procedure) {
         ISC_STATUS result = isc_dsql_fetch(status, &stmt->stmt_handle, 1, stmt->out_sqlda);
         if (result) {
