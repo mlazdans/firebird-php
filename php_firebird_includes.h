@@ -233,26 +233,21 @@ void _php_firebird_module_fatal(char *, ...)
     zend_declare_typed_property(class_ce, prop_##name##_name, &prop_##name##_def_val, \
         visibilty, NULL,                                                              \
         (zend_type) type);                                                            \
-    zend_string_release(prop_##name##_name); \
+    zend_string_release(prop_##name##_name);                                          \
 } while (0)
 
-#define Z_TRANSACTION_P(zv) \
-    ((firebird_trans*)((char*)(Z_OBJ_P(zv)) - XtOffsetOf(firebird_trans, std)))
+#define Z_TRANSACTION_O(zobj) \
+    ((firebird_trans*)((char*)(zobj) - XtOffsetOf(firebird_trans, std)))
 
-#define Z_TRANSACTION_O(obj) \
-    ((firebird_trans*)((char*)(obj) - XtOffsetOf(firebird_trans, std)))
+#define Z_STMT_O(zobj) \
+    ((firebird_stmt*)((char*)(zobj) - XtOffsetOf(firebird_stmt, std)))
 
-#define Z_STMT_P(zv) \
-    ((firebird_stmt*)((char*)(Z_OBJ_P(zv)) - XtOffsetOf(firebird_stmt, std)))
+#define Z_DB_O(zobj) \
+    ((firebird_db*)((char*)(zobj) - XtOffsetOf(firebird_db, std)))
 
-#define Z_STMT_O(obj) \
-    ((firebird_stmt*)((char*)(obj) - XtOffsetOf(firebird_stmt, std)))
-
-#define Z_DB_P(zv) \
-    ((firebird_db*)((char*)(Z_OBJ_P(zv)) - XtOffsetOf(firebird_db, std)))
-
-#define Z_DB_O(obj) \
-    ((firebird_db*)((char*)(obj) - XtOffsetOf(firebird_db, std)))
+#define Z_TRANSACTION_P(zv) Z_TRANSACTION_O(Z_OBJ_P(zv))
+#define Z_STMT_P(zv) Z_STMT_O(Z_OBJ_P(zv))
+#define Z_DB_P(zv) Z_DB_O(Z_OBJ_P(zv))
 
 // General argument types
 ZEND_BEGIN_ARG_INFO_EX(arginfo_none, 0, 0, 0)
@@ -325,22 +320,23 @@ extern void register_FireBird_Create_Args_ce();
     DECLARE_PROP_LONG(ce, error_code, ZEND_ACC_PROTECTED_SET);  \
     DECLARE_PROP_LONG(ce, error_code_long, ZEND_ACC_PROTECTED_SET)
 
+#define DECLARE_IERR_PROPS(ce)                                   \
+    DECLARE_PROP_STRING(ce, error_file, ZEND_ACC_PROTECTED_SET); \
+    DECLARE_PROP_LONG(ce, error_lineno, ZEND_ACC_PROTECTED_SET); \
+    DECLARE_PROP_ARRAY(ce, errors, ZEND_ACC_PROTECTED_SET);      \
+
 #ifdef PHP_DEBUG
 #define DECLARE_ERR_PROPS(ce)                                            \
     do {                                                                 \
         DECLARE_FERR_PROPS(ce);                                          \
-        DECLARE_PROP_STRING(ce, error_file, ZEND_ACC_PROTECTED_SET);     \
-        DECLARE_PROP_LONG(ce, error_lineno, ZEND_ACC_PROTECTED_SET);     \
-        DECLARE_PROP_ARRAY(ce, errors, ZEND_ACC_PROTECTED_SET);          \
+        DECLARE_IERR_PROPS(ce);                                          \
         DECLARE_PROP_STRING(ce, ext_error_line, ZEND_ACC_PROTECTED_SET); \
     } while(0)
 #else
-#define DECLARE_ERR_PROPS(ce)                                        \
-    do {                                                             \
-        DECLARE_FERR_PROPS(ce);                                      \
-        DECLARE_PROP_STRING(ce, error_file, ZEND_ACC_PROTECTED_SET); \
-        DECLARE_PROP_LONG(ce, error_lineno, ZEND_ACC_PROTECTED_SET); \
-        DECLARE_PROP_ARRAY(ce, errors, ZEND_ACC_PROTECTED_SET);      \
+#define DECLARE_ERR_PROPS(ce)   \
+    do {                        \
+        DECLARE_FERR_PROPS(ce); \
+        DECLARE_IERR_PROPS(ce); \
     } while(0)
 #endif
 
