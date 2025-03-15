@@ -24,15 +24,15 @@
  */
 
 
-// ibase_blob_add    - Add data into a newly created blob
-// ibase_blob_cancel - Cancel creating blob
-// ibase_blob_close  - Close blob
-// ibase_blob_create - Create a new blob for adding data
-// ibase_blob_echo   - Output blob contents to browser
-// ibase_blob_get    - Get len bytes data from open blob
-// ibase_blob_import - Create blob, copy file in it, and close it
-// ibase_blob_info   - Return blob length and other useful info
-// ibase_blob_open   - Open blob for retrieving data parts
+// ibase_blob_add     - Add data into a newly created blob
+// ✅ibase_blob_cancel - Cancel creating blob
+// ✅ibase_blob_close  - Close blob
+// ✅ibase_blob_create  - Create a new blob for adding data
+// ibase_blob_echo    - Output blob contents to browser
+// ibase_blob_get     - Get len bytes data from open blob
+// ibase_blob_import  - Create blob, copy file in it, and close it
+// ibase_blob_info    - Return blob length and other useful info
+// ✅ibase_blob_open   - Open blob for retrieving data parts
 
 #include "php.h"
 #include "php_firebird.h"
@@ -245,9 +245,23 @@ PHP_METHOD(Blob, close)
     RETURN_TRUE;
 }
 
+PHP_METHOD(Blob, cancel)
+{
+    firebird_blob *blob = Z_BLOB_P(ZEND_THIS);
+    ISC_STATUS_ARRAY status;
+
+    if (isc_cancel_blob(status, &blob->bl_handle)) {
+        update_err_props(status, FireBird_Blob_ce, ZEND_THIS);
+        RETURN_FALSE;
+    }
+
+    RETURN_TRUE;
+}
+
 const zend_function_entry FireBird_Blob_methods[] = {
     PHP_ME(Blob, __construct, arginfo_none, ZEND_ACC_PRIVATE)
     PHP_ME(Blob, close, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
+    PHP_ME(Blob, cancel, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
 
