@@ -215,6 +215,34 @@ PHP_METHOD(Transaction, open_blob)
     }
 }
 
+int blob_create(ISC_STATUS_ARRAY status, zval *blob_o)
+{
+    firebird_blob *blob = Z_BLOB_P(blob_o);
+
+    if (isc_create_blob(status, blob->db_handle, blob->tr_handle, &blob->bl_handle, &blob->bl_id)) {
+        return FAILURE;
+    }
+
+    return SUCCESS;
+}
+
+PHP_METHOD(Transaction, create_blob)
+{
+    zend_string *id;
+    ISC_STATUS_ARRAY status;
+
+    ZEND_PARSE_PARAMETERS_NONE();
+
+    object_init_ex(return_value, FireBird_Blob_ce);
+    blob_ctor(return_value, ZEND_THIS);
+
+    if (FAILURE == blob_create(status, return_value)) {
+        update_err_props(status, FireBird_Transaction_ce, ZEND_THIS);
+        zval_ptr_dtor(return_value);
+        RETURN_FALSE;
+    }
+}
+
 const zend_function_entry FireBird_Transaction_methods[] = {
     PHP_ME(Transaction, __construct, arginfo_none, ZEND_ACC_PRIVATE)
     PHP_ME(Transaction, start, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
@@ -225,6 +253,7 @@ const zend_function_entry FireBird_Transaction_methods[] = {
     PHP_ME(Transaction, prepare, arginfo_FireBird_Transaction_prepare, ZEND_ACC_PUBLIC)
     PHP_ME(Transaction, query, arginfo_FireBird_Transaction_query, ZEND_ACC_PUBLIC)
     PHP_ME(Transaction, open_blob, arginfo_FireBird_Transaction_open_blob, ZEND_ACC_PUBLIC)
+    PHP_ME(Transaction, create_blob, arginfo_FireBird_Transaction_create_blob, ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
 
