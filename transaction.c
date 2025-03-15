@@ -215,6 +215,7 @@ PHP_METHOD(Transaction, open_blob)
     }
 }
 
+// TODO: move to blob.c
 int blob_create(ISC_STATUS_ARRAY status, zval *blob_o)
 {
     firebird_blob *blob = Z_BLOB_P(blob_o);

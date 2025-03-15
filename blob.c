@@ -31,15 +31,18 @@
 // ibase_blob_echo    - Output blob contents to browser
 // ibase_blob_get     - Get len bytes data from open blob
 // ibase_blob_import  - Create blob, copy file in it, and close it
-// ibase_blob_info    - Return blob length and other useful info
+// ✅ibase_blob_info    - Return blob length and other useful info
 // ✅ibase_blob_open   - Open blob for retrieving data parts
 
+#include "firebird/fb_c_api.h"
 #include "php.h"
 #include "php_firebird.h"
 #include "php_firebird_includes.h"
 
 zend_class_entry *FireBird_Blob_ce;
 static zend_object_handlers FireBird_Blob_object_handlers;
+
+zend_class_entry *FireBird_Blob_Info_ce;
 
 #define BLOB_CLOSE  1
 #define BLOB_CANCEL 2
@@ -146,57 +149,6 @@ int _php_firebird_blob_add(ISC_STATUS_ARRAY status, zval *string_arg, firebird_b
     return SUCCESS;
 }
 
-static int _php_firebird_blob_info(isc_blob_handle bl_handle, firebird_blobinfo *bl_info, ISC_STATUS_ARRAY status)
-{
-    static char bl_items[] = {
-        isc_info_blob_num_segments,
-        isc_info_blob_max_segment,
-        isc_info_blob_total_length,
-        isc_info_blob_type
-    };
-
-    char bl_inf[sizeof(zend_long)*8], *p;
-
-    bl_info->max_segment = 0;
-    bl_info->num_segments = 0;
-    bl_info->total_length = 0;
-    bl_info->bl_stream = 0;
-
-    if (isc_blob_info(status, &bl_handle, sizeof(bl_items), bl_items, sizeof(bl_inf), bl_inf)) {
-        return FAILURE;
-    }
-
-    for (p = bl_inf; *p != isc_info_end && p < bl_inf + sizeof(bl_inf);) {
-        unsigned short item_len;
-        int item = *p++;
-
-        item_len = (short) isc_vax_integer(p, 2);
-        p += 2;
-        switch (item) {
-            case isc_info_blob_num_segments:
-                bl_info->num_segments = isc_vax_integer(p, item_len); // TODO: isc_portable_integer
-                break;
-            case isc_info_blob_max_segment:
-                bl_info->max_segment = isc_vax_integer(p, item_len);
-                break;
-            case isc_info_blob_total_length:
-                bl_info->total_length = isc_vax_integer(p, item_len);
-                break;
-            case isc_info_blob_type:
-                bl_info->bl_stream = isc_vax_integer(p, item_len);
-                break;
-            case isc_info_end:
-                break;
-            case isc_info_truncated:
-            case isc_info_error:  /* hmm. don't think so...*/
-                _php_firebird_module_error("PHP module internal error");
-                return FAILURE;
-        } /* switch */
-        p += item_len;
-    } /* for */
-    return SUCCESS;
-}
-
 // static void _php_firebird_blob_end(INTERNAL_FUNCTION_PARAMETERS, int bl_end, ISC_STATUS_ARRAY status)
 // {
 //     zval *blob_arg;
@@ -258,10 +210,85 @@ PHP_METHOD(Blob, cancel)
     RETURN_TRUE;
 }
 
+// TODO: abstract out PHP / Zend stuff
+int blob_info(ISC_STATUS_ARRAY status, zval *blob_info_o, zval *blob_o)
+{
+    static char bl_items[] = {
+        isc_info_blob_num_segments,
+        isc_info_blob_max_segment,
+        isc_info_blob_total_length,
+        isc_info_blob_type
+    };
+    char bl_inf[sizeof(zend_long)*8] = {0};
+
+    firebird_blob *blob = Z_BLOB_P(blob_o);
+
+    if (isc_blob_info(status, &blob->bl_handle, sizeof(bl_items), bl_items, sizeof(bl_inf), bl_inf)) {
+        return FAILURE;
+    }
+
+    struct IMaster* master = fb_get_master_interface();
+    struct IStatus* st = IMaster_getStatus(master);
+    struct IUtil* utl = IMaster_getUtilInterface(master);
+    struct IXpbBuilder* dpb;
+
+    zend_long num_segments = 0, max_segment = 0, total_length = 0, type = 0;
+
+    dpb = IUtil_getXpbBuilder(utl, st, IXpbBuilder_INFO_RESPONSE, bl_inf, sizeof(bl_inf));
+
+    for(IXpbBuilder_rewind(dpb, st); !IXpbBuilder_isEof(dpb, st); IXpbBuilder_moveNext(dpb, st)) {
+        int val = IXpbBuilder_getInt(dpb, st);
+        unsigned char tag = IXpbBuilder_getTag(dpb, st);
+        php_printf("tag: %d = %d\n", tag, val);
+        switch(tag) {
+            case isc_info_blob_num_segments:
+                num_segments = val;
+                break;
+            case isc_info_blob_max_segment:
+                max_segment = val;
+                break;
+            case isc_info_blob_total_length:
+                total_length = val;
+                break;
+            case isc_info_blob_type:
+                type = val;
+                break;
+            case isc_info_end:
+                break;
+            case isc_info_truncated:
+            case isc_info_error:  /* hmm. don't think so...*/
+                _php_firebird_module_fatal("BLOB info buffer error");
+                return FAILURE;
+        }
+    }
+
+    zend_update_property_long(FireBird_Blob_Info_ce, O_SET(blob_info_o, num_segments));
+    zend_update_property_long(FireBird_Blob_Info_ce, O_SET(blob_info_o, max_segment));
+    zend_update_property_long(FireBird_Blob_Info_ce, O_SET(blob_info_o, total_length));
+    zend_update_property_long(FireBird_Blob_Info_ce, O_SET(blob_info_o, type));
+
+    return SUCCESS;
+}
+
+PHP_METHOD(Blob, info)
+{
+    firebird_blob *blob = Z_BLOB_P(ZEND_THIS);
+    ISC_STATUS_ARRAY status;
+
+    object_init_ex(return_value, FireBird_Blob_Info_ce);
+
+    if (blob_info(status, return_value, ZEND_THIS)) {
+        update_err_props(status, FireBird_Blob_ce, ZEND_THIS);
+        zval_ptr_dtor(return_value);
+        RETURN_FALSE;
+    }
+}
+
 const zend_function_entry FireBird_Blob_methods[] = {
     PHP_ME(Blob, __construct, arginfo_none, ZEND_ACC_PRIVATE)
     PHP_ME(Blob, close, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
     PHP_ME(Blob, cancel, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
+    PHP_ME(Blob, info, arginfo_FireBird_Blob_info, ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
 
@@ -313,4 +340,17 @@ void register_FireBird_Blob_ce()
 
     FireBird_Blob_object_handlers.offset = XtOffsetOf(firebird_blob, std);
     FireBird_Blob_object_handlers.free_obj = FireBird_Blob_free_obj;
+}
+
+void register_FireBird_Blob_Info_ce()
+{
+    zend_class_entry tmp_ce;
+
+    INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "Blob_Info", NULL);
+    FireBird_Blob_Info_ce = zend_register_internal_class(&tmp_ce);
+
+    DECLARE_PROP_LONG(FireBird_Blob_Info_ce, num_segments, ZEND_ACC_READONLY);
+    DECLARE_PROP_LONG(FireBird_Blob_Info_ce, max_segment, ZEND_ACC_READONLY);
+    DECLARE_PROP_LONG(FireBird_Blob_Info_ce, total_length, ZEND_ACC_READONLY);
+    DECLARE_PROP_LONG(FireBird_Blob_Info_ce, type, ZEND_ACC_READONLY);
 }

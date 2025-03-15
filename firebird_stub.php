@@ -14,6 +14,14 @@ class Error
     public int $error_code_long { get; }
 }
 
+class Blob_Info
+{
+    public int $num_segments { get; }
+    public int $max_segment { get; }
+    public int $total_length { get; }
+    public int $type { get; }
+}
+
 interface IError
 {
     public string $error_msg { get; }    // Combined multi-line error message from $errors
@@ -130,6 +138,9 @@ class Transaction implements IError
 
     /** @return Blob|false */
     function open_blob(string $id) {}
+
+    /** @return Blob|false */
+    function create_blob() {}
 }
 
 class Statement implements IError
@@ -167,13 +178,17 @@ class Blob implements IError
     /** @return bool */
     function close() {}
 
+    /** @return bool */
+    function cancel() {}
+
+    /** @return Blob_Info|false */
+    function info() {}
+
     // function add() {}
-    // function cancel() {}
     // function create() {}
     // function echo() {}
     // function get() {}
     // function import() {}
-    // function info() {}
     // function open() {}
 }
 
