@@ -116,7 +116,7 @@ typedef struct firebird_blob {
     ISC_LONG max_segment;
     ISC_LONG num_segments;
     ISC_LONG total_length;
-    ISC_LONG type222; // 0 - segmented, 1 - streamed
+    ISC_LONG type; // 0 - segmented, 1 - streamed
 
     unsigned short writable;
 
@@ -396,7 +396,7 @@ int statement_execute(ISC_STATUS_ARRAY status, zval *stmt_o, zval *bind_args, ui
 void declare_props_zmap(zend_class_entry *ce, const firebird_xpb_zmap *xpb_zmap);
 void blob_ctor(firebird_blob *blob, isc_db_handle *db_handle, isc_tr_handle *tr_handle);
 void blob___construct(zval *blob_o, zval *transaction);
-int blob_set_info(ISC_STATUS_ARRAY status, firebird_blob *blob);
+int blob_get_info(ISC_STATUS_ARRAY status, firebird_blob *blob);
 int blob_create(ISC_STATUS_ARRAY status, firebird_blob *blob);
 int blob_open(ISC_STATUS_ARRAY status, firebird_blob *blob);
 int blob_get(ISC_STATUS_ARRAY status, firebird_blob *blob, zval *return_value, zend_ulong max_len);

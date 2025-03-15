@@ -23,7 +23,6 @@
    +----------------------------------------------------------------------+
  */
 
-
 // ibase_blob_add
 // ✅ibase_blob_cancel
 // ✅ibase_blob_close
@@ -190,7 +189,7 @@ PHP_METHOD(Blob, cancel)
     RETURN_TRUE;
 }
 
-int blob_set_info(ISC_STATUS_ARRAY status, firebird_blob *blob)
+int blob_get_info(ISC_STATUS_ARRAY status, firebird_blob *blob)
 {
     static char bl_items[] = {
         isc_info_blob_num_segments,
@@ -211,9 +210,12 @@ int blob_set_info(ISC_STATUS_ARRAY status, firebird_blob *blob)
 
     dpb = IUtil_getXpbBuilder(utl, st, IXpbBuilder_INFO_RESPONSE, bl_inf, sizeof(bl_inf));
 
+    FBDEBUG("Parsing BLOB info buffer");
     for(IXpbBuilder_rewind(dpb, st); !IXpbBuilder_isEof(dpb, st); IXpbBuilder_moveNext(dpb, st)) {
-        int val = IXpbBuilder_getInt(dpb, st);
         unsigned char tag = IXpbBuilder_getTag(dpb, st);
+        int val = IXpbBuilder_getInt(dpb, st);
+        FBDEBUG_NOFL(" tag: %d, val: %d", tag, val);
+
         switch(tag) {
             case isc_info_blob_num_segments:
                 blob->num_segments = val;
@@ -225,7 +227,7 @@ int blob_set_info(ISC_STATUS_ARRAY status, firebird_blob *blob)
                 blob->total_length = val;
                 break;
             case isc_info_blob_type:
-                blob->type222 = val;
+                blob->type = val;
                 break;
             case isc_info_end:
                 break;
@@ -254,7 +256,7 @@ PHP_METHOD(Blob, info)
     zend_update_property_long(FireBird_Blob_Info_ce, Z_OBJ_P(return_value), "num_segments", sizeof("num_segments") - 1, blob->num_segments);
     zend_update_property_long(FireBird_Blob_Info_ce, Z_OBJ_P(return_value), "max_segment", sizeof("max_segment") - 1, blob->max_segment);
     zend_update_property_long(FireBird_Blob_Info_ce, Z_OBJ_P(return_value), "total_length", sizeof("total_length") - 1, blob->total_length);
-    zend_update_property_long(FireBird_Blob_Info_ce, Z_OBJ_P(return_value), "type", sizeof("type") - 1, blob->type222);
+    zend_update_property_long(FireBird_Blob_Info_ce, Z_OBJ_P(return_value), "type", sizeof("type") - 1, blob->type);
 }
 
 int blob_get(ISC_STATUS_ARRAY status, firebird_blob *blob, zval *return_value, zend_ulong max_len)
