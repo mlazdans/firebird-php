@@ -484,10 +484,10 @@ static void _php_firebird_fetch_hash(INTERNAL_FUNCTION_PARAMETERS, int fetch_typ
                         unsigned short i;
 
                         blob_handle.bl_handle = 0;
-                        blob_handle.bl_qd = *(ISC_QUAD *) var->sqldata;
+                        blob_handle.bl_id = *(ISC_QUAD *) var->sqldata;
 
                         if (isc_open_blob(status, stmt->db_handle, stmt->tr_handle,
-                            &blob_handle.bl_handle, &blob_handle.bl_qd)) {
+                            &blob_handle.bl_handle, &blob_handle.bl_id)) {
                                 update_err_props(status, FireBird_Statement_ce, ZEND_THIS);
                                 goto _php_firebird_fetch_error;
                         }
@@ -531,8 +531,8 @@ static void _php_firebird_fetch_hash(INTERNAL_FUNCTION_PARAMETERS, int fetch_typ
                         }
 
                     } else { /* blob id only */
-                        ISC_QUAD bl_qd = *(ISC_QUAD *) var->sqldata;
-                        ZVAL_NEW_STR(&result, _php_firebird_quad_to_string(bl_qd));
+                        ISC_QUAD bl_id = *(ISC_QUAD *) var->sqldata;
+                        ZVAL_NEW_STR(&result, _php_firebird_quad_to_string(bl_id));
                     }
                     break;
                 case SQL_ARRAY:
@@ -874,9 +874,12 @@ static int statement_bind(ISC_STATUS_ARRAY status, zval *stmt_o, XSQLDA *sqlda, 
                 if (Z_STRLEN_P(b_var) != BLOB_ID_LEN ||
                     !_php_firebird_string_to_quad(Z_STRVAL_P(b_var), &stmt->bind_buf[i].val.qval)) {
 
-                    firebird_blob ib_blob = { 0, BLOB_INPUT };
+                    firebird_blob ib_blob = {
+                        .bl_handle = 0,
+                        .type = BLOB_INPUT
+                    };
 
-                    if (isc_create_blob(status, stmt->db_handle, stmt->tr_handle, &ib_blob.bl_handle, &ib_blob.bl_qd)) {
+                    if (isc_create_blob(status, stmt->db_handle, stmt->tr_handle, &ib_blob.bl_handle, &ib_blob.bl_id)) {
                         return FAILURE;
                     }
 
@@ -888,7 +891,7 @@ static int statement_bind(ISC_STATUS_ARRAY status, zval *stmt_o, XSQLDA *sqlda, 
                         return FAILURE;
                     }
 
-                    stmt->bind_buf[i].val.qval = ib_blob.bl_qd;
+                    stmt->bind_buf[i].val.qval = ib_blob.bl_id;
                 }
                 continue;
 #ifdef SQL_BOOLEAN

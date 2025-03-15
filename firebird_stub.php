@@ -127,11 +127,16 @@ class Transaction implements IError
 
     /** @return Statement|false */
     function prepare(string $sql) {}
+
+    /** @return Blob|false */
+    function open_blob(string $id) {}
 }
 
 class Statement implements IError
 {
     use FB_Error;
+
+    protected(set) Transaction $transaction;
 
     private function __construct() {}
 
@@ -151,6 +156,25 @@ class Statement implements IError
     function close() {}
 }
 
+class Blob
+{
+    use FB_Error;
+
+    protected(set) Transaction $transaction;
+
+    private function __construct() {}
+
+    // function add() {}
+    // function cancel() {}
+    // function close() {}
+    // function create() {}
+    // function echo() {}
+    // function get() {}
+    // function import() {}
+    // function info() {}
+    // function open() {}
+}
+
 namespace FireBird\Transaction;
 const WRITE          = 1;
 const READ           = 2;
@@ -162,18 +186,6 @@ const REC_NO_VERSION = 32;
 const NOWAIT         = 256;
 const WAIT           = 128;
 const LOCK_TIMEOUT   = 512;
-
-// class Blob {
-//     function add() {}
-//     function cancel() {}
-//     function close() {}
-//     function create() {}
-//     function echo() {}
-//     function get() {}
-//     function import() {}
-//     function info() {}
-//     function open() {}
-// }
 
 // class Event {
 // }

@@ -174,6 +174,47 @@ PHP_METHOD(Transaction, query)
     // }
 }
 
+int blob_open(ISC_STATUS_ARRAY status, zval *blob_o, const char *id_str)
+{
+    firebird_blob *blob = Z_BLOB_P(blob_o);
+    // char bpb[] = {1,2,2,-4,-1,1,2,1,0};
+    // char blr_bpb[] = {
+    //     isc_bpb_version1,
+    //     isc_bpb_source_type, 1, isc_blob_blr,
+    //     isc_bpb_target_type, 1, isc_blob_blr
+    // };
+
+    if (!_php_firebird_string_to_quad(id_str, &blob->bl_id)) {
+        zend_throw_exception_ex(zend_ce_value_error, 0, "String is not a BLOB ID");
+    }
+
+    // if (isc_open_blob2(status, blob->db_handle, blob->tr_handle, &blob->bl_handle, &blob->bl_id, sizeof(blr_bpb), blr_bpb))
+    if (isc_open_blob(status, blob->db_handle, blob->tr_handle, &blob->bl_handle, &blob->bl_id)) {
+        return FAILURE;
+    }
+
+    return SUCCESS;
+}
+
+PHP_METHOD(Transaction, open_blob)
+{
+    zend_string *id;
+    ISC_STATUS_ARRAY status;
+
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+        Z_PARAM_STR(id)
+    ZEND_PARSE_PARAMETERS_END();
+
+    object_init_ex(return_value, FireBird_Blob_ce);
+    blob_ctor(return_value, ZEND_THIS);
+
+    if (FAILURE == blob_open(status, return_value, ZSTR_VAL(id))) {
+        update_err_props(status, FireBird_Transaction_ce, ZEND_THIS);
+        zval_ptr_dtor(return_value);
+        RETURN_FALSE;
+    }
+}
+
 const zend_function_entry FireBird_Transaction_methods[] = {
     PHP_ME(Transaction, __construct, arginfo_none, ZEND_ACC_PRIVATE)
     PHP_ME(Transaction, start, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
@@ -183,6 +224,7 @@ const zend_function_entry FireBird_Transaction_methods[] = {
     PHP_ME(Transaction, rollback_ret, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
     PHP_ME(Transaction, prepare, arginfo_FireBird_Transaction_prepare, ZEND_ACC_PUBLIC)
     PHP_ME(Transaction, query, arginfo_FireBird_Transaction_query, ZEND_ACC_PUBLIC)
+    PHP_ME(Transaction, open_blob, arginfo_FireBird_Transaction_open_blob, ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
 

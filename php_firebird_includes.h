@@ -107,16 +107,19 @@ typedef struct firebird_stmt {
     zend_object std;
 } firebird_stmt;
 
+typedef struct firebird_blob {
+    isc_blob_handle bl_handle;
+    isc_db_handle *db_handle;
+    isc_tr_handle *tr_handle;
+    unsigned short type;
+    ISC_QUAD bl_id;
+    zend_object std;
+} firebird_blob;
+
 typedef struct firebird_vary {
     unsigned short vary_length;
     char vary_string[1];
 } firebird_vary;
-
-typedef struct firebird_blob {
-    isc_blob_handle bl_handle;
-    unsigned short type;
-    ISC_QUAD bl_qd;
-} firebird_blob;
 
 typedef struct firebird_blobinfo {
     ISC_LONG  max_segment;  // Length of longest segment
@@ -245,9 +248,13 @@ void _php_firebird_module_fatal(char *, ...)
 #define Z_DB_O(zobj) \
     ((firebird_db*)((char*)(zobj) - XtOffsetOf(firebird_db, std)))
 
+#define Z_BLOB_O(zobj) \
+    ((firebird_blob*)((char*)(zobj) - XtOffsetOf(firebird_blob, std)))
+
 #define Z_TRANSACTION_P(zv) Z_TRANSACTION_O(Z_OBJ_P(zv))
 #define Z_STMT_P(zv) Z_STMT_O(Z_OBJ_P(zv))
 #define Z_DB_P(zv) Z_DB_O(Z_OBJ_P(zv))
+#define Z_BLOB_P(zv) Z_BLOB_O(Z_OBJ_P(zv))
 
 // General argument types
 ZEND_BEGIN_ARG_INFO_EX(arginfo_none, 0, 0, 0)
@@ -281,6 +288,10 @@ ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Transacti
     ZEND_ARG_VARIADIC_INFO(0, bind_args)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Transaction_open_blob, 0, 1, FireBird\\Blob, MAY_BE_FALSE)
+    ZEND_ARG_TYPE_INFO(0, id, IS_STRING, 0)
+ZEND_END_ARG_INFO()
+
 // Statement argument types
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_FireBird_Statement_fetch_row, 0, 0, MAY_BE_ARRAY|MAY_BE_FALSE|MAY_BE_NULL)
     ZEND_ARG_TYPE_INFO(0, flags, IS_LONG, 0)
@@ -304,6 +315,7 @@ extern zend_class_entry *FireBird_Transaction_ce;
 extern zend_class_entry *FireBird_Statement_ce;
 extern zend_class_entry *FireBird_IError_ce;
 extern zend_class_entry *FireBird_Error_ce;
+extern zend_class_entry *FireBird_Blob_ce;
 
 extern void register_FireBird_Database_ce();
 extern void register_FireBird_Connection_ce();
@@ -313,6 +325,7 @@ extern void register_FireBird_IError_ce();
 extern void register_FireBird_Error_ce();
 extern void register_FireBird_Connect_Args_ce();
 extern void register_FireBird_Create_Args_ce();
+extern void register_FireBird_Blob_ce();
 
 // TODO: fb_sqlstate()
 #define DECLARE_FERR_PROPS(ce)                                  \
@@ -355,6 +368,7 @@ void statement_ctor(zval *stmt_o, zval *transaction);
 int statement_prepare(ISC_STATUS_ARRAY status, zval *stmt_o, const ISC_SCHAR *sql);
 int statement_execute(ISC_STATUS_ARRAY status, zval *stmt_o, zval *bind_args, uint32_t num_bind_args);
 void declare_props_zmap(zend_class_entry *ce, const firebird_xpb_zmap *xpb_zmap);
+void blob_ctor(zval *blob_o, zval *transaction);
 
 #define update_err_props(status, ce, obj) update_err_props_ex(status, ce, obj, __FILE__, __LINE__)
 #define update_ferr_props(ce, obj, error_msg, error_msg_len, error_code, error_code_long)                      \

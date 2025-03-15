@@ -23,16 +23,37 @@
    +----------------------------------------------------------------------+
  */
 
-#ifdef HAVE_CONFIG_H
-#include "config.h"
-#endif
+
+// ibase_blob_add    - Add data into a newly created blob
+// ibase_blob_cancel - Cancel creating blob
+// ibase_blob_close  - Close blob
+// ibase_blob_create - Create a new blob for adding data
+// ibase_blob_echo   - Output blob contents to browser
+// ibase_blob_get    - Get len bytes data from open blob
+// ibase_blob_import - Create blob, copy file in it, and close it
+// ibase_blob_info   - Return blob length and other useful info
+// ibase_blob_open   - Open blob for retrieving data parts
 
 #include "php.h"
 #include "php_firebird.h"
 #include "php_firebird_includes.h"
 
+zend_class_entry *FireBird_Blob_ce;
+static zend_object_handlers FireBird_Blob_object_handlers;
+
 #define BLOB_CLOSE  1
 #define BLOB_CANCEL 2
+
+void blob_ctor(zval *blob_o, zval *transaction)
+{
+    zend_update_property(FireBird_Blob_ce, O_SET(blob_o, transaction));
+
+    firebird_blob *blob = Z_BLOB_P(blob_o);
+    firebird_trans *tr = Z_TRANSACTION_P(transaction);
+
+    blob->db_handle = tr->db_handle;
+    blob->tr_handle = &tr->tr_handle;
+}
 
 static void _php_firebird_free_blob(zend_resource *rsrc, ISC_STATUS_ARRAY status)
 {
@@ -76,7 +97,7 @@ zend_string *_php_firebird_quad_to_string(ISC_QUAD const qd)
 
 int _php_firebird_blob_get(ISC_STATUS_ARRAY status, zval *return_value, firebird_blob *ib_blob, zend_ulong max_len)
 {
-    if (ib_blob->bl_qd.gds_quad_high || ib_blob->bl_qd.gds_quad_low) { /*not null ?*/
+    if (ib_blob->bl_id.gds_quad_high || ib_blob->bl_id.gds_quad_low) { /*not null ?*/
 
         ISC_STATUS stat;
         zend_string *bl_data;
@@ -189,14 +210,14 @@ static int _php_firebird_blob_info(isc_blob_handle bl_handle, firebird_blobinfo 
 
 //     if (bl_end == BLOB_CLOSE) { /* return id here */
 
-//         if (ib_blob->bl_qd.gds_quad_high || ib_blob->bl_qd.gds_quad_low) { /*not null ?*/
+//         if (ib_blob->bl_id.gds_quad_high || ib_blob->bl_id.gds_quad_low) { /*not null ?*/
 //             if (isc_close_blob(status, &ib_blob->bl_handle)) {
 //                 RETURN_FALSE;
 //             }
 //         }
 //         ib_blob->bl_handle = 0;
 
-//         RETVAL_NEW_STR(_php_firebird_quad_to_string(ib_blob->bl_qd));
+//         RETVAL_NEW_STR(_php_firebird_quad_to_string(ib_blob->bl_id));
 //     } else { /* discard created blob */
 //         if (isc_cancel_blob(status, &ib_blob->bl_handle)) {
 //             RETURN_FALSE;
@@ -206,3 +227,62 @@ static int _php_firebird_blob_info(isc_blob_handle bl_handle, firebird_blobinfo 
 //     }
 //     zend_list_delete(Z_RES_P(blob_arg));
 // }
+
+PHP_METHOD(Blob, __construct)
+{
+}
+
+const zend_function_entry FireBird_Blob_methods[] = {
+    PHP_ME(Blob, __construct, arginfo_none, ZEND_ACC_PRIVATE)
+    PHP_FE_END
+};
+
+static zend_object *FireBird_Blob_create(zend_class_entry *ce)
+{
+    FBDEBUG("FireBird_Blob_create()");
+
+    firebird_blob *s = zend_object_alloc(sizeof(firebird_blob), ce);
+
+    zend_object_std_init(&s->std, ce);
+    object_properties_init(&s->std, ce);
+
+    return &s->std;
+}
+
+static void FireBird_Blob_free_obj(zend_object *obj)
+{
+    FBDEBUG("FireBird_Blob_free_obj");
+
+    firebird_blob *blob = Z_BLOB_O(obj);
+
+    if (blob->bl_handle) {
+        ISC_STATUS_ARRAY status;
+        if (isc_close_blob(status, &blob->bl_handle)) {
+            // TODO: report errors?
+        } else {
+            blob->bl_handle = 0;
+        }
+    }
+
+    zend_object_std_dtor(&blob->std);
+}
+
+void register_FireBird_Blob_ce()
+{
+    zend_class_entry tmp_ce;
+    INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "Blob", FireBird_Blob_methods);
+    FireBird_Blob_ce = zend_register_internal_class(&tmp_ce);
+
+    DECLARE_PROP_OBJ(FireBird_Blob_ce, transaction, FireBird\\Transaction, ZEND_ACC_PROTECTED_SET);
+    DECLARE_ERR_PROPS(FireBird_Blob_ce);
+
+    zend_class_implements(FireBird_Blob_ce, 1, FireBird_IError_ce);
+
+    FireBird_Blob_ce->create_object = FireBird_Blob_create;
+    FireBird_Blob_ce->default_object_handlers = &FireBird_Blob_object_handlers;
+
+    memcpy(&FireBird_Blob_object_handlers, &std_object_handlers, sizeof(zend_object_handlers));
+
+    FireBird_Blob_object_handlers.offset = XtOffsetOf(firebird_blob, std);
+    FireBird_Blob_object_handlers.free_obj = FireBird_Blob_free_obj;
+}
