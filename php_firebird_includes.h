@@ -122,12 +122,12 @@ typedef struct firebird_vary {
     char vary_string[1];
 } firebird_vary;
 
-typedef struct firebird_blobinfo {
-    ISC_LONG  max_segment;  // Length of longest segment
-    ISC_LONG  num_segments; // Total number of segments
-    ISC_LONG  total_length; // Total length of blob
-    int       bl_stream;    // blob is stream ?
-} firebird_blobinfo;
+typedef struct firebird_blob_info {
+    ISC_LONG max_segment;
+    ISC_LONG num_segments;
+    ISC_LONG total_length;
+    ISC_LONG type;
+} firebird_blob_info;
 
 typedef struct firebird_xpb_zmap {
     const char *tags, **names;
