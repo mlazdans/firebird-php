@@ -28,7 +28,6 @@
 // ✅ibase_blob_cancel
 // ✅ibase_blob_close
 // ✅ibase_blob_create
-// ibase_blob_echo
 // ✅ibase_blob_get
 // ibase_blob_import
 // ✅ibase_blob_info
