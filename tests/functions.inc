@@ -90,17 +90,17 @@ function rand_number($len , $prec = -1, $sign = 1)
 function print_error(string $cat, \FireBird\IError $o): void
 {
     print "===============================================================================\n";
-    printf("ERROR [$cat] $o->error_file:$o->error_lineno\n");
-    if(isset($o->ext_error_line)) {
-        print "at $o->ext_error_line\n";
-    }
+    if(isset($o->errors)){
+        printf("ERROR [$cat] $o->error_file:$o->error_lineno\n");
+        if(isset($o->ext_error_line)) {
+            print "at $o->ext_error_line\n";
+        }
 
-    if($o->errors){
         foreach($o->errors as $i=>$e) {
             printf("$i: $e->error_code_long ($e->error_code) $e->error_msg\n");
         }
     } else {
-        printf("-no error msg-\n");
+        printf("ERROR [$cat] -no error information-\n");
     }
     print "===============================================================================\n";
 }
