@@ -144,43 +144,40 @@ static PHP_INI_DISP(php_firebird_trans_displayer)
         value = NULL;
     }
 
-    if (value) {
-        zend_long trans_argl = atol(value);
-
-        if (trans_argl != PHP_FIREBIRD_DEFAULT) {
-            /* access mode */
-            if (PHP_FIREBIRD_READ == (trans_argl & PHP_FIREBIRD_READ)) {
-                PUTS_TP("FIREBIRD_READ");
-            } else if (PHP_FIREBIRD_WRITE == (trans_argl & PHP_FIREBIRD_WRITE)) {
-                PUTS_TP("FIREBIRD_WRITE");
-            }
-
-            /* isolation level */
-            if (PHP_FIREBIRD_COMMITTED == (trans_argl & PHP_FIREBIRD_COMMITTED)) {
-                PUTS_TP("FIREBIRD_COMMITTED");
-                if (PHP_FIREBIRD_REC_VERSION == (trans_argl & PHP_FIREBIRD_REC_VERSION)) {
-                    PUTS_TP("FIREBIRD_REC_VERSION");
-                } else if (PHP_FIREBIRD_REC_NO_VERSION == (trans_argl & PHP_FIREBIRD_REC_NO_VERSION)) {
-                    PUTS_TP("FIREBIRD_REC_NO_VERSION");
-                }
-            } else if (PHP_FIREBIRD_CONSISTENCY == (trans_argl & PHP_FIREBIRD_CONSISTENCY)) {
-                PUTS_TP("FIREBIRD_CONSISTENCY");
-            } else if (PHP_FIREBIRD_CONCURRENCY == (trans_argl & PHP_FIREBIRD_CONCURRENCY)) {
-                PUTS_TP("FIREBIRD_CONCURRENCY");
-            }
-
-            /* lock resolution */
-            if (PHP_FIREBIRD_NOWAIT == (trans_argl & PHP_FIREBIRD_NOWAIT)) {
-                PUTS_TP("FIREBIRD_NOWAIT");
-            } else if (PHP_FIREBIRD_WAIT == (trans_argl & PHP_FIREBIRD_WAIT)) {
-                PUTS_TP("FIREBIRD_WAIT");
-                if (PHP_FIREBIRD_LOCK_TIMEOUT == (trans_argl & PHP_FIREBIRD_LOCK_TIMEOUT)) {
-                    PUTS_TP("FIREBIRD_LOCK_TIMEOUT");
-                }
-            }
-        } else {
-            PUTS_TP("FIREBIRD_DEFAULT");
+    zend_long trans_argl;
+    if (value && (trans_argl = atol(value))) {
+        /* access mode */
+        if (PHP_FIREBIRD_READ == (trans_argl & PHP_FIREBIRD_READ)) {
+            PUTS_TP("FIREBIRD_READ");
+        } else if (PHP_FIREBIRD_WRITE == (trans_argl & PHP_FIREBIRD_WRITE)) {
+            PUTS_TP("FIREBIRD_WRITE");
         }
+
+        /* isolation level */
+        if (PHP_FIREBIRD_COMMITTED == (trans_argl & PHP_FIREBIRD_COMMITTED)) {
+            PUTS_TP("FIREBIRD_COMMITTED");
+            if (PHP_FIREBIRD_REC_VERSION == (trans_argl & PHP_FIREBIRD_REC_VERSION)) {
+                PUTS_TP("FIREBIRD_REC_VERSION");
+            } else if (PHP_FIREBIRD_REC_NO_VERSION == (trans_argl & PHP_FIREBIRD_REC_NO_VERSION)) {
+                PUTS_TP("FIREBIRD_REC_NO_VERSION");
+            }
+        } else if (PHP_FIREBIRD_CONSISTENCY == (trans_argl & PHP_FIREBIRD_CONSISTENCY)) {
+            PUTS_TP("FIREBIRD_CONSISTENCY");
+        } else if (PHP_FIREBIRD_CONCURRENCY == (trans_argl & PHP_FIREBIRD_CONCURRENCY)) {
+            PUTS_TP("FIREBIRD_CONCURRENCY");
+        }
+
+        /* lock resolution */
+        if (PHP_FIREBIRD_NOWAIT == (trans_argl & PHP_FIREBIRD_NOWAIT)) {
+            PUTS_TP("FIREBIRD_NOWAIT");
+        } else if (PHP_FIREBIRD_WAIT == (trans_argl & PHP_FIREBIRD_WAIT)) {
+            PUTS_TP("FIREBIRD_WAIT");
+            if (PHP_FIREBIRD_LOCK_TIMEOUT == (trans_argl & PHP_FIREBIRD_LOCK_TIMEOUT)) {
+                PUTS_TP("FIREBIRD_LOCK_TIMEOUT");
+            }
+        }
+    } else {
+        PUTS_TP("FIREBIRD_DEFAULT");
     }
 }
 

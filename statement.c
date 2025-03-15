@@ -37,13 +37,6 @@ void statement_ctor(zval *stmt_o, zval *transaction)
 
 PHP_METHOD(Statement, __construct)
 {
-    // zval *transaction = NULL;
-
-    // ZEND_PARSE_PARAMETERS_START(1, 1)
-    //     Z_PARAM_OBJECT_OF_CLASS(transaction, FireBird_Transaction_ce)
-    // ZEND_PARSE_PARAMETERS_END();
-
-    // statement_ctor(ZEND_THIS, transaction);
 }
 
 PHP_METHOD(Statement, fetch_row)
@@ -160,24 +153,11 @@ int statement_prepare(ISC_STATUS_ARRAY status, zval *stmt_o, const ISC_SCHAR *sq
         return FAILURE;
     }
 
-    // EngineCallbackGuard guard(tdbb, *this, FB_FUNCTION);
-    // const int len = m_iscProvider.isc_vax_integer(&info_buff[1], 2);
-    // const int stmt_type = m_iscProvider.isc_vax_integer(&info_buff[3], len);
+    // Do we need isc_portable_integer or accessing directly result[3] is fine?
+    // int len = isc_portable_integer(&result[1], 2);
+    // int st = isc_portable_integer(&result[3], len);
 
-    // m_stmt_selectable = (stmt_type == isc_info_sql_stmt_select ||
-    //     stmt_type == isc_info_sql_stmt_select_for_upd);
-
-    // if (stmt_type == isc_info_sql_stmt_start_trans ||
-    //     stmt_type == isc_info_sql_stmt_commit ||
-    //     stmt_type == isc_info_sql_stmt_rollback)
-    // {
-    //     ERR_build_status(&status, Arg::Gds(isc_eds_expl_tran_ctrl));
-
-    //     sWhereError = "isc_dsql_prepare";
-    //     raise(&status, tdbb, sWhereError, &sql);
-    // }
-
-    stmt->statement_type = result[3]; // TODO: should properly parse with length and vax
+    stmt->statement_type = result[3];
     stmt->query = sql;
 
     return SUCCESS;

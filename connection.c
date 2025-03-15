@@ -18,11 +18,6 @@ PHP_METHOD(Connection, new_transaction) {
     object_init_ex(return_value, FireBird_Transaction_ce);
 
     transaction_ctor(return_value, ZEND_THIS, trans_args, lock_timeout);
-    // if(FAILURE == transaction_start(status, return_value)) {
-    //     zval_ptr_dtor(return_value);
-    //     update_err_props(status, FireBird_Connection_ce, ZEND_THIS);
-    //     RETURN_FALSE;
-    // }
 }
 
 void connection_ctor(zval *conn_o, zval *database)

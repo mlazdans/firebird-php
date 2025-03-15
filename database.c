@@ -290,8 +290,6 @@ int database_build_dpb(zend_class_entry *ce, zval *args_o, const firebird_xpb_zm
     dpb_insert_string(isc_dpb_set_bind, "int128 to varchar;decfloat to varchar");
 #endif
 
-    // dump_buffer((unsigned char *)IXpbBuilder_getBuffer(dpb, st), IXpbBuilder_getBufferLength(dpb, st));
-
     *num_dpb_written = IXpbBuilder_getBufferLength(dpb, st);
     *dpb_buf = IXpbBuilder_getBuffer(dpb, st);
 

@@ -153,9 +153,6 @@ _Static_assert(ARRAY_SIZE(t) == ARRAY_SIZE(n) && ARRAY_SIZE(n) == ARRAY_SIZE(z),
 // } firebird_event;
 
 enum php_firebird_option {
-    PHP_FIREBIRD_DEFAULT            = 0,
-    PHP_FIREBIRD_CREATE             = 0,
-
     /* fetch flags */
     PHP_FIREBIRD_FETCH_BLOBS        = 1,
     PHP_FIREBIRD_FETCH_ARRAYS       = 2,
@@ -178,7 +175,7 @@ enum php_firebird_option {
         PHP_FIREBIRD_LOCK_TIMEOUT   = 512,
 };
 
-#define IBG(v) ZEND_MODULE_GLOBALS_ACCESSOR(firebird, v)
+// #define IBG(v) ZEND_MODULE_GLOBALS_ACCESSOR(firebird, v)
 
 #if defined(ZTS) && defined(COMPILE_DL_FIREBIRD)
 ZEND_TSRMLS_CACHE_EXTERN()
@@ -274,13 +271,6 @@ ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Database_
 ZEND_END_ARG_INFO()
 
 // Connection argument types
-// ZEND_BEGIN_ARG_INFO_EX(arginfo_FireBird_Connection_construct, 0, 0, 1)
-//     ZEND_ARG_OBJ_INFO(0, args, FireBird\\Connect_Args, 0)
-// ZEND_END_ARG_INFO()
-
-// ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Connection_connect, 0, 0, FireBird\\Connection, MAY_BE_FALSE)
-// ZEND_END_ARG_INFO()
-
 ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Connection_new_transaction, 0, 0, FireBird\\Transaction, MAY_BE_FALSE)
     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, trans_args, IS_LONG, 1, 0)
     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, lock_timeout, IS_LONG, 1, 0)
