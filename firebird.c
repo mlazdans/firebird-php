@@ -181,6 +181,22 @@ static PHP_INI_DISP(php_firebird_trans_displayer)
     }
 }
 
+ZEND_INI_MH(OnUpdateDebug)
+{
+	int *p;
+	zend_long tmp;
+
+	tmp = zend_ini_parse_quantity_warn(new_value, entry->name);
+	if (tmp < 0 || tmp > INT_MAX) {
+		return FAILURE;
+	}
+
+	p = (int *) ZEND_INI_GET_ADDR();
+	*p = (int) tmp;
+
+	return SUCCESS;
+}
+
 /* {{{ startup, shutdown and info functions */
 PHP_INI_BEGIN()
     // PHP_INI_ENTRY_EX("ibase.allow_persistent", "1", PHP_INI_SYSTEM, NULL, zend_ini_boolean_displayer_cb)
@@ -189,6 +205,9 @@ PHP_INI_BEGIN()
     // PHP_INI_ENTRY("ibase.default_db", NULL, PHP_INI_SYSTEM, NULL)
     // PHP_INI_ENTRY("ibase.default_user", NULL, PHP_INI_ALL, NULL)
     // PHP_INI_ENTRY_EX("ibase.default_password", NULL, PHP_INI_ALL, NULL, php_firebird_password_displayer_cb)
+
+    // ZEND_INI_ENTRY(name, default_value, modifiable, on_modify)
+    STD_PHP_INI_ENTRY("firebird.debug", "0", PHP_INI_ALL, OnUpdateDebug, debug, zend_firebird_globals, firebird_globals)
     PHP_INI_ENTRY("firebird.default_charset", NULL, PHP_INI_ALL, NULL)
     PHP_INI_ENTRY("firebird.timestampformat", FIREBIRD_DATE_FMT " " FIREBIRD_TIME_FMT, PHP_INI_ALL, NULL)
     PHP_INI_ENTRY("firebird.dateformat", FIREBIRD_DATE_FMT, PHP_INI_ALL, NULL)

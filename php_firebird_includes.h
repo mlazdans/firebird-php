@@ -41,7 +41,7 @@
 #define TPB_MAX_SIZE (8*sizeof(char))
 
 #ifdef FIREBIRD_DEBUG
-#define FBDEBUG(format, ...) php_printf(format " (%s:%d)\n" __VA_OPT__(,) __VA_ARGS__, __FILE__, __LINE__);
+#define FBDEBUG(format, ...) if(FBG(debug))php_printf(format " (%s:%d)\n" __VA_OPT__(,) __VA_ARGS__, __FILE__, __LINE__);
 #else
 #define FBDEBUG(args...)
 #endif
@@ -52,6 +52,7 @@
 #define ARRAY_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
 ZEND_BEGIN_MODULE_GLOBALS(firebird)
+    bool debug;
     zend_long default_trans_params;
     zend_long default_lock_timeout; // only used togetger with trans_param IBASE_LOCK_TIMEOUT
 ZEND_END_MODULE_GLOBALS(firebird)
@@ -178,7 +179,7 @@ enum php_firebird_option {
         PHP_FIREBIRD_LOCK_TIMEOUT   = 512,
 };
 
-// #define IBG(v) ZEND_MODULE_GLOBALS_ACCESSOR(firebird, v)
+#define FBG(v) ZEND_MODULE_GLOBALS_ACCESSOR(firebird, v)
 
 #if defined(ZTS) && defined(COMPILE_DL_FIREBIRD)
 ZEND_TSRMLS_CACHE_EXTERN()
