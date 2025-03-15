@@ -206,35 +206,19 @@ void register_FireBird_Database_ce()
     FireBird_Database_object_handlers.free_obj = FireBird_Database_free_obj;
 }
 
-#define dpb_insert(f, ...) do { \
-    IXpbBuilder_insert##f(__VA_ARGS__); \
-    if (IStatus_getState(st) & IStatus_STATE_ERRORS) { \
-        char msg[1024] = {0}; \
-        status_err_msg(IStatus_getErrors(st), msg, sizeof(msg)); \
-        _php_firebird_module_error(msg); \
-        return FAILURE; \
-    } \
-} while(0)
-
-#define dpb_insert_true(tag) dpb_insert(Int, dpb, st, tag, (char)1)
-#define dpb_insert_false(tag) dpb_insert(Int, dpb, st, tag, (char)0)
-#define dpb_insert_int(tag, value) dpb_insert(Int, dpb, st, tag, value)
-#define dpb_insert_string(tag, value) dpb_insert(String, dpb, st, tag, value)
-#define dpb_insert_tag(tag) dpb_insert(Tag, dpb, st, tag)
-
 int database_build_dpb(zend_class_entry *ce, zval *args_o, const firebird_xpb_zmap *xpb_zmap, const char **dpb_buf, short *num_dpb_written)
 {
     struct IMaster* master = fb_get_master_interface();
     struct IStatus* st = IMaster_getStatus(master);
     struct IUtil* utl = IMaster_getUtilInterface(master);
-    struct IXpbBuilder* dpb = IUtil_getXpbBuilder(utl, st, IXpbBuilder_DPB, NULL, 0);
+    struct IXpbBuilder* xpb = IUtil_getXpbBuilder(utl, st, IXpbBuilder_DPB, NULL, 0);
     zend_property_info *prop_info = NULL;
     zend_string *prop_name = NULL;
     zval rv, *val, *checkval;
     int i;
 
-    dpb_insert_tag(isc_dpb_version2);
-    dpb_insert_int(isc_dpb_sql_dialect, SQL_DIALECT_CURRENT);
+    xpb_insert_tag(isc_dpb_version2);
+    xpb_insert_int(isc_dpb_sql_dialect, SQL_DIALECT_CURRENT);
     for (int i = 0; i < xpb_zmap->count; i++) {
         prop_name = zend_string_init(xpb_zmap->names[i], strlen(xpb_zmap->names[i]), 1);
 
@@ -261,19 +245,19 @@ int database_build_dpb(zend_class_entry *ce, zval *args_o, const firebird_xpb_zm
         switch (Z_TYPE_P(val)) {
             case IS_STRING:
                 FBDEBUG("property: %s is string: `%s`", xpb_zmap->names[i], Z_STRVAL_P(val));
-                dpb_insert_string(xpb_zmap->tags[i], Z_STRVAL_P(val));
+                xpb_insert_string(xpb_zmap->tags[i], Z_STRVAL_P(val));
                 break;
             case IS_LONG:
                 FBDEBUG("property: %s is long: `%u`", xpb_zmap->names[i], Z_LVAL_P(val));
-                dpb_insert_int(xpb_zmap->tags[i], (int)Z_LVAL_P(val));
+                xpb_insert_int(xpb_zmap->tags[i], (int)Z_LVAL_P(val));
                 break;
             case IS_TRUE:
                 FBDEBUG("property: %s is true", xpb_zmap->names[i]);
-                dpb_insert_true(xpb_zmap->tags[i]);
+                xpb_insert_true(xpb_zmap->tags[i]);
                 break;
             case IS_FALSE:
                 FBDEBUG("property: %s is false", xpb_zmap->names[i]);
-                dpb_insert_false(xpb_zmap->tags[i]);
+                xpb_insert_false(xpb_zmap->tags[i]);
                 break;
             case IS_NULL:
                 FBDEBUG("property: %s is null", xpb_zmap->names[i]);
@@ -287,11 +271,11 @@ int database_build_dpb(zend_class_entry *ce, zval *args_o, const firebird_xpb_zm
 
 #if FB_API_VER >= 40
     // Do not handle directly INT128 or DECFLOAT, convert to VARCHAR at server instead
-    dpb_insert_string(isc_dpb_set_bind, "int128 to varchar;decfloat to varchar");
+    xpb_insert_string(isc_dpb_set_bind, "int128 to varchar;decfloat to varchar");
 #endif
 
-    *num_dpb_written = IXpbBuilder_getBufferLength(dpb, st);
-    *dpb_buf = IXpbBuilder_getBuffer(dpb, st);
+    *num_dpb_written = IXpbBuilder_getBufferLength(xpb, st);
+    *dpb_buf = IXpbBuilder_getBuffer(xpb, st);
 
     return SUCCESS;
 }

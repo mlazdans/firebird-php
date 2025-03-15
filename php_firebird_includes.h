@@ -253,6 +253,22 @@ void _php_firebird_module_fatal(char *, ...)
 #define Z_DB_P(zv) Z_DB_O(Z_OBJ_P(zv))
 #define Z_BLOB_P(zv) Z_BLOB_O(Z_OBJ_P(zv))
 
+#define xpb_insert(f, ...) do { \
+    IXpbBuilder_insert##f(__VA_ARGS__); \
+    if (IStatus_getState(st) & IStatus_STATE_ERRORS) { \
+        char _st_msg[1024] = {0}; \
+        status_err_msg(IStatus_getErrors(st), _st_msg, sizeof(_st_msg)); \
+        _php_firebird_module_error(_st_msg); \
+        return FAILURE; \
+    } \
+} while(0)
+
+#define xpb_insert_true(tag) xpb_insert(Int, xpb, st, tag, (char)1)
+#define xpb_insert_false(tag) xpb_insert(Int, xpb, st, tag, (char)0)
+#define xpb_insert_int(tag, value) xpb_insert(Int, xpb, st, tag, value)
+#define xpb_insert_string(tag, value) xpb_insert(String, xpb, st, tag, value)
+#define xpb_insert_tag(tag) xpb_insert(Tag, xpb, st, tag)
+
 // General argument types
 ZEND_BEGIN_ARG_INFO_EX(arginfo_none, 0, 0, 0)
 ZEND_END_ARG_INFO()
