@@ -232,8 +232,22 @@ PHP_METHOD(Blob, __construct)
 {
 }
 
+PHP_METHOD(Blob, close)
+{
+    firebird_blob *blob = Z_BLOB_P(ZEND_THIS);
+    ISC_STATUS_ARRAY status;
+
+    if (isc_close_blob(status, &blob->bl_handle)) {
+        update_err_props(status, FireBird_Blob_ce, ZEND_THIS);
+        RETURN_FALSE;
+    }
+
+    RETURN_TRUE;
+}
+
 const zend_function_entry FireBird_Blob_methods[] = {
     PHP_ME(Blob, __construct, arginfo_none, ZEND_ACC_PRIVATE)
+    PHP_ME(Blob, close, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
 

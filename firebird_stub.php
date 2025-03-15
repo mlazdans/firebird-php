@@ -156,7 +156,7 @@ class Statement implements IError
     function close() {}
 }
 
-class Blob
+class Blob implements IError
 {
     use FB_Error;
 
@@ -164,9 +164,11 @@ class Blob
 
     private function __construct() {}
 
+    /** @return bool */
+    function close() {}
+
     // function add() {}
     // function cancel() {}
-    // function close() {}
     // function create() {}
     // function echo() {}
     // function get() {}
