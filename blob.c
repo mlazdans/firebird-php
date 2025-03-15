@@ -384,7 +384,13 @@ void register_FireBird_Blob_Info_ce()
 
 int blob_create(ISC_STATUS_ARRAY status, firebird_blob *blob)
 {
-    if (isc_create_blob(status, blob->db_handle, blob->tr_handle, &blob->bl_handle, &blob->bl_id)) {
+    char bpb[] = { isc_bpb_version1, isc_bpb_type, 1, isc_bpb_type_stream };
+
+    if (isc_create_blob2(status, blob->db_handle, blob->tr_handle, &blob->bl_handle, &blob->bl_id, sizeof(bpb), bpb)) {
+        return FAILURE;
+    }
+
+    if (FAILURE == blob_get_info(status, blob)) {
         return FAILURE;
     }
 
@@ -395,25 +401,41 @@ int blob_create(ISC_STATUS_ARRAY status, firebird_blob *blob)
 
 int blob_open(ISC_STATUS_ARRAY status, firebird_blob *blob)
 {
-    // firebird_blob *blob = Z_BLOB_P(blob_o);
-    // char bpb[] = {1,2,2,-4,-1,1,2,1,0};
-    // char blr_bpb[] = {
-    //     isc_bpb_version1,
-    //     isc_bpb_source_type, 1, isc_blob_blr,
-    //     isc_bpb_target_type, 1, isc_blob_blr
-    // };
+    char bpb[] = { isc_bpb_version1, isc_bpb_type, 1, isc_bpb_type_stream };
 
+    // struct IMaster* master = fb_get_master_interface();
+    // struct IStatus* st = IMaster_getStatus(master);
+    // struct IUtil* utl = IMaster_getUtilInterface(master);
+    // struct IXpbBuilder* xpb = IUtil_getXpbBuilder(utl, st, IXpbBuilder_BPB, NULL, 0);
 
-    // if (isc_open_blob2(status, blob->db_handle, blob->tr_handle, &blob->bl_handle, &blob->bl_id, sizeof(blr_bpb), blr_bpb))
-    if (isc_open_blob(status, blob->db_handle, blob->tr_handle, &blob->bl_handle, &blob->bl_id)) {
+    // xpb_insert_tag(isc_bpb_version1);
+    // xpb_insert_int(isc_bpb_type, -1);
+
+    // Firebird_5_0/doc/Using_OO_API.html
+    // if (isc_open_blob2(status, blob->db_handle, blob->tr_handle, &blob->bl_handle, &blob->bl_id, IXpbBuilder_getBufferLength(xpb, st), IXpbBuilder_getBuffer(xpb, st))) {
+    //     return FAILURE;
+    // }
+
+    if (isc_open_blob2(status, blob->db_handle, blob->tr_handle, &blob->bl_handle, &blob->bl_id, sizeof(bpb), bpb)) {
         return FAILURE;
     }
+    // if (isc_open_blob(status, blob->db_handle, blob->tr_handle, &blob->bl_handle, &blob->bl_id)) {
+    //     return FAILURE;
+    // }
 
-    if (FAILURE == blob_set_info(status, blob)) {
+    if (FAILURE == blob_get_info(status, blob)) {
         return FAILURE;
     }
 
     blob->writable = 0;
+
+    // ISC_LONG new_pos;
+    // status_exception::raise(Arg::Gds(isc_random) << "Seek mode must be 0 (START), 1 (CURRENT) or 2 (END)");
+    // isc_seek_blob(status_vector, blob_handle, mode, offset, result);
+    // if (isc_seek_blob(status, &blob->bl_handle, 0, 2, &new_pos)) {
+    //     return FAILURE;
+    // }
+    // FBDEBUG("blob_seek: new_pos=%d", new_pos);
 
     return SUCCESS;
 }

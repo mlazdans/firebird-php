@@ -191,6 +191,7 @@ PHP_METHOD(Transaction, open_blob)
         zend_throw_exception_ex(zend_ce_value_error, 0, "String is not a BLOB ID");
     }
 
+    // TODO: pass ce and obj to these functions to reflect more precisely where the error was
     if (FAILURE == blob_open(status, blob)) {
         update_err_props(status, FireBird_Transaction_ce, ZEND_THIS);
         zval_ptr_dtor(return_value);
