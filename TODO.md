@@ -8,6 +8,6 @@
 IStatement::createBatch, IAttachment::createBatch
 
 
-# Explore streame blobs
+# Explore streamed blobs
 
 BLOB_open(), BLOB_put(), ...
