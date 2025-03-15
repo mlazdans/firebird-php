@@ -42,8 +42,10 @@
 
 #ifdef FIREBIRD_DEBUG
 #define FBDEBUG(format, ...) if(FBG(debug))php_printf(format " (%s:%d)\n" __VA_OPT__(,) __VA_ARGS__, __FILE__, __LINE__);
+#define FBDEBUG_NOFL(format, ...) if(FBG(debug))php_printf(format "\n" __VA_OPT__(,) __VA_ARGS__);
 #else
 #define FBDEBUG(args...)
+#define FBDEBUG_NOFL(format, ...)
 #endif
 
 #define FIREBIRD_DATE_FMT "%Y-%m-%d"
