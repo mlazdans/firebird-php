@@ -239,7 +239,6 @@ int blob_info(ISC_STATUS_ARRAY status, zval *blob_info_o, zval *blob_o)
     for(IXpbBuilder_rewind(dpb, st); !IXpbBuilder_isEof(dpb, st); IXpbBuilder_moveNext(dpb, st)) {
         int val = IXpbBuilder_getInt(dpb, st);
         unsigned char tag = IXpbBuilder_getTag(dpb, st);
-        php_printf("tag: %d = %d\n", tag, val);
         switch(tag) {
             case isc_info_blob_num_segments:
                 num_segments = val;
@@ -256,9 +255,14 @@ int blob_info(ISC_STATUS_ARRAY status, zval *blob_info_o, zval *blob_o)
             case isc_info_end:
                 break;
             case isc_info_truncated:
-            case isc_info_error:  /* hmm. don't think so...*/
-                _php_firebird_module_fatal("BLOB info buffer error");
+                _php_firebird_module_error("BLOB info buffer error: truncated");
                 return FAILURE;
+            case isc_info_error:
+                _php_firebird_module_error("BLOB info buffer error");
+                return FAILURE;
+            default:
+                _php_firebird_module_fatal("BUG! Unhandled BLOB info tag: %d", tag);
+                break;
         }
     }
 
