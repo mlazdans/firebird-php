@@ -112,8 +112,14 @@ typedef struct firebird_blob {
     isc_blob_handle bl_handle;
     isc_db_handle *db_handle;
     isc_tr_handle *tr_handle;
-    unsigned short type;
     ISC_QUAD bl_id;
+    ISC_LONG max_segment;
+    ISC_LONG num_segments;
+    ISC_LONG total_length;
+    ISC_LONG type222; // 0 - segmented, 1 - streamed
+
+    unsigned short writable;
+
     zend_object std;
 } firebird_blob;
 
@@ -121,13 +127,6 @@ typedef struct firebird_vary {
     unsigned short vary_length;
     char vary_string[1];
 } firebird_vary;
-
-typedef struct firebird_blob_info {
-    ISC_LONG max_segment;
-    ISC_LONG num_segments;
-    ISC_LONG total_length;
-    ISC_LONG type;
-} firebird_blob_info;
 
 typedef struct firebird_xpb_zmap {
     const char *tags, **names;
@@ -187,9 +186,6 @@ ZEND_TSRMLS_CACHE_EXTERN()
 
 #define BLOB_ID_LEN     18
 #define BLOB_ID_MASK    "0x%" LL_MASK "x"
-
-#define BLOB_INPUT      1
-#define BLOB_OUTPUT     2
 
 #ifdef PHP_WIN32
 // Case switch, because of troubles on Windows and PHP 8.0
@@ -275,8 +271,8 @@ ZEND_END_ARG_INFO()
 
 // Connection argument types
 ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Connection_new_transaction, 0, 0, FireBird\\Transaction, MAY_BE_FALSE)
-    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, trans_args, IS_LONG, 1, 0)
-    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, lock_timeout, IS_LONG, 1, 0)
+    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, trans_args, IS_LONG, 0, 0)
+    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, lock_timeout, IS_LONG, 0, 0)
 ZEND_END_ARG_INFO()
 
 // Transaction argument types
@@ -298,11 +294,11 @@ ZEND_END_ARG_INFO()
 
 // Statement argument types
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_FireBird_Statement_fetch_row, 0, 0, MAY_BE_ARRAY|MAY_BE_FALSE|MAY_BE_NULL)
-    ZEND_ARG_TYPE_INFO(0, flags, IS_LONG, 0)
+    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, flags, IS_LONG, 0, 0)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_FireBird_Statement_fetch_object, 0, 0, MAY_BE_OBJECT|MAY_BE_FALSE|MAY_BE_NULL)
-    ZEND_ARG_TYPE_INFO(0, flags, IS_LONG, 0)
+    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, flags, IS_LONG, 0, 0)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Statement_execute, 0, 0, _IS_BOOL, 0)
@@ -311,6 +307,10 @@ ZEND_END_ARG_INFO()
 
 // Blob argument types
 ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Blob_info, 0, 0, FireBird\\Blob_Info, MAY_BE_FALSE)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Blob_get, 0, 0, IS_STRING, 0)
+    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, max_len, IS_LONG, 0, 0)
 ZEND_END_ARG_INFO()
 
 extern firebird_xpb_zmap database_create_zmap;
@@ -363,11 +363,11 @@ extern void register_FireBird_Blob_Info_ce();
     } while(0)
 #endif
 
+// TODO: tidy namspacing
 void dump_buffer(const unsigned char *buffer, int len);
 ISC_INT64 update_err_props_ex(ISC_STATUS_ARRAY status, zend_class_entry *ce, zval *obj, const char *file_name, size_t line_num);
 int _php_firebird_string_to_quad(char const *id, ISC_QUAD *qd);
 int _php_firebird_blob_add(ISC_STATUS_ARRAY status, zval *string_arg, firebird_blob *ib_blob);
-int _php_firebird_blob_get(ISC_STATUS_ARRAY status, zval *return_value, firebird_blob *ib_blob, zend_ulong max_len);
 zend_string *_php_firebird_quad_to_string(ISC_QUAD const qd);
 void transaction_ctor(zval *tr_o, zval *connection, zend_long trans_args, zend_long lock_timeout);
 int transaction_start(ISC_STATUS_ARRAY status, zval *tr_o);
@@ -378,7 +378,13 @@ void statement_ctor(zval *stmt_o, zval *transaction);
 int statement_prepare(ISC_STATUS_ARRAY status, zval *stmt_o, const ISC_SCHAR *sql);
 int statement_execute(ISC_STATUS_ARRAY status, zval *stmt_o, zval *bind_args, uint32_t num_bind_args);
 void declare_props_zmap(zend_class_entry *ce, const firebird_xpb_zmap *xpb_zmap);
-void blob_ctor(zval *blob_o, zval *transaction);
+void blob_ctor(firebird_blob *blob, isc_db_handle *db_handle, isc_tr_handle *tr_handle);
+void blob___construct(zval *blob_o, zval *transaction);
+int blob_set_info(ISC_STATUS_ARRAY status, firebird_blob *blob);
+int blob_create(ISC_STATUS_ARRAY status, firebird_blob *blob);
+int blob_open(ISC_STATUS_ARRAY status, firebird_blob *blob);
+int blob_get(ISC_STATUS_ARRAY status, firebird_blob *blob, zval *return_value, zend_ulong max_len);
+int blob_close(ISC_STATUS_ARRAY status, firebird_blob *blob);
 
 #define update_err_props(status, ce, obj) update_err_props_ex(status, ce, obj, __FILE__, __LINE__)
 #define update_ferr_props(ce, obj, error_msg, error_msg_len, error_code, error_code_long)                      \

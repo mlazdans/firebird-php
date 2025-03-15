@@ -174,28 +174,6 @@ PHP_METHOD(Transaction, query)
     // }
 }
 
-int blob_open(ISC_STATUS_ARRAY status, zval *blob_o, const char *id_str)
-{
-    firebird_blob *blob = Z_BLOB_P(blob_o);
-    // char bpb[] = {1,2,2,-4,-1,1,2,1,0};
-    // char blr_bpb[] = {
-    //     isc_bpb_version1,
-    //     isc_bpb_source_type, 1, isc_blob_blr,
-    //     isc_bpb_target_type, 1, isc_blob_blr
-    // };
-
-    if (!_php_firebird_string_to_quad(id_str, &blob->bl_id)) {
-        zend_throw_exception_ex(zend_ce_value_error, 0, "String is not a BLOB ID");
-    }
-
-    // if (isc_open_blob2(status, blob->db_handle, blob->tr_handle, &blob->bl_handle, &blob->bl_id, sizeof(blr_bpb), blr_bpb))
-    if (isc_open_blob(status, blob->db_handle, blob->tr_handle, &blob->bl_handle, &blob->bl_id)) {
-        return FAILURE;
-    }
-
-    return SUCCESS;
-}
-
 PHP_METHOD(Transaction, open_blob)
 {
     zend_string *id;
@@ -206,25 +184,18 @@ PHP_METHOD(Transaction, open_blob)
     ZEND_PARSE_PARAMETERS_END();
 
     object_init_ex(return_value, FireBird_Blob_ce);
-    blob_ctor(return_value, ZEND_THIS);
+    blob___construct(return_value, ZEND_THIS);
+    firebird_blob *blob = Z_BLOB_P(return_value);
 
-    if (FAILURE == blob_open(status, return_value, ZSTR_VAL(id))) {
+    if (!_php_firebird_string_to_quad(ZSTR_VAL(id), &blob->bl_id)) {
+        zend_throw_exception_ex(zend_ce_value_error, 0, "String is not a BLOB ID");
+    }
+
+    if (FAILURE == blob_open(status, blob)) {
         update_err_props(status, FireBird_Transaction_ce, ZEND_THIS);
         zval_ptr_dtor(return_value);
         RETURN_FALSE;
     }
-}
-
-// TODO: move to blob.c
-int blob_create(ISC_STATUS_ARRAY status, zval *blob_o)
-{
-    firebird_blob *blob = Z_BLOB_P(blob_o);
-
-    if (isc_create_blob(status, blob->db_handle, blob->tr_handle, &blob->bl_handle, &blob->bl_id)) {
-        return FAILURE;
-    }
-
-    return SUCCESS;
 }
 
 PHP_METHOD(Transaction, create_blob)
@@ -235,9 +206,10 @@ PHP_METHOD(Transaction, create_blob)
     ZEND_PARSE_PARAMETERS_NONE();
 
     object_init_ex(return_value, FireBird_Blob_ce);
-    blob_ctor(return_value, ZEND_THIS);
+    blob___construct(return_value, ZEND_THIS);
+    firebird_blob *blob = Z_BLOB_P(return_value);
 
-    if (FAILURE == blob_create(status, return_value)) {
+    if (FAILURE == blob_create(status, blob)) {
         update_err_props(status, FireBird_Transaction_ce, ZEND_THIS);
         zval_ptr_dtor(return_value);
         RETURN_FALSE;

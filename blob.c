@@ -24,15 +24,15 @@
  */
 
 
-// ibase_blob_add     - Add data into a newly created blob
-// ✅ibase_blob_cancel - Cancel creating blob
-// ✅ibase_blob_close  - Close blob
-// ✅ibase_blob_create  - Create a new blob for adding data
-// ibase_blob_echo    - Output blob contents to browser
-// ibase_blob_get     - Get len bytes data from open blob
-// ibase_blob_import  - Create blob, copy file in it, and close it
-// ✅ibase_blob_info    - Return blob length and other useful info
-// ✅ibase_blob_open   - Open blob for retrieving data parts
+// ibase_blob_add
+// ✅ibase_blob_cancel
+// ✅ibase_blob_close
+// ✅ibase_blob_create
+// ibase_blob_echo
+// ✅ibase_blob_get
+// ibase_blob_import
+// ✅ibase_blob_info
+// ✅ibase_blob_open
 
 #include "firebird/fb_c_api.h"
 #include "php.h"
@@ -47,15 +47,19 @@ zend_class_entry *FireBird_Blob_Info_ce;
 #define BLOB_CLOSE  1
 #define BLOB_CANCEL 2
 
-void blob_ctor(zval *blob_o, zval *transaction)
+void blob_ctor(firebird_blob *blob, isc_db_handle *db_handle, isc_tr_handle *tr_handle)
+{
+    blob->bl_handle = 0;
+    blob->db_handle = db_handle;
+    blob->tr_handle = tr_handle;
+}
+
+void blob___construct(zval *blob_o, zval *transaction)
 {
     zend_update_property(FireBird_Blob_ce, O_SET(blob_o, transaction));
-
-    firebird_blob *blob = Z_BLOB_P(blob_o);
     firebird_trans *tr = Z_TRANSACTION_P(transaction);
 
-    blob->db_handle = tr->db_handle;
-    blob->tr_handle = &tr->tr_handle;
+    blob_ctor(Z_BLOB_P(blob_o), tr->db_handle, &tr->tr_handle);
 }
 
 static void _php_firebird_free_blob(zend_resource *rsrc, ISC_STATUS_ARRAY status)
@@ -96,38 +100,6 @@ zend_string *_php_firebird_quad_to_string(ISC_QUAD const qd)
         ISC_UINT64 res = ((ISC_UINT64) qd.gds_quad_high << 0x20) | qd.gds_quad_low;
         return strpprintf(BLOB_ID_LEN+1, "0x%0*" LL_MASK "x", 16, res);
     }
-}
-
-int _php_firebird_blob_get(ISC_STATUS_ARRAY status, zval *return_value, firebird_blob *ib_blob, zend_ulong max_len)
-{
-    if (ib_blob->bl_id.gds_quad_high || ib_blob->bl_id.gds_quad_low) { /*not null ?*/
-
-        ISC_STATUS stat;
-        zend_string *bl_data;
-        zend_ulong cur_len;
-        unsigned short seg_len;
-
-        bl_data = zend_string_safe_alloc(1, max_len, 0, 0);
-
-        for (cur_len = stat = 0; (stat == 0 || stat == isc_segment) && cur_len < max_len; cur_len += seg_len) {
-
-            unsigned short chunk_size = (max_len-cur_len) > USHRT_MAX ? USHRT_MAX
-                : (unsigned short)(max_len-cur_len);
-
-            stat = isc_get_segment(status, &ib_blob->bl_handle, &seg_len, chunk_size, &ZSTR_VAL(bl_data)[cur_len]);
-        }
-
-        if (status[0] == 1 && (stat != 0 && stat != isc_segstr_eof && stat != isc_segment)) {
-            zend_string_free(bl_data);
-            return FAILURE;
-        }
-        ZSTR_VAL(bl_data)[cur_len] = '\0';
-        ZSTR_LEN(bl_data) = cur_len;
-        RETVAL_NEW_STR(bl_data);
-    } else { /* null blob */
-        RETVAL_EMPTY_STRING(); /* empty string */
-    }
-    return SUCCESS;
 }
 
 int _php_firebird_blob_add(ISC_STATUS_ARRAY status, zval *string_arg, firebird_blob *ib_blob)
@@ -184,12 +156,21 @@ PHP_METHOD(Blob, __construct)
 {
 }
 
+int blob_close(ISC_STATUS_ARRAY status, firebird_blob *blob)
+{
+    if (isc_close_blob(status, &blob->bl_handle)) {
+        return FAILURE;
+    }
+
+    return SUCCESS;
+}
+
 PHP_METHOD(Blob, close)
 {
     firebird_blob *blob = Z_BLOB_P(ZEND_THIS);
     ISC_STATUS_ARRAY status;
 
-    if (isc_close_blob(status, &blob->bl_handle)) {
+    if (blob_close(status, blob)) {
         update_err_props(status, FireBird_Blob_ce, ZEND_THIS);
         RETURN_FALSE;
     }
@@ -210,7 +191,7 @@ PHP_METHOD(Blob, cancel)
     RETURN_TRUE;
 }
 
-int blob_info(ISC_STATUS_ARRAY status, firebird_blob *blob, firebird_blob_info *info)
+int blob_set_info(ISC_STATUS_ARRAY status, firebird_blob *blob)
 {
     static char bl_items[] = {
         isc_info_blob_num_segments,
@@ -236,16 +217,16 @@ int blob_info(ISC_STATUS_ARRAY status, firebird_blob *blob, firebird_blob_info *
         unsigned char tag = IXpbBuilder_getTag(dpb, st);
         switch(tag) {
             case isc_info_blob_num_segments:
-                info->num_segments = val;
+                blob->num_segments = val;
                 break;
             case isc_info_blob_max_segment:
-                info->max_segment = val;
+                blob->max_segment = val;
                 break;
             case isc_info_blob_total_length:
-                info->total_length = val;
+                blob->total_length = val;
                 break;
             case isc_info_blob_type:
-                info->type = val;
+                blob->type222 = val;
                 break;
             case isc_info_end:
                 break;
@@ -269,18 +250,63 @@ PHP_METHOD(Blob, info)
     ISC_STATUS_ARRAY status;
 
     firebird_blob *blob = Z_BLOB_P(ZEND_THIS);
-    firebird_blob_info info = {0};
 
-    if (blob_info(status, blob, &info)) {
+    object_init_ex(return_value, FireBird_Blob_Info_ce);
+    zend_update_property_long(FireBird_Blob_Info_ce, Z_OBJ_P(return_value), "num_segments", sizeof("num_segments") - 1, blob->num_segments);
+    zend_update_property_long(FireBird_Blob_Info_ce, Z_OBJ_P(return_value), "max_segment", sizeof("max_segment") - 1, blob->max_segment);
+    zend_update_property_long(FireBird_Blob_Info_ce, Z_OBJ_P(return_value), "total_length", sizeof("total_length") - 1, blob->total_length);
+    zend_update_property_long(FireBird_Blob_Info_ce, Z_OBJ_P(return_value), "type", sizeof("type") - 1, blob->type222);
+}
+
+int blob_get(ISC_STATUS_ARRAY status, firebird_blob *blob, zval *return_value, zend_ulong max_len)
+{
+    ISC_STATUS stat;
+    zend_string *bl_data;
+    zend_ulong cur_len;
+    unsigned short seg_len;
+
+    if (!max_len || max_len > blob->total_length) {
+        FBDEBUG("Blob::get adjusting max_len from %d to %d", max_len, blob->total_length);
+        max_len = blob->total_length;
+    }
+
+    bl_data = zend_string_safe_alloc(1, max_len, 0, 0);
+
+    for (cur_len = stat = 0; (stat == 0 || stat == isc_segment) && cur_len < max_len; cur_len += seg_len) {
+
+        unsigned short chunk_size = (max_len-cur_len) > USHRT_MAX ? USHRT_MAX
+            : (unsigned short)(max_len-cur_len);
+
+        stat = isc_get_segment(status, &blob->bl_handle, &seg_len, chunk_size, &ZSTR_VAL(bl_data)[cur_len]);
+    }
+
+    if (status[0] == 1 && (stat != 0 && stat != isc_segstr_eof && stat != isc_segment)) {
+        zend_string_free(bl_data);
+        return FAILURE;
+    }
+
+    ZSTR_VAL(bl_data)[cur_len] = '\0';
+    ZSTR_LEN(bl_data) = cur_len;
+    RETVAL_NEW_STR(bl_data);
+
+    return SUCCESS;
+}
+
+PHP_METHOD(Blob, get)
+{
+    ISC_STATUS_ARRAY status;
+    firebird_blob *blob = Z_BLOB_P(ZEND_THIS);
+    zend_long max_len = 0;
+
+    ZEND_PARSE_PARAMETERS_START(0, 1)
+        Z_PARAM_OPTIONAL
+        Z_PARAM_LONG(max_len)
+    ZEND_PARSE_PARAMETERS_END();
+
+    if (FAILURE == blob_get(status, blob, return_value, max_len)) {
         update_err_props(status, FireBird_Blob_ce, ZEND_THIS);
         RETURN_FALSE;
     }
-
-    object_init_ex(return_value, FireBird_Blob_Info_ce);
-    zend_update_property_long(FireBird_Blob_Info_ce, Z_OBJ_P(return_value), "num_segments", sizeof("num_segments") - 1, info.num_segments);
-    zend_update_property_long(FireBird_Blob_Info_ce, Z_OBJ_P(return_value), "max_segment", sizeof("max_segment") - 1, info.max_segment);
-    zend_update_property_long(FireBird_Blob_Info_ce, Z_OBJ_P(return_value), "total_length", sizeof("total_length") - 1, info.total_length);
-    zend_update_property_long(FireBird_Blob_Info_ce, Z_OBJ_P(return_value), "type", sizeof("type") - 1, info.type);
 }
 
 const zend_function_entry FireBird_Blob_methods[] = {
@@ -288,6 +314,7 @@ const zend_function_entry FireBird_Blob_methods[] = {
     PHP_ME(Blob, close, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
     PHP_ME(Blob, cancel, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
     PHP_ME(Blob, info, arginfo_FireBird_Blob_info, ZEND_ACC_PUBLIC)
+    PHP_ME(Blob, get, arginfo_FireBird_Blob_get, ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
 
@@ -352,4 +379,40 @@ void register_FireBird_Blob_Info_ce()
     DECLARE_PROP_LONG(FireBird_Blob_Info_ce, max_segment, ZEND_ACC_READONLY);
     DECLARE_PROP_LONG(FireBird_Blob_Info_ce, total_length, ZEND_ACC_READONLY);
     DECLARE_PROP_LONG(FireBird_Blob_Info_ce, type, ZEND_ACC_READONLY);
+}
+
+int blob_create(ISC_STATUS_ARRAY status, firebird_blob *blob)
+{
+    if (isc_create_blob(status, blob->db_handle, blob->tr_handle, &blob->bl_handle, &blob->bl_id)) {
+        return FAILURE;
+    }
+
+    blob->writable = 1;
+
+    return SUCCESS;
+}
+
+int blob_open(ISC_STATUS_ARRAY status, firebird_blob *blob)
+{
+    // firebird_blob *blob = Z_BLOB_P(blob_o);
+    // char bpb[] = {1,2,2,-4,-1,1,2,1,0};
+    // char blr_bpb[] = {
+    //     isc_bpb_version1,
+    //     isc_bpb_source_type, 1, isc_blob_blr,
+    //     isc_bpb_target_type, 1, isc_blob_blr
+    // };
+
+
+    // if (isc_open_blob2(status, blob->db_handle, blob->tr_handle, &blob->bl_handle, &blob->bl_id, sizeof(blr_bpb), blr_bpb))
+    if (isc_open_blob(status, blob->db_handle, blob->tr_handle, &blob->bl_handle, &blob->bl_id)) {
+        return FAILURE;
+    }
+
+    if (FAILURE == blob_set_info(status, blob)) {
+        return FAILURE;
+    }
+
+    blob->writable = 0;
+
+    return SUCCESS;
 }

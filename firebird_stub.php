@@ -184,12 +184,13 @@ class Blob implements IError
     /** @return Blob_Info|false */
     function info() {}
 
+    /** @return string|false */
+    function get(int $max_len = 0) {}
+
     // function add() {}
-    // function create() {}
     // function echo() {}
     // function get() {}
     // function import() {}
-    // function open() {}
 }
 
 namespace FireBird\Transaction;

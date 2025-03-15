@@ -477,59 +477,25 @@ static void _php_firebird_fetch_hash(INTERNAL_FUNCTION_PARAMETERS, int fetch_typ
                     break;
                 case SQL_BLOB:
                     if (flags & PHP_FIREBIRD_FETCH_BLOBS) { /* fetch blob contents into hash */
-                        firebird_blob blob_handle;
-                        zend_ulong max_len = 0;
-                        static char bl_items[] = { isc_info_blob_total_length };
-                        char bl_info[20];
-                        unsigned short i;
+                        firebird_blob blob;
+                        blob_ctor(&blob, stmt->db_handle, stmt->tr_handle);
 
-                        blob_handle.bl_handle = 0;
-                        blob_handle.bl_id = *(ISC_QUAD *) var->sqldata;
+                        blob.bl_id = *(ISC_QUAD *) var->sqldata;
 
-                        if (isc_open_blob(status, stmt->db_handle, stmt->tr_handle,
-                            &blob_handle.bl_handle, &blob_handle.bl_id)) {
-                                update_err_props(status, FireBird_Statement_ce, ZEND_THIS);
-                                goto _php_firebird_fetch_error;
-                        }
-
-                        if (isc_blob_info(status, &blob_handle.bl_handle, sizeof(bl_items), bl_items,
-                            sizeof(bl_info), bl_info)) {
-                                update_err_props(status, FireBird_Statement_ce, ZEND_THIS);
-                                goto _php_firebird_fetch_error;
-                        }
-
-                        /* find total length of blob's data */
-                        for (i = 0; i < sizeof(bl_info); ) {
-                            unsigned short item_len;
-                            char item = bl_info[i++];
-
-                            if (item == isc_info_end || item == isc_info_truncated ||
-                                item == isc_info_error || i >= sizeof(bl_info)) {
-                                    _php_firebird_module_error("Could not determine BLOB size (internal error)");
-                                    goto _php_firebird_fetch_error;
-                            }
-
-                            item_len = (unsigned short) isc_vax_integer(&bl_info[i], 2);
-
-                            if (item == isc_info_blob_total_length) {
-                                max_len = isc_vax_integer(&bl_info[i+2], item_len);
-                                break;
-                            }
-                            i += item_len+2;
-                        }
-
-                        if (max_len == 0) {
-                            ZVAL_STRING(&result, "");
-                        } else if (SUCCESS != _php_firebird_blob_get(status, &result, &blob_handle, max_len)) {
+                        if (FAILURE == blob_open(status, &blob)) {
                             update_err_props(status, FireBird_Statement_ce, ZEND_THIS);
                             goto _php_firebird_fetch_error;
                         }
 
-                        if (isc_close_blob(status, &blob_handle.bl_handle)) {
+                        if (FAILURE == blob_get(status, &blob, &result, 0)) {
                             update_err_props(status, FireBird_Statement_ce, ZEND_THIS);
                             goto _php_firebird_fetch_error;
                         }
 
+                        if (blob_close(status, &blob)) {
+                            update_err_props(status, FireBird_Statement_ce, ZEND_THIS);
+                            goto _php_firebird_fetch_error;
+                        }
                     } else { /* blob id only */
                         ISC_QUAD bl_id = *(ISC_QUAD *) var->sqldata;
                         ZVAL_NEW_STR(&result, _php_firebird_quad_to_string(bl_id));
@@ -871,12 +837,13 @@ static int statement_bind(ISC_STATUS_ARRAY status, zval *stmt_o, XSQLDA *sqlda, 
             case SQL_BLOB:
                 convert_to_string(b_var);
 
+                // TODO: use blob.c functions
                 if (Z_STRLEN_P(b_var) != BLOB_ID_LEN ||
                     !_php_firebird_string_to_quad(Z_STRVAL_P(b_var), &stmt->bind_buf[i].val.qval)) {
 
                     firebird_blob ib_blob = {
                         .bl_handle = 0,
-                        .type = BLOB_INPUT
+                        .writable = 0
                     };
 
                     if (isc_create_blob(status, stmt->db_handle, stmt->tr_handle, &ib_blob.bl_handle, &ib_blob.bl_id)) {
