@@ -199,7 +199,11 @@ require_once('functions.inc');
     /* test execute procedure */
     $query = prepare_or_die($t, "execute procedure add1(?)");
 
-    // TODO: currently not possible to collect execute results. For that return of execute result is needed
+    // XXX: collecting execute results on same query does not makes sense.
+    // Code below only works only because of some bug / feature of php-firebird.
+    // Repeated ibase_execute() call will just close already opened cursor,
+    // except for procedures
+
     // $res = array();
     // for ($i = 0; $i < 10; $i++) {
     //     $res[] = ibase_execute($query,$i);
