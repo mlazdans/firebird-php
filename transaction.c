@@ -176,19 +176,19 @@ PHP_METHOD(Transaction, query)
 
 PHP_METHOD(Transaction, open_blob)
 {
-    zend_string *id;
+    zval *id;
     ISC_STATUS_ARRAY status;
 
     ZEND_PARSE_PARAMETERS_START(1, 1)
-        Z_PARAM_STR(id)
+        Z_PARAM_OBJECT_OF_CLASS(id, FireBird_Blob_Id_ce)
     ZEND_PARSE_PARAMETERS_END();
+
+    firebird_blob_id *blob_id = Z_BLOB_ID_P(id);
 
     blob___construct(return_value, ZEND_THIS);
     firebird_blob *blob = Z_BLOB_P(return_value);
 
-    if (!_php_firebird_string_to_quad(ZSTR_VAL(id), &blob->bl_id)) {
-        zend_throw_exception_ex(zend_ce_value_error, 0, "String is not a BLOB ID");
-    }
+    blob->bl_id = blob_id->bl_id;
 
     // TODO: pass ce and obj to these functions to reflect more precisely where the error was
     if (FAILURE == blob_open(status, blob)) {

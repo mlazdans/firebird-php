@@ -313,7 +313,7 @@ ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Transacti
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Transaction_open_blob, 0, 1, FireBird\\Blob, MAY_BE_FALSE)
-    ZEND_ARG_TYPE_INFO(0, id, IS_STRING, 0)
+    ZEND_ARG_OBJ_INFO(0, args, FireBird\\Blob_id, 0)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Transaction_create_blob, 0, 0, FireBird\\Blob, MAY_BE_FALSE)

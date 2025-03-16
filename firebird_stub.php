@@ -142,7 +142,7 @@ class Transaction implements IError
     function prepare(string $sql) {}
 
     /** @return Blob|false */
-    function open_blob(string $id) {}
+    function open_blob(Blob_Id $id) {}
 
     /** @return Blob|false */
     function create_blob() {}
