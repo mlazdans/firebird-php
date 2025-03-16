@@ -19,9 +19,9 @@ ibase_backup — Initiates a backup task in the service manager and returns imme
 ✅ ibase_blob_cancel — Cancel creating blob
 ✅ ibase_blob_close — Close blob
 ✅ ibase_blob_create — Create a new blob for adding data
-❎ ibase_blob_echo — Output blob contents to browser
+❎ ibase_blob_echo — Output blob contents to browser (can be easily done in PHP space)
 ✅ ibase_blob_get — Get len bytes data from open blob
-❎ ibase_blob_import — Create blob, copy file in it, and close it
+❎ ibase_blob_import — Create blob, copy file in it, and close it (can be easily done in PHP space)
 ✅ ibase_blob_info — Return blob length and other useful info
 ✅ ibase_blob_open — Open blob for retrieving data parts
 ✅ ibase_close — Close a connection to an InterBase database
@@ -41,7 +41,7 @@ ibase_delete_user — Delete a user from a security database
 ibase_free_event_handler — Cancels a registered event handler
 ✅ ibase_free_query — Free memory allocated by a prepared query
 ✅ ibase_free_result — Free a result set
-ibase_gen_id — Increments the named generator and returns its new value
+❎ ibase_gen_id — Increments the named generator and returns its new value (can be easily done in PHP space)
 ibase_maintain_db — Execute a maintenance command on the database server
 ibase_modify_user — Modify a user to a security database
 ibase_name_result — Assigns a name to a result set
