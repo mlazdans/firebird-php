@@ -125,6 +125,11 @@ typedef struct firebird_blob {
     zend_object std;
 } firebird_blob;
 
+typedef struct firebird_blob_id {
+    ISC_QUAD bl_id;
+    zend_object std;
+} firebird_blob_id;
+
 typedef struct firebird_vary {
     unsigned short vary_length;
     char vary_string[1];
@@ -250,10 +255,14 @@ void _php_firebird_module_fatal(char *, ...)
 #define Z_BLOB_O(zobj) \
     ((firebird_blob*)((char*)(zobj) - XtOffsetOf(firebird_blob, std)))
 
+#define Z_BLOB_ID_O(zobj) \
+    ((firebird_blob_id*)((char*)(zobj) - XtOffsetOf(firebird_blob_id, std)))
+
 #define Z_TRANSACTION_P(zv) Z_TRANSACTION_O(Z_OBJ_P(zv))
 #define Z_STMT_P(zv) Z_STMT_O(Z_OBJ_P(zv))
 #define Z_DB_P(zv) Z_DB_O(Z_OBJ_P(zv))
 #define Z_BLOB_P(zv) Z_BLOB_O(Z_OBJ_P(zv))
+#define Z_BLOB_ID_P(zv) Z_BLOB_ID_O(Z_OBJ_P(zv))
 
 #define xpb_insert(f, ...) do { \
     IXpbBuilder_insert##f(__VA_ARGS__); \
@@ -347,6 +356,7 @@ extern zend_class_entry *FireBird_IError_ce;
 extern zend_class_entry *FireBird_Error_ce;
 extern zend_class_entry *FireBird_Blob_ce;
 extern zend_class_entry *FireBird_Blob_Info_ce;
+extern zend_class_entry *FireBird_Blob_Id_ce;
 
 extern void register_FireBird_Database_ce();
 extern void register_FireBird_Connection_ce();
@@ -358,6 +368,7 @@ extern void register_FireBird_Connect_Args_ce();
 extern void register_FireBird_Create_Args_ce();
 extern void register_FireBird_Blob_ce();
 extern void register_FireBird_Blob_Info_ce();
+extern void register_FireBird_Blob_Id_ce();
 
 // TODO: fb_sqlstate()
 #define DECLARE_FERR_PROPS(ce)                                  \
@@ -389,7 +400,6 @@ extern void register_FireBird_Blob_Info_ce();
 void dump_buffer(const unsigned char *buffer, int len);
 ISC_INT64 update_err_props_ex(ISC_STATUS_ARRAY status, zend_class_entry *ce, zval *obj, const char *file_name, size_t line_num);
 int _php_firebird_string_to_quad(char const *id, ISC_QUAD *qd);
-zend_string *_php_firebird_quad_to_string(ISC_QUAD const qd);
 void transaction_ctor(zval *tr_o, zval *connection, zend_long trans_args, zend_long lock_timeout);
 int transaction_start(ISC_STATUS_ARRAY status, zval *tr_o);
 int status_err_msg(const ISC_STATUS *status, char *msg, unsigned short msg_size);
@@ -407,6 +417,7 @@ int blob_open(ISC_STATUS_ARRAY status, firebird_blob *blob);
 int blob_get(ISC_STATUS_ARRAY status, firebird_blob *blob, zval *return_value, size_t max_len);
 int blob_close(ISC_STATUS_ARRAY status, firebird_blob *blob);
 int blob_put(ISC_STATUS_ARRAY status, firebird_blob *blob, const char *buf, size_t buf_size);
+void blob_id___construct(zval *blob_id_o, ISC_QUAD bl_id);
 
 #define update_err_props(status, ce, obj) update_err_props_ex(status, ce, obj, __FILE__, __LINE__)
 #define update_ferr_props(ce, obj, error_msg, error_msg_len, error_code, error_code_long)                      \

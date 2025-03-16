@@ -183,7 +183,6 @@ PHP_METHOD(Transaction, open_blob)
         Z_PARAM_STR(id)
     ZEND_PARSE_PARAMETERS_END();
 
-    object_init_ex(return_value, FireBird_Blob_ce);
     blob___construct(return_value, ZEND_THIS);
     firebird_blob *blob = Z_BLOB_P(return_value);
 
@@ -206,7 +205,6 @@ PHP_METHOD(Transaction, create_blob)
 
     ZEND_PARSE_PARAMETERS_NONE();
 
-    object_init_ex(return_value, FireBird_Blob_ce);
     blob___construct(return_value, ZEND_THIS);
     firebird_blob *blob = Z_BLOB_P(return_value);
 

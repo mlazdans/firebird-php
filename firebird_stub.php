@@ -6,6 +6,7 @@ const FETCH_BLOBS    = 1;
 const FETCH_ARRAYS   = 2;
 const FETCH_UNIXTIME = 4;
 
+// TODO: private __construct()
 // Store single Firebird error
 class Error
 {
@@ -20,6 +21,10 @@ class Blob_Info
     public int $max_segment { get; }
     public int $total_length { get; }
     public int $type { get; }
+}
+
+class Blob_Id
+{
 }
 
 interface IError

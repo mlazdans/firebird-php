@@ -38,13 +38,8 @@
 #include "php_firebird.h"
 #include "php_firebird_includes.h"
 
-zend_class_entry *FireBird_Blob_ce;
-static zend_object_handlers FireBird_Blob_object_handlers;
-
-zend_class_entry *FireBird_Blob_Info_ce;
-
-#define BLOB_CLOSE  1
-#define BLOB_CANCEL 2
+zend_class_entry *FireBird_Blob_ce, *FireBird_Blob_Info_ce, *FireBird_Blob_Id_ce;
+static zend_object_handlers FireBird_Blob_object_handlers, FireBird_Blob_Id_object_handlers;
 
 void blob_ctor(firebird_blob *blob, isc_db_handle *db_handle, isc_tr_handle *tr_handle)
 {
@@ -55,6 +50,7 @@ void blob_ctor(firebird_blob *blob, isc_db_handle *db_handle, isc_tr_handle *tr_
 
 void blob___construct(zval *blob_o, zval *transaction)
 {
+    object_init_ex(blob_o, FireBird_Blob_ce);
     zend_update_property(FireBird_Blob_ce, O_SET(blob_o, transaction));
     firebird_trans *tr = Z_TRANSACTION_P(transaction);
 
@@ -90,46 +86,15 @@ int _php_firebird_string_to_quad(char const *id, ISC_QUAD *qd)
     }
 }
 
-zend_string *_php_firebird_quad_to_string(ISC_QUAD const qd)
-{
-    /* shortcut for most common case */
-    if (sizeof(ISC_QUAD) == sizeof(ISC_UINT64)) {
-        return strpprintf(BLOB_ID_LEN+1, "0x%0*" LL_MASK "x", 16, *(ISC_UINT64*)(void *) &qd);
-    } else {
-        ISC_UINT64 res = ((ISC_UINT64) qd.gds_quad_high << 0x20) | qd.gds_quad_low;
-        return strpprintf(BLOB_ID_LEN+1, "0x%0*" LL_MASK "x", 16, res);
-    }
-}
-
-// static void _php_firebird_blob_end(INTERNAL_FUNCTION_PARAMETERS, int bl_end, ISC_STATUS_ARRAY status)
+// zend_string *_php_firebird_quad_to_string(ISC_QUAD const qd)
 // {
-//     zval *blob_arg;
-//     firebird_blob *ib_blob;
-
-//     if (FAILURE == zend_parse_parameters(ZEND_NUM_ARGS(), "r", &blob_arg)) {
-//         return;
+//     /* shortcut for most common case */
+//     if (sizeof(ISC_QUAD) == sizeof(ISC_UINT64)) {
+//         return strpprintf(BLOB_ID_LEN+1, "0x%0*" LL_MASK "x", 16, *(ISC_UINT64*)(void *) &qd);
+//     } else {
+//         ISC_UINT64 res = ((ISC_UINT64) qd.gds_quad_high << 0x20) | qd.gds_quad_low;
+//         return strpprintf(BLOB_ID_LEN+1, "0x%0*" LL_MASK "x", 16, res);
 //     }
-
-//     ib_blob = (firebird_blob *)zend_fetch_resource_ex(blob_arg, "Interbase blob", le_blob);
-
-//     if (bl_end == BLOB_CLOSE) { /* return id here */
-
-//         if (ib_blob->bl_id.gds_quad_high || ib_blob->bl_id.gds_quad_low) { /*not null ?*/
-//             if (isc_close_blob(status, &ib_blob->bl_handle)) {
-//                 RETURN_FALSE;
-//             }
-//         }
-//         ib_blob->bl_handle = 0;
-
-//         RETVAL_NEW_STR(_php_firebird_quad_to_string(ib_blob->bl_id));
-//     } else { /* discard created blob */
-//         if (isc_cancel_blob(status, &ib_blob->bl_handle)) {
-//             RETURN_FALSE;
-//         }
-//         ib_blob->bl_handle = 0;
-//         RETVAL_TRUE;
-//     }
-//     zend_list_delete(Z_RES_P(blob_arg));
 // }
 
 PHP_METHOD(Blob, __construct)
@@ -400,6 +365,54 @@ void register_FireBird_Blob_Info_ce()
     DECLARE_PROP_LONG(FireBird_Blob_Info_ce, type, ZEND_ACC_READONLY);
 }
 
+void blob_id_ctor(firebird_blob_id *blob_id, ISC_QUAD bl_id)
+{
+    blob_id->bl_id = bl_id;
+}
+
+void blob_id___construct(zval *blob_id_o, ISC_QUAD bl_id)
+{
+    object_init_ex(blob_id_o, FireBird_Blob_Id_ce);
+    blob_id_ctor(Z_BLOB_ID_P(blob_id_o), bl_id);
+}
+
+static zend_object *FireBird_Blob_Id_create(zend_class_entry *ce)
+{
+    FBDEBUG("FireBird_Blob_Id_create()");
+
+    firebird_blob_id *s = zend_object_alloc(sizeof(firebird_blob_id), ce);
+
+    zend_object_std_init(&s->std, ce);
+    object_properties_init(&s->std, ce);
+
+    return &s->std;
+}
+
+static void FireBird_Blob_Id_free_obj(zend_object *obj)
+{
+    FBDEBUG("FireBird_Blob_Id_free_obj");
+
+    firebird_blob_id *blob_id = Z_BLOB_ID_O(obj);
+
+    zend_object_std_dtor(&blob_id->std);
+}
+
+void register_FireBird_Blob_Id_ce()
+{
+    zend_class_entry tmp_ce;
+
+    INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "Blob_Id", NULL);
+    FireBird_Blob_Id_ce = zend_register_internal_class(&tmp_ce);
+
+    FireBird_Blob_Id_ce->create_object = FireBird_Blob_Id_create;
+    FireBird_Blob_Id_ce->default_object_handlers = &FireBird_Blob_Id_object_handlers;
+
+    memcpy(&FireBird_Blob_Id_object_handlers, &std_object_handlers, sizeof(zend_object_handlers));
+
+    FireBird_Blob_Id_object_handlers.offset = XtOffsetOf(firebird_blob_id, std);
+    FireBird_Blob_Id_object_handlers.free_obj = FireBird_Blob_Id_free_obj;
+}
+
 int blob_create(ISC_STATUS_ARRAY status, firebird_blob *blob)
 {
     char bpb[] = { isc_bpb_version1, isc_bpb_type, 1, isc_bpb_type_stream };
@@ -421,25 +434,9 @@ int blob_open(ISC_STATUS_ARRAY status, firebird_blob *blob)
 {
     char bpb[] = { isc_bpb_version1, isc_bpb_type, 1, isc_bpb_type_stream };
 
-    // struct IMaster* master = fb_get_master_interface();
-    // struct IStatus* st = IMaster_getStatus(master);
-    // struct IUtil* utl = IMaster_getUtilInterface(master);
-    // struct IXpbBuilder* xpb = IUtil_getXpbBuilder(utl, st, IXpbBuilder_BPB, NULL, 0);
-
-    // xpb_insert_tag(isc_bpb_version1);
-    // xpb_insert_int(isc_bpb_type, -1);
-
-    // Firebird_5_0/doc/Using_OO_API.html
-    // if (isc_open_blob2(status, blob->db_handle, blob->tr_handle, &blob->bl_handle, &blob->bl_id, IXpbBuilder_getBufferLength(xpb, st), IXpbBuilder_getBuffer(xpb, st))) {
-    //     return FAILURE;
-    // }
-
     if (isc_open_blob2(status, blob->db_handle, blob->tr_handle, &blob->bl_handle, &blob->bl_id, sizeof(bpb), bpb)) {
         return FAILURE;
     }
-    // if (isc_open_blob(status, blob->db_handle, blob->tr_handle, &blob->bl_handle, &blob->bl_id)) {
-    //     return FAILURE;
-    // }
 
     if (FAILURE == blob_get_info(status, blob)) {
         return FAILURE;

@@ -497,8 +497,9 @@ static void _php_firebird_fetch_hash(INTERNAL_FUNCTION_PARAMETERS, int fetch_typ
                             goto _php_firebird_fetch_error;
                         }
                     } else { /* blob id only */
-                        ISC_QUAD bl_id = *(ISC_QUAD *) var->sqldata;
-                        ZVAL_NEW_STR(&result, _php_firebird_quad_to_string(bl_id));
+                        blob_id___construct(&result, *(ISC_QUAD *) var->sqldata);
+                        // ISC_QUAD bl_id = *(ISC_QUAD *) var->sqldata;
+                        // ZVAL_NEW_STR(&result, _php_firebird_quad_to_string(bl_id));
                     }
                     break;
                 case SQL_ARRAY:
