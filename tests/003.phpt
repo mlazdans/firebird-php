@@ -1,5 +1,5 @@
 --TEST--
-Transactions
+FireBird: transactions
 --SKIPIF--
 <?php include("skipif.inc"); ?>
 --FILE--

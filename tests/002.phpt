@@ -1,5 +1,5 @@
 --TEST--
-Procedures
+FireBird: procedures
 --SKIPIF--
 <?php include("skipif.inc"); ?>
 --FILE--

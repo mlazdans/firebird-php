@@ -1,5 +1,5 @@
 --TEST--
-Generators
+FireBird: generators
 --SKIPIF--
 <?php include("skipif.inc"); ?>
 --FILE--
