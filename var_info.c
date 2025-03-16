@@ -16,6 +16,7 @@ void register_FireBird_Var_Info_ce()
     DECLARE_PROP_STRING(FireBird_Var_Info_ce, relation, ZEND_ACC_PROTECTED_SET);
     DECLARE_PROP_LONG(FireBird_Var_Info_ce, byte_length, ZEND_ACC_PROTECTED_SET);
     DECLARE_PROP_LONG(FireBird_Var_Info_ce, type, ZEND_ACC_PROTECTED_SET);
+    DECLARE_PROP_LONG(FireBird_Var_Info_ce, sub_type, ZEND_ACC_PROTECTED_SET);
     DECLARE_PROP_LONG(FireBird_Var_Info_ce, scale, ZEND_ACC_PROTECTED_SET);
     DECLARE_PROP_BOOL(FireBird_Var_Info_ce, nullable, ZEND_ACC_PROTECTED_SET);
 }

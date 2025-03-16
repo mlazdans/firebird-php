@@ -30,6 +30,7 @@ class Var_Info
     public string $relation { get; }
     public int $byte_length { get; }
     public int $type { get; }
+    public int $sub_type { get; }
     public int $scale { get; }
     public bool $nullable { get; }
 }
