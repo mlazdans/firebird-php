@@ -3,15 +3,15 @@
 ARG_WITH("interbase", "InterBase support", "no");
 
 if (PHP_INTERBASE != "no") {
-	if (
-		CHECK_HEADER_ADD_INCLUDE("ibase.h", "CFLAGS_INTERBASE", PHP_INTERBASE + "\\include") && (
-			CHECK_LIB("fbclient_ms.lib", "interbase", PHP_INTERBASE + "\\lib") ||
-			CHECK_LIB("gds32_ms.lib", "interbase", PHP_INTERBASE + "\\lib")
-		)
-	) {
-		EXTENSION("interbase", "interbase.c ibase_query.c ibase_service.c ibase_events.c ibase_blobs.c pdo_firebird_utils.cpp", PHP_INTERBASE_SHARED, "/DZEND_ENABLE_STATIC_TSRMLS_CACHE=1");
-		AC_DEFINE('HAVE_FIREBIRD', 1, 'Have interbase library');
-	} else {
-		WARNING("interbase not enabled; libraries and headers not found");
-	}
+    if (
+        CHECK_HEADER_ADD_INCLUDE("ibase.h", "CFLAGS_INTERBASE", PHP_INTERBASE + "\\include") && (
+            CHECK_LIB("fbclient_ms.lib", "interbase", PHP_INTERBASE + "\\lib") ||
+            CHECK_LIB("gds32_ms.lib", "interbase", PHP_INTERBASE + "\\lib")
+        )
+    ) {
+        EXTENSION("interbase", "interbase.c ibase_query.c ibase_service.c ibase_events.c ibase_blobs.c pdo_firebird_utils.cpp", PHP_INTERBASE_SHARED, "/DZEND_ENABLE_STATIC_TSRMLS_CACHE=1");
+        AC_DEFINE('HAVE_FIREBIRD', 1, 'Have interbase library');
+    } else {
+        WARNING("interbase not enabled; libraries and headers not found");
+    }
 }

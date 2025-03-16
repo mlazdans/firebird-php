@@ -32,12 +32,12 @@ ISC_DATE fb_encode_date(unsigned year, unsigned month, unsigned day);
 #if FB_API_VER >= 40
 
 void fb_decode_time_tz(const ISC_TIME_TZ* timeTz, unsigned* hours, unsigned* minutes, unsigned* seconds, unsigned* fractions,
-	unsigned timeZoneBufferLength, char* timeZoneBuffer);
+    unsigned timeZoneBufferLength, char* timeZoneBuffer);
 
 void fb_decode_timestamp_tz(const ISC_TIMESTAMP_TZ* timestampTz,
-	unsigned* year, unsigned* month, unsigned* day,
-	unsigned* hours, unsigned* minutes, unsigned* seconds, unsigned* fractions,
-	unsigned timeZoneBufferLength, char* timeZoneBuffer);
+    unsigned* year, unsigned* month, unsigned* day,
+    unsigned* hours, unsigned* minutes, unsigned* seconds, unsigned* fractions,
+    unsigned timeZoneBufferLength, char* timeZoneBuffer);
 
 #endif
 

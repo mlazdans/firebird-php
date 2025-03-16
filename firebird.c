@@ -183,18 +183,18 @@ static PHP_INI_DISP(php_firebird_trans_displayer)
 
 ZEND_INI_MH(OnUpdateDebug)
 {
-	int *p;
-	zend_long tmp;
+    int *p;
+    zend_long tmp;
 
-	tmp = zend_ini_parse_quantity_warn(new_value, entry->name);
-	if (tmp < 0 || tmp > INT_MAX) {
-		return FAILURE;
-	}
+    tmp = zend_ini_parse_quantity_warn(new_value, entry->name);
+    if (tmp < 0 || tmp > INT_MAX) {
+        return FAILURE;
+    }
 
-	p = (int *) ZEND_INI_GET_ADDR();
-	*p = (int) tmp;
+    p = (int *) ZEND_INI_GET_ADDR();
+    *p = (int) tmp;
 
-	return SUCCESS;
+    return SUCCESS;
 }
 
 /* {{{ startup, shutdown and info functions */
