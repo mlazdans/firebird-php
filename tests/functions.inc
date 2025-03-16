@@ -6,23 +6,34 @@ require_once(__DIR__."/config.inc");
 
 srand(((int)(double)microtime()*1000000));
 
-function out_table($table_name)
+function out_table(\FireBird\Transaction $t, string $table_name)
 {
     echo "--- $table_name ---\n";
-    $res = ibase_query("select * from $table_name");
-    while ($r = ibase_fetch_row($res)) {
+    $res = $t->query("SELECT * from $table_name") or print_error_and_die("query", $t);
+    while ($r = $res->fetch_row()) {
         echo join("\t",$r)."\t\n";
     }
-    ibase_free_result($res);
+
+    if($r === false) print_error_and_die("fetch", $res);
+
+    $res->close() or print_error_and_die("close", $res);
+
     echo "---\n";
 }
 
-function out_result($result, $table_name = "")
+function out_result(\FireBird\Statement $result, string $table_name = "", bool $close = true)
 {
     echo "--- $table_name ---\n";
-    while ($r = ibase_fetch_row($result)) {
+    while ($r = $result->fetch_row()) {
         echo join("\t",$r)."\t\n";
     }
+
+    if($r === false) print_error_and_die("fetch", $result);
+
+    if($close) {
+        $result->close() or print_error_and_die("close", $result);
+    }
+
     echo "---\n";
 }
 
@@ -108,6 +119,8 @@ function print_error(string $cat, \FireBird\IError $o): void
 function print_error_and_die(string $cat, \FireBird\IError $o): void
 {
     print_error($cat, $o);
+    // debug_print_backtrace();
+    // print "===============================================================================\n";
     die;
 }
 
@@ -266,6 +279,23 @@ function query_or_error(\FireBird\Transaction $t, string $sql, ...$bind_args): \
 function query_or_die(\FireBird\Transaction $t, string $sql, ...$bind_args): \FireBird\Statement
 {
     if($s = query_or_error($t, $sql, ...$bind_args)) {
+        return $s;
+    } else {
+        die;
+    }
+}
+
+function prepare_or_error(\FireBird\Transaction $t, string $sql): \FireBird\Statement|false
+{
+    if(false === ($s = $t->prepare($sql))){
+        print_error("prepare", $t);
+    }
+    return $s;
+}
+
+function prepare_or_die(\FireBird\Transaction $t, string $sql): \FireBird\Statement
+{
+    if($s = prepare_or_error($t, $sql)) {
         return $s;
     } else {
         die;
