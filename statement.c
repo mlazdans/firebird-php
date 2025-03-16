@@ -3,6 +3,7 @@
 #endif
 
 #include <ibase.h>
+#include <firebird/fb_c_api.h>
 
 #include "php.h"
 #include "zend_exceptions.h"
@@ -288,6 +289,10 @@ void register_FireBird_Statement_ce()
     DECLARE_PROP_OBJ(FireBird_Statement_ce, transaction, FireBird\\Transaction, ZEND_ACC_PROTECTED_SET);
     DECLARE_PROP_LONG(FireBird_Statement_ce, num_vars_in, ZEND_ACC_PROTECTED_SET);
     DECLARE_PROP_LONG(FireBird_Statement_ce, num_vars_out, ZEND_ACC_PROTECTED_SET);
+    DECLARE_PROP_LONG(FireBird_Statement_ce, insert_count, ZEND_ACC_PROTECTED_SET);
+    DECLARE_PROP_LONG(FireBird_Statement_ce, update_count, ZEND_ACC_PROTECTED_SET);
+    DECLARE_PROP_LONG(FireBird_Statement_ce, delete_count, ZEND_ACC_PROTECTED_SET);
+    DECLARE_PROP_LONG(FireBird_Statement_ce, affected_count, ZEND_ACC_PROTECTED_SET);
     DECLARE_ERR_PROPS(FireBird_Statement_ce);
 
     zend_class_implements(FireBird_Statement_ce, 1, FireBird_IError_ce);
@@ -750,6 +755,63 @@ int statement_execute(ISC_STATUS_ARRAY status, zval *stmt_o, zval *bind_args, ui
     }
 
     stmt->has_more_rows = stmt->out_sqlda->sqld > 0;
+
+    if (FAILURE == statement_info(status, stmt)) {
+        return FAILURE;
+    }
+
+    zend_update_property_long(FireBird_Statement_ce, Z_OBJ_P(stmt_o), "insert_count", sizeof("insert_count") - 1, stmt->insert_count);
+    zend_update_property_long(FireBird_Statement_ce, Z_OBJ_P(stmt_o), "update_count", sizeof("update_count") - 1, stmt->update_count);
+    zend_update_property_long(FireBird_Statement_ce, Z_OBJ_P(stmt_o), "delete_count", sizeof("delete_count") - 1, stmt->delete_count);
+    zend_update_property_long(FireBird_Statement_ce, Z_OBJ_P(stmt_o), "affected_count", sizeof("affected_count") - 1, stmt->affected_count);
+
+    return SUCCESS;
+}
+
+int statement_info(ISC_STATUS_ARRAY status, firebird_stmt *stmt)
+{
+    char request_buffer[] = { isc_info_sql_records };
+    char info_buffer[64] = { 0 };
+
+    if (isc_dsql_sql_info(status, &stmt->stmt_handle, sizeof(request_buffer), request_buffer, sizeof(info_buffer), info_buffer)) {
+        return FAILURE;
+    }
+
+    const ISC_UCHAR* p = info_buffer + 3;
+
+    FBDEBUG("Parsing SQL info buffer");
+
+    // isc_info_req_select_count - It tracks the number of rows fetched by a running request (not a SELECT statement).
+    stmt->insert_count = 0;
+    stmt->update_count = 0;
+    stmt->delete_count = 0;
+
+    if (info_buffer[0] == isc_info_sql_records)
+    {
+        while ((*p != isc_info_end) && (p - (const ISC_UCHAR *)&info_buffer < sizeof(info_buffer)))
+        {
+            const ISC_UCHAR count_is = *p++;
+            const ISC_SHORT len = isc_portable_integer(p, 2); p += 2;
+            const ISC_ULONG count = isc_portable_integer(p, len); p += len;
+            switch(count_is) {
+                case isc_info_req_insert_count: stmt->insert_count += count; break;
+                case isc_info_req_update_count: stmt->update_count += count; break;
+                case isc_info_req_delete_count: stmt->delete_count += count; break;
+                case isc_info_req_select_count: continue;
+                default: {
+                    _php_firebird_module_error("BUG: unrecognized isc_dsql_sql_info item: %d with value: %d", count_is, count);
+                } break;
+            }
+        }
+    } else {
+        _php_firebird_module_error("Unexpected isc_dsql_sql_info response: %d", info_buffer[0]);
+    }
+
+    stmt->affected_count = stmt->insert_count + stmt->update_count + stmt->delete_count;
+
+    FBDEBUG_NOFL(" insert_count: %zu", stmt->insert_count);
+    FBDEBUG_NOFL(" update_count: %zu", stmt->update_count);
+    FBDEBUG_NOFL(" delete_count: %zu", stmt->delete_count);
 
     return SUCCESS;
 }

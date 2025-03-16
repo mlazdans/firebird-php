@@ -13,7 +13,7 @@ IStatement::createBatch, IAttachment::createBatch
 BLOB_open(), BLOB_put(), ...
 
 ibase_add_user — Add a user to a security database
-ibase_affected_rows — Return the number of rows that were affected by the previous query
+✅ ibase_affected_rows — Return the number of rows that were affected by the previous query
 ibase_backup — Initiates a backup task in the service manager and returns immediately
 ✅ ibase_blob_add — Add data into a newly created blob
 ✅ ibase_blob_cancel — Cancel creating blob

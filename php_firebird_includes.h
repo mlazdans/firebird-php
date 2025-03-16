@@ -107,6 +107,7 @@ typedef struct firebird_stmt {
     firebird_bind_buf *bind_buf;
     // unsigned short dialect;
     const ISC_SCHAR *query;
+    ISC_ULONG insert_count, update_count, delete_count, affected_count;
     zend_object std;
 } firebird_stmt;
 
@@ -413,6 +414,7 @@ void connection_ctor(zval *conn_o, zval *database);
 void statement_ctor(zval *stmt_o, zval *transaction);
 int statement_prepare(ISC_STATUS_ARRAY status, zval *stmt_o, const ISC_SCHAR *sql);
 int statement_execute(ISC_STATUS_ARRAY status, zval *stmt_o, zval *bind_args, uint32_t num_bind_args);
+int statement_info(ISC_STATUS_ARRAY status, firebird_stmt *stmt);
 void declare_props_zmap(zend_class_entry *ce, const firebird_xpb_zmap *xpb_zmap);
 void blob_ctor(firebird_blob *blob, isc_db_handle *db_handle, isc_tr_handle *tr_handle);
 void blob___construct(zval *blob_o, zval *transaction);

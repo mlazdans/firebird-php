@@ -167,6 +167,10 @@ class Statement implements IError
     protected(set) Transaction $transaction;
     protected(set) int $num_vars_in;
     protected(set) int $num_vars_out;
+    protected(set) int $insert_count;
+    protected(set) int $update_count;
+    protected(set) int $delete_count;
+    protected(set) int $affected_count; // insert + update + delete
 
     private function __construct() {}
 
