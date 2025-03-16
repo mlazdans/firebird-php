@@ -23,14 +23,15 @@
    +----------------------------------------------------------------------+
  */
 
-// ibase_blob_add
-// ✅ibase_blob_cancel
-// ✅ibase_blob_close
-// ✅ibase_blob_create
-// ✅ibase_blob_get
-// ibase_blob_import
-// ✅ibase_blob_info
-// ✅ibase_blob_open
+// ✅ ibase_blob_add
+// ✅ ibase_blob_cancel
+// ✅ ibase_blob_close
+// ✅ ibase_blob_create
+// ✅ ibase_blob_get
+// ✅ ibase_blob_info
+// ✅ ibase_blob_open
+// ❎ ibase_blob_import (can be implemented in user code)
+// ❎ ibase_blob_echo (can be implemented in user code)
 
 #include "firebird/fb_c_api.h"
 #include "php.h"
@@ -98,25 +99,6 @@ zend_string *_php_firebird_quad_to_string(ISC_QUAD const qd)
         ISC_UINT64 res = ((ISC_UINT64) qd.gds_quad_high << 0x20) | qd.gds_quad_low;
         return strpprintf(BLOB_ID_LEN+1, "0x%0*" LL_MASK "x", 16, res);
     }
-}
-
-int _php_firebird_blob_add(ISC_STATUS_ARRAY status, zval *string_arg, firebird_blob *ib_blob)
-{
-    zend_ulong put_cnt = 0, rem_cnt;
-    unsigned short chunk_size;
-
-    convert_to_string_ex(string_arg);
-
-    for (rem_cnt = Z_STRLEN_P(string_arg); rem_cnt > 0; rem_cnt -= chunk_size)  {
-
-        chunk_size = rem_cnt > USHRT_MAX ? USHRT_MAX : (unsigned short)rem_cnt;
-
-        if (isc_put_segment(status, &ib_blob->bl_handle, chunk_size, &Z_STRVAL_P(string_arg)[put_cnt] )) {
-            return FAILURE;
-        }
-        put_cnt += chunk_size;
-    }
-    return SUCCESS;
 }
 
 // static void _php_firebird_blob_end(INTERNAL_FUNCTION_PARAMETERS, int bl_end, ISC_STATUS_ARRAY status)
@@ -259,7 +241,7 @@ PHP_METHOD(Blob, info)
     zend_update_property_long(FireBird_Blob_Info_ce, Z_OBJ_P(return_value), "type", sizeof("type") - 1, blob->type);
 }
 
-int blob_get(ISC_STATUS_ARRAY status, firebird_blob *blob, zval *return_value, zend_ulong max_len)
+int blob_get(ISC_STATUS_ARRAY status, firebird_blob *blob, zval *return_value, size_t max_len)
 {
     ISC_STATUS stat;
     zend_string *bl_data;
@@ -310,12 +292,48 @@ PHP_METHOD(Blob, get)
     }
 }
 
+int blob_put(ISC_STATUS_ARRAY status, firebird_blob *blob, const char *buf, size_t buf_size)
+{
+    zend_ulong put_cnt = 0, rem_cnt;
+    unsigned short chunk_size;
+
+    for (rem_cnt = buf_size; rem_cnt > 0; rem_cnt -= chunk_size)  {
+        chunk_size = rem_cnt > USHRT_MAX ? USHRT_MAX : (unsigned short)rem_cnt;
+        if (isc_put_segment(status, &blob->bl_handle, chunk_size, &buf[put_cnt])) {
+            return FAILURE;
+        }
+        put_cnt += chunk_size;
+    }
+
+    return SUCCESS;
+}
+
+PHP_METHOD(Blob, put)
+{
+    ISC_STATUS_ARRAY status;
+    firebird_blob *blob = Z_BLOB_P(ZEND_THIS);
+    char *data;
+    size_t data_len;
+
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+        Z_PARAM_STRING(data, data_len)
+    ZEND_PARSE_PARAMETERS_END();
+
+    if (FAILURE == blob_put(status, blob, data, data_len)) {
+        update_err_props(status, FireBird_Blob_ce, ZEND_THIS);
+        RETURN_FALSE;
+    }
+
+    RETURN_TRUE;
+}
+
 const zend_function_entry FireBird_Blob_methods[] = {
     PHP_ME(Blob, __construct, arginfo_none, ZEND_ACC_PRIVATE)
     PHP_ME(Blob, close, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
     PHP_ME(Blob, cancel, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
     PHP_ME(Blob, info, arginfo_FireBird_Blob_info, ZEND_ACC_PUBLIC)
     PHP_ME(Blob, get, arginfo_FireBird_Blob_get, ZEND_ACC_PUBLIC)
+    PHP_ME(Blob, put, arginfo_FireBird_Blob_put, ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
 

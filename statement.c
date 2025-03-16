@@ -837,28 +837,25 @@ static int statement_bind(ISC_STATUS_ARRAY status, zval *stmt_o, XSQLDA *sqlda, 
             case SQL_BLOB:
                 convert_to_string(b_var);
 
-                // TODO: use blob.c functions
                 if (Z_STRLEN_P(b_var) != BLOB_ID_LEN ||
                     !_php_firebird_string_to_quad(Z_STRVAL_P(b_var), &stmt->bind_buf[i].val.qval)) {
 
-                    firebird_blob ib_blob = {
-                        .bl_handle = 0,
-                        .writable = 0
-                    };
+                    firebird_blob blob;
+                    blob_ctor(&blob, stmt->db_handle, stmt->tr_handle);
 
-                    if (isc_create_blob(status, stmt->db_handle, stmt->tr_handle, &ib_blob.bl_handle, &ib_blob.bl_id)) {
+                    if (FAILURE == blob_create(status, &blob)) {
                         return FAILURE;
                     }
 
-                    if (_php_firebird_blob_add(status, b_var, &ib_blob) != SUCCESS) {
+                    if (FAILURE == blob_put(status, &blob, Z_STRVAL_P(b_var), Z_STRLEN_P(b_var)) != SUCCESS) {
                         return FAILURE;
                     }
 
-                    if (isc_close_blob(status, &ib_blob.bl_handle)) {
+                    if (FAILURE == blob_close(status, &blob)) {
                         return FAILURE;
                     }
 
-                    stmt->bind_buf[i].val.qval = ib_blob.bl_id;
+                    stmt->bind_buf[i].val.qval = blob.bl_id;
                 }
                 continue;
 #ifdef SQL_BOOLEAN
