@@ -1,5 +1,3 @@
-// #include <ibase.h>
-#include <stddef.h>
 #include "firebird/fb_c_api.h"
 #include "php.h"
 #include "zend_exceptions.h"
@@ -212,6 +210,7 @@ int database_build_dpb(zend_class_entry *ce, zval *args_o, const firebird_xpb_zm
     struct IStatus* st = IMaster_getStatus(master);
     struct IUtil* utl = IMaster_getUtilInterface(master);
     struct IXpbBuilder* xpb = IUtil_getXpbBuilder(utl, st, IXpbBuilder_DPB, NULL, 0);
+
     zend_property_info *prop_info = NULL;
     zend_string *prop_name = NULL;
     zval rv, *val, *checkval;
@@ -276,6 +275,10 @@ int database_build_dpb(zend_class_entry *ce, zval *args_o, const firebird_xpb_zm
 
     *num_dpb_written = IXpbBuilder_getBufferLength(xpb, st);
     *dpb_buf = IXpbBuilder_getBuffer(xpb, st);
+
+    // Needed? Not needed?
+    // IXpbBuilder_dispose(xpb);
+	// IStatus_dispose(st);
 
     return SUCCESS;
 }
