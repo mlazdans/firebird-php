@@ -1,5 +1,5 @@
 --TEST--
-InterBase: misc sql types (may take a while). Ported from php-firebird/tests/003.phpt.
+InterBase: misc sql types (may take a while). Ported from php-firebird.
 --SKIPIF--
 <?php include("skipif.inc"); ?>
 --FILE--
@@ -28,7 +28,7 @@ require_once('functions.inc');
         echo "Precision required: 18\n";
     }
 
-    $q = $t->query(
+    $q = query_or_die($t,
         "CREATE table test3 (
             iter                  integer not null,
             v_char                char(1000),
@@ -48,13 +48,7 @@ require_once('functions.inc');
             )"
     );
 
-    if($q === false) {
-        print_error_and_die("transaction", $t);
-    }
-
-    if(!$t->commit_ret()) {
-        print_error_and_die("commit_ret", $t);
-    }
+    $t->commit_ret() or print_error_and_die("commit_ret", $t);
 
     /* should fail, but gracefully */
     $t->query("INSERT into test3 (iter) values (?)", null);
@@ -79,13 +73,16 @@ require_once('functions.inc');
         $v_smallint = ((int)rand_number(5)) % 32767;
         $v_varchar = rand_str(10000);
 
-        $t->query(
+        query_or_die($t,
         "INSERT into test3 (iter, v_char,v_date,v_decimal4_2, v_decimal4_0, v_decimal7_2, v_decimal7_0,v_numeric15_15, v_decimal18_3, v_numeric15_0,v_double,v_float,v_integer,v_smallint,v_varchar)
-        values ($iter, '$v_char','$v_date',$v_decimal4_2, $v_decimal4_0, $v_decimal7_2, $v_decimal7_0,$v_numeric15_15, $v_decimal18_3, $v_numeric15_0,$v_double,$v_float,$v_integer,$v_smallint,'$v_varchar')")
-        or print_error_and_die("query", $t);
+        values ($iter, '$v_char','$v_date',$v_decimal4_2, $v_decimal4_0, $v_decimal7_2, $v_decimal7_0,$v_numeric15_15, $v_decimal18_3, $v_numeric15_0,$v_double,$v_float,$v_integer,$v_smallint,'$v_varchar')"
+        );
 
-        $sel = $t->query("select * from test3 where iter = $iter") or print_error_and_die("query", $t);
+        $sel = query_or_die($t, "SELECT * from test3 where iter = $iter");
+
         $row = $sel->fetch_object();
+        if(false === $row) print_error_and_die("fetch_object", $sel);
+
         if(substr($row->V_CHAR,0,strlen($v_char)) != $v_char){
             echo " CHAR fail:\n";
             echo " in:  $v_char\n";
@@ -161,11 +158,11 @@ require_once('functions.inc');
 
         $sel->close() or print_error_and_die("close", $sel);
     } /* for($iter) */
+    $sel->free();
 
     /* check for correct handling of duplicate field names */
-    $q = $t->query('SELECT 1 AS id, 2 AS id, 3 AS id, 4 AS id, 5 AS id, 6 AS id, 7 AS id, 8 AS id, 9 AS id,
-        10 AS id, 11 AS id, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22 FROM rdb$database')
-    or print_error_and_die("query", $t);
+    $q = query_or_die($t, 'SELECT 1 AS id, 2 AS id, 3 AS id, 4 AS id, 5 AS id, 6 AS id, 7 AS id, 8 AS id, 9 AS id,
+        10 AS id, 11 AS id, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22 FROM rdb$database');
 
     var_dump($q->fetch_array());
 
