@@ -73,6 +73,23 @@ PHP_METHOD(Statement, close)
     RETURN_TRUE;
 }
 
+PHP_METHOD(Statement, free)
+{
+    ZEND_PARSE_PARAMETERS_NONE();
+
+    firebird_stmt *stmt = Z_STMT_P(ZEND_THIS);
+    ISC_STATUS_ARRAY status;
+
+    if (isc_dsql_free_statement(status, &stmt->stmt_handle, DSQL_drop)) {
+        update_err_props(status, FireBird_Statement_ce, ZEND_THIS);
+        RETURN_FALSE;
+    }
+
+    stmt->stmt_handle = 0;
+
+    RETURN_TRUE;
+}
+
 PHP_METHOD(Statement, execute)
 {
     ISC_STATUS_ARRAY status;
@@ -170,6 +187,7 @@ const zend_function_entry FireBird_Statement_methods[] = {
     PHP_ME(Statement, fetch_object, arginfo_FireBird_Statement_fetch_object, ZEND_ACC_PUBLIC)
     PHP_ME(Statement, execute, arginfo_FireBird_Statement_execute, ZEND_ACC_PUBLIC)
     PHP_ME(Statement, close, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
+    PHP_ME(Statement, free, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
 
@@ -185,7 +203,6 @@ static zend_object *FireBird_Statement_create(zend_class_entry *ce)
     return &s->std;
 }
 
-// TODO: able to DSQL_drop from PHP
 static void FireBird_Statement_free_obj(zend_object *obj)
 {
     FBDEBUG("FireBird_Statement_free_obj");

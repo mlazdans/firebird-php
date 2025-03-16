@@ -170,6 +170,9 @@ class Statement implements IError
 
     /** @return bool */
     function close() {}
+
+    /** @return bool */
+    function free() {}
 }
 
 class Blob implements IError
