@@ -332,6 +332,10 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Statement_execute, 0, 0
     ZEND_ARG_VARIADIC_INFO(0, bind_args)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Statement_get_var_info_in_out, 0, 1, FireBird\\Var_Info, MAY_BE_FALSE)
+    ZEND_ARG_TYPE_INFO(0, num, IS_LONG, 0)
+ZEND_END_ARG_INFO()
+
 // Blob argument types
 ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Blob_info, 0, 0, FireBird\\Blob_Info, MAY_BE_FALSE)
 ZEND_END_ARG_INFO()
@@ -357,6 +361,7 @@ extern zend_class_entry *FireBird_Error_ce;
 extern zend_class_entry *FireBird_Blob_ce;
 extern zend_class_entry *FireBird_Blob_Info_ce;
 extern zend_class_entry *FireBird_Blob_Id_ce;
+extern zend_class_entry *FireBird_Var_Info_ce;
 
 extern void register_FireBird_Database_ce();
 extern void register_FireBird_Connection_ce();
@@ -369,6 +374,7 @@ extern void register_FireBird_Create_Args_ce();
 extern void register_FireBird_Blob_ce();
 extern void register_FireBird_Blob_Info_ce();
 extern void register_FireBird_Blob_Id_ce();
+extern void register_FireBird_Var_Info_ce();
 
 // TODO: fb_sqlstate()
 #define DECLARE_FERR_PROPS(ce)                                  \

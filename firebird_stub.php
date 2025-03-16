@@ -23,6 +23,17 @@ class Blob_Info
     public int $type { get; }
 }
 
+class Var_Info
+{
+    public string $name { get; }
+    public string $alias { get; }
+    public string $relation { get; }
+    public int $byte_length { get; }
+    public int $type { get; }
+    public int $scale { get; }
+    public bool $nullable { get; }
+}
+
 class Blob_Id
 {
 }
@@ -153,8 +164,8 @@ class Statement implements IError
     use FB_Error;
 
     protected(set) Transaction $transaction;
-    protected(set) int $num_parameters_in;
-    protected(set) int $num_parameters_out;
+    protected(set) int $num_vars_in;
+    protected(set) int $num_vars_out;
 
     private function __construct() {}
 
@@ -175,6 +186,12 @@ class Statement implements IError
 
     /** @return bool */
     function free() {}
+
+    /** @return Var_Info|false */
+    function get_var_info_in(int $num) {}
+
+    /** @return Var_Info|false */
+    function get_var_info_out(int $num) {}
 }
 
 class Blob implements IError

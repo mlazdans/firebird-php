@@ -178,15 +178,59 @@ int statement_prepare(ISC_STATUS_ARRAY status, zval *stmt_o, const ISC_SCHAR *sq
     stmt->statement_type = result[3];
     stmt->query = sql;
 
-    zend_update_property_long(FireBird_Statement_ce, Z_OBJ_P(stmt_o), "num_parameters_in", sizeof("num_parameters_in") - 1,
+    zend_update_property_long(FireBird_Statement_ce, Z_OBJ_P(stmt_o), "num_vars_in", sizeof("num_vars_in") - 1,
         stmt->in_sqlda->sqld
     );
 
-    zend_update_property_long(FireBird_Statement_ce, Z_OBJ_P(stmt_o), "num_parameters_out", sizeof("num_parameters_out") - 1,
+    zend_update_property_long(FireBird_Statement_ce, Z_OBJ_P(stmt_o), "num_vars_out", sizeof("num_vars_out") - 1,
         stmt->out_sqlda->sqld
     );
 
     return SUCCESS;
+}
+
+void statement_var_info(zval *return_value, XSQLVAR *var)
+{
+    object_init_ex(return_value, FireBird_Var_Info_ce);
+    zend_update_property_string(FireBird_Var_Info_ce, Z_OBJ_P(return_value), "name", sizeof("name") - 1, var->sqlname);
+    zend_update_property_string(FireBird_Var_Info_ce, Z_OBJ_P(return_value), "alias", sizeof("alias") - 1, var->aliasname);
+    zend_update_property_string(FireBird_Var_Info_ce, Z_OBJ_P(return_value), "relation", sizeof("relation") - 1, var->relname);
+    zend_update_property_long(FireBird_Var_Info_ce, Z_OBJ_P(return_value), "byte_length", sizeof("byte_length") - 1, var->sqllen);
+    zend_update_property_long(FireBird_Var_Info_ce, Z_OBJ_P(return_value), "type", sizeof("type") - 1, var->sqltype & ~1);
+    zend_update_property_long(FireBird_Var_Info_ce, Z_OBJ_P(return_value), "scale", sizeof("scale") - 1, var->sqlscale);
+    zend_update_property_bool(FireBird_Var_Info_ce, Z_OBJ_P(return_value), "nullable", sizeof("nullable") - 1, var->sqltype & 1);
+}
+
+PHP_METHOD(Statement, get_var_info_in)
+{
+    zend_long num;
+    firebird_stmt *stmt = Z_STMT_P(ZEND_THIS);
+
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+        Z_PARAM_LONG(num)
+    ZEND_PARSE_PARAMETERS_END();
+
+    if (num < 0 || num >= stmt->in_sqlda->sqld) {
+        RETURN_FALSE;
+    }
+
+    statement_var_info(return_value, stmt->in_sqlda->sqlvar + num);
+}
+
+PHP_METHOD(Statement, get_var_info_out)
+{
+    zend_long num;
+    firebird_stmt *stmt = Z_STMT_P(ZEND_THIS);
+
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+        Z_PARAM_LONG(num)
+    ZEND_PARSE_PARAMETERS_END();
+
+    if (num < 0 || num >= stmt->out_sqlda->sqld) {
+        RETURN_FALSE;
+    }
+
+    statement_var_info(return_value, stmt->out_sqlda->sqlvar + num);
 }
 
 const zend_function_entry FireBird_Statement_methods[] = {
@@ -197,6 +241,8 @@ const zend_function_entry FireBird_Statement_methods[] = {
     PHP_ME(Statement, execute, arginfo_FireBird_Statement_execute, ZEND_ACC_PUBLIC)
     PHP_ME(Statement, close, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
     PHP_ME(Statement, free, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
+    PHP_ME(Statement, get_var_info_in, arginfo_FireBird_Statement_get_var_info_in_out, ZEND_ACC_PUBLIC)
+    PHP_ME(Statement, get_var_info_out, arginfo_FireBird_Statement_get_var_info_in_out, ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
 
@@ -239,8 +285,8 @@ void register_FireBird_Statement_ce()
     FireBird_Statement_ce = zend_register_internal_class(&tmp_ce);
 
     DECLARE_PROP_OBJ(FireBird_Statement_ce, transaction, FireBird\\Transaction, ZEND_ACC_PROTECTED_SET);
-    DECLARE_PROP_LONG(FireBird_Statement_ce, num_parameters_in, ZEND_ACC_PROTECTED_SET);
-    DECLARE_PROP_LONG(FireBird_Statement_ce, num_parameters_out, ZEND_ACC_PROTECTED_SET);
+    DECLARE_PROP_LONG(FireBird_Statement_ce, num_vars_in, ZEND_ACC_PROTECTED_SET);
+    DECLARE_PROP_LONG(FireBird_Statement_ce, num_vars_out, ZEND_ACC_PROTECTED_SET);
     DECLARE_ERR_PROPS(FireBird_Statement_ce);
 
     zend_class_implements(FireBird_Statement_ce, 1, FireBird_IError_ce);

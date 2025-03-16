@@ -37,7 +37,7 @@ ibase_delete_user — Delete a user from a security database
 ✅ ibase_fetch_assoc — Fetch a result row from a query as an associative array
 ✅ ibase_fetch_object — Get an object from a InterBase database
 ✅ ibase_fetch_row — Fetch a row from an InterBase database
-ibase_field_info — Get information about a field
+✅ ibase_field_info — Get information about a field
 ibase_free_event_handler — Cancels a registered event handler
 ✅ ibase_free_query — Free memory allocated by a prepared query
 ✅ ibase_free_result — Free a result set
@@ -47,7 +47,7 @@ ibase_modify_user — Modify a user to a security database
 ibase_name_result — Assigns a name to a result set
 ✅ ibase_num_fields — Get the number of fields in a result set
 ✅ ibase_num_params — Return the number of parameters in a prepared query
-ibase_param_info — Return information about a parameter in a prepared query
+✅ ibase_param_info — Return information about a parameter in a prepared query
 ibase_pconnect — Open a persistent connection to an InterBase database
 ✅ ibase_prepare — Prepare a query for later binding of parameter placeholders and execution
 ✅ ibase_query — Execute a query on an InterBase database
