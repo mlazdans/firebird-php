@@ -192,7 +192,7 @@ class Blob implements IError
     /** @return string|false */
     function get(int $max_len = 0) {}
 
-    /** @return int|false */
+    /** @return bool */
     function put(string $data) {}
 }
 

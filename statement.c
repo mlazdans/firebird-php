@@ -836,10 +836,13 @@ static int statement_bind(ISC_STATUS_ARRAY status, zval *stmt_o, XSQLDA *sqlda, 
                 continue;
 
             case SQL_BLOB:
-                convert_to_string(b_var);
-
-                if (Z_STRLEN_P(b_var) != BLOB_ID_LEN ||
-                    !_php_firebird_string_to_quad(Z_STRVAL_P(b_var), &stmt->bind_buf[i].val.qval)) {
+                ISC_QUAD bl_id;
+                if (Z_TYPE_P(b_var) == IS_OBJECT && Z_OBJCE_P(b_var) == FireBird_Blob_Id_ce) {
+                    bl_id = Z_BLOB_ID_P(b_var)->bl_id;
+                } else if (Z_TYPE_P(b_var) == IS_OBJECT && Z_OBJCE_P(b_var) == FireBird_Blob_ce) {
+                    bl_id = Z_BLOB_P(b_var)->bl_id;
+                } else {
+                    convert_to_string(b_var);
 
                     firebird_blob blob;
                     blob_ctor(&blob, stmt->db_handle, stmt->tr_handle);
@@ -856,8 +859,9 @@ static int statement_bind(ISC_STATUS_ARRAY status, zval *stmt_o, XSQLDA *sqlda, 
                         return FAILURE;
                     }
 
-                    stmt->bind_buf[i].val.qval = blob.bl_id;
+                    bl_id = blob.bl_id;
                 }
+                stmt->bind_buf[i].val.qval = bl_id;
                 continue;
 #ifdef SQL_BOOLEAN
             case SQL_BOOLEAN:
