@@ -12,16 +12,16 @@ IStatement::createBatch, IAttachment::createBatch
 
 BLOB_open(), BLOB_put(), ...
 
-ibase_add_user — Add a user to a security database<br>
+❌ ibase_add_user — Add a user to a security database<br>
 ✅ ibase_affected_rows — Return the number of rows that were affected by the previous query<br>
 ❌ ibase_backup — Initiates a backup task in the service manager and returns immediately<br>
 ✅ ibase_blob_add — Add data into a newly created blob<br>
 ✅ ibase_blob_cancel — Cancel creating blob<br>
 ✅ ibase_blob_close — Close blob<br>
 ✅ ibase_blob_create — Create a new blob for adding data<br>
-❎ ibase_blob_echo — Output blob contents to browser (can be easily done in PHP space)<br>
+🚫 ibase_blob_echo — Output blob contents to browser (can be easily done in PHP space)<br>
 ✅ ibase_blob_get — Get len bytes data from open blob<br>
-❎ ibase_blob_import — Create blob, copy file in it, and close it (can be easily done in PHP space)<br>
+🚫 ibase_blob_import — Create blob, copy file in it, and close it (can be easily done in PHP space)<br>
 ✅ ibase_blob_info — Return blob length and other useful info<br>
 ✅ ibase_blob_open — Open blob for retrieving data parts<br>
 ✅ ibase_close — Close a connection to an InterBase database<br>
@@ -41,7 +41,7 @@ ibase_add_user — Add a user to a security database<br>
 ❌ ibase_free_event_handler — Cancels a registered event handler<br>
 ✅ ibase_free_query — Free memory allocated by a prepared query<br>
 ✅ ibase_free_result — Free a result set<br>
-❎ ibase_gen_id — Increments the named generator and returns its new value (can be easily done in PHP space)<br>
+🚫 ibase_gen_id — Increments the named generator and returns its new value (can be easily done in PHP space)<br>
 ❌ ibase_maintain_db — Execute a maintenance command on the database server<br>
 ❌ ibase_modify_user — Modify a user to a security database<br>
 ✅ ibase_name_result — Assigns a name to a result set<br>
