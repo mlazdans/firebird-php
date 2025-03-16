@@ -23,17 +23,7 @@
    +----------------------------------------------------------------------+
  */
 
-// ✅ ibase_blob_add
-// ✅ ibase_blob_cancel
-// ✅ ibase_blob_close
-// ✅ ibase_blob_create
-// ✅ ibase_blob_get
-// ✅ ibase_blob_info
-// ✅ ibase_blob_open
-// ❎ ibase_blob_import (can be implemented in user code)
-// ❎ ibase_blob_echo (can be implemented in user code)
-
-#include "firebird/fb_c_api.h"
+#include <firebird/fb_c_api.h>
 #include "php.h"
 #include "php_firebird.h"
 #include "php_firebird_includes.h"
@@ -131,7 +121,7 @@ int blob_get_info(ISC_STATUS_ARRAY status, firebird_blob *blob)
     dpb = IUtil_getXpbBuilder(utl, st, IXpbBuilder_INFO_RESPONSE, bl_inf, sizeof(bl_inf));
 
     FBDEBUG("Parsing BLOB info buffer");
-    for(IXpbBuilder_rewind(dpb, st); !IXpbBuilder_isEof(dpb, st); IXpbBuilder_moveNext(dpb, st)) {
+    for (IXpbBuilder_rewind(dpb, st); !IXpbBuilder_isEof(dpb, st); IXpbBuilder_moveNext(dpb, st)) {
         unsigned char tag = IXpbBuilder_getTag(dpb, st);
         int val = IXpbBuilder_getInt(dpb, st);
         FBDEBUG_NOFL(" tag: %d, val: %d", tag, val);
