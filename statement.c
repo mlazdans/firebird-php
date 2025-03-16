@@ -162,6 +162,7 @@ int statement_prepare(ISC_STATUS_ARRAY status, zval *stmt_o, const ISC_SCHAR *sq
         }
     }
 
+    // TODO: explore other isc_info_sql_*
     static char info_type[] = { isc_info_sql_stmt_type };
     char result[8];
 
@@ -176,6 +177,14 @@ int statement_prepare(ISC_STATUS_ARRAY status, zval *stmt_o, const ISC_SCHAR *sq
 
     stmt->statement_type = result[3];
     stmt->query = sql;
+
+    zend_update_property_long(FireBird_Statement_ce, Z_OBJ_P(stmt_o), "num_parameters_in", sizeof("num_parameters_in") - 1,
+        stmt->in_sqlda->sqld
+    );
+
+    zend_update_property_long(FireBird_Statement_ce, Z_OBJ_P(stmt_o), "num_parameters_out", sizeof("num_parameters_out") - 1,
+        stmt->out_sqlda->sqld
+    );
 
     return SUCCESS;
 }
@@ -230,6 +239,8 @@ void register_FireBird_Statement_ce()
     FireBird_Statement_ce = zend_register_internal_class(&tmp_ce);
 
     DECLARE_PROP_OBJ(FireBird_Statement_ce, transaction, FireBird\\Transaction, ZEND_ACC_PROTECTED_SET);
+    DECLARE_PROP_LONG(FireBird_Statement_ce, num_parameters_in, ZEND_ACC_PROTECTED_SET);
+    DECLARE_PROP_LONG(FireBird_Statement_ce, num_parameters_out, ZEND_ACC_PROTECTED_SET);
     DECLARE_ERR_PROPS(FireBird_Statement_ce);
 
     zend_class_implements(FireBird_Statement_ce, 1, FireBird_IError_ce);

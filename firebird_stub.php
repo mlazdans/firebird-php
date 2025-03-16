@@ -153,6 +153,8 @@ class Statement implements IError
     use FB_Error;
 
     protected(set) Transaction $transaction;
+    protected(set) int $num_parameters_in;
+    protected(set) int $num_parameters_out;
 
     private function __construct() {}
 

@@ -116,7 +116,7 @@ function print_error(string $cat, \FireBird\IError $o): void
     print "===============================================================================\n";
 }
 
-function print_error_and_die(string $cat, \FireBird\IError $o): void
+function print_error_and_die(string $cat, \FireBird\IError $o): never
 {
     print_error($cat, $o);
     // debug_print_backtrace();
