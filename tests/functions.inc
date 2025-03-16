@@ -165,15 +165,19 @@ function gen_random_db_file_name_or_die(): string
     return $database;
 }
 
-function init_tmp_db(): \FireBird\Connection|false
+function init_tmp_db(string $charset = ""): \FireBird\Connection|false
 {
     $database = gen_random_db_file_name_or_die();
 
     $args = new \FireBird\Create_Args;
     $args->database = $database;
+    $args->page_size = 16 * 1024;
     if(!empty(Config::$user_name))$args->user_name = Config::$user_name;
     if(!empty(Config::$password))$args->password = Config::$password;
     if(!empty(Config::$charset))$args->set_db_charset = Config::$charset;
+
+    // overrides
+    if($charset)$args->set_db_charset = $charset;
 
     $db = new \FireBird\Database;
     if($conn = $db->create($args)) {
