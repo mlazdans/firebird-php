@@ -93,7 +93,6 @@ PHP_METHOD(Statement, free)
 
 PHP_METHOD(Statement, execute)
 {
-    ISC_STATUS_ARRAY status;
     zval *bind_args;
     uint32_t num_bind_args;
 
@@ -102,8 +101,7 @@ PHP_METHOD(Statement, execute)
         Z_PARAM_VARIADIC('+', bind_args, num_bind_args)
     ZEND_PARSE_PARAMETERS_END();
 
-    if (FAILURE == statement_execute(status, ZEND_THIS, bind_args, num_bind_args)) {
-        update_err_props(status, FireBird_Statement_ce, ZEND_THIS);
+    if (FAILURE == statement_execute(ZEND_THIS, bind_args, num_bind_args, FireBird_Statement_ce, ZEND_THIS)) {
         RETURN_FALSE;
     }
 
@@ -235,6 +233,29 @@ PHP_METHOD(Statement, get_var_info_out)
     statement_var_info(return_value, stmt->out_sqlda->sqlvar + num);
 }
 
+PHP_METHOD(Statement, set_name)
+{
+    firebird_stmt *stmt = Z_STMT_P(ZEND_THIS);
+    ISC_STATUS_ARRAY status;
+    char *name;
+    size_t name_len;
+
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+        Z_PARAM_STRING(name, name_len)
+    ZEND_PARSE_PARAMETERS_END();
+
+    if (isc_dsql_set_cursor_name(status, &stmt->stmt_handle, name, 0)) {
+        update_err_props(status, FireBird_Statement_ce, ZEND_THIS);
+        RETURN_FALSE;
+    }
+
+    stmt->name = name;
+
+    zend_update_property_string(FireBird_Statement_ce, Z_OBJ_P(ZEND_THIS), "name", sizeof("name") - 1, name);
+
+    RETURN_TRUE;
+}
+
 const zend_function_entry FireBird_Statement_methods[] = {
     PHP_ME(Statement, __construct, arginfo_none, ZEND_ACC_PRIVATE)
     PHP_ME(Statement, fetch_row, arginfo_FireBird_Statement_fetch_row, ZEND_ACC_PUBLIC)
@@ -245,6 +266,7 @@ const zend_function_entry FireBird_Statement_methods[] = {
     PHP_ME(Statement, free, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
     PHP_ME(Statement, get_var_info_in, arginfo_FireBird_Statement_get_var_info_in_out, ZEND_ACC_PUBLIC)
     PHP_ME(Statement, get_var_info_out, arginfo_FireBird_Statement_get_var_info_in_out, ZEND_ACC_PUBLIC)
+    PHP_ME(Statement, set_name, arginfo_FireBird_Statement_set_name, ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
 
@@ -287,6 +309,7 @@ void register_FireBird_Statement_ce()
     FireBird_Statement_ce = zend_register_internal_class(&tmp_ce);
 
     DECLARE_PROP_OBJ(FireBird_Statement_ce, transaction, FireBird\\Transaction, ZEND_ACC_PROTECTED_SET);
+    DECLARE_PROP_STRING(FireBird_Statement_ce, name, ZEND_ACC_PROTECTED_SET);
     DECLARE_PROP_LONG(FireBird_Statement_ce, num_vars_in, ZEND_ACC_PROTECTED_SET);
     DECLARE_PROP_LONG(FireBird_Statement_ce, num_vars_out, ZEND_ACC_PROTECTED_SET);
     DECLARE_PROP_LONG(FireBird_Statement_ce, insert_count, ZEND_ACC_PROTECTED_SET);
@@ -654,8 +677,9 @@ enum execute_fn {
 
 // typedef enum execute_fn execute_fn;
 
-int statement_execute(ISC_STATUS_ARRAY status, zval *stmt_o, zval *bind_args, uint32_t num_bind_args)
+int statement_execute(zval *stmt_o, zval *bind_args, uint32_t num_bind_args, zend_class_entry *ce, zval *ce_o)
 {
+    ISC_STATUS_ARRAY status;
     firebird_stmt *stmt = Z_STMT_P(stmt_o);
 
     if (num_bind_args != stmt->in_sqlda->sqld) {
@@ -667,6 +691,7 @@ int statement_execute(ISC_STATUS_ARRAY status, zval *stmt_o, zval *bind_args, ui
     /* has placeholders */
     if (stmt->in_sqlda->sqld > 0) {
         if (FAILURE == statement_bind(status, stmt_o, stmt->in_sqlda, bind_args)) {
+            update_err_props(status, ce, ce_o);
             return FAILURE;
         }
     }
@@ -739,6 +764,7 @@ int statement_execute(ISC_STATUS_ARRAY status, zval *stmt_o, zval *bind_args, ui
     if (exfn == EXECUTE_IMMEDIATE) {
         FBDEBUG("isc_dsql_execute_immediate(): handle=%d, type=%d", stmt->stmt_handle, stmt->statement_type);
         if(isc_dsql_free_statement(status, &stmt->stmt_handle, DSQL_drop)) {
+            update_err_props(status, ce, ce_o);
             return FAILURE;
         }
         isc_result = isc_dsql_execute_immediate(status, stmt->db_handle, stmt->tr_handle, 0, stmt->query, SQL_DIALECT_CURRENT, stmt->in_sqlda);
@@ -751,14 +777,13 @@ int statement_execute(ISC_STATUS_ARRAY status, zval *stmt_o, zval *bind_args, ui
     }
 
     if (isc_result) {
+        update_err_props(status, ce, ce_o);
         return FAILURE;
     }
 
     stmt->has_more_rows = stmt->out_sqlda->sqld > 0;
 
-    if (FAILURE == statement_info(status, stmt)) {
-        return FAILURE;
-    }
+    statement_info(status, stmt);
 
     zend_update_property_long(FireBird_Statement_ce, Z_OBJ_P(stmt_o), "insert_count", sizeof("insert_count") - 1, stmt->insert_count);
     zend_update_property_long(FireBird_Statement_ce, Z_OBJ_P(stmt_o), "update_count", sizeof("update_count") - 1, stmt->update_count);
@@ -773,6 +798,12 @@ int statement_info(ISC_STATUS_ARRAY status, firebird_stmt *stmt)
     char request_buffer[] = { isc_info_sql_records };
     char info_buffer[64] = { 0 };
 
+    // isc_info_req_select_count - It tracks the number of rows fetched by a running request (not a SELECT statement).
+    stmt->insert_count = 0;
+    stmt->update_count = 0;
+    stmt->delete_count = 0;
+    stmt->affected_count = 0;
+
     if (isc_dsql_sql_info(status, &stmt->stmt_handle, sizeof(request_buffer), request_buffer, sizeof(info_buffer), info_buffer)) {
         return FAILURE;
     }
@@ -780,11 +811,6 @@ int statement_info(ISC_STATUS_ARRAY status, firebird_stmt *stmt)
     const ISC_UCHAR* p = info_buffer + 3;
 
     FBDEBUG("Parsing SQL info buffer");
-
-    // isc_info_req_select_count - It tracks the number of rows fetched by a running request (not a SELECT statement).
-    stmt->insert_count = 0;
-    stmt->update_count = 0;
-    stmt->delete_count = 0;
 
     if (info_buffer[0] == isc_info_sql_records)
     {

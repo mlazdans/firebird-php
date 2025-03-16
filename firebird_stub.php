@@ -165,6 +165,7 @@ class Statement implements IError
     use FB_Error;
 
     protected(set) Transaction $transaction;
+    protected(set) string $name;
     protected(set) int $num_vars_in;
     protected(set) int $num_vars_out;
     protected(set) int $insert_count;
@@ -197,6 +198,9 @@ class Statement implements IError
 
     /** @return Var_Info|false */
     function get_var_info_out(int $num) {}
+
+    /** @return bool */
+    function set_name(string $name) {}
 }
 
 class Blob implements IError

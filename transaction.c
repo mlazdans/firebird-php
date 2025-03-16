@@ -135,9 +135,6 @@ PHP_METHOD(Transaction, query)
     uint32_t num_bind_args;
     zend_string *sql;
 
-    // firebird_trans *tr = Z_TRANSACTION_P(ZEND_THIS);
-    ISC_STATUS_ARRAY status;
-
     ZEND_PARSE_PARAMETERS_START(1, -1)
         Z_PARAM_STR(sql)
         Z_PARAM_OPTIONAL
@@ -148,8 +145,7 @@ PHP_METHOD(Transaction, query)
         RETURN_FALSE;
     }
 
-    if (FAILURE == statement_execute(status, return_value, bind_args, num_bind_args)) {
-        update_err_props(status, FireBird_Transaction_ce, ZEND_THIS);
+    if (FAILURE == statement_execute(return_value, bind_args, num_bind_args, FireBird_Transaction_ce, ZEND_THIS)) {
         zval_ptr_dtor(return_value);
         RETURN_FALSE;
     }

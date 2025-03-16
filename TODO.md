@@ -44,7 +44,7 @@ ibase_free_event_handler — Cancels a registered event handler
 ❎ ibase_gen_id — Increments the named generator and returns its new value (can be easily done in PHP space)
 ibase_maintain_db — Execute a maintenance command on the database server
 ibase_modify_user — Modify a user to a security database
-ibase_name_result — Assigns a name to a result set
+✅ ibase_name_result — Assigns a name to a result set
 ✅ ibase_num_fields — Get the number of fields in a result set
 ✅ ibase_num_params — Return the number of parameters in a prepared query
 ✅ ibase_param_info — Return information about a parameter in a prepared query
