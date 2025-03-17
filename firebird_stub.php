@@ -133,6 +133,7 @@ class Transaction implements IError
     use FB_Error;
 
     protected(set) Connection $connection;
+    protected(set) int $id;
 
     private function __construct() {}
 

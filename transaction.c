@@ -1,4 +1,6 @@
 #include <ibase.h>
+#include <firebird/fb_c_api.h>
+
 #include "php.h"
 #include "zend_exceptions.h"
 #include "zend_attributes.h"
@@ -26,7 +28,9 @@ void transaction_ctor(zval *tr_o, zval *connection, zend_long trans_args, zend_l
     firebird_db *db = Z_DB_P(database);
 
     firebird_trans *tr = Z_TRANSACTION_P(tr_o);
+
     tr->tr_handle = 0;
+    tr->tr_id = 0;
     tr->db_handle = &db->db_handle;
 }
 
@@ -57,6 +61,12 @@ int transaction_start(ISC_STATUS_ARRAY status, zval *tr_o)
     if(isc_start_transaction(status, &tr->tr_handle, 1, tr->db_handle, tpb_len, tpb)) {
         return FAILURE;
     }
+
+    if(transaction_get_info(status, tr)) {
+        return FAILURE;
+    }
+
+    zend_update_property_long(FireBird_Transaction_ce, Z_OBJ_P(tr_o), "id", 2, (zend_long)tr->tr_id);
 
     return SUCCESS;
 }
@@ -262,6 +272,7 @@ void register_FireBird_Transaction_ce()
     DECLARE_PROP_OBJ(FireBird_Transaction_ce, connection, FireBird\\Connection, ZEND_ACC_PROTECTED_SET);
     DECLARE_PROP_LONG(FireBird_Transaction_ce, trans_args, ZEND_ACC_PROTECTED_SET);
     DECLARE_PROP_LONG(FireBird_Transaction_ce, lock_timeout, ZEND_ACC_PROTECTED_SET);
+    DECLARE_PROP_LONG(FireBird_Transaction_ce, id, ZEND_ACC_PROTECTED_SET);
     DECLARE_ERR_PROPS(FireBird_Transaction_ce);
 
     zend_class_implements(FireBird_Transaction_ce, 1, FireBird_IError_ce);
@@ -481,4 +492,68 @@ static void _php_firebird_process_trans(INTERNAL_FUNCTION_PARAMETERS, int commit
     } else {
         RETVAL_TRUE;
     }
+}
+
+int transaction_get_info(ISC_STATUS_ARRAY status, firebird_trans *tr)
+{
+    static char info_req[] = { isc_info_tra_id };
+    char info_resp[(sizeof(ISC_INT64) * 2)] = { 0 };
+
+    if (isc_transaction_info(status, &tr->tr_handle, sizeof(info_req), info_req, sizeof(info_resp), info_resp)) {
+        return FAILURE;
+    }
+
+    struct IMaster* master = fb_get_master_interface();
+    struct IStatus* st = IMaster_getStatus(master);
+    struct IUtil* utl = IMaster_getUtilInterface(master);
+    struct IXpbBuilder* dpb;
+
+    dpb = IUtil_getXpbBuilder(utl, st, IXpbBuilder_INFO_RESPONSE, info_resp, sizeof(info_resp));
+
+    ISC_INT64 val, len, total_len = 0;
+    const char *str;
+    unsigned char tag;
+
+    FBDEBUG("Parsing Transaction info buffer");
+    for (IXpbBuilder_rewind(dpb, st); !IXpbBuilder_isEof(dpb, st); IXpbBuilder_moveNext(dpb, st)) {
+        tag = IXpbBuilder_getTag(dpb, st); total_len++;
+        len = IXpbBuilder_getLength(dpb, st); total_len += 2;
+        total_len += len;
+
+        switch(tag) {
+            case isc_info_end: break;
+
+            case isc_info_tra_id:
+            {
+                val = IXpbBuilder_getBigInt(dpb, st);
+                FBDEBUG_NOFL("  tag: %d len: %d val: %d", tag, len, val);
+                tr->tr_id = (ISC_UINT64)val;
+            } break;
+
+            case fb_info_tra_dbpath:
+            {
+                str = IXpbBuilder_getString(dpb, st);
+                FBDEBUG_NOFL("  tag: %d len: %d val: %s", tag, len, str);
+            } break;
+
+            case isc_info_truncated:
+            {
+                _php_firebird_module_error("Transaction info buffer error: truncated");
+            } return FAILURE;
+
+            case isc_info_error:
+            {
+                _php_firebird_module_error("Transaction info buffer error");
+            } return FAILURE;
+
+            default:
+            {
+                _php_firebird_module_fatal("BUG! Unhandled Transaction info tag: %d", tag);
+            } break;
+        }
+    }
+
+    // dump_buffer(info_resp, total_len);
+
+    return SUCCESS;
 }

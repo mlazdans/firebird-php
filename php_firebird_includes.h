@@ -93,6 +93,7 @@ typedef struct firebird_trans {
     isc_db_handle *db_handle;
     zend_long trans_args;
     zend_long trans_timeout;
+    ISC_UINT64 tr_id;
     zend_object std;
 } firebird_trans;
 
@@ -266,6 +267,7 @@ void _php_firebird_module_fatal(char *, ...)
 #define Z_BLOB_P(zv) Z_BLOB_O(Z_OBJ_P(zv))
 #define Z_BLOB_ID_P(zv) Z_BLOB_ID_O(Z_OBJ_P(zv))
 
+// TODO: similar macros for reading
 #define xpb_insert(f, ...) do { \
     IXpbBuilder_insert##f(__VA_ARGS__); \
     if (IStatus_getState(st) & IStatus_STATE_ERRORS) { \
@@ -414,6 +416,7 @@ void dump_buffer(const unsigned char *buffer, int len);
 ISC_INT64 update_err_props_ex(ISC_STATUS_ARRAY status, zend_class_entry *ce, zval *obj, const char *file_name, size_t line_num);
 void transaction_ctor(zval *tr_o, zval *connection, zend_long trans_args, zend_long lock_timeout);
 int transaction_start(ISC_STATUS_ARRAY status, zval *tr_o);
+int transaction_get_info(ISC_STATUS_ARRAY status, firebird_trans *tr);
 int status_err_msg(const ISC_STATUS *status, char *msg, unsigned short msg_size);
 int database_build_dpb(zend_class_entry *ce, zval *args_o, const firebird_xpb_zmap *xpb_map, const char **dpb_buf, short *num_dpb_written);
 void connection_ctor(zval *conn_o, zval *database);
