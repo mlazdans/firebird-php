@@ -27,6 +27,16 @@ require_once('functions.inc');
         $t->query("INSERT INTO TEST_001 (BLOB_1) VALUES (?)", "Hello from transaction $t->id") or print_error_and_die("query", $t);
         $t->prepare_2pc() or print_error_and_die("prepare_2pc", $t);
 
+        if($t->query("INSERT INTO TEST_001 (BLOB_1) VALUES (?)", "Hello from insert after 2pc transaction $t->id")) {
+            die("No insert after prepare_2pc should happen!");
+        }
+
+        if($p = $t->prepare("INSERT INTO TEST_001 (BLOB_1) VALUES (?)")) {
+            if($p->execute("Hello from prepare after 2pc transaction $t->id")) {
+                die("No prepare after prepare_2pc should happen!");
+            }
+        }
+
         return $t->id;
     })();
 
