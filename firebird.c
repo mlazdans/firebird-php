@@ -358,7 +358,6 @@ void dump_buffer(const unsigned char *buffer, int len){
 
 int status_err_msg(const ISC_STATUS *status, char *msg, unsigned short msg_size)
 {
-    // char msg[1024] = {0};
     char *s = msg;
     const ISC_STATUS* pstatus = status;
 
@@ -369,6 +368,14 @@ int status_err_msg(const ISC_STATUS *status, char *msg, unsigned short msg_size)
 
     // strip last newline
     return s - msg > 0 ? s - msg - 1 : 0;
+}
+
+// Use this when object is beeing destroyed but some clean-up errors happen
+void status_fbp_error(const ISC_STATUS *status)
+{
+    char msg[1024] = { 0 };
+    status_err_msg(status, msg, sizeof(msg));
+    _php_firebird_module_error("firebird-php error %s", msg);
 }
 
 #define UPD_CODES() \

@@ -244,9 +244,10 @@ static void FireBird_Transaction_free_obj(zend_object *obj)
     if(tr->tr_handle) {
         ISC_STATUS_ARRAY status;
         if(isc_rollback_transaction(status, &tr->tr_handle)) {
-            // TODO: report errors?
+            status_fbp_error(status);
+        } else {
+            tr->tr_handle = 0;
         }
-        tr->tr_handle = 0;
     }
 
     zend_object_std_dtor(&tr->std);

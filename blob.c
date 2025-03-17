@@ -286,7 +286,7 @@ static void FireBird_Blob_free_obj(zend_object *obj)
     if (blob->bl_handle) {
         ISC_STATUS_ARRAY status;
         if (isc_close_blob(status, &blob->bl_handle)) {
-            // TODO: report errors?
+            status_fbp_error(status);
         } else {
             blob->bl_handle = 0;
         }

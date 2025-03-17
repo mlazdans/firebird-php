@@ -291,7 +291,7 @@ static void FireBird_Statement_free_obj(zend_object *obj)
     if (stmt->stmt_handle) {
         ISC_STATUS_ARRAY status;
         if (isc_dsql_free_statement(status, &stmt->stmt_handle, DSQL_drop)) {
-            // TODO: report errors?
+            status_fbp_error(status);
         } else {
             stmt->stmt_handle = 0;
         }

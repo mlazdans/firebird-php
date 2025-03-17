@@ -409,6 +409,7 @@ extern void register_FireBird_Var_Info_ce();
 #endif
 
 // TODO: tidy namspacing
+void status_fbp_error(const ISC_STATUS *status);
 void dump_buffer(const unsigned char *buffer, int len);
 ISC_INT64 update_err_props_ex(ISC_STATUS_ARRAY status, zend_class_entry *ce, zval *obj, const char *file_name, size_t line_num);
 void transaction_ctor(zval *tr_o, zval *connection, zend_long trans_args, zend_long lock_timeout);

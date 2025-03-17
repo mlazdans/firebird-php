@@ -173,10 +173,7 @@ static void FireBird_Database_free_obj(zend_object *obj)
     if(db->db_handle) {
         ISC_STATUS_ARRAY status;
         if(isc_detach_database(status, &db->db_handle)) {
-            // TODO: test
-            char msg[1024] = {0};
-            status_err_msg(status, msg, sizeof(msg));
-            _php_firebird_module_error(msg);
+            status_fbp_error(status);
         } else {
             db->db_handle = 0;
         }
