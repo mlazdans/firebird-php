@@ -76,6 +76,8 @@ PHP_METHOD(Connection, reconnect_transaction)
             zval_ptr_dtor(return_value);
             RETURN_FALSE;
     }
+
+    zend_update_property_long(FireBird_Transaction_ce, Z_OBJ_P(return_value), "id", 2, (zend_long)tr->tr_id);
 }
 
 const zend_function_entry FireBird_Connection_methods[] = {
