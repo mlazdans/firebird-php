@@ -216,7 +216,7 @@ require_once('functions.inc');
 
     for ($i = 0; $i < 10; $i++) {
         $query->execute($i) or print_error_and_die("execute", $query);
-        out_result($query, "proc add1", false); // TODO: Not sure why it is bad to close cursor when EXECUTE PROCEDURE
+        out_result($query, "proc add1", false); // EXECUTE PROCEDURE has no cursor, so nothing to close
     }
 
     $t->commit() or print_error_and_die("commit", $t);

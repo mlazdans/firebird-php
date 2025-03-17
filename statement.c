@@ -161,7 +161,6 @@ int statement_prepare(ISC_STATUS_ARRAY status, zval *stmt_o, const ISC_SCHAR *sq
         }
     }
 
-    // TODO: explore other isc_info_sql_*
     static char info_type[] = { isc_info_sql_stmt_type };
     char result[8];
 
@@ -173,8 +172,8 @@ int statement_prepare(ISC_STATUS_ARRAY status, zval *stmt_o, const ISC_SCHAR *sq
     // Do we need isc_portable_integer or accessing directly result[3] is fine?
     // int len = isc_portable_integer(&result[1], 2);
     // int st = isc_portable_integer(&result[3], len);
-
     stmt->statement_type = result[3];
+
     stmt->query = sql;
 
     zend_update_property_long(FireBird_Statement_ce, Z_OBJ_P(stmt_o), "num_vars_in", sizeof("num_vars_in") - 1,
@@ -523,7 +522,7 @@ static void _php_firebird_fetch_hash(INTERNAL_FUNCTION_PARAMETERS, int fetch_typ
         Z_PARAM_LONG(flags)
     ZEND_PARSE_PARAMETERS_END();
 
-    // TODO: other types?
+    // exec_procedure has no cursor
     if (stmt->statement_type != isc_info_sql_stmt_exec_procedure) {
         ISC_STATUS result = isc_dsql_fetch(status, &stmt->stmt_handle, 1, stmt->out_sqlda);
         if (result) {
@@ -948,9 +947,8 @@ static int statement_bind(ISC_STATUS_ARRAY status, zval *stmt_o, XSQLDA *sqlda, 
             struct tm t;
 
             case SQL_TIMESTAMP:
-            // TODO:
-            // case SQL_TIMESTAMP_TZ:
-            // case SQL_TIME_TZ:
+            // TODO: case SQL_TIMESTAMP_TZ:
+            // TODO: case SQL_TIME_TZ:
             case SQL_TYPE_DATE:
             case SQL_TYPE_TIME:
                 if (Z_TYPE_P(b_var) == IS_LONG) {
@@ -970,8 +968,7 @@ static int statement_bind(ISC_STATUS_ARRAY status, zval *stmt_o, XSQLDA *sqlda, 
                             format = INI_STR("firebird.dateformat");
                             break;
                         case SQL_TYPE_TIME:
-                        // TODO:
-                        // case SQL_TIME_TZ:
+                        // TODO: case SQL_TIME_TZ:
                             format = INI_STR("firebird.timeformat");
                     }
                     if (!strptime(Z_STRVAL_P(b_var), format, &t)) {
@@ -991,8 +988,7 @@ static int statement_bind(ISC_STATUS_ARRAY status, zval *stmt_o, XSQLDA *sqlda, 
                         isc_encode_sql_date(&t, &stmt->bind_buf[i].val.dtval);
                         break;
                     case SQL_TYPE_TIME:
-                    // TODO:
-                    // case SQL_TIME_TZ:
+                    // TODO: case SQL_TIME_TZ:
                         isc_encode_sql_time(&t, &stmt->bind_buf[i].val.tmval);
                         break;
                 }
