@@ -103,7 +103,7 @@ function print_error(string $cat, \FireBird\IError $o): void
     print "===============================================================================\n";
     if(isset($o->errors)){
         printf("ERROR [$cat]:[$o->sqlstate] $o->error_file:$o->error_lineno\n");
-        if(isset($o->ext_error_line)) {
+        if(!Config::$skip_ext_error && isset($o->ext_error_line)) {
             print "at $o->ext_error_line\n";
         }
 

@@ -16,41 +16,46 @@ require_once('functions.inc');
     args_apply_defaults($args);
     $args->database = $conn->args->database;
 
-    $t = $conn->new_transaction() or print_error_and_die("new_transaction", $conn);
-    $t->start() or print_error_and_die("transaction start", $t);
-    $t->query(load_file_or_die(Config::$pwd."/001-table.sql")) or print_error_and_die("create table", $t);
-    $t->commit();
+    $tr_id = (function() use ($conn): int {
+        $t = $conn->new_transaction() or print_error_and_die("new_transaction", $conn);
+        $t->start() or print_error_and_die("transaction start", $t);
+        $t->query(load_file_or_die(Config::$pwd."/001-table.sql")) or print_error_and_die("create table", $t);
+        $t->commit();
 
-    $t = $conn->new_transaction() or print_error_and_die("new_transaction2", $conn);
-    $t->start() or print_error_and_die("transaction start", $t);
-    $t->query("INSERT INTO TEST_001 (BLOB_1) VALUES (?)", "Hello from transaction $t->id") or print_error_and_die("query", $t);
-    $t->prepare_2pc() or print_error_and_die("prepare_2pc", $t);
+        $t = $conn->new_transaction() or print_error_and_die("new_transaction2", $conn);
+        $t->start() or print_error_and_die("transaction start", $t);
+        $t->query("INSERT INTO TEST_001 (BLOB_1) VALUES (?)", "Hello from transaction $t->id") or print_error_and_die("query", $t);
+        $t->prepare_2pc() or print_error_and_die("prepare_2pc", $t);
 
-    $tr_id = $t->id;
+        return $t->id;
+    })();
 
-    $f = function() use ($args) {
-        $db2 = new \FireBird\Database();
-        $conn2 = $db2->connect($args) or print_error_and_die("2nd connection", $db2);
-        $t = $conn2->new_transaction() or print_error_and_die("new_transaction", $conn2);
+    $printer = function() use ($args) {
+        $db = new \FireBird\Database();
+        $conn = $db->connect($args) or print_error_and_die("2nd connection", $db);
+        $t = $conn->new_transaction() or print_error_and_die("new_transaction", $conn);
         $t->start() or print_error_and_die("transaction start", $t);
         $q = $t->query("SELECT BLOB_1 FROM TEST_001");
         fetch_and_print_or_die($q, \FireBird\FETCH_BLOBS);
         $q->free() or print_error_and_die("free", $q);
         $t->commit() or print_error_and_die("commit", $t);
-        $conn2->disconnect() or print_error_and_die("disconnect", $conn2);
+        $conn->disconnect() or print_error_and_die("disconnect", $conn);
     };
 
-    // Should not print anything
-    $f();
+    $reconnecter = function(int $tr_id) use ($args) {
+        $db = new \FireBird\Database();
+        $conn = $db->connect($args) or print_error_and_die("3rd connection", $db);
+        $t = $conn->reconnect_transaction($tr_id) or print_error_and_die("reconnect_transaction", $conn);
+        $t->commit() or print_error_and_die("commit", $t);
+        $conn->disconnect() or print_error_and_die("disconnect3", $conn);
+    };
 
-    $db3 = new \FireBird\Database();
-    $conn3 = $db3->connect($args) or print_error_and_die("3rd connection", $db3);
-    $t = $conn->reconnect_transaction($tr_id);
-    $t->commit();
-    $conn3->disconnect();
+    $printer(); // Should not print anything
+    $reconnecter($tr_id);
+    $printer(); // Now should print "Hello from transaction %d"
 
-    // Now should print "Hello from transaction %d"
-    $f();
+    // Test bogus
+    $reconnecter(999);
 })();
 
 ?>
@@ -59,3 +64,8 @@ object {
   ["BLOB_1"]=>
   string(%d) "Hello from transaction %d"
 }
+===============================================================================
+ERROR [reconnect_transaction]:[HY000] %s
+0: 335544468 (-901) transaction is not in limbo
+1: 335544468 (-901) transaction 999 is in an ill-defined state
+===============================================================================
