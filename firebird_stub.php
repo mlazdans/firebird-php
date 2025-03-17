@@ -96,8 +96,6 @@ class Database implements IError
 {
     use FB_Error;
 
-    protected(set) Connect_Args|Create_Args $args;
-
     /** @return Connection|false */
     function connect(Connect_Args $args) {}
 
@@ -113,6 +111,7 @@ class Connection implements IError
     use FB_Error;
 
     protected(set) Database $database;
+    protected(set) Connect_Args|Create_Args $args;
 
     private function __construct() {}
 
