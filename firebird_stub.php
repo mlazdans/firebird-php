@@ -50,6 +50,8 @@ interface IError
 
     /** @var Error[]  */
     public array $errors { get; }
+
+    public string $sqlstate { get; }     // SQLSTATE codes are standard five-character error codes defined by SQL standards
 }
 
 // There is no internal trait. Used for stub only
@@ -63,6 +65,8 @@ trait FB_Error
     protected(set) int $error_lineno;
 
     protected(set) array $errors;        // array of all Firebird errors
+
+    protected(set) string $sqlstate;
 }
 
 class Connect_Args

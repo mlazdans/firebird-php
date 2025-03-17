@@ -389,7 +389,8 @@ ISC_INT64 update_err_props_ex(ISC_STATUS_ARRAY status, zend_class_entry *ce, zva
         return 0;
     }
 
-    char msg[1024] = {0};
+    char sqlstate[6];  // SQLSTATE codes are 5 characters + 1 for null terminator
+    char msg[1024] = { 0 };
     char *s = msg;
 
     zval rv, errors, hash_entry, ferror_o;
@@ -442,6 +443,9 @@ ISC_INT64 update_err_props_ex(ISC_STATUS_ARRAY status, zend_class_entry *ce, zva
     zend_update_property_stringl(ce, Z_OBJ_P(obj), "ext_error_line", sizeof("ext_error_line") - 1, line, line_len);
     efree(line);
 #endif
+
+    fb_sqlstate(sqlstate, status);
+    zend_update_property_string(ce, Z_OBJ_P(obj), "sqlstate", sizeof("sqlstate") - 1, sqlstate);
 
     return error_code_long;
 }

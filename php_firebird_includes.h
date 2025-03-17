@@ -382,7 +382,6 @@ extern void register_FireBird_Blob_Info_ce();
 extern void register_FireBird_Blob_Id_ce();
 extern void register_FireBird_Var_Info_ce();
 
-// TODO: fb_sqlstate()
 #define DECLARE_FERR_PROPS(ce)                                  \
     DECLARE_PROP_STRING(ce, error_msg, ZEND_ACC_PROTECTED_SET); \
     DECLARE_PROP_LONG(ce, error_code, ZEND_ACC_PROTECTED_SET);  \
@@ -392,6 +391,7 @@ extern void register_FireBird_Var_Info_ce();
     DECLARE_PROP_STRING(ce, error_file, ZEND_ACC_PROTECTED_SET); \
     DECLARE_PROP_LONG(ce, error_lineno, ZEND_ACC_PROTECTED_SET); \
     DECLARE_PROP_ARRAY(ce, errors, ZEND_ACC_PROTECTED_SET);      \
+    DECLARE_PROP_STRING(ce, sqlstate, ZEND_ACC_PROTECTED_SET);   \
 
 #ifdef PHP_DEBUG
 #define DECLARE_ERR_PROPS(ce)                                            \
