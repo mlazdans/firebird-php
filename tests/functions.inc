@@ -178,16 +178,25 @@ function gen_random_db_file_name_or_die(): string
     return $database;
 }
 
-function init_tmp_db(string $charset = ""): \FireBird\Connection|false
+function args_apply_defaults(\FireBird\Create_Args|\FireBird\Connect_Args  $args): void {
+    if(!empty(Config::$user_name))$args->user_name = Config::$user_name;
+    if(!empty(Config::$password))$args->password = Config::$password;
+
+    if($args instanceof \FireBird\Create_Args) {
+        if(!empty(Config::$charset))$args->set_db_charset = Config::$charset;
+    } else {
+        if(!empty(Config::$charset))$args->charset = Config::$charset;
+    }
+}
+
+function init_tmp_db(string $charset = ""): \FireBird\Connection
 {
     $database = gen_random_db_file_name_or_die();
 
     $args = new \FireBird\Create_Args;
     $args->database = $database;
     $args->page_size = 16 * 1024;
-    if(!empty(Config::$user_name))$args->user_name = Config::$user_name;
-    if(!empty(Config::$password))$args->password = Config::$password;
-    if(!empty(Config::$charset))$args->set_db_charset = Config::$charset;
+    args_apply_defaults($args);
 
     // overrides
     if($charset)$args->set_db_charset = $charset;
@@ -200,11 +209,9 @@ function init_tmp_db(string $charset = ""): \FireBird\Connection|false
             }
         });
         return $conn;
-    } else {
-        print_error_and_die("create", $db);
     }
 
-    return false;
+    print_error_and_die("create", $db);
 }
 
 function var_bin(mixed $v): void {
