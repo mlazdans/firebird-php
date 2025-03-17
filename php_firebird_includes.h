@@ -94,6 +94,7 @@ typedef struct firebird_trans {
     zend_long trans_args;
     zend_long trans_timeout;
     ISC_UINT64 tr_id;
+    unsigned short is_prepared_2pc;
     zend_object std;
 } firebird_trans;
 
@@ -123,7 +124,7 @@ typedef struct firebird_blob {
     ISC_LONG total_length;
     ISC_LONG type; // 0 - segmented, 1 - streamed
 
-    unsigned short writable;
+    unsigned short is_writable;
 
     zend_object std;
 } firebird_blob;
@@ -304,6 +305,10 @@ ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Connection_new_transaction, 0, 0, FireBird\\Transaction, MAY_BE_FALSE)
     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, trans_args, IS_LONG, 0, 0)
     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, lock_timeout, IS_LONG, 0, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Connection_reconnect_transaction, 0, 1, FireBird\\Transaction, MAY_BE_FALSE)
+    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, id, IS_LONG, 0, 0)
 ZEND_END_ARG_INFO()
 
 // Transaction argument types

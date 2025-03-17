@@ -107,7 +107,7 @@ int blob_get_info(ISC_STATUS_ARRAY status, firebird_blob *blob)
 
     dpb = IUtil_getXpbBuilder(utl, st, IXpbBuilder_INFO_RESPONSE, bl_inf, sizeof(bl_inf));
 
-    FBDEBUG("Parsing BLOB info buffer");
+    // FBDEBUG("Parsing BLOB info buffer");
     for (IXpbBuilder_rewind(dpb, st); !IXpbBuilder_isEof(dpb, st); IXpbBuilder_moveNext(dpb, st)) {
         unsigned char tag = IXpbBuilder_getTag(dpb, st);
         int val = IXpbBuilder_getInt(dpb, st);
@@ -163,8 +163,9 @@ int blob_get(ISC_STATUS_ARRAY status, firebird_blob *blob, zval *return_value, s
     zend_ulong cur_len;
     unsigned short seg_len;
 
+    // TODO: keep track of read bytes
     if (!max_len || max_len > blob->total_length) {
-        FBDEBUG("Blob::get adjusting max_len from %d to %d", max_len, blob->total_length);
+        // FBDEBUG("Blob::get adjusting max_len from %d to %d", max_len, blob->total_length);
         max_len = blob->total_length;
     }
 
@@ -373,7 +374,7 @@ int blob_create(ISC_STATUS_ARRAY status, firebird_blob *blob)
             return FAILURE;
     }
 
-    blob->writable = 1;
+    blob->is_writable = 1;
 
     return SUCCESS;
 }
@@ -388,7 +389,7 @@ int blob_open(ISC_STATUS_ARRAY status, firebird_blob *blob)
             return FAILURE;
     }
 
-    blob->writable = 0;
+    blob->is_writable = 0;
 
     // ISC_LONG new_pos;
     // status_exception::raise(Arg::Gds(isc_random) << "Seek mode must be 0 (START), 1 (CURRENT) or 2 (END)");

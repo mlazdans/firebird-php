@@ -123,6 +123,9 @@ class Connection implements IError
     function new_transaction(int $trans_args = 0, int $lock_timeout = 0) {}
     // TODO: new_transaction w/o starting or start_transaction?
 
+    /** @return Transaction|false */
+    function reconnect_transaction(int $id) {}
+
     /** @return bool */
     function disconnect() {}
 }
@@ -163,6 +166,9 @@ class Transaction implements IError
 
     /** @return Blob|false */
     function create_blob() {}
+
+    /** @return bool */
+    function prepare_2pc() {}
 }
 
 class Statement implements IError

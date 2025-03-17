@@ -36,7 +36,7 @@ PHP_METHOD(Connection, disconnect) {
 
     FBDEBUG("Connection::disconnect()");
 
-    database = zend_read_property(FireBird_Connect_Args_ce, THIS_GET(database), 0, &rv);
+    database = zend_read_property(FireBird_Connection_ce, THIS_GET(database), 0, &rv);
     firebird_db *db = Z_DB_P(database);
 
     if(db->db_handle) {
@@ -53,10 +53,36 @@ PHP_METHOD(Connection, disconnect) {
     RETURN_FALSE;
 }
 
+PHP_METHOD(Connection, reconnect_transaction)
+{
+    ISC_STATUS_ARRAY status;
+    zend_long id;
+    zval rv, *database;
+
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+        Z_PARAM_LONG(id)
+    ZEND_PARSE_PARAMETERS_END();
+
+    object_init_ex(return_value, FireBird_Transaction_ce);
+    transaction_ctor(return_value, ZEND_THIS, 0, 0);
+
+    firebird_trans *tr = Z_TRANSACTION_P(return_value);
+
+    FBDEBUG("Connection, reconnect_transaction: %d", id);
+    if (
+        isc_reconnect_transaction(status, tr->db_handle, &tr->tr_handle, sizeof(id), (const ISC_SCHAR *)&id) ||
+        transaction_get_info(status, tr)) {
+            update_err_props(status, FireBird_Connection_ce, ZEND_THIS);
+            zval_ptr_dtor(return_value);
+            RETURN_FALSE;
+    }
+}
+
 const zend_function_entry FireBird_Connection_methods[] = {
     PHP_ME(Connection, __construct, arginfo_none, ZEND_ACC_PRIVATE)
     PHP_ME(Connection, disconnect, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
     PHP_ME(Connection, new_transaction, arginfo_FireBird_Connection_new_transaction, ZEND_ACC_PUBLIC)
+    PHP_ME(Connection, reconnect_transaction, arginfo_FireBird_Connection_reconnect_transaction, ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
 

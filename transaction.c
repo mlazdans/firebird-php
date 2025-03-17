@@ -17,6 +17,7 @@ static void _php_firebird_populate_tpb(zend_long trans_argl, zend_long trans_tim
 #define COMMIT      1
 #define RETAIN      2
 
+// TODO: separate Zend stuff
 void transaction_ctor(zval *tr_o, zval *connection, zend_long trans_args, zend_long lock_timeout)
 {
     zend_update_property(FireBird_Transaction_ce, O_SET(tr_o, connection));
@@ -31,6 +32,7 @@ void transaction_ctor(zval *tr_o, zval *connection, zend_long trans_args, zend_l
 
     tr->tr_handle = 0;
     tr->tr_id = 0;
+    tr->is_prepared_2pc = 0;
     tr->db_handle = &db->db_handle;
 }
 
@@ -221,6 +223,28 @@ PHP_METHOD(Transaction, create_blob)
     }
 }
 
+PHP_METHOD(Transaction, prepare_2pc)
+{
+    ISC_STATUS_ARRAY status;
+    firebird_trans *tr = Z_TRANSACTION_P(ZEND_THIS);
+
+    ZEND_PARSE_PARAMETERS_NONE();
+
+    if (isc_prepare_transaction(status, &tr->tr_handle)) {
+        update_err_props(status, FireBird_Transaction_ce, ZEND_THIS);
+        RETURN_FALSE;
+    }
+
+    tr->is_prepared_2pc = 1;
+
+    // if (fb_disconnect_transaction(status, &tr->tr_handle)) {
+    //     update_err_props(status, FireBird_Transaction_ce, ZEND_THIS);
+    //     RETURN_FALSE;
+    // }
+
+    RETURN_TRUE;
+}
+
 const zend_function_entry FireBird_Transaction_methods[] = {
     PHP_ME(Transaction, __construct, arginfo_none, ZEND_ACC_PRIVATE)
     PHP_ME(Transaction, start, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
@@ -232,6 +256,7 @@ const zend_function_entry FireBird_Transaction_methods[] = {
     PHP_ME(Transaction, query, arginfo_FireBird_Transaction_query, ZEND_ACC_PUBLIC)
     PHP_ME(Transaction, open_blob, arginfo_FireBird_Transaction_open_blob, ZEND_ACC_PUBLIC)
     PHP_ME(Transaction, create_blob, arginfo_FireBird_Transaction_create_blob, ZEND_ACC_PUBLIC)
+    PHP_ME(Transaction, prepare_2pc, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
 
@@ -251,14 +276,15 @@ static void FireBird_Transaction_free_obj(zend_object *obj)
 
     firebird_trans *tr = Z_TRANSACTION_O(obj);
 
-    if(tr->tr_handle) {
-        ISC_STATUS_ARRAY status;
-        if(isc_rollback_transaction(status, &tr->tr_handle)) {
-            status_fbp_error(status);
-        } else {
-            tr->tr_handle = 0;
-        }
-    }
+    // Let Firebird auto handle this
+    // if(tr->tr_handle && !tr->disconnected) {
+    //     ISC_STATUS_ARRAY status;
+    //     if(isc_rollback_transaction(status, &tr->tr_handle)) {
+    //         status_fbp_error(status);
+    //     } else {
+    //         tr->tr_handle = 0;
+    //     }
+    // }
 
     zend_object_std_dtor(&tr->std);
 }
