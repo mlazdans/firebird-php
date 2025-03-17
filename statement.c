@@ -578,30 +578,18 @@ static void _php_firebird_fetch_hash(INTERNAL_FUNCTION_PARAMETERS, int fetch_typ
                     _php_firebird_var_zval(&result, var->sqldata, var->sqltype, var->sqllen, var->sqlscale, flags);
                     break;
                 case SQL_BLOB:
-                    if (flags & PHP_FIREBIRD_FETCH_BLOBS) { /* fetch blob contents into hash */
+                    if (flags & PHP_FIREBIRD_FETCH_BLOBS) {
                         firebird_blob blob;
                         blob_ctor(&blob, stmt->db_handle, stmt->tr_handle);
 
                         blob.bl_id = *(ISC_QUAD *) var->sqldata;
 
-                        if (FAILURE == blob_open(status, &blob)) {
+                        if (blob_open(status, &blob) || blob_get(status, &blob, &result, 0) || blob_close(status, &blob)) {
                             update_err_props(status, FireBird_Statement_ce, ZEND_THIS);
                             goto _php_firebird_fetch_error;
                         }
-
-                        if (FAILURE == blob_get(status, &blob, &result, 0)) {
-                            update_err_props(status, FireBird_Statement_ce, ZEND_THIS);
-                            goto _php_firebird_fetch_error;
-                        }
-
-                        if (blob_close(status, &blob)) {
-                            update_err_props(status, FireBird_Statement_ce, ZEND_THIS);
-                            goto _php_firebird_fetch_error;
-                        }
-                    } else { /* blob id only */
+                    } else {
                         blob_id___construct(&result, *(ISC_QUAD *) var->sqldata);
-                        // ISC_QUAD bl_id = *(ISC_QUAD *) var->sqldata;
-                        // ZVAL_NEW_STR(&result, _php_firebird_quad_to_string(bl_id));
                     }
                     break;
                 case SQL_ARRAY:

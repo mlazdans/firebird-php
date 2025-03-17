@@ -47,19 +47,6 @@ void blob___construct(zval *blob_o, zval *transaction)
     blob_ctor(Z_BLOB_P(blob_o), tr->db_handle, &tr->tr_handle);
 }
 
-static void _php_firebird_free_blob(zend_resource *rsrc, ISC_STATUS_ARRAY status)
-{
-    firebird_blob *ib_blob = (firebird_blob *)rsrc->ptr;
-
-    if (ib_blob->bl_handle != 0) { /* blob open*/
-        if (isc_cancel_blob(status, &ib_blob->bl_handle)) {
-            _php_firebird_module_error("You can lose data. Close any blob after reading from or "
-                "writing to it. Use firebird_blob_close() before calling ibase_close()");
-        }
-    }
-    efree(ib_blob);
-}
-
 PHP_METHOD(Blob, __construct)
 {
 }
@@ -124,7 +111,7 @@ int blob_get_info(ISC_STATUS_ARRAY status, firebird_blob *blob)
     for (IXpbBuilder_rewind(dpb, st); !IXpbBuilder_isEof(dpb, st); IXpbBuilder_moveNext(dpb, st)) {
         unsigned char tag = IXpbBuilder_getTag(dpb, st);
         int val = IXpbBuilder_getInt(dpb, st);
-        FBDEBUG_NOFL(" tag: %d, val: %d", tag, val);
+        // FBDEBUG_NOFL(" tag: %d, val: %d", tag, val);
 
         switch(tag) {
             case isc_info_blob_num_segments:
@@ -380,12 +367,10 @@ int blob_create(ISC_STATUS_ARRAY status, firebird_blob *blob)
 {
     char bpb[] = { isc_bpb_version1, isc_bpb_type, 1, isc_bpb_type_stream };
 
-    if (isc_create_blob2(status, blob->db_handle, blob->tr_handle, &blob->bl_handle, &blob->bl_id, sizeof(bpb), bpb)) {
-        return FAILURE;
-    }
-
-    if (FAILURE == blob_get_info(status, blob)) {
-        return FAILURE;
+    if (
+        isc_create_blob2(status, blob->db_handle, blob->tr_handle, &blob->bl_handle, &blob->bl_id, sizeof(bpb), bpb) ||
+        blob_get_info(status, blob)) {
+            return FAILURE;
     }
 
     blob->writable = 1;
@@ -397,12 +382,10 @@ int blob_open(ISC_STATUS_ARRAY status, firebird_blob *blob)
 {
     char bpb[] = { isc_bpb_version1, isc_bpb_type, 1, isc_bpb_type_stream };
 
-    if (isc_open_blob2(status, blob->db_handle, blob->tr_handle, &blob->bl_handle, &blob->bl_id, sizeof(bpb), bpb)) {
-        return FAILURE;
-    }
-
-    if (FAILURE == blob_get_info(status, blob)) {
-        return FAILURE;
+    if (
+        isc_open_blob2(status, blob->db_handle, blob->tr_handle, &blob->bl_handle, &blob->bl_id, sizeof(bpb), bpb) ||
+        blob_get_info(status, blob)) {
+            return FAILURE;
     }
 
     blob->writable = 0;
