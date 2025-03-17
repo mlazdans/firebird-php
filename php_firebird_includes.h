@@ -409,7 +409,7 @@ extern void register_FireBird_Var_Info_ce();
 #endif
 
 // TODO: tidy namspacing
-void status_fbp_error(const ISC_STATUS *status);
+void status_fbp_error_ex(const ISC_STATUS *status, const char *file_name, size_t line_num);
 void dump_buffer(const unsigned char *buffer, int len);
 ISC_INT64 update_err_props_ex(ISC_STATUS_ARRAY status, zend_class_entry *ce, zval *obj, const char *file_name, size_t line_num);
 void transaction_ctor(zval *tr_o, zval *connection, zend_long trans_args, zend_long lock_timeout);
@@ -432,6 +432,7 @@ int blob_close(ISC_STATUS_ARRAY status, firebird_blob *blob);
 int blob_put(ISC_STATUS_ARRAY status, firebird_blob *blob, const char *buf, size_t buf_size);
 void blob_id___construct(zval *blob_id_o, ISC_QUAD bl_id);
 
+#define status_fbp_error(status) status_fbp_error_ex(status, __FILE__, __LINE__)
 #define update_err_props(status, ce, obj) update_err_props_ex(status, ce, obj, __FILE__, __LINE__)
 #define update_ferr_props(ce, obj, error_msg, error_msg_len, error_code, error_code_long)                      \
     do {                                                                                                       \

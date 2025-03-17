@@ -367,15 +367,24 @@ int status_err_msg(const ISC_STATUS *status, char *msg, unsigned short msg_size)
     }
 
     // strip last newline
-    return s - msg > 0 ? s - msg - 1 : 0;
+    if (s - msg > 0) {
+        *--s = '\0';
+        return s - msg;
+    } else {
+        return 0;
+    }
 }
 
 // Use this when object is beeing destroyed but some clean-up errors happen
-void status_fbp_error(const ISC_STATUS *status)
+void status_fbp_error_ex(const ISC_STATUS *status, const char *file_name, size_t line_num)
 {
     char msg[1024] = { 0 };
     status_err_msg(status, msg, sizeof(msg));
-    _php_firebird_module_error("firebird-php error %s", msg);
+#ifdef PHP_DEBUG
+    _php_firebird_module_error("firebird-php error: %s (%s:%d)\n", msg, file_name, line_num);
+#else
+    _php_firebird_module_error("firebird-php error: %s", msg);
+#endif
 }
 
 #define UPD_CODES() \
@@ -453,7 +462,7 @@ ISC_INT64 update_err_props_ex(ISC_STATUS_ARRAY status, zend_class_entry *ce, zva
 void _php_firebird_module_error(char *msg, ...)
 {
     va_list ap;
-    char buf[1024] = {0};
+    char buf[1024] = { 0 };
 
     va_start(ap, msg);
 
