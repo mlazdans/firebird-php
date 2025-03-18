@@ -100,7 +100,7 @@ function rand_number($len , $prec = -1, $sign = 1)
 
 function print_error(string $cat, \FireBird\IError $o): void
 {
-    print "===============================================================================\n";
+    hl();
     if(isset($o->errors)){
         printf("ERROR [$cat]:[$o->sqlstate] $o->error_file:$o->error_lineno\n");
         if(!Config::$skip_ext_error && isset($o->ext_error_line)) {
@@ -113,7 +113,7 @@ function print_error(string $cat, \FireBird\IError $o): void
     } else {
         printf("ERROR [$cat] -no error information-\n");
     }
-    print "===============================================================================\n";
+    hl();
 }
 
 function print_error_and_die(string $cat, \FireBird\IError $o): never
@@ -189,7 +189,7 @@ function args_apply_defaults(\FireBird\Create_Args|\FireBird\Connect_Args  $args
     }
 }
 
-function init_tmp_db(string $charset = ""): \FireBird\Connection
+function init_tmp_db(string $charset = "", bool $drop = true): \FireBird\Connection
 {
     $database = gen_random_db_file_name_or_die();
 
@@ -203,8 +203,8 @@ function init_tmp_db(string $charset = ""): \FireBird\Connection
 
     $db = new \FireBird\Database;
     if($conn = $db->create($args)) {
-        register_shutdown_function(function() use ($db) {
-            if(!$db->drop()) {
+        register_shutdown_function(function() use ($db, $drop) {
+            if($drop && !$db->drop()) {
                 print_error_and_die("drop", $db);
             }
         });
@@ -332,6 +332,17 @@ function query_bulk_or_die(\FireBird\Transaction $t, array $queries): void
     }
 }
 
+function fetch_and_print(\FireBird\Statement $q, int $flags = 0): void
+{
+    while($r = $q->fetch_object($flags)) {
+        var_bin($r);
+    }
+
+    if(false === $r) {
+        print_error("fetch", $q);
+    }
+}
+
 function fetch_and_print_or_die(\FireBird\Statement $q, int $flags = 0): void
 {
     while($r = $q->fetch_object($flags)) {
@@ -346,4 +357,8 @@ function fetch_and_print_or_die(\FireBird\Statement $q, int $flags = 0): void
 function query_and_fetch_and_print_or_die(\FireBird\Transaction $t, string $sql, int $flags = 0): void
 {
     fetch_and_print_or_die(query_or_die($t, $sql), $flags);
+}
+
+function hl(?string $msg = null): void {
+    print str_pad($msg ? " $msg " : "", 80, "=", STR_PAD_BOTH)."\n";
 }

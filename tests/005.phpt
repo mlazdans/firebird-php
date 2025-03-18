@@ -1,7 +1,24 @@
 --TEST--
 FireBird: two-phase commit
 --SKIPIF--
-<?php include("skipif.inc"); ?>
+<?php declare(strict_types = 1);
+
+// Hacky way to simulate limbo transaction. In separate process create
+// transaction, prepare and then just exit. Share created database path and
+// transaction id with main test
+
+namespace FireBirdTests;
+
+include("skipif.inc");
+
+$php_ini_path = realpath(__DIR__.DIRECTORY_SEPARATOR.'..');
+
+$cmd = $_ENV['TEST_PHP_EXECUTABLE']." -c '$php_ini_path' -d 'firebird.debug=0' ".__DIR__.DIRECTORY_SEPARATOR."005-create-limbo.inc";
+if((false === exec($cmd, $output, $result)) || $result) {
+    "skip Could not execute limbo transaction creating in separate process";
+}
+
+?>
 --FILE--
 <?php declare(strict_types = 1);
 
@@ -9,73 +26,79 @@ namespace FireBirdTests;
 
 require_once('functions.inc');
 
-(function(){
-    $conn = init_tmp_db();
+(function() {
+    $share_path = sys_get_temp_dir().DIRECTORY_SEPARATOR."firebird-php-005-db.txt";
+
+    if(!file_exists($share_path) ) {
+        die("File $share_path does not exist. Limbo transaction creation failed. Check SKIP section.");
+    }
+
+    if(!is_readable($share_path) || !is_file($share_path)) {
+        die("File $share_path is not readable.");
+    }
+
+    if(false === ($f = fopen($share_path, "r"))) {
+        die("Could not load file $share_path.");
+    }
+    $limbo_database_path = trim(fgets($f));
+    $tr_id = (int)fgets($f);
+    fclose($f);
 
     $args = new \FireBird\Connect_Args;
     args_apply_defaults($args);
-    $args->database = $conn->args->database;
-
-    $tr_id = (function() use ($conn): int {
-        $t = $conn->new_transaction() or print_error_and_die("new_transaction", $conn);
-        $t->start() or print_error_and_die("transaction start", $t);
-        $t->query(load_file_or_die(Config::$pwd."/001-table.sql")) or print_error_and_die("create table", $t);
-        $t->commit();
-
-        $t = $conn->new_transaction() or print_error_and_die("new_transaction2", $conn);
-        $t->start() or print_error_and_die("transaction start", $t);
-        $t->query("INSERT INTO TEST_001 (BLOB_1) VALUES (?)", "Hello from transaction $t->id") or print_error_and_die("query", $t);
-        $t->prepare_2pc() or print_error_and_die("prepare_2pc", $t);
-
-        if($t->query("INSERT INTO TEST_001 (BLOB_1) VALUES (?)", "Hello from insert after 2pc transaction $t->id")) {
-            die("No insert after prepare_2pc should happen!");
-        }
-
-        if($p = $t->prepare("INSERT INTO TEST_001 (BLOB_1) VALUES (?)")) {
-            if($p->execute("Hello from prepare after 2pc transaction $t->id")) {
-                die("No prepare after prepare_2pc should happen!");
-            }
-        }
-
-        return $t->id;
-    })();
+    $args->database = $limbo_database_path;
 
     $printer = function() use ($args) {
         $db = new \FireBird\Database();
-        $conn = $db->connect($args) or print_error_and_die("2nd connection", $db);
-        $t = $conn->new_transaction() or print_error_and_die("new_transaction", $conn);
-        $t->start() or print_error_and_die("transaction start", $t);
-        $q = $t->query("SELECT BLOB_1 FROM TEST_001");
-        fetch_and_print_or_die($q, \FireBird\FETCH_BLOBS);
-        $q->free() or print_error_and_die("free", $q);
-        $t->commit() or print_error_and_die("commit", $t);
-        $conn->disconnect() or print_error_and_die("disconnect", $conn);
+        $conn = $db->connect($args)                   or print_error_and_die("2nd connection", $db);
+        $t = $conn->new_transaction()                 or print_error_and_die("new_transaction", $conn);
+        $t->start()                                   or print_error_and_die("transaction start", $t);
+        $q = $t->query("SELECT BLOB_1 FROM TEST_001") or print_error_and_die("query", $t);
+
+        fetch_and_print($q, \FireBird\FETCH_BLOBS);
+
+        $q->free()                                    or print_error_and_die("free", $q);
+        $t->commit()                                  or print_error_and_die("commit", $t);
+        $conn->disconnect()                           or print_error_and_die("disconnect2", $conn);
     };
 
     $reconnecter = function(int $tr_id) use ($args) {
         $db = new \FireBird\Database();
-        $conn = $db->connect($args) or print_error_and_die("3rd connection", $db);
+
+        $conn = $db->connect($args)               or print_error_and_die("3rd connection", $db);
         $t = $conn->reconnect_transaction($tr_id) or print_error_and_die("reconnect_transaction", $conn);
-        $t->commit() or print_error_and_die("commit", $t);
-        $conn->disconnect() or print_error_and_die("disconnect3", $conn);
+        $t->commit()                              or print_error_and_die("commit", $t);
+        $conn->disconnect()                       or print_error_and_die("disconnect3", $conn);
     };
 
-    $printer(); // Should not print anything
-    $reconnecter($tr_id);
-    $printer(); // Now should print "Hello from transaction %d"
+    hl("Step 1");
+    $printer(); // Should not print only two inserted rows and error about transaction in limbo
 
-    // Test bogus
-    $reconnecter(999);
+    hl("Step 2");
+    $reconnecter($tr_id);
+    $printer(); // Now should print two inserted rows + row with "Hello from transaction %d"
+
+    // Test reconnect to a bogus transaction
+    (function(int $tr_id) use ($args) {
+        $db = new \FireBird\Database();
+
+        $conn = $db->connect($args)               or print_error_and_die("4th connection", $db);
+        if(false === $conn->reconnect_transaction($tr_id)) {
+            print_error("reconnect_transaction", $conn);
+        } else {
+            user_error("reconnect_transaction with bogus transaction should not succeed!", E_USER_ERROR);
+        }
+        $conn->disconnect()                       or print_error_and_die("disconnect3", $conn);
+    })(999);
+
+    // Drop
+    $db = new \FireBird\Database();
+    $db->connect($args)  or print_error_and_die("4th connection", $db);
+    $db->drop()          or print_error_and_die("drop", $db);
+
+    unlink($share_path);
 })();
 
 ?>
---EXPECTF--
-object {
-  ["BLOB_1"]=>
-  string(%d) "Hello from transaction %d"
-}
-===============================================================================
-ERROR [reconnect_transaction]:[HY000] %s
-0: 335544468 (-901) transaction is not in limbo
-1: 335544468 (-901) transaction 999 is in an ill-defined state
-===============================================================================
+--EXPECTF_EXTERNAL--
+005.out.txt
