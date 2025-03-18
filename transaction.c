@@ -312,6 +312,7 @@ void register_FireBird_Transaction_ce()
     FireBird_Transaction_object_handlers.free_obj = FireBird_Transaction_free_obj;
 }
 
+// TODO: maybe report conflicting flags?
 static void _php_firebird_populate_tpb(zend_long trans_argl, zend_long trans_timeout, char *last_tpb, unsigned short *len)
 {
     unsigned short tpb_len = 0;
@@ -323,6 +324,10 @@ static void _php_firebird_populate_tpb(zend_long trans_argl, zend_long trans_tim
     }
 
     last_tpb[tpb_len++] = isc_tpb_version3;
+
+    if (PHP_FIREBIRD_IGNORE_LIMBO == (trans_argl & PHP_FIREBIRD_IGNORE_LIMBO)) {
+        last_tpb[tpb_len++] = isc_tpb_ignore_limbo;
+    }
 
     /* access mode */
     if (PHP_FIREBIRD_READ == (trans_argl & PHP_FIREBIRD_READ)) {

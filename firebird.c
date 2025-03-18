@@ -146,6 +146,11 @@ static PHP_INI_DISP(php_firebird_trans_displayer)
 
     zend_long trans_argl;
     if (value && (trans_argl = atol(value))) {
+
+        if (trans_argl & PHP_FIREBIRD_IGNORE_LIMBO) {
+            PUTS_TP("FIREBIRD_IGNORE_LIMBO");
+        }
+
         /* access mode */
         if (PHP_FIREBIRD_READ == (trans_argl & PHP_FIREBIRD_READ)) {
             PUTS_TP("FIREBIRD_READ");
@@ -245,6 +250,7 @@ PHP_MINIT_FUNCTION(firebird)
     REGISTER_NS_LONG_CONSTANT("FireBird\\Transaction", "NOWAIT", PHP_FIREBIRD_NOWAIT, CONST_PERSISTENT);
     REGISTER_NS_LONG_CONSTANT("FireBird\\Transaction", "WAIT", PHP_FIREBIRD_WAIT, CONST_PERSISTENT);
     REGISTER_NS_LONG_CONSTANT("FireBird\\Transaction", "LOCK_TIMEOUT", PHP_FIREBIRD_LOCK_TIMEOUT, CONST_PERSISTENT);
+    REGISTER_NS_LONG_CONSTANT("FireBird\\Transaction", "IGNORE_LIMBO", PHP_FIREBIRD_IGNORE_LIMBO, CONST_PERSISTENT);
 
 #ifdef ZEND_SIGNALS
     // firebird replaces some signals at runtime, suppress warnings.

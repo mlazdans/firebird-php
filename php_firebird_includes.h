@@ -187,6 +187,8 @@ enum php_firebird_option {
     PHP_FIREBIRD_WAIT               = 128,
     PHP_FIREBIRD_NOWAIT             = 256,
         PHP_FIREBIRD_LOCK_TIMEOUT   = 512,
+
+    PHP_FIREBIRD_IGNORE_LIMBO       = 1024,
 };
 
 #define FBG(v) ZEND_MODULE_GLOBALS_ACCESSOR(firebird, v)

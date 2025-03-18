@@ -240,14 +240,15 @@ class Blob implements IError
 namespace FireBird\Transaction;
 const WRITE          = 1;
 const READ           = 2;
+const CONCURRENCY    = 4;
 const COMMITTED      = 8;
 const CONSISTENCY    = 16;
-const CONCURRENCY    = 4;
-const REC_VERSION    = 64;
 const REC_NO_VERSION = 32;
-const NOWAIT         = 256;
+const REC_VERSION    = 64;
 const WAIT           = 128;
+const NOWAIT         = 256;
 const LOCK_TIMEOUT   = 512;
+const IGNORE_LIMBO   = 1024;
 
 // class Event {
 // }

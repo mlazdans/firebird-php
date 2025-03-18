@@ -56,6 +56,8 @@
 ## General
 
 - Collect opened statements/transactions/blobs/etc and report leaks
+- isc_dsql_execute_immediate w/o prepare
+- transaction over more databases: if (isc_start_transaction(status, &trans1, 2, &db1, 0, NULL, &db2, 0, NULL))
 
 ## Blob
 
