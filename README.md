@@ -78,3 +78,12 @@ IStatement::createBatch, IAttachment::createBatch
 - When reducing network round trips is critical.
 - When handling bulk inserts with RETURNING values.
 - When performing batch deletes/updates efficiently.
+
+## Arrays
+
+Is it worth even supporting array type? Firebird docs thinks not:
+https://firebirdsql.org/file/documentation/html/en/refdocs/fblangref50/firebird-50-language-reference.html#fblangref50-datatypes-array
+
+> Firebird does not offer much in the way of language or tools for working with the contents of arrays, and there are no plans to improve this. This limits the usefulness and accessibility of array types. Therefore, the general advice is: do not use arrays.
+
+Arrays introduce unnecessary complexity. You can't even INSERT / UPDATE array fields using PSQL, just with isc API. If arrays are needed these can be implemented using relation model.

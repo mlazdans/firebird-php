@@ -508,8 +508,7 @@ format_date_time:
 static void _php_firebird_fetch_hash(INTERNAL_FUNCTION_PARAMETERS, int fetch_type)
 {
     zval *result_arg;
-    zend_long flags = 0;
-    zend_long i, array_cnt = 0;
+    zend_long i, flags = 0;
     firebird_stmt *stmt = Z_STMT_P(ZEND_THIS);
     ISC_STATUS_ARRAY status;
 
@@ -593,31 +592,7 @@ static void _php_firebird_fetch_hash(INTERNAL_FUNCTION_PARAMETERS, int fetch_typ
                     }
                     break;
                 case SQL_ARRAY:
-                    assert(false && "TODO: SQL_ARRAY");
-                    // if (flag & PHP_FIREBIRD_FETCH_ARRAYS) { /* array can be *huge* so only fetch if asked */
-                    //     ISC_QUAD ar_qd = *(ISC_QUAD *) var->sqldata;
-                    //     ibase_array *ib_array = &stmt->out_array[array_cnt++];
-                    //     void *ar_data = emalloc(ib_array->ar_size);
-
-                    //     if (isc_array_get_slice(IB_STATUS, &stmt->link->handle,
-                    //             &stmt->trans->handle, &ar_qd, &ib_array->ar_desc,
-                    //             ar_data, &ib_array->ar_size)) {
-                    //         _php_firebird_error();
-                    //         efree(ar_data);
-                    //         goto _php_firebird_fetch_error;
-                    //     }
-
-                    //     if (FAILURE == _php_firebird_arr_zval(&result, ar_data, ib_array->ar_size, ib_array,
-                    //             0, flag)) {
-                    //         efree(ar_data);
-                    //         goto _php_firebird_fetch_error;
-                    //     }
-                    //     efree(ar_data);
-
-                    // } else { /* blob id only */
-                    //     ISC_QUAD ar_qd = *(ISC_QUAD *) var->sqldata;
-                    //     ZVAL_NEW_STR(&result, _php_firebird_quad_to_string(ar_qd));
-                    // }
+                    _php_firebird_module_fatal("ARRAY type is not supported.");
                     break;
                 _php_firebird_fetch_error:
                     zval_ptr_dtor_nogc(&result);
@@ -872,8 +847,10 @@ static void _php_firebird_alloc_xsqlda(XSQLDA *sqlda)
             case SQL_TYPE_TIME:
                 var->sqldata = emalloc(sizeof(ISC_TIME));
                 break;
-            case SQL_BLOB:
             case SQL_ARRAY:
+                _php_firebird_module_fatal("ARRAY type is not supported.");
+                break;
+            case SQL_BLOB:
                 var->sqldata = emalloc(sizeof(ISC_QUAD));
                 break;
 #if FB_API_VER >= 40
@@ -904,7 +881,7 @@ static void _php_firebird_alloc_xsqlda(XSQLDA *sqlda)
 
 static int statement_bind(ISC_STATUS_ARRAY status, zval *stmt_o, XSQLDA *sqlda, zval *b_vars)
 {
-    int i, array_cnt = 0, rv = SUCCESS;
+    int i, rv = SUCCESS;
     firebird_stmt *stmt = Z_STMT_P(stmt_o);
 
     if(sqlda->sqld > 0) {
@@ -923,7 +900,6 @@ static int statement_bind(ISC_STATUS_ARRAY status, zval *stmt_o, XSQLDA *sqlda, 
         if (Z_TYPE_P(b_var) == IS_NULL) {
             stmt->bind_buf[i].sqlind = -1;
             sqlda->sqlvar->sqldata = NULL;
-            if (var->sqltype & SQL_ARRAY) ++array_cnt;
             continue;
         }
 
@@ -1062,40 +1038,7 @@ static int statement_bind(ISC_STATUS_ARRAY status, zval *stmt_o, XSQLDA *sqlda, 
                 continue;
 #endif
             case SQL_ARRAY:
-                assert(false && "TODO: bind SQL_ARRAY");
-                // if (Z_TYPE_P(b_var) != IS_ARRAY) {
-                //     convert_to_string(b_var);
-
-                //     if (Z_STRLEN_P(b_var) != BLOB_ID_LEN ||
-                //         !_php_firebird_string_to_quad(Z_STRVAL_P(b_var), &buf[i].val.qval)) {
-
-                //         _php_firebird_module_error("Parameter %d: invalid array ID",i+1);
-                //         rv = FAILURE;
-                //     }
-                // } else {
-                //     /* convert the array data into something IB can understand */
-                //     ibase_array *ar = &ib_query->in_array[array_cnt];
-                //     void *array_data = emalloc(ar->ar_size);
-                //     ISC_QUAD array_id = { 0, 0 };
-
-                //     if (FAILURE == _php_firebird_bind_array(b_var, array_data, ar->ar_size,
-                //             ar, 0)) {
-                //         _php_firebird_module_error("Parameter %d: failed to bind array argument", i+1);
-                //         efree(array_data);
-                //         rv = FAILURE;
-                //         continue;
-                //     }
-
-                //     if (isc_array_put_slice(IB_STATUS, &ib_query->link->handle, &ib_query->trans->handle,
-                //             &array_id, &ar->ar_desc, array_data, &ar->ar_size)) {
-                //         _php_firebird_error();
-                //         efree(array_data);
-                //         return FAILURE;
-                //     }
-                //     buf[i].val.qval = array_id;
-                //     efree(array_data);
-                // }
-                // ++array_cnt;
+                _php_firebird_module_fatal("ARRAY type is not supported.");
                 continue;
         } /* switch */
 

@@ -9,7 +9,6 @@
 zend_class_entry *FireBird_Transaction_ce;
 static zend_object_handlers FireBird_Transaction_object_handlers;
 
-// static int alloc_array(firebird_array **ib_arrayp, unsigned short *array_cnt, XSQLDA *sqlda, zend_object *obj);
 static void _php_firebird_process_trans(INTERNAL_FUNCTION_PARAMETERS, int commit);
 static void _php_firebird_populate_tpb(zend_long trans_argl, zend_long trans_timeout, char *last_tpb, unsigned short *len);
 
@@ -161,25 +160,6 @@ PHP_METHOD(Transaction, query)
         zval_ptr_dtor(return_value);
         RETURN_FALSE;
     }
-
-    // TODO: handle SQL_ARRAY
-
-    /* no, haven't placeholders at all */
-    // if (q->in_sqlda->sqld == 0) {
-    //     efree(q->in_sqlda);
-    //     q->in_sqlda = NULL;
-    // // } else if (FAILURE == alloc_arraqy(&q->in_array, &q->in_array_cnt, q->in_sqlda, ZEND_THIS)) {
-    // //     // update_err_props(status, FireBird_Transaction_ce, ZEND_THIS);
-    // //     goto query_error;
-    // }
-
-    // if (q->out_sqlda->sqld == 0) {
-    //     efree(q->out_sqlda);
-    //     q->out_sqlda = NULL;
-    // // } else if (FAILURE == alloc_array(&q->out_array, &q->out_array_cnt, q->out_sqlda,(ZEND_THIS)) {
-    // //     // update_err_props(status, FireBird_Transaction_ce, ZEND_THIS);
-    // //     goto query_error;
-    // }
 }
 
 PHP_METHOD(Transaction, open_blob)
@@ -365,135 +345,6 @@ static void _php_firebird_populate_tpb(zend_long trans_argl, zend_long trans_tim
 
     *len = tpb_len;
 }
-
-// static int alloc_array(firebird_array **ib_arrayp, unsigned short *array_cnt, XSQLDA *sqlda, zend_object *obj)
-// {
-//     unsigned short i, n;
-//     firebird_array *ar;
-//     ISC_STATUS_ARRAY status;
-//     firebird_query *q = Z_QUERY_O(obj);
-
-//     /* first check if we have any arrays at all */
-//     for (i = *array_cnt = 0; i < sqlda->sqld; ++i) {
-//         if ((sqlda->sqlvar[i].sqltype & ~1) == SQL_ARRAY) {
-//             ++*array_cnt;
-//         }
-//     }
-//     if (! *array_cnt) return SUCCESS;
-
-//     ar = safe_emalloc(sizeof(firebird_array), *array_cnt, 0);
-
-//     for (i = n = 0; i < sqlda->sqld; ++i) {
-//         unsigned short dim;
-//         zend_ulong ar_size = 1;
-//         XSQLVAR *var = &sqlda->sqlvar[i];
-
-//         if ((var->sqltype & ~1) == SQL_ARRAY) {
-//             firebird_array *a = &ar[n++];
-//             ISC_ARRAY_DESC *ar_desc = &a->ar_desc;
-
-//             if (isc_array_lookup_bounds(status, &q->db_handle, &q->tr_handle, var->relname, var->sqlname, ar_desc)) {
-//                 update_err_props(status, FireBird_Transaction_ce, obj);
-//                 efree(ar);
-//                 return FAILURE;
-//             }
-
-//             switch (ar_desc->array_desc_dtype) {
-//                 case blr_text:
-//                 case blr_text2:
-//                     a->el_type = SQL_TEXT;
-//                     a->el_size = ar_desc->array_desc_length;
-//                     break;
-// #ifdef SQL_BOOLEAN
-//                 case blr_bool:
-//                     a->el_type = SQL_BOOLEAN;
-//                     a->el_size = sizeof(FB_BOOLEAN);
-//                     break;
-// #endif
-//                 case blr_short:
-//                     a->el_type = SQL_SHORT;
-//                     a->el_size = sizeof(short);
-//                     break;
-//                 case blr_long:
-//                     a->el_type = SQL_LONG;
-//                     a->el_size = sizeof(ISC_LONG);
-//                     break;
-//                 case blr_float:
-//                     a->el_type = SQL_FLOAT;
-//                     a->el_size = sizeof(float);
-//                     break;
-//                 case blr_double:
-//                     a->el_type = SQL_DOUBLE;
-//                     a->el_size = sizeof(double);
-//                     break;
-//                 case blr_int64:
-//                     a->el_type = SQL_INT64;
-//                     a->el_size = sizeof(ISC_INT64);
-//                     break;
-//                 case blr_timestamp:
-//                     a->el_type = SQL_TIMESTAMP;
-//                     a->el_size = sizeof(ISC_TIMESTAMP);
-//                     break;
-//                 case blr_sql_date:
-//                     a->el_type = SQL_TYPE_DATE;
-//                     a->el_size = sizeof(ISC_DATE);
-//                     break;
-//                 case blr_sql_time:
-//                     a->el_type = SQL_TYPE_TIME;
-//                     a->el_size = sizeof(ISC_TIME);
-//                     break;
-// #if FB_API_VER >= 40
-//                 // These are converted to VARCHAR via isc_dpb_set_bind tag at connect
-//                 // blr_dec64
-//                 // blr_dec128
-//                 // blr_int128
-//                 case blr_sql_time_tz:
-//                     a->el_type = SQL_TIME_TZ;
-//                     a->el_size = sizeof(ISC_TIME_TZ);
-//                     break;
-//                 case blr_timestamp_tz:
-//                     a->el_type = SQL_TIMESTAMP_TZ;
-//                     a->el_size = sizeof(ISC_TIMESTAMP_TZ);
-//                     break;
-// #endif
-//                 case blr_varying:
-//                 case blr_varying2:
-//                     /**
-//                      * IB has a strange way of handling VARCHAR arrays. It doesn't store
-//                      * the length in the first short, as with VARCHAR fields. It does,
-//                      * however, expect the extra short to be allocated for each element.
-//                      */
-//                     a->el_type = SQL_TEXT;
-//                     a->el_size = ar_desc->array_desc_length + sizeof(short);
-//                     break;
-//                 case blr_quad:
-//                 case blr_blob_id:
-//                 case blr_cstring:
-//                 case blr_cstring2:
-//                     /**
-//                      * These types are mentioned as array types in the manual, but I
-//                      * wouldn't know how to create an array field with any of these
-//                      * types. I assume these types are not applicable to arrays, and
-//                      * were mentioned erroneously.
-//                      */
-//                 default:
-//                     _php_firebird_module_error("Unsupported array type %d in relation '%s' column '%s'",
-//                         ar_desc->array_desc_dtype, var->relname, var->sqlname);
-//                     efree(ar);
-//                     return FAILURE;
-//             } /* switch array_desc_type */
-
-//             /* calculate elements count */
-//             for (dim = 0; dim < ar_desc->array_desc_dimensions; dim++) {
-//                 ar_size *= 1 + ar_desc->array_desc_bounds[dim].array_bound_upper
-//                     -ar_desc->array_desc_bounds[dim].array_bound_lower;
-//             }
-//             a->ar_size = a->el_size * ar_size;
-//         } /* if SQL_ARRAY */
-//     } /* for column */
-//     *ib_arrayp = ar;
-//     return SUCCESS;
-// }
 
 static void _php_firebird_process_trans(INTERNAL_FUNCTION_PARAMETERS, int commit)
 {
