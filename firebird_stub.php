@@ -6,13 +6,32 @@ const FETCH_BLOBS    = 1;
 const FETCH_ARRAYS   = 2;
 const FETCH_UNIXTIME = 4;
 
-// TODO: private __construct()
 // Store single Firebird error
 class Error
 {
     public string $error_msg { get; }
     public int $error_code { get; }
     public int $error_code_long { get; }
+}
+
+class Db_Info
+{
+	public int $db_id { get; }
+	public int $reads { get; }
+	public int $writes { get; }
+	public int $fetches { get; }
+	public int $marks { get; }
+
+	// isc_info_implementation = 11,
+	// isc_info_isc_version		= 12,
+	// isc_info_base_level		= 13,
+	// isc_info_page_size		= 14,
+	// isc_info_num_buffers	= 15,
+	// isc_info_limbo			= 16,
+	// isc_info_current_memory	= 17,
+	// isc_info_max_memory		= 18,
+	// isc_info_window_turns	= 19,
+	// isc_info_license		= 20,
 }
 
 class Blob_Info
@@ -104,6 +123,9 @@ class Database implements IError
 
     /** @return bool */
     function drop() {}
+
+    /** @return Db_Info|false */
+    function get_info() {}
 }
 
 class Connection implements IError

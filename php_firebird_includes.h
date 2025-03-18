@@ -85,6 +85,13 @@ typedef struct {
 
 typedef struct firebird_db {
     isc_db_handle db_handle;
+
+    ISC_LONG info_db_id;
+    ISC_LONG info_reads;
+    ISC_LONG info_writes;
+    ISC_LONG info_fetches;
+    ISC_LONG info_marks;
+
     zend_object std;
 } firebird_db;
 
@@ -303,6 +310,9 @@ ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Database_
     ZEND_ARG_OBJ_INFO(0, args, FireBird\\Create_Args, 0)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Database_get_info, 0, 0, FireBird\\Db_Info, MAY_BE_FALSE)
+ZEND_END_ARG_INFO()
+
 // Connection argument types
 ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_INFO_EX(arginfo_FireBird_Connection_new_transaction, 0, 0, FireBird\\Transaction, 0)
     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, trans_args, IS_LONG, 0, 0)
@@ -365,6 +375,7 @@ ZEND_END_ARG_INFO()
 
 extern firebird_xpb_zmap database_create_zmap;
 extern firebird_xpb_zmap database_connect_zmap;
+extern firebird_xpb_zmap database_info_zmap;
 extern zend_class_entry *FireBird_Connect_Args_ce;
 extern zend_class_entry *FireBird_Create_Args_ce;
 extern zend_class_entry *FireBird_Database_ce;
@@ -377,6 +388,7 @@ extern zend_class_entry *FireBird_Blob_ce;
 extern zend_class_entry *FireBird_Blob_Info_ce;
 extern zend_class_entry *FireBird_Blob_Id_ce;
 extern zend_class_entry *FireBird_Var_Info_ce;
+extern zend_class_entry *FireBird_Db_Info_ce;
 
 extern void register_FireBird_Database_ce();
 extern void register_FireBird_Connection_ce();
@@ -390,6 +402,7 @@ extern void register_FireBird_Blob_ce();
 extern void register_FireBird_Blob_Info_ce();
 extern void register_FireBird_Blob_Id_ce();
 extern void register_FireBird_Var_Info_ce();
+extern void register_FireBird_Db_Info_ce();
 
 #define DECLARE_FERR_PROPS(ce)                                  \
     DECLARE_PROP_STRING(ce, error_msg, ZEND_ACC_PROTECTED_SET); \

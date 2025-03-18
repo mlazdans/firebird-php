@@ -82,6 +82,18 @@ firebird_xpb_zmap database_connect_zmap = XPB_ZMAP_INIT(
     })
 );
 
+firebird_xpb_zmap database_info_zmap = XPB_ZMAP_INIT(
+    ((const char []){
+        isc_info_db_id, isc_info_reads, isc_info_writes, isc_info_fetches, isc_info_marks,
+    }),
+    ((const char *[]){
+        "db_id", "reads", "writes", "fetches", "marks",
+    }),
+    ((uint32_t []) {
+        MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG
+    })
+);
+
 static const zend_function_entry firebird_functions[] = {
     PHP_FE_END
 };
@@ -269,6 +281,7 @@ PHP_MINIT_FUNCTION(firebird)
     register_FireBird_Blob_Info_ce();
     register_FireBird_Blob_Id_ce();
     register_FireBird_Var_Info_ce();
+    register_FireBird_Db_Info_ce();
 
     return SUCCESS;
 }

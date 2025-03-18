@@ -1,10 +1,10 @@
-#include "firebird/fb_c_api.h"
+#include <firebird/fb_c_api.h>
 #include "php.h"
 #include "zend_exceptions.h"
 #include "zend_attributes.h"
 #include "php_firebird_includes.h"
 
-zend_class_entry *FireBird_Database_ce;
+zend_class_entry *FireBird_Database_ce, *FireBird_Db_Info_ce;
 static zend_object_handlers FireBird_Database_object_handlers;
 
 int database_connect(ISC_STATUS_ARRAY status, zval *db_o, zval *args_o)
@@ -14,6 +14,7 @@ int database_connect(ISC_STATUS_ARRAY status, zval *db_o, zval *args_o)
     short num_dpb_written;
     firebird_db *db = Z_DB_P(db_o);
 
+    // TODO: check if instance of Create_Args
     database = zend_read_property(FireBird_Connect_Args_ce, O_GET(args_o, database), 0, &rv);
 
     if ((Z_TYPE_P(database) != IS_STRING) || !Z_STRLEN_P(database)) {
@@ -144,10 +145,89 @@ PHP_METHOD(Database, drop)
     RETURN_TRUE;
 }
 
+int database_get_info(ISC_STATUS_ARRAY status, firebird_db *db)
+{
+    static char info_req[] = {
+        isc_info_db_id,
+        isc_info_reads,
+        isc_info_writes,
+        isc_info_fetches,
+        isc_info_marks,
+        // isc_info_limbo
+    };
+    char info_resp[1024] = { 0 };
+
+    if (isc_database_info(status, &db->db_handle, sizeof(info_req), info_req, sizeof(info_resp), info_resp)) {
+        return FAILURE;
+    }
+
+    // TODO: IXpbBuilder code duplication all over the place.
+    // Maybe using firebird_xpb_zmap?
+    struct IMaster* master = fb_get_master_interface();
+    struct IStatus* st = IMaster_getStatus(master);
+    struct IUtil* utl = IMaster_getUtilInterface(master);
+    struct IXpbBuilder* dpb;
+
+    dpb = IUtil_getXpbBuilder(utl, st, IXpbBuilder_INFO_RESPONSE, info_resp, sizeof(info_resp));
+
+    ISC_INT64 len, total_len = 0;
+
+    FBDEBUG("Parsing DB info buffer");
+    for (IXpbBuilder_rewind(dpb, st); !IXpbBuilder_isEof(dpb, st); IXpbBuilder_moveNext(dpb, st)) {
+        unsigned char tag = IXpbBuilder_getTag(dpb, st); total_len++;
+        len = IXpbBuilder_getLength(dpb, st); total_len += 2;
+        total_len += len;
+
+        switch(tag) {
+            case isc_info_db_id: db->info_db_id = IXpbBuilder_getBigInt(dpb, st); break;
+            case isc_info_reads: db->info_reads = IXpbBuilder_getBigInt(dpb, st); break;
+            case isc_info_writes: db->info_writes = IXpbBuilder_getBigInt(dpb, st); break;
+            case isc_info_fetches: db->info_fetches = IXpbBuilder_getBigInt(dpb, st); break;
+            case isc_info_marks: db->info_marks = IXpbBuilder_getBigInt(dpb, st); break;
+
+            case isc_info_end: break;
+            case isc_info_truncated: {
+                _php_firebird_module_error("DB info buffer error: truncated");
+            } return FAILURE;
+            case isc_info_error: {
+                _php_firebird_module_error("DB info buffer error");
+            } return FAILURE;
+
+            default: {
+                _php_firebird_module_fatal("BUG! Unhandled DB info tag: %d", tag);
+            } break;
+        }
+    }
+
+    return SUCCESS;
+}
+
+PHP_METHOD(Database, get_info)
+{
+    ZEND_PARSE_PARAMETERS_NONE();
+
+    zval *args = NULL;
+    ISC_STATUS_ARRAY status = { 0 };
+    firebird_db *db = Z_DB_P(ZEND_THIS);
+
+    if(database_get_info(status, db)) {
+        update_err_props(status, FireBird_Database_ce, ZEND_THIS);
+        RETURN_FALSE;
+    }
+
+    object_init_ex(return_value, FireBird_Db_Info_ce);
+    zend_update_property_long(FireBird_Db_Info_ce, Z_OBJ_P(return_value), "db_id", sizeof("db_id") - 1, db->info_db_id);
+    zend_update_property_long(FireBird_Db_Info_ce, Z_OBJ_P(return_value), "reads", sizeof("reads") - 1, db->info_reads);
+    zend_update_property_long(FireBird_Db_Info_ce, Z_OBJ_P(return_value), "writes", sizeof("writes") - 1, db->info_writes);
+    zend_update_property_long(FireBird_Db_Info_ce, Z_OBJ_P(return_value), "fetches", sizeof("fetches") - 1, db->info_fetches);
+    zend_update_property_long(FireBird_Db_Info_ce, Z_OBJ_P(return_value), "marks", sizeof("marks") - 1, db->info_marks);
+}
+
 const zend_function_entry FireBird_Database_methods[] = {
     PHP_ME(Database, connect, arginfo_FireBird_Database_connect, ZEND_ACC_PUBLIC)
     PHP_ME(Database, create, arginfo_FireBird_Database_create, ZEND_ACC_PUBLIC)
     PHP_ME(Database, drop, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
+    PHP_ME(Database, get_info, arginfo_FireBird_Database_get_info, ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
 
@@ -278,4 +358,13 @@ int database_build_dpb(zend_class_entry *ce, zval *args_o, const firebird_xpb_zm
 	// IStatus_dispose(st);
 
     return SUCCESS;
+}
+
+void register_FireBird_Db_Info_ce()
+{
+    zend_class_entry tmp_ce;
+    INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "Db_Info", NULL);
+    FireBird_Db_Info_ce = zend_register_internal_class(&tmp_ce);
+
+    declare_props_zmap(FireBird_Db_Info_ce, &database_info_zmap);
 }
