@@ -117,10 +117,9 @@ class Connection implements IError
 
     /**
      * @param ?int $lock_timeout - sets lock timeout in seconds when WAIT | LOCK_TIMEOUT $trans_args are set. Valid range 1-32767
-     * @return Transaction|false
+     * @return Transaction
      * */
     function new_transaction(int $trans_args = 0, int $lock_timeout = 0) {}
-    // TODO: new_transaction w/o starting or start_transaction?
 
     /** @return Transaction|false */
     function reconnect_transaction(int $id) {}

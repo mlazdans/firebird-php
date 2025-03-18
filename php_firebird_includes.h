@@ -304,7 +304,7 @@ ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Database_
 ZEND_END_ARG_INFO()
 
 // Connection argument types
-ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Connection_new_transaction, 0, 0, FireBird\\Transaction, MAY_BE_FALSE)
+ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_INFO_EX(arginfo_FireBird_Connection_new_transaction, 0, 0, FireBird\\Transaction, 0)
     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, trans_args, IS_LONG, 0, 0)
     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, lock_timeout, IS_LONG, 0, 0)
 ZEND_END_ARG_INFO()
