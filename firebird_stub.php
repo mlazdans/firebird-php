@@ -22,16 +22,22 @@ class Db_Info
 	public int $fetches { get; }
 	public int $marks { get; }
 
-	// isc_info_implementation = 11,
-	// isc_info_isc_version		= 12,
-	// isc_info_base_level		= 13,
-	// isc_info_page_size		= 14,
-	// isc_info_num_buffers	= 15,
-	// isc_info_limbo			= 16,
-	// isc_info_current_memory	= 17,
-	// isc_info_max_memory		= 18,
-	// isc_info_window_turns	= 19,
-	// isc_info_license		= 20,
+    public int $page_size { get; }
+    public int $num_buffers { get; }
+    public int $limbo { get; } // TODO: array, for now always returns 0.
+    public int $current_memory { get; }
+    public int $max_memory { get; }
+
+    public int $allocation { get; }
+    public int $attachment_id { get; }
+    public int $read_seq_count { get; }
+    public int $read_idx_count { get; }
+    public int $insert_count { get; }
+    public int $update_count { get; }
+    public int $delete_count { get; }
+    public int $backout_count { get; }
+    public int $purge_count { get; }
+    public int $expunge_count { get; }
 }
 
 class Blob_Info

@@ -153,7 +153,30 @@ int database_get_info(ISC_STATUS_ARRAY status, firebird_db *db)
         isc_info_writes,
         isc_info_fetches,
         isc_info_marks,
-        // isc_info_limbo
+
+        // isc_info_implementation,
+        // isc_info_isc_version / isc_info_firebird_version,
+        // isc_info_base_level,
+        isc_info_page_size,
+        isc_info_num_buffers,
+        // isc_info_limbo, // this will return a list, need parse into an array
+        isc_info_current_memory,
+        isc_info_max_memory,
+        // isc_info_window_turns, / unused?
+        // isc_info_license, / unused?
+
+        isc_info_allocation,
+        isc_info_attachment_id,
+        isc_info_read_seq_count,
+        isc_info_read_idx_count,
+        isc_info_insert_count,
+        isc_info_update_count,
+        isc_info_delete_count,
+        isc_info_backout_count,
+        isc_info_purge_count,
+        isc_info_expunge_count,
+
+        isc_info_end
     };
     char info_resp[1024] = { 0 };
 
@@ -172,6 +195,9 @@ int database_get_info(ISC_STATUS_ARRAY status, firebird_db *db)
 
     ISC_INT64 len, total_len = 0;
 
+#define READ_BIGINT(tag) \
+    case isc_info_##tag: db->info_##tag = IXpbBuilder_getBigInt(dpb, st); break
+
     FBDEBUG("Parsing DB info buffer");
     for (IXpbBuilder_rewind(dpb, st); !IXpbBuilder_isEof(dpb, st); IXpbBuilder_moveNext(dpb, st)) {
         unsigned char tag = IXpbBuilder_getTag(dpb, st); total_len++;
@@ -179,11 +205,30 @@ int database_get_info(ISC_STATUS_ARRAY status, firebird_db *db)
         total_len += len;
 
         switch(tag) {
-            case isc_info_db_id: db->info_db_id = IXpbBuilder_getBigInt(dpb, st); break;
-            case isc_info_reads: db->info_reads = IXpbBuilder_getBigInt(dpb, st); break;
-            case isc_info_writes: db->info_writes = IXpbBuilder_getBigInt(dpb, st); break;
-            case isc_info_fetches: db->info_fetches = IXpbBuilder_getBigInt(dpb, st); break;
-            case isc_info_marks: db->info_marks = IXpbBuilder_getBigInt(dpb, st); break;
+            READ_BIGINT(db_id);
+            READ_BIGINT(reads);
+            READ_BIGINT(writes);
+            READ_BIGINT(fetches);
+            READ_BIGINT(marks);
+            READ_BIGINT(page_size);
+            READ_BIGINT(num_buffers);
+            // case isc_info_limbo: {
+            //     db->info_limbo = IXpbBuilder_getBigInt(dpb, st);
+            //     FBDEBUG_NOFL("  limbo: %u", db->info_limbo);
+            // } break;
+            READ_BIGINT(current_memory);
+            READ_BIGINT(max_memory);
+
+            READ_BIGINT(allocation);
+            READ_BIGINT(attachment_id);
+            READ_BIGINT(read_seq_count);
+            READ_BIGINT(read_idx_count);
+            READ_BIGINT(insert_count);
+            READ_BIGINT(update_count);
+            READ_BIGINT(delete_count);
+            READ_BIGINT(backout_count);
+            READ_BIGINT(purge_count);
+            READ_BIGINT(expunge_count);
 
             case isc_info_end: break;
             case isc_info_truncated: {
@@ -215,12 +260,50 @@ PHP_METHOD(Database, get_info)
         RETURN_FALSE;
     }
 
+    // const firebird_xpb_zmap *xpb_zmap = &database_info_zmap;
+
+    // #define dd(name) db->info_##name
+    // object_init_ex(return_value, FireBird_Db_Info_ce);
+    // for (int i = 0; i < xpb_zmap->count; i++) {
+    //     switch(xpb_zmap->ztypes[i]){
+    //         case MAY_BE_LONG: {
+    //             zend_update_property_long(FireBird_Db_Info_ce, Z_OBJ_P(return_value),
+    //                 xpb_zmap->names[i], sizeof(xpb_zmap->names[i]) - 1, dd(xpb_zmap->names[i]));
+    //         } break;
+
+    //         default: {
+    //             _php_firebird_module_error("BUG: unhandled firebird_xpb_zmap entry: %s with type: %d", xpb_zmap->names[i], xpb_zmap->ztypes[i]);
+    //         } break;
+    //     }
+    // }
+
     object_init_ex(return_value, FireBird_Db_Info_ce);
-    zend_update_property_long(FireBird_Db_Info_ce, Z_OBJ_P(return_value), "db_id", sizeof("db_id") - 1, db->info_db_id);
-    zend_update_property_long(FireBird_Db_Info_ce, Z_OBJ_P(return_value), "reads", sizeof("reads") - 1, db->info_reads);
-    zend_update_property_long(FireBird_Db_Info_ce, Z_OBJ_P(return_value), "writes", sizeof("writes") - 1, db->info_writes);
-    zend_update_property_long(FireBird_Db_Info_ce, Z_OBJ_P(return_value), "fetches", sizeof("fetches") - 1, db->info_fetches);
-    zend_update_property_long(FireBird_Db_Info_ce, Z_OBJ_P(return_value), "marks", sizeof("marks") - 1, db->info_marks);
+
+#define UP_LONG(name) \
+    zend_update_property_long(FireBird_Db_Info_ce, Z_OBJ_P(return_value), #name, sizeof(#name) - 1, db->info_##name)
+
+    UP_LONG(db_id);
+    UP_LONG(reads);
+    UP_LONG(writes);
+    UP_LONG(fetches);
+    UP_LONG(marks);
+
+    UP_LONG(page_size);
+    UP_LONG(num_buffers);
+    UP_LONG(limbo);
+    UP_LONG(current_memory);
+    UP_LONG(max_memory);
+
+    UP_LONG(allocation);
+    UP_LONG(attachment_id);
+    UP_LONG(read_seq_count);
+    UP_LONG(read_idx_count);
+    UP_LONG(insert_count);
+    UP_LONG(update_count);
+    UP_LONG(delete_count);
+    UP_LONG(backout_count);
+    UP_LONG(purge_count);
+    UP_LONG(expunge_count);
 }
 
 const zend_function_entry FireBird_Database_methods[] = {

@@ -86,11 +86,29 @@ typedef struct {
 typedef struct firebird_db {
     isc_db_handle db_handle;
 
+    // TODO: into separate struct?
     ISC_LONG info_db_id;
     ISC_LONG info_reads;
     ISC_LONG info_writes;
     ISC_LONG info_fetches;
     ISC_LONG info_marks;
+
+    ISC_LONG info_page_size;
+    ISC_LONG info_num_buffers;
+    ISC_LONG info_limbo;
+    ISC_LONG info_current_memory;
+    ISC_LONG info_max_memory;
+
+    ISC_LONG info_allocation;
+    ISC_LONG info_attachment_id;
+    ISC_LONG info_read_seq_count;
+    ISC_LONG info_read_idx_count;
+    ISC_LONG info_insert_count;
+    ISC_LONG info_update_count;
+    ISC_LONG info_delete_count;
+    ISC_LONG info_backout_count;
+    ISC_LONG info_purge_count;
+    ISC_LONG info_expunge_count;
 
     zend_object std;
 } firebird_db;
