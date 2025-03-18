@@ -176,6 +176,8 @@ int database_get_info(ISC_STATUS_ARRAY status, firebird_db *db)
         isc_info_purge_count,
         isc_info_expunge_count,
 
+        // fb_info_features,
+
         isc_info_end
     };
     char info_resp[1024] = { 0 };
@@ -201,6 +203,7 @@ int database_get_info(ISC_STATUS_ARRAY status, firebird_db *db)
     FBDEBUG("Parsing DB info buffer");
     for (IXpbBuilder_rewind(dpb, st); !IXpbBuilder_isEof(dpb, st); IXpbBuilder_moveNext(dpb, st)) {
         unsigned char tag = IXpbBuilder_getTag(dpb, st); total_len++;
+        const ISC_UCHAR* b = IXpbBuilder_getBytes(dpb, st);
         len = IXpbBuilder_getLength(dpb, st); total_len += 2;
         total_len += len;
 
@@ -229,6 +232,17 @@ int database_get_info(ISC_STATUS_ARRAY status, firebird_db *db)
             READ_BIGINT(backout_count);
             READ_BIGINT(purge_count);
             READ_BIGINT(expunge_count);
+
+            // All fields populated, not sure if needed
+            // case fb_info_features: {
+            //     for (unsigned i = 0; i < len; i++){
+            //         if (b[i] == 0) {
+            //             _php_firebird_module_error("Bad provider feature value: %d", b[i]);
+            //         } else if (b[i] < fb_feature_max) {
+            //             FBDEBUG_NOFL("  feature: %d", b[i]);
+            //         }
+            //     }
+            // } break;
 
             case isc_info_end: break;
             case isc_info_truncated: {
