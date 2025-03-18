@@ -145,45 +145,14 @@ PHP_METHOD(Database, drop)
     RETURN_TRUE;
 }
 
-int database_get_info(ISC_STATUS_ARRAY status, firebird_db *db)
+int database_get_info(ISC_STATUS_ARRAY status, isc_db_handle *db_handle, firebird_db_info *db_info,
+    size_t info_req_size, char *info_req,
+    size_t info_resp_size, char *info_resp,
+    size_t max_limbo_count)
 {
-    static char info_req[] = {
-        isc_info_db_id,
-        isc_info_reads,
-        isc_info_writes,
-        isc_info_fetches,
-        isc_info_marks,
-
-        // isc_info_implementation,
-        // isc_info_isc_version / isc_info_firebird_version,
-        // isc_info_base_level,
-        isc_info_page_size,
-        isc_info_num_buffers,
-        // isc_info_limbo, // this will return a list, need parse into an array
-        isc_info_current_memory,
-        isc_info_max_memory,
-        // isc_info_window_turns, / unused?
-        // isc_info_license, / unused?
-
-        isc_info_allocation,
-        isc_info_attachment_id,
-        isc_info_read_seq_count,
-        isc_info_read_idx_count,
-        isc_info_insert_count,
-        isc_info_update_count,
-        isc_info_delete_count,
-        isc_info_backout_count,
-        isc_info_purge_count,
-        isc_info_expunge_count,
-
-        // fb_info_features,
-
-        isc_info_end
-    };
-    char info_resp[1024] = { 0 };
-
-    if (isc_database_info(status, &db->db_handle, sizeof(info_req), info_req, sizeof(info_resp), info_resp)) {
-        return FAILURE;
+    if (isc_database_info(status, db_handle,
+        info_req_size, info_req, info_resp_size, info_resp)) {
+            return FAILURE;
     }
 
     // TODO: IXpbBuilder code duplication all over the place.
@@ -193,12 +162,13 @@ int database_get_info(ISC_STATUS_ARRAY status, firebird_db *db)
     struct IUtil* utl = IMaster_getUtilInterface(master);
     struct IXpbBuilder* dpb;
 
-    dpb = IUtil_getXpbBuilder(utl, st, IXpbBuilder_INFO_RESPONSE, info_resp, sizeof(info_resp));
+    dpb = IUtil_getXpbBuilder(utl, st, IXpbBuilder_INFO_RESPONSE, info_resp, info_resp_size);
 
     ISC_INT64 len, total_len = 0;
+    size_t limbo_count = 0;
 
 #define READ_BIGINT(tag) \
-    case isc_info_##tag: db->info_##tag = IXpbBuilder_getBigInt(dpb, st); break
+    case isc_info_##tag: db_info->info_##tag = IXpbBuilder_getBigInt(dpb, st); break
 
     FBDEBUG("Parsing DB info buffer");
     for (IXpbBuilder_rewind(dpb, st); !IXpbBuilder_isEof(dpb, st); IXpbBuilder_moveNext(dpb, st)) {
@@ -215,10 +185,13 @@ int database_get_info(ISC_STATUS_ARRAY status, firebird_db *db)
             READ_BIGINT(marks);
             READ_BIGINT(page_size);
             READ_BIGINT(num_buffers);
-            // case isc_info_limbo: {
-            //     db->info_limbo = IXpbBuilder_getBigInt(dpb, st);
-            //     FBDEBUG_NOFL("  limbo: %u", db->info_limbo);
-            // } break;
+            case isc_info_limbo: {
+                if(limbo_count < max_limbo_count) {
+                    db_info->info_limbo[limbo_count++] = IXpbBuilder_getBigInt(dpb, st);
+                } else {
+                    IXpbBuilder_moveNext(dpb, st);
+                }
+            } break;
             READ_BIGINT(current_memory);
             READ_BIGINT(max_memory);
 
@@ -258,6 +231,8 @@ int database_get_info(ISC_STATUS_ARRAY status, firebird_db *db)
         }
     }
 
+    db_info->info_limbo_count = limbo_count;
+
     return SUCCESS;
 }
 
@@ -269,7 +244,46 @@ PHP_METHOD(Database, get_info)
     ISC_STATUS_ARRAY status = { 0 };
     firebird_db *db = Z_DB_P(ZEND_THIS);
 
-    if(database_get_info(status, db)) {
+    // Full info, except limbo
+    static char info_req[] = {
+        isc_info_db_id,
+        isc_info_reads,
+        isc_info_writes,
+        isc_info_fetches,
+        isc_info_marks,
+
+        // isc_info_implementation,
+        // isc_info_isc_version / isc_info_firebird_version,
+        // isc_info_base_level,
+        isc_info_page_size,
+        isc_info_num_buffers,
+        // isc_info_limbo, // this will return a list, need parse into an array
+        isc_info_current_memory,
+        isc_info_max_memory,
+        // isc_info_window_turns, / unused?
+        // isc_info_license, / unused?
+
+        isc_info_allocation,
+        isc_info_attachment_id,
+
+        // These are per table?
+        isc_info_read_seq_count,
+        isc_info_read_idx_count,
+        isc_info_insert_count,
+        isc_info_update_count,
+        isc_info_delete_count,
+        isc_info_backout_count,
+        isc_info_purge_count,
+        isc_info_expunge_count,
+
+        // fb_info_features,
+
+        isc_info_end
+    };
+
+    char info_resp[1024] = { 0 };
+
+    if(database_get_info(status, &db->db_handle, &db->info, sizeof(info_req), info_req, sizeof(info_resp), info_resp, 0)) {
         update_err_props(status, FireBird_Database_ce, ZEND_THIS);
         RETURN_FALSE;
     }
@@ -294,7 +308,7 @@ PHP_METHOD(Database, get_info)
     object_init_ex(return_value, FireBird_Db_Info_ce);
 
 #define UP_LONG(name) \
-    zend_update_property_long(FireBird_Db_Info_ce, Z_OBJ_P(return_value), #name, sizeof(#name) - 1, db->info_##name)
+    zend_update_property_long(FireBird_Db_Info_ce, Z_OBJ_P(return_value), #name, sizeof(#name) - 1, db->info.info_##name)
 
     UP_LONG(db_id);
     UP_LONG(reads);
@@ -304,7 +318,6 @@ PHP_METHOD(Database, get_info)
 
     UP_LONG(page_size);
     UP_LONG(num_buffers);
-    UP_LONG(limbo);
     UP_LONG(current_memory);
     UP_LONG(max_memory);
 

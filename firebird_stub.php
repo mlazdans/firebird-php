@@ -24,7 +24,6 @@ class Db_Info
 
     public int $page_size { get; }
     public int $num_buffers { get; }
-    public int $limbo { get; } // TODO: array, for now always returns 0.
     public int $current_memory { get; }
     public int $max_memory { get; }
 
@@ -154,6 +153,9 @@ class Connection implements IError
 
     /** @return bool */
     function disconnect() {}
+
+    /** @return int[]|false */
+    function get_limbo_transactions(int $max_count) {}
 }
 
 // TODO: auto commit/rollback flag?

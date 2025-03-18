@@ -80,11 +80,55 @@ PHP_METHOD(Connection, reconnect_transaction)
     zend_update_property_long(FireBird_Transaction_ce, Z_OBJ_P(return_value), "id", 2, (zend_long)tr->tr_id);
 }
 
+// zim_Connection_get_limbo_transactions
+PHP_METHOD(Connection, get_limbo_transactions)
+{
+    ISC_STATUS_ARRAY status;
+    zend_long max_count;
+    zval rv, tr_id, *database;
+
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+        Z_PARAM_LONG(max_count)
+    ZEND_PARSE_PARAMETERS_END();
+
+    if (max_count < 1) {
+        zend_throw_exception_ex(zend_ce_value_error, 0, "Invalid max_count argument. Expected max_count value > 0");
+        RETURN_THROWS();
+    }
+
+    static char info_req[] = { isc_info_limbo, isc_info_end };
+    char info_resp[1024] = { 0 }; // TODO: depending on max_count
+
+    database = zend_read_property(FireBird_Connection_ce, THIS_GET(database), 0, &rv);
+    firebird_db *db = Z_DB_P(database);
+    firebird_db_info info = { 0 };
+    info.info_limbo = emalloc(sizeof(info.info_limbo) * max_count);
+
+    if(database_get_info(status, &db->db_handle, &info, sizeof(info_req), info_req, sizeof(info_resp), info_resp, max_count)) {
+        update_err_props(status, FireBird_Connection_ce, ZEND_THIS);
+        RETURN_FALSE;
+    }
+
+    FBDEBUG("get_limbo_transactions OK");
+
+    array_init(return_value);
+    HashTable *ht_tr = Z_ARRVAL_P(return_value);
+
+    for (ISC_INT64 i = 0; i < info.info_limbo_count; i++) {
+        FBDEBUG_NOFL("  ID: %u", info.info_limbo[i]);
+        ZVAL_LONG(&tr_id, info.info_limbo[i]);
+        zend_hash_next_index_insert(ht_tr, &tr_id);
+    }
+
+    efree(info.info_limbo);
+}
+
 const zend_function_entry FireBird_Connection_methods[] = {
     PHP_ME(Connection, __construct, arginfo_none, ZEND_ACC_PRIVATE)
     PHP_ME(Connection, disconnect, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
     PHP_ME(Connection, new_transaction, arginfo_FireBird_Connection_new_transaction, ZEND_ACC_PUBLIC)
     PHP_ME(Connection, reconnect_transaction, arginfo_FireBird_Connection_reconnect_transaction, ZEND_ACC_PUBLIC)
+    PHP_ME(Connection, get_limbo_transactions, arginfo_FireBird_Connection_get_limbo_transactions, ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
 

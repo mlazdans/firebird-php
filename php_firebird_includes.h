@@ -83,10 +83,7 @@ typedef struct {
     unsigned short el_type, el_size;
 } firebird_array;
 
-typedef struct firebird_db {
-    isc_db_handle db_handle;
-
-    // TODO: into separate struct?
+typedef struct firebird_db_info {
     ISC_LONG info_db_id;
     ISC_LONG info_reads;
     ISC_LONG info_writes;
@@ -95,7 +92,8 @@ typedef struct firebird_db {
 
     ISC_LONG info_page_size;
     ISC_LONG info_num_buffers;
-    ISC_LONG info_limbo;
+    ISC_LONG *info_limbo;
+    ISC_LONG info_limbo_count;
     ISC_LONG info_current_memory;
     ISC_LONG info_max_memory;
 
@@ -109,7 +107,11 @@ typedef struct firebird_db {
     ISC_LONG info_backout_count;
     ISC_LONG info_purge_count;
     ISC_LONG info_expunge_count;
+} firebird_db_info;
 
+typedef struct firebird_db {
+    isc_db_handle db_handle;
+    firebird_db_info info;
     zend_object std;
 } firebird_db;
 
@@ -341,6 +343,10 @@ ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Connectio
     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, id, IS_LONG, 0, 0)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_FireBird_Connection_get_limbo_transactions, 0, 1, MAY_BE_ARRAY|MAY_BE_FALSE)
+    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, max_count, IS_LONG, 0, 0)
+ZEND_END_ARG_INFO()
+
 // Transaction argument types
 ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Transaction_prepare, 0, 0, FireBird\\Statement, MAY_BE_FALSE)
     ZEND_ARG_TYPE_INFO(0, sql, IS_STRING, 0)
@@ -472,6 +478,10 @@ int blob_get(ISC_STATUS_ARRAY status, firebird_blob *blob, zval *return_value, s
 int blob_close(ISC_STATUS_ARRAY status, firebird_blob *blob);
 int blob_put(ISC_STATUS_ARRAY status, firebird_blob *blob, const char *buf, size_t buf_size);
 void blob_id___construct(zval *blob_id_o, ISC_QUAD bl_id);
+int database_get_info(ISC_STATUS_ARRAY status, isc_db_handle *db_handle, firebird_db_info *db_info,
+    size_t info_req_size, char *info_req,
+    size_t info_resp_size, char *info_resp,
+    size_t max_limbo_count);
 
 #define status_fbp_error(status) status_fbp_error_ex(status, __FILE__, __LINE__)
 #define update_err_props(status, ce, obj) update_err_props_ex(status, ce, obj, __FILE__, __LINE__)
