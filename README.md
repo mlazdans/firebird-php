@@ -28,7 +28,7 @@
 |✅    | ibase_fetch_object       |                                       |
 |✅    | ibase_fetch_row          |                                       |
 |✅    | ibase_field_info         |                                       |
-|❌    | ibase_free_event_handler |                                       |
+|✅    | ibase_free_event_handler |                                       |
 |✅    | ibase_free_query         |                                       |
 |✅    | ibase_free_result        |                                       |
 |🚫   | ibase_gen_id             | can be easily done in PHP space       |
@@ -47,9 +47,9 @@
 |❌    | ibase_server_info        |                                       |
 |❌    | ibase_service_attach     |                                       |
 |❌    | ibase_service_detach     |                                       |
-|❌    | ibase_set_event_handler  |                                       |
+|⏳    | ibase_set_event_handler  | Initial naive implementation          |
 |⏳    | ibase_trans              | Implement multi database transactions |
-|❌    | ibase_wait_event         |                                       |
+|⏳    | ibase_wait_event         | Initial naive implementation          |
 
 # TODO
 

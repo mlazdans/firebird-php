@@ -356,7 +356,7 @@ PHP_METHOD(Database, on_event)
         Z_PARAM_STRING(name, name_len)
         // Z_PARAM_OBJECT_OF_CLASS(f, zend_ce_fiber)
         // Z_PARAM_FUNC_NO_TRAMPOLINE_FREE(event->fci, event->fcc)
-        Z_PARAM_FUNC(event->fci, event->fcc)
+        Z_PARAM_FUNC(event->fci, event->fcc) // TODO: check closure's signature (fcc.function_handler->common.num_args)
     ZEND_PARSE_PARAMETERS_END();
 
     ZVAL_NULL(&event->retval);

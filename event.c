@@ -44,9 +44,11 @@ PHP_METHOD(Event, consume)
     while (event) {
         if (event->posted_count > 0) {
             event->posted_count = 0;
-            if (isc_que_events(status, event->db_handle, &event->event_id, event->buff_len, event->event_buffer, event_ast_routine, NULL)) {
-                update_err_props(status, FireBird_Event_ce, ZEND_THIS);
-                RETURN_FALSE;
+            if (Z_TYPE(event->retval) == IS_TRUE) {
+                if (isc_que_events(status, event->db_handle, &event->event_id, event->buff_len, event->event_buffer, event_ast_routine, NULL)) {
+                    update_err_props(status, FireBird_Event_ce, ZEND_THIS);
+                    RETURN_FALSE;
+                }
             }
         }
 
