@@ -333,11 +333,64 @@ PHP_METHOD(Database, get_info)
     UP_LONG(expunge_count);
 }
 
+PHP_METHOD(Database, on_event)
+{
+    ISC_STATUS_ARRAY status;
+
+    char *name;
+    size_t name_len;
+
+    firebird_db *db = Z_DB_P(ZEND_THIS);
+
+    zval ievent;
+    object_init_ex(&ievent, FireBird_Event_ce);
+
+    firebird_event *event = Z_EVENT_P(&ievent);
+    ZVAL_COPY(&event->instance, &ievent);
+
+    // zval *f;
+    // zend_fcall_info fci;
+    // zend_fcall_info_cache fcc;
+
+    ZEND_PARSE_PARAMETERS_START(2, 2)
+        Z_PARAM_STRING(name, name_len)
+        // Z_PARAM_OBJECT_OF_CLASS(f, zend_ce_fiber)
+        // Z_PARAM_FUNC_NO_TRAMPOLINE_FREE(event->fci, event->fcc)
+        Z_PARAM_FUNC(event->fci, event->fcc)
+    ZEND_PARSE_PARAMETERS_END();
+
+    ZVAL_NULL(&event->retval);
+    event->fci.retval = &event->retval;
+
+    event->state = NEW;
+    event->db_handle = &db->db_handle;
+    event->name = name; // TODO: should increase ref count or not?
+    event->posted_count = 0;
+    // event->fiber = Z_FIBER_P(f);
+
+    event->buff_len = isc_event_block(&event->event_buffer, &event->result_buffer, 1, name);
+    event->next = fb_events.events;
+
+    FBDEBUG("Events: alloceted event: '%s', event_ptr: %p", name, event);
+
+    if (isc_que_events(status, event->db_handle, &event->event_id, event->buff_len, event->event_buffer, event_ast_routine, NULL)) {
+        update_err_props(status, FireBird_Database_ce, ZEND_THIS);
+        zval_ptr_dtor(&ievent);
+        RETURN_FALSE;
+    }
+
+    fb_events.events = event;
+    fb_events.count++;
+
+    RETURN_TRUE;
+}
+
 const zend_function_entry FireBird_Database_methods[] = {
     PHP_ME(Database, connect, arginfo_FireBird_Database_connect, ZEND_ACC_PUBLIC)
     PHP_ME(Database, create, arginfo_FireBird_Database_create, ZEND_ACC_PUBLIC)
     PHP_ME(Database, drop, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
     PHP_ME(Database, get_info, arginfo_FireBird_Database_get_info, ZEND_ACC_PUBLIC)
+    PHP_ME(Database, on_event, arginfo_FireBird_Database_on_event, ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
 
@@ -465,7 +518,7 @@ int database_build_dpb(zend_class_entry *ce, zval *args_o, const firebird_xpb_zm
 
     // Needed? Not needed?
     // IXpbBuilder_dispose(xpb);
-	// IStatus_dispose(st);
+    // IStatus_dispose(st);
 
     return SUCCESS;
 }

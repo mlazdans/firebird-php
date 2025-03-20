@@ -131,6 +131,9 @@ class Database implements IError
 
     /** @return Db_Info|false */
     function get_info() {}
+
+    /** @return bool */
+    function on_event(string $name, callable $f) {}
 }
 
 class Connection implements IError
@@ -266,6 +269,15 @@ class Blob implements IError
     function put(string $data) {}
 }
 
+class Event implements IError
+{
+    use FB_Error;
+    private function __construct() {}
+
+    /** @return bool */
+    static function consume() {}
+}
+
 namespace FireBird\Transaction;
 const WRITE          = 1;
 const READ           = 2;
@@ -278,9 +290,6 @@ const WAIT           = 128;
 const NOWAIT         = 256;
 const LOCK_TIMEOUT   = 512;
 const IGNORE_LIMBO   = 1024;
-
-// class Event {
-// }
 
 // class Service {
 //     function add_user() {}

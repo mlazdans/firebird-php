@@ -180,18 +180,31 @@ typedef struct firebird_xpb_zmap {
 };                            \
 _Static_assert(ARRAY_SIZE(t) == ARRAY_SIZE(n) && ARRAY_SIZE(n) == ARRAY_SIZE(z), "Array sizes do not match");
 
-// typedef struct event {
-//     firebird_connection *link;
-//     zend_resource* link_res;
-//     ISC_LONG event_id;
-//     unsigned short event_count;
-//     char **events;
-//     unsigned char *event_buffer, *result_buffer;
-//     zval callback;
-//     void *thread_ctx;
-//     struct event *event_next;
-//     enum event_state { NEW, ACTIVE, DEAD } state;
-// } firebird_event;
+typedef struct firebird_event {
+    ISC_LONG event_id;
+    isc_db_handle *db_handle;
+    ISC_UCHAR *event_buffer, *result_buffer;
+    ISC_USHORT buff_len;
+    ISC_LONG posted_count;
+
+    const char *name;
+    // zend_fiber *fiber;
+    zend_fcall_info fci;
+    zend_fcall_info_cache fcc;
+
+    zval retval;
+    enum firebird_event_state { NEW, ACTIVE, DEAD } state;
+
+    zval instance;
+    struct firebird_event *next;
+
+    zend_object std;
+} firebird_event;
+
+typedef struct firebird_events {
+    firebird_event *events;
+    size_t count;
+} firebird_events;
 
 enum php_firebird_option {
     /* fetch flags */
@@ -291,11 +304,19 @@ void _php_firebird_module_fatal(char *, ...)
 #define Z_BLOB_ID_O(zobj) \
     ((firebird_blob_id*)((char*)(zobj) - XtOffsetOf(firebird_blob_id, std)))
 
+#define Z_FIBER_O(zobj) \
+    ((zend_fiber*)((char*)(zobj) - XtOffsetOf(zend_fiber, std)))
+
+#define Z_EVENT_O(zobj) \
+    ((firebird_event*)((char*)(zobj) - XtOffsetOf(firebird_event, std)))
+
 #define Z_TRANSACTION_P(zv) Z_TRANSACTION_O(Z_OBJ_P(zv))
 #define Z_STMT_P(zv) Z_STMT_O(Z_OBJ_P(zv))
 #define Z_DB_P(zv) Z_DB_O(Z_OBJ_P(zv))
 #define Z_BLOB_P(zv) Z_BLOB_O(Z_OBJ_P(zv))
 #define Z_BLOB_ID_P(zv) Z_BLOB_ID_O(Z_OBJ_P(zv))
+#define Z_FIBER_P(zv) Z_FIBER_O(Z_OBJ_P(zv))
+#define Z_EVENT_P(zv) Z_EVENT_O(Z_OBJ_P(zv))
 
 // TODO: similar macros for reading
 #define xpb_insert(f, ...) do { \
@@ -331,6 +352,12 @@ ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Database_
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Database_get_info, 0, 0, FireBird\\Db_Info, MAY_BE_FALSE)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Database_on_event, 0, 2, _IS_BOOL, 0)
+    ZEND_ARG_TYPE_INFO(0, name, IS_STRING, 0)
+    // ZEND_ARG_OBJ_INFO(0, f, Fiber, 0)
+    ZEND_ARG_TYPE_INFO(0, f, IS_CALLABLE, 0)
 ZEND_END_ARG_INFO()
 
 // Connection argument types
@@ -400,6 +427,8 @@ ZEND_END_ARG_INFO()
 extern firebird_xpb_zmap database_create_zmap;
 extern firebird_xpb_zmap database_connect_zmap;
 extern firebird_xpb_zmap database_info_zmap;
+extern firebird_events fb_events;
+
 extern zend_class_entry *FireBird_Connect_Args_ce;
 extern zend_class_entry *FireBird_Create_Args_ce;
 extern zend_class_entry *FireBird_Database_ce;
@@ -413,6 +442,7 @@ extern zend_class_entry *FireBird_Blob_Info_ce;
 extern zend_class_entry *FireBird_Blob_Id_ce;
 extern zend_class_entry *FireBird_Var_Info_ce;
 extern zend_class_entry *FireBird_Db_Info_ce;
+extern zend_class_entry *FireBird_Event_ce;
 
 extern void register_FireBird_Database_ce();
 extern void register_FireBird_Connection_ce();
@@ -427,6 +457,7 @@ extern void register_FireBird_Blob_Info_ce();
 extern void register_FireBird_Blob_Id_ce();
 extern void register_FireBird_Var_Info_ce();
 extern void register_FireBird_Db_Info_ce();
+extern void register_FireBird_Event_ce();
 
 #define DECLARE_FERR_PROPS(ce)                                  \
     DECLARE_PROP_STRING(ce, error_msg, ZEND_ACC_PROTECTED_SET); \
@@ -482,6 +513,7 @@ int database_get_info(ISC_STATUS_ARRAY status, isc_db_handle *db_handle, firebir
     size_t info_req_size, char *info_req,
     size_t info_resp_size, char *info_resp,
     size_t max_limbo_count);
+void event_ast_routine(void *_ev, ISC_USHORT length, const ISC_UCHAR *result_buffer);
 
 #define status_fbp_error(status) status_fbp_error_ex(status, __FILE__, __LINE__)
 #define update_err_props(status, ce, obj) update_err_props_ex(status, ce, obj, __FILE__, __LINE__)
