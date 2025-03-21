@@ -112,14 +112,16 @@ typedef struct firebird_db_info {
 typedef struct firebird_db {
     isc_db_handle db_handle;
     firebird_db_info info;
+    zval args;
+
     zend_object std;
 } firebird_db;
 
 typedef struct firebird_trans {
     isc_tr_handle tr_handle;
     isc_db_handle *db_handle;
-    zend_long trans_args;
-    zend_long trans_timeout;
+    ISC_UINT64 trans_args;
+    ISC_UINT64 lock_timeout;
     ISC_UINT64 tr_id;
     unsigned short is_prepared_2pc;
     zend_object std;
@@ -343,11 +345,11 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_none_return_bool, 0, 0, _IS_BOOL
 ZEND_END_ARG_INFO()
 
 // Database argument types
-ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Database_connect, 0, 1, FireBird\\Connection, MAY_BE_FALSE)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Database_connect, 0, 1, _IS_BOOL, 0)
     ZEND_ARG_OBJ_INFO(0, args, FireBird\\Connect_Args, 0)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Database_create, 0, 1, FireBird\\Connection, MAY_BE_FALSE)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Database_create, 0, 1, _IS_BOOL, 0)
     ZEND_ARG_OBJ_INFO(0, args, FireBird\\Create_Args, 0)
 ZEND_END_ARG_INFO()
 
@@ -360,17 +362,16 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Database_on_event, 0, 2
     ZEND_ARG_TYPE_INFO(0, f, IS_CALLABLE, 0)
 ZEND_END_ARG_INFO()
 
-// Connection argument types
-ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_INFO_EX(arginfo_FireBird_Connection_new_transaction, 0, 0, FireBird\\Transaction, 0)
+ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_INFO_EX(arginfo_FireBird_Database_new_transaction, 0, 0, FireBird\\Transaction, 0)
     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, trans_args, IS_LONG, 0, 0)
     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, lock_timeout, IS_LONG, 0, 0)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Connection_reconnect_transaction, 0, 1, FireBird\\Transaction, MAY_BE_FALSE)
+ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Database_reconnect_transaction, 0, 1, FireBird\\Transaction, MAY_BE_FALSE)
     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, id, IS_LONG, 0, 0)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_FireBird_Connection_get_limbo_transactions, 0, 1, MAY_BE_ARRAY|MAY_BE_FALSE)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_FireBird_Database_get_limbo_transactions, 0, 1, MAY_BE_ARRAY|MAY_BE_FALSE)
     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, max_count, IS_LONG, 0, 0)
 ZEND_END_ARG_INFO()
 
@@ -432,7 +433,6 @@ extern firebird_events fb_events;
 extern zend_class_entry *FireBird_Connect_Args_ce;
 extern zend_class_entry *FireBird_Create_Args_ce;
 extern zend_class_entry *FireBird_Database_ce;
-extern zend_class_entry *FireBird_Connection_ce;
 extern zend_class_entry *FireBird_Transaction_ce;
 extern zend_class_entry *FireBird_Statement_ce;
 extern zend_class_entry *FireBird_IError_ce;
@@ -445,7 +445,6 @@ extern zend_class_entry *FireBird_Db_Info_ce;
 extern zend_class_entry *FireBird_Event_ce;
 
 extern void register_FireBird_Database_ce();
-extern void register_FireBird_Connection_ce();
 extern void register_FireBird_Transaction_ce();
 extern void register_FireBird_Statement_ce();
 extern void register_FireBird_IError_ce();
@@ -486,15 +485,16 @@ extern void register_FireBird_Event_ce();
 #endif
 
 // TODO: tidy namspacing
+void transaction_ctor(firebird_trans *tr, firebird_db *db, ISC_UINT64 trans_args, ISC_UINT64 lock_timeout);
+void transaction__construct(zval *tr, zval *db, ISC_UINT64 trans_args, ISC_UINT64 lock_timeout);
+
 void status_fbp_error_ex(const ISC_STATUS *status, const char *file_name, size_t line_num);
 void dump_buffer(const unsigned char *buffer, int len);
 ISC_INT64 update_err_props_ex(ISC_STATUS_ARRAY status, zend_class_entry *ce, zval *obj, const char *file_name, size_t line_num);
-void transaction_ctor(zval *tr_o, zval *connection, zend_long trans_args, zend_long lock_timeout);
 int transaction_start(ISC_STATUS_ARRAY status, zval *tr_o);
 int transaction_get_info(ISC_STATUS_ARRAY status, firebird_trans *tr);
 int status_err_msg(const ISC_STATUS *status, char *msg, unsigned short msg_size);
 int database_build_dpb(zend_class_entry *ce, zval *args_o, const firebird_xpb_zmap *xpb_map, const char **dpb_buf, short *num_dpb_written);
-void connection_ctor(zval *conn_o, zval *database);
 void statement_ctor(zval *stmt_o, zval *transaction);
 int statement_prepare(ISC_STATUS_ARRAY status, zval *stmt_o, const ISC_SCHAR *sql);
 int statement_execute(zval *stmt_o, zval *bind_args, uint32_t num_bind_args, zend_class_entry *ce, zval *ce_o);

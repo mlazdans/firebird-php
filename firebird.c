@@ -285,7 +285,6 @@ PHP_MINIT_FUNCTION(firebird)
     register_FireBird_IError_ce();
     register_FireBird_Error_ce();
     register_FireBird_Database_ce();
-    register_FireBird_Connection_ce();
     register_FireBird_Transaction_ce();
     register_FireBird_Statement_ce();
     register_FireBird_Blob_ce();

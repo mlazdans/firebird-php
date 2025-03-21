@@ -120,10 +120,12 @@ class Database implements IError
 {
     use FB_Error;
 
-    /** @return Connection|false */
+    protected(set) Connect_Args|Create_Args $args;
+
+    /** @return bool */
     function connect(Connect_Args $args) {}
 
-    /** @return Connection|false */
+    /** @return bool */
     function create(Create_Args $args) {}
 
     /** @return bool */
@@ -134,16 +136,6 @@ class Database implements IError
 
     /** @return bool */
     function on_event(string $name, callable $f) {}
-}
-
-class Connection implements IError
-{
-    use FB_Error;
-
-    protected(set) Database $database;
-    protected(set) Connect_Args|Create_Args $args;
-
-    private function __construct() {}
 
     /**
      * @param ?int $lock_timeout - sets lock timeout in seconds when WAIT | LOCK_TIMEOUT $trans_args are set. Valid range 1-32767
@@ -166,7 +158,7 @@ class Transaction implements IError
 {
     use FB_Error;
 
-    protected(set) Connection $connection;
+    protected(set) Database $database;
     protected(set) int $id;
 
     private function __construct() {}

@@ -16,23 +16,22 @@ static void _php_firebird_populate_tpb(zend_long trans_argl, zend_long trans_tim
 #define COMMIT      1
 #define RETAIN      2
 
-// TODO: separate Zend stuff
-void transaction_ctor(zval *tr_o, zval *connection, zend_long trans_args, zend_long lock_timeout)
+void transaction_ctor(firebird_trans *tr, firebird_db *db, ISC_UINT64 trans_args, ISC_UINT64 lock_timeout)
 {
-    zend_update_property(FireBird_Transaction_ce, O_SET(tr_o, connection));
-    zend_update_property_long(FireBird_Transaction_ce, O_SET(tr_o, trans_args));
-    zend_update_property_long(FireBird_Transaction_ce, O_SET(tr_o, lock_timeout));
-
-    zval *database, rv;
-    database = zend_read_property(FireBird_Connect_Args_ce, O_GET(connection, database), 0, &rv);
-    firebird_db *db = Z_DB_P(database);
-
-    firebird_trans *tr = Z_TRANSACTION_P(tr_o);
-
     tr->tr_handle = 0;
     tr->tr_id = 0;
     tr->is_prepared_2pc = 0;
     tr->db_handle = &db->db_handle;
+    tr->trans_args = trans_args;
+    tr->lock_timeout = lock_timeout;
+}
+
+void transaction__construct(zval *tr, zval *database, ISC_UINT64 trans_args, ISC_UINT64 lock_timeout)
+{
+    zend_update_property(FireBird_Transaction_ce, O_SET(tr, database));
+    zend_update_property_long(FireBird_Transaction_ce, O_SET(tr, trans_args));
+    zend_update_property_long(FireBird_Transaction_ce, O_SET(tr, lock_timeout));
+    transaction_ctor(Z_TRANSACTION_P(tr), Z_DB_P(database), trans_args, lock_timeout);
 }
 
 PHP_METHOD(Transaction, __construct) {
@@ -275,10 +274,10 @@ void register_FireBird_Transaction_ce()
     INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "Transaction", FireBird_Transaction_methods);
     FireBird_Transaction_ce = zend_register_internal_class(&tmp_ce);
 
-    DECLARE_PROP_OBJ(FireBird_Transaction_ce, connection, FireBird\\Connection, ZEND_ACC_PROTECTED_SET);
+    DECLARE_PROP_OBJ(FireBird_Transaction_ce, database, FireBird\\Database, ZEND_ACC_PROTECTED_SET);
+    DECLARE_PROP_LONG(FireBird_Transaction_ce, id, ZEND_ACC_PROTECTED_SET);
     DECLARE_PROP_LONG(FireBird_Transaction_ce, trans_args, ZEND_ACC_PROTECTED_SET);
     DECLARE_PROP_LONG(FireBird_Transaction_ce, lock_timeout, ZEND_ACC_PROTECTED_SET);
-    DECLARE_PROP_LONG(FireBird_Transaction_ce, id, ZEND_ACC_PROTECTED_SET);
     DECLARE_ERR_PROPS(FireBird_Transaction_ce);
 
     zend_class_implements(FireBird_Transaction_ce, 1, FireBird_IError_ce);

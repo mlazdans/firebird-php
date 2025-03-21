@@ -189,7 +189,7 @@ function args_apply_defaults(\FireBird\Create_Args|\FireBird\Connect_Args  $args
     }
 }
 
-function init_tmp_db(string $charset = "", bool $drop = true): \FireBird\Connection
+function init_tmp_db(string $charset = "", bool $drop = true): \FireBird\Database
 {
     $database = gen_random_db_file_name_or_die();
 
@@ -202,13 +202,13 @@ function init_tmp_db(string $charset = "", bool $drop = true): \FireBird\Connect
     if($charset)$args->set_db_charset = $charset;
 
     $db = new \FireBird\Database;
-    if($conn = $db->create($args)) {
+    if($db->create($args)) {
         register_shutdown_function(function() use ($db, $drop) {
             if($drop && !$db->drop()) {
                 print_error_and_die("drop", $db);
             }
         });
-        return $conn;
+        return $db;
     }
 
     print_error_and_die("create", $db);

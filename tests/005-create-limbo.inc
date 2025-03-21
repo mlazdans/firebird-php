@@ -12,11 +12,11 @@ require_once('functions.inc');
         // die("skip File $database_share_path already exists. Manual cleanup recommended.");
     }
 
-    $conn = init_tmp_db(drop: false);
+    $db = init_tmp_db(drop: false);
 
-    $tr_id = (function() use ($conn): int {
+    $tr_id = (function() use ($db): int {
         // Create table
-        $t = $conn->new_transaction()                              or print_error_and_die("new_transaction", $conn);
+        $t = $db->new_transaction()                              or print_error_and_die("new_transaction", $db);
         $t->start()                                                or print_error_and_die("transaction start", $t);
         $t->query(load_file_or_die(Config::$pwd."/001-table.sql")) or print_error_and_die("create table", $t);
         $t->commit_ret()                                           or print_error_and_die("commit_ret", $t);
@@ -27,7 +27,7 @@ require_once('functions.inc');
         $t->commit()                                                         or print_error_and_die("commit", $t);
 
         // Insert more data and put transaction in limbo
-        $t = $conn->new_transaction()                                                          or print_error_and_die("new_transaction2", $conn);
+        $t = $db->new_transaction()                                                          or print_error_and_die("new_transaction2", $db);
         $t->start()                                                                            or print_error_and_die("transaction start", $t);
         $t->query("INSERT INTO TEST_001 (BLOB_1) VALUES (?)", "Hello from transaction $t->id") or print_error_and_die("query", $t);
         $t->prepare_2pc()                                                                      or print_error_and_die("prepare_2pc", $t);
@@ -49,5 +49,5 @@ require_once('functions.inc');
         return $t->id;
     })();
 
-    file_put_contents($share_path, $conn->args->database."\n$tr_id");
+    file_put_contents($share_path, $db->args->database."\n$tr_id");
 })();
