@@ -45,10 +45,10 @@
 |✅    | ibase_rollback           |                                       |
 |✅    | ibase_rollback_ret       |                                       |
 |❌    | ibase_server_info        |                                       |
-|❌    | ibase_service_attach     |                                       |
-|❌    | ibase_service_detach     |                                       |
+|✅    | ibase_service_attach     |                                       |
+|✅    | ibase_service_detach     |                                       |
 |⏳    | ibase_set_event_handler  | Initial naive implementation          |
-|⏳    | ibase_trans              | Implement multi database transactions |
+|⏳    | ibase_trans              | Yet to implement multi database transactions |
 |⏳    | ibase_wait_event         | Initial naive implementation          |
 
 # TODO

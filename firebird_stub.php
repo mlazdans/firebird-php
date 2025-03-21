@@ -79,7 +79,7 @@ interface IError
 }
 
 // There is no internal trait. Used for stub only
-trait FB_Error
+trait Fb_Error
 {
     protected(set) string $error_msg;
     protected(set) int $error_code;
@@ -116,9 +116,16 @@ class Create_Args
     var bool $overwrite;
 }
 
+class Service_Connect_Args
+{
+    var string $service_name;
+    var string $user_name;
+    var string $password;
+}
+
 class Database implements IError
 {
-    use FB_Error;
+    use Fb_Error;
 
     protected(set) Connect_Args|Create_Args $args;
 
@@ -156,7 +163,7 @@ class Database implements IError
 // TODO: auto commit/rollback flag?
 class Transaction implements IError
 {
-    use FB_Error;
+    use Fb_Error;
 
     protected(set) Database $database;
     protected(set) int $id;
@@ -196,7 +203,7 @@ class Transaction implements IError
 
 class Statement implements IError
 {
-    use FB_Error;
+    use Fb_Error;
 
     protected(set) Transaction $transaction;
     protected(set) string $name;
@@ -239,7 +246,7 @@ class Statement implements IError
 
 class Blob implements IError
 {
-    use FB_Error;
+    use Fb_Error;
 
     protected(set) Transaction $transaction;
 
@@ -263,11 +270,30 @@ class Blob implements IError
 
 class Event implements IError
 {
-    use FB_Error;
+    use Fb_Error;
     private function __construct() {}
 
     /** @return bool */
     static function consume() {}
+}
+
+class Service implements IError
+{
+    use Fb_Error;
+
+    protected(set) Service_Connect_Args $args;
+
+    /** @return bool */
+    function connect(Service_Connect_Args $args) {}
+
+    /** @return bool */
+    function disconnect() {}
+
+    // function add_user() {}
+    // function db_info() {}
+    // function backup() {}
+    // function delete_user() {}
+    // function server_info() {}
 }
 
 namespace FireBird\Transaction;
@@ -282,11 +308,3 @@ const WAIT           = 128;
 const NOWAIT         = 256;
 const LOCK_TIMEOUT   = 512;
 const IGNORE_LIMBO   = 1024;
-
-// class Service {
-//     function add_user() {}
-//     function db_info() {}
-//     function backup() {}
-//     function delete_user() {}
-//     function server_info() {}
-// }

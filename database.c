@@ -17,7 +17,7 @@ int database_connect(ISC_STATUS_ARRAY status, firebird_db *db)
     database = zend_read_property(FireBird_Connect_Args_ce, O_GET(&db->args, database), 0, &rv);
 
     if ((Z_TYPE_P(database) != IS_STRING) || !Z_STRLEN_P(database)) {
-        zend_throw_exception_ex(zend_ce_value_error, 0, "Database parameter not set");
+        zend_throw_exception_ex(zend_ce_value_error, 0, "database argument is not set");
         return FAILURE;
     }
 

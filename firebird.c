@@ -27,6 +27,7 @@
 #include "config.h"
 #endif
 
+#include <firebird/fb_c_api.h>
 #include "php.h"
 
 #ifndef _GNU_SOURCE
@@ -79,6 +80,18 @@ firebird_xpb_zmap database_connect_zmap = XPB_ZMAP_INIT(
     }),
     ((uint32_t []) {
         MAY_BE_STRING, MAY_BE_STRING, MAY_BE_STRING, MAY_BE_STRING, MAY_BE_LONG
+    })
+);
+
+firebird_xpb_zmap service_connect_zmap = XPB_ZMAP_INIT(
+    ((const char []){
+        isc_spb_user_name, isc_spb_password
+    }),
+    ((const char *[]){
+        "user_name", "password"
+    }),
+    ((uint32_t []) {
+        MAY_BE_STRING, MAY_BE_STRING
     })
 );
 
@@ -293,6 +306,8 @@ PHP_MINIT_FUNCTION(firebird)
     register_FireBird_Var_Info_ce();
     register_FireBird_Db_Info_ce();
     register_FireBird_Event_ce();
+    register_FireBird_Service_ce();
+    register_FireBird_Service_Connect_Args_ce();
 
     return SUCCESS;
 }
@@ -532,6 +547,66 @@ void declare_props_zmap(zend_class_entry *ce, const firebird_xpb_zmap *xpb_zmap)
             (zend_type) ZEND_TYPE_INIT_MASK(xpb_zmap->ztypes[i]));
         zend_string_release(prop_name);
     }
+}
+
+int xpb_insert_zmap(zend_class_entry *ce, zval *args, const firebird_xpb_zmap *xpb_zmap, struct IXpbBuilder* xpb, struct IStatus* st)
+{
+    zend_string *prop_name = NULL;
+    zend_property_info *prop_info = NULL;
+    zval rv, *val, *checkval;
+    int i;
+
+    for (int i = 0; i < xpb_zmap->count; i++) {
+        prop_name = zend_string_init(xpb_zmap->names[i], strlen(xpb_zmap->names[i]), 1);
+
+#ifdef PHP_DEBUG
+        if (!zend_hash_exists(&ce->properties_info, prop_name)) {
+            _php_firebird_module_fatal("BUG! Property %s does not exist for %s::%s. Verify xpb_zmap",
+                xpb_zmap->names[i], ZSTR_VAL(ce->name), xpb_zmap->names[i]);
+            zend_string_release(prop_name);
+            continue;
+        }
+#endif
+
+        prop_info = zend_get_property_info(ce, prop_name, 0);
+        checkval = OBJ_PROP(Z_OBJ_P(args), prop_info->offset);
+        if (Z_ISUNDEF_P(checkval)) {
+            FBDEBUG("property: %s is uninitialized", xpb_zmap->names[i]);
+            zend_string_release(prop_name);
+            continue;
+        }
+
+        val = zend_read_property_ex(ce, Z_OBJ_P(args), prop_name, 0, &rv);
+        zend_string_release(prop_name);
+
+        switch (Z_TYPE_P(val)) {
+            case IS_STRING:
+                FBDEBUG("property: %s is string: `%s`", xpb_zmap->names[i], Z_STRVAL_P(val));
+                xpb_insert_string(xpb_zmap->tags[i], Z_STRVAL_P(val));
+                break;
+            case IS_LONG:
+                FBDEBUG("property: %s is long: `%u`", xpb_zmap->names[i], Z_LVAL_P(val));
+                xpb_insert_int(xpb_zmap->tags[i], (int)Z_LVAL_P(val));
+                break;
+            case IS_TRUE:
+                FBDEBUG("property: %s is true", xpb_zmap->names[i]);
+                xpb_insert_true(xpb_zmap->tags[i]);
+                break;
+            case IS_FALSE:
+                FBDEBUG("property: %s is false", xpb_zmap->names[i]);
+                xpb_insert_false(xpb_zmap->tags[i]);
+                break;
+            case IS_NULL:
+                FBDEBUG("property: %s is null", xpb_zmap->names[i]);
+                break;
+            default:
+                _php_firebird_module_fatal("BUG! Unhandled: type %s for property %s::%s",
+                    zend_get_type_by_const(Z_TYPE_P(val)), ZSTR_VAL(ce->name), xpb_zmap->names[i]);
+                break;
+        }
+    }
+
+    return SUCCESS;
 }
 
 #endif /* HAVE_FIREBIRD */

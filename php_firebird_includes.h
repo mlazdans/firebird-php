@@ -26,6 +26,7 @@
 #ifndef PHP_FIREBIRD_INCLUDES_H
 #define PHP_FIREBIRD_INCLUDES_H
 
+#include <firebird/fb_c_api.h>
 #include <ibase.h>
 
 #define PHP_FIREBIRD_VERSION "0.0.1-alpha"
@@ -116,6 +117,17 @@ typedef struct firebird_db {
 
     zend_object std;
 } firebird_db;
+
+typedef struct firebird_service {
+    isc_svc_handle svc_handle;
+    zval args;
+    // char *hostname;
+    // char *username;
+    // zend_resource *res;
+
+    // zval instance;
+    zend_object std;
+} firebird_service;
 
 typedef struct firebird_trans {
     isc_tr_handle tr_handle;
@@ -312,6 +324,9 @@ void _php_firebird_module_fatal(char *, ...)
 #define Z_EVENT_O(zobj) \
     ((firebird_event*)((char*)(zobj) - XtOffsetOf(firebird_event, std)))
 
+#define Z_SERVICE_O(zobj) \
+    ((firebird_service*)((char*)(zobj) - XtOffsetOf(firebird_service, std)))
+
 #define Z_TRANSACTION_P(zv) Z_TRANSACTION_O(Z_OBJ_P(zv))
 #define Z_STMT_P(zv) Z_STMT_O(Z_OBJ_P(zv))
 #define Z_DB_P(zv) Z_DB_O(Z_OBJ_P(zv))
@@ -319,6 +334,7 @@ void _php_firebird_module_fatal(char *, ...)
 #define Z_BLOB_ID_P(zv) Z_BLOB_ID_O(Z_OBJ_P(zv))
 #define Z_FIBER_P(zv) Z_FIBER_O(Z_OBJ_P(zv))
 #define Z_EVENT_P(zv) Z_EVENT_O(Z_OBJ_P(zv))
+#define Z_SERVICE_P(zv) Z_SERVICE_O(Z_OBJ_P(zv))
 
 // TODO: similar macros for reading
 #define xpb_insert(f, ...) do { \
@@ -375,6 +391,11 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_FireBird_Database_get_limbo_tran
     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, max_count, IS_LONG, 0, 0)
 ZEND_END_ARG_INFO()
 
+// Service argument types
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Service_connect, 0, 1, _IS_BOOL, 0)
+    ZEND_ARG_OBJ_INFO(0, args, FireBird\\Service_Connect_Args, 0)
+ZEND_END_ARG_INFO()
+
 // Transaction argument types
 ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Transaction_prepare, 0, 0, FireBird\\Statement, MAY_BE_FALSE)
     ZEND_ARG_TYPE_INFO(0, sql, IS_STRING, 0)
@@ -428,6 +449,7 @@ ZEND_END_ARG_INFO()
 extern firebird_xpb_zmap database_create_zmap;
 extern firebird_xpb_zmap database_connect_zmap;
 extern firebird_xpb_zmap database_info_zmap;
+extern firebird_xpb_zmap service_connect_zmap;
 extern firebird_events fb_events;
 
 extern zend_class_entry *FireBird_Connect_Args_ce;
@@ -443,6 +465,8 @@ extern zend_class_entry *FireBird_Blob_Id_ce;
 extern zend_class_entry *FireBird_Var_Info_ce;
 extern zend_class_entry *FireBird_Db_Info_ce;
 extern zend_class_entry *FireBird_Event_ce;
+extern zend_class_entry *FireBird_Service_ce;
+extern zend_class_entry *FireBird_Service_Connect_Args_ce;
 
 extern void register_FireBird_Database_ce();
 extern void register_FireBird_Transaction_ce();
@@ -457,6 +481,8 @@ extern void register_FireBird_Blob_Id_ce();
 extern void register_FireBird_Var_Info_ce();
 extern void register_FireBird_Db_Info_ce();
 extern void register_FireBird_Event_ce();
+extern void register_FireBird_Service_ce();
+extern void register_FireBird_Service_Connect_Args_ce();
 
 #define DECLARE_FERR_PROPS(ce)                                  \
     DECLARE_PROP_STRING(ce, error_msg, ZEND_ACC_PROTECTED_SET); \
@@ -500,6 +526,7 @@ int statement_prepare(ISC_STATUS_ARRAY status, zval *stmt_o, const ISC_SCHAR *sq
 int statement_execute(zval *stmt_o, zval *bind_args, uint32_t num_bind_args, zend_class_entry *ce, zval *ce_o);
 int statement_info(ISC_STATUS_ARRAY status, firebird_stmt *stmt);
 void declare_props_zmap(zend_class_entry *ce, const firebird_xpb_zmap *xpb_zmap);
+int xpb_insert_zmap(zend_class_entry *ce, zval *args, const firebird_xpb_zmap *xpb_zmap, struct IXpbBuilder* xpb, struct IStatus* st);
 void blob_ctor(firebird_blob *blob, isc_db_handle *db_handle, isc_tr_handle *tr_handle);
 void blob___construct(zval *blob_o, zval *transaction);
 int blob_get_info(ISC_STATUS_ARRAY status, firebird_blob *blob);
