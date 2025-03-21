@@ -574,7 +574,7 @@ void register_FireBird_Database_ce()
     FireBird_Database_object_handlers.free_obj = FireBird_Database_free_obj;
 }
 
-int database_build_dpb(zend_class_entry *ce, zval *args_o, const firebird_xpb_zmap *xpb_zmap, const char **dpb_buf, short *num_dpb_written)
+int database_build_dpb(zend_class_entry *ce, zval *args, const firebird_xpb_zmap *xpb_zmap, const char **dpb_buf, short *num_dpb_written)
 {
     struct IMaster* master = fb_get_master_interface();
     struct IStatus* st = IMaster_getStatus(master);
@@ -588,54 +588,9 @@ int database_build_dpb(zend_class_entry *ce, zval *args_o, const firebird_xpb_zm
 
     xpb_insert_tag(isc_dpb_version2);
     xpb_insert_int(isc_dpb_sql_dialect, SQL_DIALECT_CURRENT);
-    for (int i = 0; i < xpb_zmap->count; i++) {
-        prop_name = zend_string_init(xpb_zmap->names[i], strlen(xpb_zmap->names[i]), 1);
 
-#ifdef PHP_DEBUG
-        if (!zend_hash_exists(&ce->properties_info, prop_name)) {
-            _php_firebird_module_fatal("BUG! Property %s does not exist for %s::%s. Verify xpb_zmap",
-                xpb_zmap->names[i], ZSTR_VAL(ce->name), xpb_zmap->names[i]);
-            zend_string_release(prop_name);
-            continue;
-        }
-#endif
-
-        prop_info = zend_get_property_info(ce, prop_name, 0);
-        checkval = OBJ_PROP(Z_OBJ_P(args_o), prop_info->offset);
-        if (Z_ISUNDEF_P(checkval)) {
-            FBDEBUG("property: %s is uninitialized", xpb_zmap->names[i]);
-            zend_string_release(prop_name);
-            continue;
-        }
-
-        val = zend_read_property_ex(ce, Z_OBJ_P(args_o), prop_name, 0, &rv);
-        zend_string_release(prop_name);
-
-        switch (Z_TYPE_P(val)) {
-            case IS_STRING:
-                FBDEBUG("property: %s is string: `%s`", xpb_zmap->names[i], Z_STRVAL_P(val));
-                xpb_insert_string(xpb_zmap->tags[i], Z_STRVAL_P(val));
-                break;
-            case IS_LONG:
-                FBDEBUG("property: %s is long: `%u`", xpb_zmap->names[i], Z_LVAL_P(val));
-                xpb_insert_int(xpb_zmap->tags[i], (int)Z_LVAL_P(val));
-                break;
-            case IS_TRUE:
-                FBDEBUG("property: %s is true", xpb_zmap->names[i]);
-                xpb_insert_true(xpb_zmap->tags[i]);
-                break;
-            case IS_FALSE:
-                FBDEBUG("property: %s is false", xpb_zmap->names[i]);
-                xpb_insert_false(xpb_zmap->tags[i]);
-                break;
-            case IS_NULL:
-                FBDEBUG("property: %s is null", xpb_zmap->names[i]);
-                break;
-            default:
-                _php_firebird_module_fatal("BUG! Unhandled: type %s for property %s::%s",
-                    zend_get_type_by_const(Z_TYPE_P(val)), ZSTR_VAL(ce->name), xpb_zmap->names[i]);
-                break;
-        }
+    if (FAILURE == xpb_insert_zmap(ce, args, xpb_zmap, xpb, st)) {
+        return FAILURE;
     }
 
 #if FB_API_VER >= 40
