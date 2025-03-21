@@ -118,6 +118,21 @@ firebird_xpb_zmap database_info_zmap = XPB_ZMAP_INIT(
     })
 );
 
+firebird_xpb_zmap server_info_zmap = XPB_ZMAP_INIT(
+    ((const char []){
+        isc_info_svc_server_version, isc_info_svc_implementation, isc_info_svc_get_env, isc_info_svc_get_env_lock, isc_info_svc_get_env_msg,
+        isc_info_svc_user_dbpath
+    }),
+    ((const char *[]){
+        "server_version", "implementation", "get_env", "get_env_lock", "get_env_msg",
+        "user_dbpath"
+    }),
+    ((uint32_t []) {
+        MAY_BE_STRING, MAY_BE_STRING, MAY_BE_STRING, MAY_BE_STRING, MAY_BE_STRING,
+        MAY_BE_STRING
+    })
+);
+
 static const zend_function_entry firebird_functions[] = {
     PHP_FE_END
 };
@@ -308,6 +323,7 @@ PHP_MINIT_FUNCTION(firebird)
     register_FireBird_Event_ce();
     register_FireBird_Service_ce();
     register_FireBird_Service_Connect_Args_ce();
+    register_FireBird_Server_Info_ce();
 
     return SUCCESS;
 }

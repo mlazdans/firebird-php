@@ -5,7 +5,7 @@
 #include "php_firebird_includes.h"
 #include "zend_exceptions.h"
 
-zend_class_entry *FireBird_Service_ce;
+zend_class_entry *FireBird_Service_ce, *FireBird_Server_Info_ce;
 static zend_object_handlers FireBird_Service_object_handlers;
 
 int service_build_dpb(zend_class_entry *ce, zval *args, const firebird_xpb_zmap *xpb_zmap, const char **dpb_buf, short *num_dpb_written)
@@ -13,7 +13,7 @@ int service_build_dpb(zend_class_entry *ce, zval *args, const firebird_xpb_zmap 
     struct IMaster* master = fb_get_master_interface();
     struct IStatus* st = IMaster_getStatus(master);
     struct IUtil* utl = IMaster_getUtilInterface(master);
-    struct IXpbBuilder* xpb = IUtil_getXpbBuilder(utl, st, IXpbBuilder_DPB, NULL, 0);
+    struct IXpbBuilder* xpb = IUtil_getXpbBuilder(utl, st, IXpbBuilder_SPB_ATTACH, NULL, 0); // TODO: SPB?
 
     xpb_insert_tag(isc_spb_version3);
     if (FAILURE == xpb_insert_zmap(ce, args, xpb_zmap, xpb, st)) {
@@ -96,9 +96,99 @@ PHP_METHOD(Service, disconnect) {
     RETURN_FALSE;
 }
 
+int service_get_server_info(ISC_STATUS_ARRAY status, zval *service, zval *server_info,
+    size_t info_req_size, char *info_req,
+    size_t info_resp_size, char *info_resp)
+{
+    firebird_service *svc = Z_SERVICE_P(service);
+    static char spb[] = { isc_info_svc_timeout, 10, 0, 0, 0 };
+
+    if (isc_service_query(status, &svc->svc_handle, NULL, sizeof(spb), spb,
+        info_req_size, info_req,
+        info_resp_size, info_resp)) {
+            return FAILURE;
+    }
+
+    // TODO: IXpbBuilder code duplication all over the place.
+    // Maybe using firebird_xpb_zmap?
+    struct IMaster* master = fb_get_master_interface();
+    struct IStatus* st = IMaster_getStatus(master);
+    struct IUtil* utl = IMaster_getUtilInterface(master);
+    struct IXpbBuilder* dpb;
+
+    dpb = IUtil_getXpbBuilder(utl, st, IXpbBuilder_INFO_RESPONSE, info_resp, info_resp_size);
+
+    ISC_INT64 len, total_len = 0;
+
+#define READ_SVC_STRING(name) \
+    case isc_info_svc_##name: zend_update_property_stringl(FireBird_Server_Info_ce, Z_OBJ_P(server_info), #name, sizeof(#name) - 1, b, len); break
+
+    FBDEBUG("Parsing server info buffer");
+
+    dump_buffer(IXpbBuilder_getBuffer(dpb, st), 50);
+
+    for (IXpbBuilder_rewind(dpb, st); !IXpbBuilder_isEof(dpb, st); IXpbBuilder_moveNext(dpb, st)) {
+        unsigned char tag = IXpbBuilder_getTag(dpb, st); total_len++;
+        const ISC_UCHAR* b = IXpbBuilder_getBytes(dpb, st);
+        len = IXpbBuilder_getLength(dpb, st); total_len += 2;
+        total_len += len;
+
+        FBDEBUG_NOFL("  tag: %d, len: %d", tag, len);
+
+        switch(tag) {
+            READ_SVC_STRING(server_version);
+            READ_SVC_STRING(implementation);
+            READ_SVC_STRING(get_env);
+            READ_SVC_STRING(get_env_lock);
+            READ_SVC_STRING(get_env_msg);
+            READ_SVC_STRING(user_dbpath);
+
+            case isc_info_end: break;
+            case isc_info_truncated: {
+                _php_firebird_module_error("Server info buffer error: truncated");
+            } return FAILURE;
+            case isc_info_error: {
+                _php_firebird_module_error("Server info buffer error");
+            } return FAILURE;
+
+            default: {
+                _php_firebird_module_fatal("BUG! Unhandled service info tag: %d", tag);
+            } break;
+        }
+    }
+
+    return SUCCESS;
+}
+
+PHP_METHOD(Service, get_server_info)
+{
+    ZEND_PARSE_PARAMETERS_NONE();
+
+    char info_resp[1024] = { 0 };
+    ISC_STATUS_ARRAY status = { 0 };
+
+    static char info_req[] = {
+        isc_info_svc_server_version,
+        isc_info_svc_implementation,
+        isc_info_svc_get_env,
+        isc_info_svc_get_env_lock,
+        isc_info_svc_get_env_msg,
+        isc_info_svc_user_dbpath
+    };
+
+    object_init_ex(return_value, FireBird_Server_Info_ce);
+
+    if(service_get_server_info(status, ZEND_THIS, return_value, sizeof(info_req), info_req, sizeof(info_resp), info_resp)) {
+        update_err_props(status, FireBird_Service_ce, ZEND_THIS);
+        zval_ptr_dtor(return_value);
+        RETURN_FALSE;
+    }
+}
+
 const zend_function_entry FireBird_Service_methods[] = {
     PHP_ME(Service, connect, arginfo_FireBird_Service_connect, ZEND_ACC_PUBLIC)
     PHP_ME(Service, disconnect, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
+    PHP_ME(Service, get_server_info, arginfo_FireBird_Service_get_server_info, ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
 
@@ -150,4 +240,13 @@ void register_FireBird_Service_ce()
 
     FireBird_Service_object_handlers.offset = XtOffsetOf(firebird_service, std);
     FireBird_Service_object_handlers.free_obj = FireBird_Service_free_obj;
+}
+
+void register_FireBird_Server_Info_ce()
+{
+    zend_class_entry tmp_ce;
+    INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "Server_Info", NULL);
+    FireBird_Server_Info_ce = zend_register_internal_class(&tmp_ce);
+
+    declare_props_zmap(FireBird_Server_Info_ce, &server_info_zmap);
 }

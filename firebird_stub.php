@@ -6,7 +6,18 @@ const FETCH_BLOBS    = 1;
 const FETCH_ARRAYS   = 2;
 const FETCH_UNIXTIME = 4;
 
-// Store single Firebird error
+class Server_Info
+{
+    public string $server_version;
+    public string $implementation;
+    public string $get_env;
+    public string $get_env_lock;
+    public string $get_env_msg;
+    public string $user_dbpath;
+    // public string $svr_db_info;
+    // public string $get_users;
+}
+
 class Error
 {
     public string $error_msg { get; }
@@ -288,6 +299,9 @@ class Service implements IError
 
     /** @return bool */
     function disconnect() {}
+
+    /** @return Server_Info|false */
+    function get_server_info() {}
 
     // function add_user() {}
     // function db_info() {}

@@ -396,6 +396,9 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Service_connect, 0, 1, 
     ZEND_ARG_OBJ_INFO(0, args, FireBird\\Service_Connect_Args, 0)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Service_get_server_info, 0, 0, FireBird\\Server_Info, MAY_BE_FALSE)
+ZEND_END_ARG_INFO()
+
 // Transaction argument types
 ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Transaction_prepare, 0, 0, FireBird\\Statement, MAY_BE_FALSE)
     ZEND_ARG_TYPE_INFO(0, sql, IS_STRING, 0)
@@ -450,6 +453,7 @@ extern firebird_xpb_zmap database_create_zmap;
 extern firebird_xpb_zmap database_connect_zmap;
 extern firebird_xpb_zmap database_info_zmap;
 extern firebird_xpb_zmap service_connect_zmap;
+extern firebird_xpb_zmap server_info_zmap;
 extern firebird_events fb_events;
 
 extern zend_class_entry *FireBird_Connect_Args_ce;
@@ -467,6 +471,7 @@ extern zend_class_entry *FireBird_Db_Info_ce;
 extern zend_class_entry *FireBird_Event_ce;
 extern zend_class_entry *FireBird_Service_ce;
 extern zend_class_entry *FireBird_Service_Connect_Args_ce;
+extern zend_class_entry *FireBird_Server_Info_ce;
 
 extern void register_FireBird_Database_ce();
 extern void register_FireBird_Transaction_ce();
@@ -483,6 +488,7 @@ extern void register_FireBird_Db_Info_ce();
 extern void register_FireBird_Event_ce();
 extern void register_FireBird_Service_ce();
 extern void register_FireBird_Service_Connect_Args_ce();
+extern void register_FireBird_Server_Info_ce();
 
 #define DECLARE_FERR_PROPS(ce)                                  \
     DECLARE_PROP_STRING(ce, error_msg, ZEND_ACC_PROTECTED_SET); \
