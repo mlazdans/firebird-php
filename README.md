@@ -4,14 +4,14 @@
 |---  |---                       | ---                                   |
 |✅    |ibase_add_user            |                                       |
 |✅    | ibase_affected_rows      |                                       |
-|❌    | ibase_backup             |                                       |
+|⏳    | ibase_backup             | Need to implement options class       |
 |✅    | ibase_blob_add           |                                       |
 |✅    | ibase_blob_cancel        |                                       |
 |✅    | ibase_blob_close         |                                       |
 |✅    | ibase_blob_create        |                                       |
-|🚫   | ibase_blob_echo          | can be easily done in PHP space       |
+|🚫   | ibase_blob_echo          | Can be easily done in PHP space       |
 |✅    | ibase_blob_get           |                                       |
-|🚫   | ibase_blob_import        | can be easily done in PHP space       |
+|🚫   | ibase_blob_import        | Can be easily done in PHP space       |
 |✅    | ibase_blob_info          |                                       |
 |✅    | ibase_blob_open          |                                       |
 |✅    | ibase_close              |                                       |
@@ -31,17 +31,17 @@
 |✅    | ibase_free_event_handler |                                       |
 |✅    | ibase_free_query         |                                       |
 |✅    | ibase_free_result        |                                       |
-|🚫   | ibase_gen_id             | can be easily done in PHP space       |
+|🚫   | ibase_gen_id             | Can be easily done in PHP space       |
 |❌    | ibase_maintain_db        |                                       |
 |✅    | ibase_modify_user        |                                       |
 |✅    | ibase_name_result        |                                       |
 |✅    | ibase_num_fields         |                                       |
 |✅    | ibase_num_params         |                                       |
 |✅    | ibase_param_info         |                                       |
-|❌    | ibase_pconnect           | Not sure if this is a good idea. Most likely this will be used inproperly anyways, leaving around long running transactions     |
+|❓    | ibase_pconnect           | Not sure if this is a good idea. Most likely this will be used inproperly anyways, leaving around long running transactions     |
 |✅    | ibase_prepare            |                                       |
 |✅    | ibase_query              |                                       |
-|❌    | ibase_restore            |                                       |
+|⏳    | ibase_restore            | Need to implement options class       |
 |✅    | ibase_rollback           |                                       |
 |✅    | ibase_rollback_ret       |                                       |
 |✅    | ibase_server_info        |                                       |
