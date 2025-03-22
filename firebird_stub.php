@@ -14,8 +14,29 @@ class Server_Info
     public string $get_env_lock;
     public string $get_env_msg;
     public string $user_dbpath;
-    // public string $svr_db_info;
-    // public string $get_users;
+    public ?Server_Db_Info $db_info;
+
+    /** @var Server_User_Info[] */
+    public array $users;
+}
+
+class Server_Db_Info
+{
+    public int $num_att;
+    public int $num_db;
+
+    /** @var string[] */
+    public array $dbname;
+}
+
+class Server_User_Info
+{
+    public string $username;
+    public string $firstname;
+    public string $middlename;
+    public string $lastname;
+    public int $userid;
+    public int $groupid;
 }
 
 class Error

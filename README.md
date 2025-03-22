@@ -38,13 +38,13 @@
 |✅    | ibase_num_fields         |                                       |
 |✅    | ibase_num_params         |                                       |
 |✅    | ibase_param_info         |                                       |
-|❌    | ibase_pconnect           |                                       |
+|❌    | ibase_pconnect           | Not sure if this is a good idea. Most likely this will be used inproperly anyways, leaving around long running transactions     |
 |✅    | ibase_prepare            |                                       |
 |✅    | ibase_query              |                                       |
 |❌    | ibase_restore            |                                       |
 |✅    | ibase_rollback           |                                       |
 |✅    | ibase_rollback_ret       |                                       |
-|❌    | ibase_server_info        |                                       |
+|✅    | ibase_server_info        |                                       |
 |✅    | ibase_service_attach     |                                       |
 |✅    | ibase_service_detach     |                                       |
 |⏳    | ibase_set_event_handler  | Initial naive implementation          |

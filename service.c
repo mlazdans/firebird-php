@@ -5,7 +5,10 @@
 #include "php_firebird_includes.h"
 #include "zend_exceptions.h"
 
-zend_class_entry *FireBird_Service_ce, *FireBird_Server_Info_ce;
+zend_class_entry *FireBird_Service_ce;
+zend_class_entry *FireBird_Server_Info_ce;
+zend_class_entry *FireBird_Server_Db_Info_ce;
+zend_class_entry *FireBird_Server_User_Info_ce;
 static zend_object_handlers FireBird_Service_object_handlers;
 
 int service_build_dpb(zend_class_entry *ce, zval *args, const firebird_xpb_zmap *xpb_zmap, const char **dpb_buf, short *num_dpb_written)
@@ -97,53 +100,140 @@ PHP_METHOD(Service, disconnect) {
 }
 
 int service_get_server_info(ISC_STATUS_ARRAY status, zval *service, zval *server_info,
-    size_t info_req_size, char *info_req,
-    size_t info_resp_size, char *info_resp)
+    size_t req_size, char *req_buff,
+    size_t resp_size, char *resp_buff)
 {
     firebird_service *svc = Z_SERVICE_P(service);
+
     static char spb[] = { isc_info_svc_timeout, 10, 0, 0, 0 };
+    static char action[] = { isc_action_svc_display_user };
+
+    if (isc_service_start(status, &svc->svc_handle, NULL, sizeof(action), action)) {
+        return FAILURE;
+    }
 
     if (isc_service_query(status, &svc->svc_handle, NULL, sizeof(spb), spb,
-        info_req_size, info_req,
-        info_resp_size, info_resp)) {
+        req_size, req_buff, resp_size, resp_buff)) {
             return FAILURE;
     }
 
-    // TODO: IXpbBuilder code duplication all over the place.
-    // Maybe using firebird_xpb_zmap?
-    struct IMaster* master = fb_get_master_interface();
-    struct IStatus* st = IMaster_getStatus(master);
-    struct IUtil* utl = IMaster_getUtilInterface(master);
-    struct IXpbBuilder* dpb;
-
-    dpb = IUtil_getXpbBuilder(utl, st, IXpbBuilder_INFO_RESPONSE, info_resp, info_resp_size);
-
-    ISC_INT64 len, total_len = 0;
-
-#define READ_SVC_STRING(name) \
-    case isc_info_svc_##name: zend_update_property_stringl(FireBird_Server_Info_ce, Z_OBJ_P(server_info), #name, sizeof(#name) - 1, b, len); break
-
     FBDEBUG("Parsing server info buffer");
 
-    dump_buffer(IXpbBuilder_getBuffer(dpb, st), 50);
+    zval users;
+    array_init(&users);
 
-    for (IXpbBuilder_rewind(dpb, st); !IXpbBuilder_isEof(dpb, st); IXpbBuilder_moveNext(dpb, st)) {
-        unsigned char tag = IXpbBuilder_getTag(dpb, st); total_len++;
-        const ISC_UCHAR* b = IXpbBuilder_getBytes(dpb, st);
-        len = IXpbBuilder_getLength(dpb, st); total_len += 2;
-        total_len += len;
+    ISC_INT64 len, total_len = 0;
+    unsigned char tag, get_users_requested = 0;
+    char* p = resp_buff;
+    const char* const end = p + resp_size;
 
-        FBDEBUG_NOFL("  tag: %d, len: %d", tag, len);
+#define READ_SI_STRING(name)                               \
+    case isc_info_svc_##name: {                            \
+        len = isc_portable_integer(p, 2);                  \
+        p += 2;                                            \
+        zend_update_property_stringl(                      \
+            FireBird_Server_Info_ce, Z_OBJ_P(server_info), \
+            #name, sizeof(#name) - 1, p, len);             \
+        p += len;                                          \
+    } break
+
+    while (p < end && *p != isc_info_end) {
+        tag = *p++;
+        FBDEBUG_NOFL("  tag: %d", tag);
 
         switch(tag) {
-            READ_SVC_STRING(server_version);
-            READ_SVC_STRING(implementation);
-            READ_SVC_STRING(get_env);
-            READ_SVC_STRING(get_env_lock);
-            READ_SVC_STRING(get_env_msg);
-            READ_SVC_STRING(user_dbpath);
+            READ_SI_STRING(server_version);
+            READ_SI_STRING(implementation);
+            READ_SI_STRING(get_env);
+            READ_SI_STRING(get_env_lock);
+            READ_SI_STRING(get_env_msg);
+            READ_SI_STRING(user_dbpath);
 
-            case isc_info_end: break;
+            case isc_info_svc_svr_db_info: {
+                FBDEBUG("Parsing db info block");
+                zval server_db_info, dbname;
+                object_init_ex(&server_db_info, FireBird_Server_Db_Info_ce);
+                array_init(&dbname);
+                while (p < end && *p != isc_info_flag_end && *p != isc_info_end) {
+                    switch (*p++) {
+                        case isc_spb_num_att: {
+                            zend_update_property_long(FireBird_Server_Db_Info_ce, Z_OBJ(server_db_info), "num_att", sizeof("num_att") - 1, isc_portable_integer(p, 4));
+                            len = 4;
+                        } break;
+
+                        case isc_spb_num_db: {
+                            zend_update_property_long(FireBird_Server_Db_Info_ce, Z_OBJ(server_db_info), "num_db", sizeof("num_db") - 1, isc_portable_integer(p, 4));
+                            len = 4;
+                        } break;
+
+                        case isc_spb_dbname: {
+                            len = isc_portable_integer(p, 2); p += 2;
+                            add_next_index_stringl(&dbname, p, len);
+                        } break;
+
+                        default: {
+                            fbp_fatal("BUG! Unhandled isc_info_svc_svr_db_info tag: %d", (char)*(p - 1));
+                        } break;
+                    }
+                    p += len;
+                }
+                p++;
+                zend_update_property(FireBird_Server_Db_Info_ce, Z_OBJ(server_db_info), "dbname", sizeof("dbname") - 1, &dbname);
+                zend_update_property(FireBird_Server_Info_ce, Z_OBJ_P(server_info), "db_info", sizeof("db_info") - 1, &server_db_info);
+                zval_ptr_dtor(&server_db_info);
+                zval_ptr_dtor(&dbname);
+            } break;
+
+#define READ_UI_STRING(name)                                       \
+    case isc_spb_sec_##name: {                                     \
+        len = isc_portable_integer(p, 2); p += 2;                  \
+        zend_update_property_stringl(FireBird_Server_User_Info_ce, \
+            Z_OBJ(user_info), #name, sizeof(#name) - 1, p, len);   \
+    } break
+
+#define READ_UI_LONG(name)                                      \
+    case isc_spb_sec_##name: {                                  \
+        len = 4;                                                \
+        zend_update_property_long(FireBird_Server_User_Info_ce, \
+            Z_OBJ(user_info), #name, sizeof(#name) - 1,         \
+            isc_portable_integer(p, len));                      \
+    } break
+
+            // TODO: need start service
+            case isc_info_svc_get_users: {
+                get_users_requested = 1;
+                FBDEBUG("Parsing user info block: %d", isc_portable_integer(p, 2));
+                p += 2;
+
+                zval user_info;
+                object_init_ex(&user_info, FireBird_Server_User_Info_ce);
+
+                while (p < end && *p != isc_info_flag_end && *p != isc_info_end) {
+                    switch (*p++) {
+                        READ_UI_STRING(username);
+                        READ_UI_STRING(firstname);
+                        READ_UI_STRING(middlename);
+                        READ_UI_STRING(lastname);
+                        READ_UI_LONG(userid);
+                        READ_UI_LONG(groupid);
+
+                        case isc_info_truncated: {
+                            fbp_error("Server user info buffer error: truncated");
+                        } return FAILURE;
+
+                        case isc_info_error: {
+                            fbp_error("Server user info buffer error");
+                        } return FAILURE;
+
+                        default: {
+                            fbp_fatal("BUG! Unhandled isc_info_svc_get_users tag: %d", (char)*(p - 1));
+                        } break;
+                    }
+                    p += len;
+                }
+                add_next_index_zval(&users, &user_info);
+            } break;
+
             case isc_info_truncated: {
                 _php_firebird_module_error("Server info buffer error: truncated");
             } return FAILURE;
@@ -152,10 +242,15 @@ int service_get_server_info(ISC_STATUS_ARRAY status, zval *service, zval *server
             } return FAILURE;
 
             default: {
-                _php_firebird_module_fatal("BUG! Unhandled service info tag: %d", tag);
+                _php_firebird_module_fatal("BUG! Unhandled isc_info_svc_* tag: %d", tag);
             } break;
         }
     }
+
+    if (get_users_requested) {
+        zend_update_property(FireBird_Server_Info_ce, Z_OBJ_P(server_info), "users", sizeof("users") - 1, &users);
+    }
+    zval_ptr_dtor(&users);
 
     return SUCCESS;
 }
@@ -167,13 +262,16 @@ PHP_METHOD(Service, get_server_info)
     char info_resp[1024] = { 0 };
     ISC_STATUS_ARRAY status = { 0 };
 
+    // TODO: separate only SYSDBA accessible information
     static char info_req[] = {
         isc_info_svc_server_version,
         isc_info_svc_implementation,
         isc_info_svc_get_env,
         isc_info_svc_get_env_lock,
         isc_info_svc_get_env_msg,
-        isc_info_svc_user_dbpath
+        isc_info_svc_user_dbpath,
+        isc_info_svc_svr_db_info,
+        isc_info_svc_get_users,
     };
 
     object_init_ex(return_value, FireBird_Server_Info_ce);
@@ -249,4 +347,32 @@ void register_FireBird_Server_Info_ce()
     FireBird_Server_Info_ce = zend_register_internal_class(&tmp_ce);
 
     declare_props_zmap(FireBird_Server_Info_ce, &server_info_zmap);
+
+    DECLARE_PROP_OBJ(FireBird_Server_Info_ce, db_info, FireBird\\Server_Db_Info, ZEND_ACC_PUBLIC);
+    DECLARE_PROP_ARRAY(FireBird_Server_Info_ce, users, ZEND_ACC_PUBLIC);
+}
+
+void register_FireBird_Server_Db_Info_ce()
+{
+    zend_class_entry tmp_ce;
+    INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "Server_Db_Info", NULL);
+    FireBird_Server_Db_Info_ce = zend_register_internal_class(&tmp_ce);
+
+    DECLARE_PROP_LONG(FireBird_Server_Db_Info_ce, num_att, ZEND_ACC_PUBLIC);
+    DECLARE_PROP_LONG(FireBird_Server_Db_Info_ce, num_db, ZEND_ACC_PUBLIC);
+    DECLARE_PROP_ARRAY(FireBird_Server_Db_Info_ce, dbname, ZEND_ACC_PUBLIC);
+}
+
+void register_FireBird_Server_User_Info_ce()
+{
+    zend_class_entry tmp_ce;
+    INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "Server_User_Info", NULL);
+    FireBird_Server_User_Info_ce = zend_register_internal_class(&tmp_ce);
+
+    DECLARE_PROP_STRING(FireBird_Server_User_Info_ce, username, ZEND_ACC_PUBLIC);
+    DECLARE_PROP_STRING(FireBird_Server_User_Info_ce, firstname, ZEND_ACC_PUBLIC);
+    DECLARE_PROP_STRING(FireBird_Server_User_Info_ce, middlename, ZEND_ACC_PUBLIC);
+    DECLARE_PROP_STRING(FireBird_Server_User_Info_ce, lastname, ZEND_ACC_PUBLIC);
+    DECLARE_PROP_LONG(FireBird_Server_User_Info_ce, userid, ZEND_ACC_PUBLIC);
+    DECLARE_PROP_LONG(FireBird_Server_User_Info_ce, groupid, ZEND_ACC_PUBLIC);
 }

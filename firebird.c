@@ -324,6 +324,8 @@ PHP_MINIT_FUNCTION(firebird)
     register_FireBird_Service_ce();
     register_FireBird_Service_Connect_Args_ce();
     register_FireBird_Server_Info_ce();
+    register_FireBird_Server_Db_Info_ce();
+    register_FireBird_Server_User_Info_ce();
 
     return SUCCESS;
 }

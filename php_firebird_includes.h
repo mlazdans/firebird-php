@@ -472,6 +472,8 @@ extern zend_class_entry *FireBird_Event_ce;
 extern zend_class_entry *FireBird_Service_ce;
 extern zend_class_entry *FireBird_Service_Connect_Args_ce;
 extern zend_class_entry *FireBird_Server_Info_ce;
+extern zend_class_entry *FireBird_Server_Db_Info_ce;
+extern zend_class_entry *FireBird_Server_User_Info_ce;
 
 extern void register_FireBird_Database_ce();
 extern void register_FireBird_Transaction_ce();
@@ -489,6 +491,8 @@ extern void register_FireBird_Event_ce();
 extern void register_FireBird_Service_ce();
 extern void register_FireBird_Service_Connect_Args_ce();
 extern void register_FireBird_Server_Info_ce();
+extern void register_FireBird_Server_Db_Info_ce();
+extern void register_FireBird_Server_User_Info_ce();
 
 #define DECLARE_FERR_PROPS(ce)                                  \
     DECLARE_PROP_STRING(ce, error_msg, ZEND_ACC_PROTECTED_SET); \
@@ -547,6 +551,9 @@ int database_get_info(ISC_STATUS_ARRAY status, isc_db_handle *db_handle, firebir
     size_t info_resp_size, char *info_resp,
     size_t max_limbo_count);
 void event_ast_routine(void *_ev, ISC_USHORT length, const ISC_UCHAR *result_buffer);
+
+#define fbp_error(msg, ...) _php_firebird_module_error(msg " (%s:%d)\n" __VA_OPT__(,) __VA_ARGS__, __FILE__, __LINE__)
+#define fbp_fatal(msg, ...) _php_firebird_module_fatal(msg " (%s:%d)\n" __VA_OPT__(,) __VA_ARGS__, __FILE__, __LINE__)
 
 #define status_fbp_error(status) status_fbp_error_ex(status, __FILE__, __LINE__)
 #define update_err_props(status, ce, obj) update_err_props_ex(status, ce, obj, __FILE__, __LINE__)
