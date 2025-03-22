@@ -333,8 +333,13 @@ class Service implements IError
     /** @return bool */
     function delete_user(string $username) {}
 
+    /** @return bool */
+    function backup(string $dbname, string $bkp_file, int $options = 0) {}
+
+    /** @return bool */
+    function restore(string $bkp_file, string $dbname, int $options = 0) {}
+
     // function db_info() {}
-    // function backup() {}
     // function server_info() {}
 }
 

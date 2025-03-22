@@ -377,6 +377,88 @@ PHP_METHOD(Service, delete_user)
     RETURN_TRUE;
 }
 
+// TODO: class with parameters for both backup and restore instead of options flags?
+// TODO: no options for both backup and restore yet
+// For isc_spb_options
+// firebird\src\utilities\fbsvcmgr\fbsvcmgr.cpp
+// backupOptions, restoreOptions
+PHP_METHOD(Service, backup)
+{
+    ISC_STATUS_ARRAY status = {0};
+    firebird_service *svc = Z_SERVICE_P(ZEND_THIS);
+    zend_string *dbname, *bkp_file;
+    zend_long options = 0;
+
+    ZEND_PARSE_PARAMETERS_START(2, 3)
+        Z_PARAM_STR(dbname)
+        Z_PARAM_STR(bkp_file)
+        Z_PARAM_OPTIONAL
+        Z_PARAM_LONG(options)
+    ZEND_PARSE_PARAMETERS_END();
+
+    FBDEBUG("Service::backup()");
+    FBDEBUG_NOFL("  dbname: %s", ZSTR_VAL(dbname));
+    FBDEBUG_NOFL("  bkp_file: %s", ZSTR_VAL(bkp_file));
+    FBDEBUG_NOFL("  options: %d", options);
+
+    struct IMaster* master = fb_get_master_interface();
+    struct IStatus* st = IMaster_getStatus(master);
+    struct IUtil* utl = IMaster_getUtilInterface(master);
+    struct IXpbBuilder* xpb = IUtil_getXpbBuilder(utl, st, IXpbBuilder_SPB_START, NULL, 0);
+
+    IXpbBuilder_insertTag(xpb, st, isc_action_svc_backup);
+    IXpbBuilder_insertString(xpb, st, isc_spb_dbname, ZSTR_VAL(dbname));
+    IXpbBuilder_insertString(xpb, st, isc_spb_bkp_file, ZSTR_VAL(bkp_file));
+
+    dump_buffer(IXpbBuilder_getBuffer(xpb, st), IXpbBuilder_getBufferLength(xpb, st));
+
+    if (isc_service_start(status, &svc->svc_handle, NULL, IXpbBuilder_getBufferLength(xpb, st), IXpbBuilder_getBuffer(xpb, st))) {
+        update_err_props(status, FireBird_Service_ce, ZEND_THIS);
+        RETURN_FALSE;
+    }
+
+    RETURN_TRUE;
+}
+
+// TODO: code dup with backup
+PHP_METHOD(Service, restore)
+{
+    ISC_STATUS_ARRAY status = {0};
+    firebird_service *svc = Z_SERVICE_P(ZEND_THIS);
+    zend_string *dbname, *bkp_file;
+    zend_long options = 0;
+
+    ZEND_PARSE_PARAMETERS_START(2, 3)
+        Z_PARAM_STR(bkp_file)
+        Z_PARAM_STR(dbname)
+        Z_PARAM_OPTIONAL
+        Z_PARAM_LONG(options)
+    ZEND_PARSE_PARAMETERS_END();
+
+    FBDEBUG("Service::backup()");
+    FBDEBUG_NOFL("  dbname: %s", ZSTR_VAL(dbname));
+    FBDEBUG_NOFL("  bkp_file: %s", ZSTR_VAL(bkp_file));
+    FBDEBUG_NOFL("  options: %d", options);
+
+    struct IMaster* master = fb_get_master_interface();
+    struct IStatus* st = IMaster_getStatus(master);
+    struct IUtil* utl = IMaster_getUtilInterface(master);
+    struct IXpbBuilder* xpb = IUtil_getXpbBuilder(utl, st, IXpbBuilder_SPB_START, NULL, 0);
+
+    IXpbBuilder_insertTag(xpb, st, isc_action_svc_restore);
+    IXpbBuilder_insertString(xpb, st, isc_spb_bkp_file, ZSTR_VAL(bkp_file));
+    IXpbBuilder_insertString(xpb, st, isc_spb_dbname, ZSTR_VAL(dbname));
+
+    dump_buffer(IXpbBuilder_getBuffer(xpb, st), IXpbBuilder_getBufferLength(xpb, st));
+
+    if (isc_service_start(status, &svc->svc_handle, NULL, IXpbBuilder_getBufferLength(xpb, st), IXpbBuilder_getBuffer(xpb, st))) {
+        update_err_props(status, FireBird_Service_ce, ZEND_THIS);
+        RETURN_FALSE;
+    }
+
+    RETURN_TRUE;
+}
+
 const zend_function_entry FireBird_Service_methods[] = {
     PHP_ME(Service, connect, arginfo_FireBird_Service_connect, ZEND_ACC_PUBLIC)
     PHP_ME(Service, disconnect, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
@@ -384,6 +466,8 @@ const zend_function_entry FireBird_Service_methods[] = {
     PHP_ME(Service, add_user, arginfo_FireBird_Service_add_user, ZEND_ACC_PUBLIC)
     PHP_ME(Service, modify_user, arginfo_FireBird_Service_add_user, ZEND_ACC_PUBLIC)
     PHP_ME(Service, delete_user, arginfo_FireBird_Service_delete_user, ZEND_ACC_PUBLIC)
+    PHP_ME(Service, backup, arginfo_FireBird_Service_backup, ZEND_ACC_PUBLIC)
+    PHP_ME(Service, restore, arginfo_FireBird_Service_restore, ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
 

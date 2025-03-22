@@ -412,6 +412,18 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Service_delete_user, 0,
     ZEND_ARG_TYPE_INFO(0, username, IS_STRING, 0)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Service_backup, 0, 2, _IS_BOOL, 0)
+    ZEND_ARG_TYPE_INFO(0, dbname, IS_STRING, 0)
+    ZEND_ARG_TYPE_INFO(0, bkp_file, IS_STRING, 0)
+    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, options, IS_LONG, 0, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Service_restore, 0, 2, _IS_BOOL, 0)
+    ZEND_ARG_TYPE_INFO(0, bkp_file, IS_STRING, 0)
+    ZEND_ARG_TYPE_INFO(0, dbname, IS_STRING, 0)
+    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, options, IS_LONG, 0, 0)
+ZEND_END_ARG_INFO()
+
 // Transaction argument types
 ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Transaction_prepare, 0, 0, FireBird\\Statement, MAY_BE_FALSE)
     ZEND_ARG_TYPE_INFO(0, sql, IS_STRING, 0)
