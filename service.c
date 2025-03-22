@@ -19,9 +19,7 @@ int service_build_dpb(zend_class_entry *ce, zval *args, const firebird_xpb_zmap 
     struct IXpbBuilder* xpb = IUtil_getXpbBuilder(utl, st, IXpbBuilder_SPB_ATTACH, NULL, 0); // TODO: SPB?
 
     xpb_insert_tag(isc_spb_version3);
-    if (FAILURE == xpb_insert_zmap(ce, args, xpb_zmap, xpb, st)) {
-        return FAILURE;
-    }
+    xpb_insert_zmap(ce, args, xpb_zmap, xpb, st);
 
     *num_dpb_written = IXpbBuilder_getBufferLength(xpb, st);
     *dpb_buf = IXpbBuilder_getBuffer(xpb, st);
@@ -214,12 +212,7 @@ int service_get_server_info(ISC_STATUS_ARRAY status, zval *service, zval *server
                         READ_UI_STRING(firstname);
                         READ_UI_STRING(middlename);
                         READ_UI_STRING(lastname);
-
-                        case isc_spb_sec_admin: {
-                            len = 4;
-                            zend_update_property_bool(FireBird_Server_User_Info_ce, Z_OBJ(user_info),
-                                "is_admin", sizeof("is_admin") - 1, isc_portable_integer(p, len));
-                        } break;
+                        READ_UI_LONG(admin);
 
                         // Skip legacy stuff
                         case isc_spb_sec_userid:
@@ -300,10 +293,97 @@ PHP_METHOD(Service, get_server_info)
     }
 }
 
+int service_addmod_user(zval *service, zval *user_info, const ISC_UCHAR tag)
+{
+    ISC_STATUS_ARRAY status = {0};
+    firebird_service *svc = Z_SERVICE_P(service);
+
+    struct IMaster* master = fb_get_master_interface();
+    struct IStatus* st = IMaster_getStatus(master);
+    struct IUtil* utl = IMaster_getUtilInterface(master);
+    struct IXpbBuilder* xpb = IUtil_getXpbBuilder(utl, st, IXpbBuilder_SPB_START, NULL, 0);
+
+    IXpbBuilder_insertTag(xpb, st, tag);
+
+    xpb_insert_zmap(FireBird_Server_User_Info_ce, user_info, &user_info_zmap, xpb, st);
+
+    if (isc_service_start(status, &svc->svc_handle, NULL, IXpbBuilder_getBufferLength(xpb, st), IXpbBuilder_getBuffer(xpb, st))) {
+        dump_buffer(IXpbBuilder_getBuffer(xpb, st), IXpbBuilder_getBufferLength(xpb, st));
+        update_err_props(status, FireBird_Service_ce, service);
+        return FAILURE;
+    }
+
+    return SUCCESS;
+}
+
+PHP_METHOD(Service, add_user)
+{
+    zval *user_info = NULL;
+
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+        Z_PARAM_OBJECT_OF_CLASS(user_info, FireBird_Server_User_Info_ce)
+    ZEND_PARSE_PARAMETERS_END();
+
+    if (FAILURE == service_addmod_user(ZEND_THIS, user_info, isc_action_svc_add_user)) {
+        RETURN_FALSE;
+    }
+
+    RETURN_TRUE;
+}
+
+PHP_METHOD(Service, modify_user)
+{
+    zval *user_info = NULL;
+
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+        Z_PARAM_OBJECT_OF_CLASS(user_info, FireBird_Server_User_Info_ce)
+    ZEND_PARSE_PARAMETERS_END();
+
+    if (FAILURE == service_addmod_user(ZEND_THIS, user_info, isc_action_svc_modify_user)) {
+        RETURN_FALSE;
+    }
+
+    RETURN_TRUE;
+}
+
+PHP_METHOD(Service, delete_user)
+{
+    ISC_STATUS_ARRAY status = {0};
+    firebird_service *svc = Z_SERVICE_P(ZEND_THIS);
+    zend_string *username = NULL;
+    char buf[128] = {0};
+    char *p = buf;
+
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+        Z_PARAM_STR(username)
+    ZEND_PARSE_PARAMETERS_END();
+
+    *p++ = isc_action_svc_delete_user;
+    *p++ = isc_spb_sec_username;
+    store_portable_integer(p, ZSTR_LEN(username), 2); p += 2;
+
+    if(ZSTR_LEN(username) < sizeof(buf) - (p - buf)) {
+        memcpy(p, ZSTR_VAL(username), ZSTR_LEN(username));
+        p += ZSTR_LEN(username);
+    }
+
+    // dump_buffer(buf, p - buf);
+
+    if (isc_service_start(status, &svc->svc_handle, NULL, p - buf, buf)) {
+        update_err_props(status, FireBird_Service_ce, ZEND_THIS);
+        RETURN_FALSE;
+    }
+
+    RETURN_TRUE;
+}
+
 const zend_function_entry FireBird_Service_methods[] = {
     PHP_ME(Service, connect, arginfo_FireBird_Service_connect, ZEND_ACC_PUBLIC)
     PHP_ME(Service, disconnect, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
     PHP_ME(Service, get_server_info, arginfo_FireBird_Service_get_server_info, ZEND_ACC_PUBLIC)
+    PHP_ME(Service, add_user, arginfo_FireBird_Service_add_user, ZEND_ACC_PUBLIC)
+    PHP_ME(Service, modify_user, arginfo_FireBird_Service_add_user, ZEND_ACC_PUBLIC)
+    PHP_ME(Service, delete_user, arginfo_FireBird_Service_delete_user, ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
 
@@ -386,11 +466,5 @@ void register_FireBird_Server_User_Info_ce()
     INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "Server_User_Info", NULL);
     FireBird_Server_User_Info_ce = zend_register_internal_class(&tmp_ce);
 
-    DECLARE_PROP_STRING(FireBird_Server_User_Info_ce, username, ZEND_ACC_PUBLIC);
-    DECLARE_PROP_STRING(FireBird_Server_User_Info_ce, firstname, ZEND_ACC_PUBLIC);
-    DECLARE_PROP_STRING(FireBird_Server_User_Info_ce, middlename, ZEND_ACC_PUBLIC);
-    DECLARE_PROP_STRING(FireBird_Server_User_Info_ce, lastname, ZEND_ACC_PUBLIC);
-    DECLARE_PROP_STRING(FireBird_Server_User_Info_ce, role_name, ZEND_ACC_PUBLIC);
-    DECLARE_PROP_STRING(FireBird_Server_User_Info_ce, password, ZEND_ACC_PUBLIC);
-    DECLARE_PROP_BOOL(FireBird_Server_User_Info_ce, is_admin, ZEND_ACC_PUBLIC);
+    declare_props_zmap(FireBird_Server_User_Info_ce, &user_info_zmap);
 }

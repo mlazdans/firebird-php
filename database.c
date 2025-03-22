@@ -589,9 +589,7 @@ int database_build_dpb(zend_class_entry *ce, zval *args, const firebird_xpb_zmap
     xpb_insert_tag(isc_dpb_version2);
     xpb_insert_int(isc_dpb_sql_dialect, SQL_DIALECT_CURRENT);
 
-    if (FAILURE == xpb_insert_zmap(ce, args, xpb_zmap, xpb, st)) {
-        return FAILURE;
-    }
+    xpb_insert_zmap(ce, args, xpb_zmap, xpb, st);
 
 #if FB_API_VER >= 40
     // Do not handle directly INT128 or DECFLOAT, convert to VARCHAR at server instead

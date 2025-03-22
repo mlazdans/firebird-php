@@ -133,6 +133,18 @@ firebird_xpb_zmap server_info_zmap = XPB_ZMAP_INIT(
     })
 );
 
+firebird_xpb_zmap user_info_zmap = XPB_ZMAP_INIT(
+    ((const char []){
+        isc_spb_sec_username, isc_spb_sec_password, isc_spb_sec_firstname, isc_spb_sec_middlename, isc_spb_sec_lastname, isc_spb_sec_admin
+    }),
+    ((const char *[]){
+        "username", "password", "firstname", "middlename", "lastname", "admin"
+    }),
+    ((uint32_t []) {
+        MAY_BE_STRING, MAY_BE_STRING, MAY_BE_STRING, MAY_BE_STRING, MAY_BE_STRING, MAY_BE_TRUE | MAY_BE_FALSE,
+    })
+);
+
 static const zend_function_entry firebird_functions[] = {
     PHP_FE_END
 };
@@ -567,7 +579,7 @@ void declare_props_zmap(zend_class_entry *ce, const firebird_xpb_zmap *xpb_zmap)
     }
 }
 
-int xpb_insert_zmap(zend_class_entry *ce, zval *args, const firebird_xpb_zmap *xpb_zmap, struct IXpbBuilder* xpb, struct IStatus* st)
+void xpb_insert_zmap(zend_class_entry *ce, zval *args, const firebird_xpb_zmap *xpb_zmap, struct IXpbBuilder* xpb, struct IStatus* st)
 {
     zend_string *prop_name = NULL;
     zend_property_info *prop_info = NULL;
@@ -623,8 +635,13 @@ int xpb_insert_zmap(zend_class_entry *ce, zval *args, const firebird_xpb_zmap *x
                 break;
         }
     }
+}
 
-    return SUCCESS;
+void store_portable_integer(unsigned char *buffer, ISC_UINT64 value, int length)
+{
+    for (int i = 0; i < length; i++) {
+        buffer[i] = (value >> (i * 8)) & 0xFF;
+    }
 }
 
 #endif /* HAVE_FIREBIRD */

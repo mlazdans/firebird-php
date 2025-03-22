@@ -37,7 +37,7 @@ class Server_User_Info
     public string $lastname;
     public string $role_name;  // Not set when query server info
     public string $password;   // Not set, only when create/modify user
-    public bool $is_admin;
+    public bool $admin;
 }
 
 class Error
@@ -325,10 +325,17 @@ class Service implements IError
     /** @return Server_Info|false */
     function get_server_info() {}
 
-    // function add_user() {}
+    /** @return bool */
+    function add_user(Server_User_Info $user_info) {}
+
+    /** @return bool */
+    function modify_user(Server_User_Info $user_info) {}
+
+    /** @return bool */
+    function delete_user(string $username) {}
+
     // function db_info() {}
     // function backup() {}
-    // function delete_user() {}
     // function server_info() {}
 }
 

@@ -342,8 +342,7 @@ void _php_firebird_module_fatal(char *, ...)
     if (IStatus_getState(st) & IStatus_STATE_ERRORS) { \
         char _st_msg[1024] = {0}; \
         status_err_msg(IStatus_getErrors(st), _st_msg, sizeof(_st_msg)); \
-        _php_firebird_module_error(_st_msg); \
-        return FAILURE; \
+        _php_firebird_module_fatal(_st_msg); \
     } \
 } while(0)
 
@@ -397,6 +396,14 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Service_connect, 0, 1, 
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Service_get_server_info, 0, 0, FireBird\\Server_Info, MAY_BE_FALSE)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Service_add_user, 0, 1, _IS_BOOL, 0)
+    ZEND_ARG_OBJ_INFO(0, user_info, FireBird\\Server_User_Info, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Service_delete_user, 0, 1, _IS_BOOL, 0)
+    ZEND_ARG_TYPE_INFO(0, username, IS_STRING, 0)
 ZEND_END_ARG_INFO()
 
 // Transaction argument types
@@ -454,6 +461,7 @@ extern firebird_xpb_zmap database_connect_zmap;
 extern firebird_xpb_zmap database_info_zmap;
 extern firebird_xpb_zmap service_connect_zmap;
 extern firebird_xpb_zmap server_info_zmap;
+extern firebird_xpb_zmap user_info_zmap;
 extern firebird_events fb_events;
 
 extern zend_class_entry *FireBird_Connect_Args_ce;
@@ -521,9 +529,9 @@ extern void register_FireBird_Server_User_Info_ce();
 #endif
 
 // TODO: tidy namspacing
+void store_portable_integer(unsigned char *buffer, ISC_UINT64 value, int length);
 void transaction_ctor(firebird_trans *tr, firebird_db *db, ISC_UINT64 trans_args, ISC_UINT64 lock_timeout);
 void transaction__construct(zval *tr, zval *db, ISC_UINT64 trans_args, ISC_UINT64 lock_timeout);
-
 void status_fbp_error_ex(const ISC_STATUS *status, const char *file_name, size_t line_num);
 void dump_buffer(const unsigned char *buffer, int len);
 ISC_INT64 update_err_props_ex(ISC_STATUS_ARRAY status, zend_class_entry *ce, zval *obj, const char *file_name, size_t line_num);
@@ -536,7 +544,7 @@ int statement_prepare(ISC_STATUS_ARRAY status, zval *stmt_o, const ISC_SCHAR *sq
 int statement_execute(zval *stmt_o, zval *bind_args, uint32_t num_bind_args, zend_class_entry *ce, zval *ce_o);
 int statement_info(ISC_STATUS_ARRAY status, firebird_stmt *stmt);
 void declare_props_zmap(zend_class_entry *ce, const firebird_xpb_zmap *xpb_zmap);
-int xpb_insert_zmap(zend_class_entry *ce, zval *args, const firebird_xpb_zmap *xpb_zmap, struct IXpbBuilder* xpb, struct IStatus* st);
+void xpb_insert_zmap(zend_class_entry *ce, zval *args, const firebird_xpb_zmap *xpb_zmap, struct IXpbBuilder* xpb, struct IStatus* st);
 void blob_ctor(firebird_blob *blob, isc_db_handle *db_handle, isc_tr_handle *tr_handle);
 void blob___construct(zval *blob_o, zval *transaction);
 int blob_get_info(ISC_STATUS_ARRAY status, firebird_blob *blob);

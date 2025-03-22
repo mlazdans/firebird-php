@@ -2,7 +2,7 @@
 
 |     | Function                 | Notes                                 |
 |---  |---                       | ---                                   |
-|❌    |ibase_add_user            |                                       |
+|✅    |ibase_add_user            |                                       |
 |✅    | ibase_affected_rows      |                                       |
 |❌    | ibase_backup             |                                       |
 |✅    | ibase_blob_add           |                                       |
@@ -19,7 +19,7 @@
 |✅    | ibase_commit_ret         |                                       |
 |✅    | ibase_connect            |                                       |
 |❌    | ibase_db_info            |                                       |
-|❌    | ibase_delete_user        |                                       |
+|✅    | ibase_delete_user        |                                       |
 |✅    | ibase_drop_db            |                                       |
 |✅    | ibase_errcode            |                                       |
 |✅    | ibase_errmsg             |                                       |
@@ -33,7 +33,7 @@
 |✅    | ibase_free_result        |                                       |
 |🚫   | ibase_gen_id             | can be easily done in PHP space       |
 |❌    | ibase_maintain_db        |                                       |
-|❌    | ibase_modify_user        |                                       |
+|✅    | ibase_modify_user        |                                       |
 |✅    | ibase_name_result        |                                       |
 |✅    | ibase_num_fields         |                                       |
 |✅    | ibase_num_params         |                                       |
