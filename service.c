@@ -106,7 +106,7 @@ int service_get_server_info(ISC_STATUS_ARRAY status, zval *service, zval *server
     firebird_service *svc = Z_SERVICE_P(service);
 
     static char spb[] = { isc_info_svc_timeout, 10, 0, 0, 0 };
-    static char action[] = { isc_action_svc_display_user };
+    static char action[] = { isc_action_svc_display_user_adm };
 
     if (isc_service_start(status, &svc->svc_handle, NULL, sizeof(action), action)) {
         return FAILURE;
@@ -214,8 +214,21 @@ int service_get_server_info(ISC_STATUS_ARRAY status, zval *service, zval *server
                         READ_UI_STRING(firstname);
                         READ_UI_STRING(middlename);
                         READ_UI_STRING(lastname);
-                        READ_UI_LONG(userid);
-                        READ_UI_LONG(groupid);
+
+                        case isc_spb_sec_admin: {
+                            len = 4;
+                            zend_update_property_bool(FireBird_Server_User_Info_ce, Z_OBJ(user_info),
+                                "is_admin", sizeof("is_admin") - 1, isc_portable_integer(p, len));
+                        } break;
+
+                        // Skip legacy stuff
+                        case isc_spb_sec_userid:
+                        case isc_spb_sec_groupid: {
+                            len = 4;
+                        } break;
+                        case isc_spb_sec_groupname: {
+                            len = isc_portable_integer(p, 2); p += 2;
+                        } break;
 
                         case isc_info_truncated: {
                             fbp_error("Server user info buffer error: truncated");
@@ -377,6 +390,7 @@ void register_FireBird_Server_User_Info_ce()
     DECLARE_PROP_STRING(FireBird_Server_User_Info_ce, firstname, ZEND_ACC_PUBLIC);
     DECLARE_PROP_STRING(FireBird_Server_User_Info_ce, middlename, ZEND_ACC_PUBLIC);
     DECLARE_PROP_STRING(FireBird_Server_User_Info_ce, lastname, ZEND_ACC_PUBLIC);
-    DECLARE_PROP_LONG(FireBird_Server_User_Info_ce, userid, ZEND_ACC_PUBLIC);
-    DECLARE_PROP_LONG(FireBird_Server_User_Info_ce, groupid, ZEND_ACC_PUBLIC);
+    DECLARE_PROP_STRING(FireBird_Server_User_Info_ce, role_name, ZEND_ACC_PUBLIC);
+    DECLARE_PROP_STRING(FireBird_Server_User_Info_ce, password, ZEND_ACC_PUBLIC);
+    DECLARE_PROP_BOOL(FireBird_Server_User_Info_ce, is_admin, ZEND_ACC_PUBLIC);
 }

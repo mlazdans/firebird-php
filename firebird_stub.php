@@ -35,8 +35,9 @@ class Server_User_Info
     public string $firstname;
     public string $middlename;
     public string $lastname;
-    public int $userid;
-    public int $groupid;
+    public string $role_name;  // Not set when query server info
+    public string $password;   // Not set, only when create/modify user
+    public bool $is_admin;
 }
 
 class Error
