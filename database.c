@@ -394,16 +394,15 @@ PHP_METHOD(Database, on_event)
 }
 
 PHP_METHOD(Database, new_transaction) {
-    zend_long trans_args = 0, lock_timeout = 0;
+    zval *tb = NULL;
 
-    ZEND_PARSE_PARAMETERS_START(0, 2)
+    ZEND_PARSE_PARAMETERS_START(0, 1)
         Z_PARAM_OPTIONAL
-        Z_PARAM_LONG(trans_args)
-        Z_PARAM_LONG(lock_timeout)
+        Z_PARAM_OBJECT_OF_CLASS(tb, FireBird_TBuilder_ce)
     ZEND_PARSE_PARAMETERS_END();
 
     object_init_ex(return_value, FireBird_Transaction_ce);
-    transaction__construct(return_value, ZEND_THIS, trans_args, lock_timeout);
+    transaction__construct(return_value, ZEND_THIS, tb);
 }
 
 PHP_METHOD(Database, disconnect) {
@@ -438,8 +437,7 @@ PHP_METHOD(Database, reconnect_transaction)
     ZEND_PARSE_PARAMETERS_END();
 
     object_init_ex(return_value, FireBird_Transaction_ce);
-    // transaction_ctor(return_value, ZEND_THIS, 0, 0);
-    transaction__construct(return_value, ZEND_THIS, 0, 0);
+    transaction__construct(return_value, ZEND_THIS, NULL);
 
     firebird_trans *tr = Z_TRANSACTION_P(return_value);
 

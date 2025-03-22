@@ -194,61 +194,6 @@ static PHP_INI_DISP(php_firebird_password_displayer_cb)
     has_puts = 1;               \
 } while (0)
 
-static PHP_INI_DISP(php_firebird_trans_displayer)
-{
-    int has_puts = 0;
-    char *value;
-
-    if (type == ZEND_INI_DISPLAY_ORIG && ini_entry->modified) {
-        value = ZSTR_VAL(ini_entry->orig_value);
-    } else if (ini_entry->value) {
-        value = ZSTR_VAL(ini_entry->value);
-    } else {
-        value = NULL;
-    }
-
-    zend_long trans_argl;
-    if (value && (trans_argl = atol(value))) {
-
-        if (trans_argl & PHP_FIREBIRD_IGNORE_LIMBO) {
-            PUTS_TP("FIREBIRD_IGNORE_LIMBO");
-        }
-
-        /* access mode */
-        if (PHP_FIREBIRD_READ == (trans_argl & PHP_FIREBIRD_READ)) {
-            PUTS_TP("FIREBIRD_READ");
-        } else if (PHP_FIREBIRD_WRITE == (trans_argl & PHP_FIREBIRD_WRITE)) {
-            PUTS_TP("FIREBIRD_WRITE");
-        }
-
-        /* isolation level */
-        if (PHP_FIREBIRD_COMMITTED == (trans_argl & PHP_FIREBIRD_COMMITTED)) {
-            PUTS_TP("FIREBIRD_COMMITTED");
-            if (PHP_FIREBIRD_REC_VERSION == (trans_argl & PHP_FIREBIRD_REC_VERSION)) {
-                PUTS_TP("FIREBIRD_REC_VERSION");
-            } else if (PHP_FIREBIRD_REC_NO_VERSION == (trans_argl & PHP_FIREBIRD_REC_NO_VERSION)) {
-                PUTS_TP("FIREBIRD_REC_NO_VERSION");
-            }
-        } else if (PHP_FIREBIRD_CONSISTENCY == (trans_argl & PHP_FIREBIRD_CONSISTENCY)) {
-            PUTS_TP("FIREBIRD_CONSISTENCY");
-        } else if (PHP_FIREBIRD_CONCURRENCY == (trans_argl & PHP_FIREBIRD_CONCURRENCY)) {
-            PUTS_TP("FIREBIRD_CONCURRENCY");
-        }
-
-        /* lock resolution */
-        if (PHP_FIREBIRD_NOWAIT == (trans_argl & PHP_FIREBIRD_NOWAIT)) {
-            PUTS_TP("FIREBIRD_NOWAIT");
-        } else if (PHP_FIREBIRD_WAIT == (trans_argl & PHP_FIREBIRD_WAIT)) {
-            PUTS_TP("FIREBIRD_WAIT");
-            if (PHP_FIREBIRD_LOCK_TIMEOUT == (trans_argl & PHP_FIREBIRD_LOCK_TIMEOUT)) {
-                PUTS_TP("FIREBIRD_LOCK_TIMEOUT");
-            }
-        }
-    } else {
-        PUTS_TP("FIREBIRD_DEFAULT");
-    }
-}
-
 ZEND_INI_MH(OnUpdateDebug)
 {
     int *p;
@@ -280,8 +225,6 @@ PHP_INI_BEGIN()
     PHP_INI_ENTRY("firebird.timestampformat", FIREBIRD_DATE_FMT " " FIREBIRD_TIME_FMT, PHP_INI_ALL, NULL)
     PHP_INI_ENTRY("firebird.dateformat", FIREBIRD_DATE_FMT, PHP_INI_ALL, NULL)
     PHP_INI_ENTRY("firebird.timeformat", FIREBIRD_TIME_FMT, PHP_INI_ALL, NULL)
-    // STD_PHP_INI_ENTRY_EX("ibase.default_trans_params", "0", PHP_INI_ALL, OnUpdateLongGEZero, default_trans_params, zend_firebird_globals, firebird_globals, php_firebird_trans_displayer)
-    // STD_PHP_INI_ENTRY_EX("ibase.default_lock_timeout", "0", PHP_INI_ALL, OnUpdateLongGEZero, default_lock_timeout, zend_firebird_globals, firebird_globals, display_link_numbers)
 PHP_INI_END()
 
 static PHP_GINIT_FUNCTION(firebird)
@@ -301,19 +244,6 @@ PHP_MINIT_FUNCTION(firebird)
     REGISTER_NS_LONG_CONSTANT("FireBird", "FETCH_BLOBS", PHP_FIREBIRD_FETCH_BLOBS, CONST_PERSISTENT);
     REGISTER_NS_LONG_CONSTANT("FireBird", "FETCH_ARRAYS", PHP_FIREBIRD_FETCH_ARRAYS, CONST_PERSISTENT);
     REGISTER_NS_LONG_CONSTANT("FireBird", "FETCH_UNIXTIME", PHP_FIREBIRD_UNIXTIME, CONST_PERSISTENT);
-
-    /* transactions */
-    REGISTER_NS_LONG_CONSTANT("FireBird\\Transaction", "WRITE", PHP_FIREBIRD_WRITE, CONST_PERSISTENT);
-    REGISTER_NS_LONG_CONSTANT("FireBird\\Transaction", "READ", PHP_FIREBIRD_READ, CONST_PERSISTENT);
-    REGISTER_NS_LONG_CONSTANT("FireBird\\Transaction", "COMMITTED", PHP_FIREBIRD_COMMITTED, CONST_PERSISTENT);
-    REGISTER_NS_LONG_CONSTANT("FireBird\\Transaction", "CONSISTENCY", PHP_FIREBIRD_CONSISTENCY, CONST_PERSISTENT);
-    REGISTER_NS_LONG_CONSTANT("FireBird\\Transaction", "CONCURRENCY", PHP_FIREBIRD_CONCURRENCY, CONST_PERSISTENT);
-    REGISTER_NS_LONG_CONSTANT("FireBird\\Transaction", "REC_VERSION", PHP_FIREBIRD_REC_VERSION, CONST_PERSISTENT);
-    REGISTER_NS_LONG_CONSTANT("FireBird\\Transaction", "REC_NO_VERSION", PHP_FIREBIRD_REC_NO_VERSION, CONST_PERSISTENT);
-    REGISTER_NS_LONG_CONSTANT("FireBird\\Transaction", "NOWAIT", PHP_FIREBIRD_NOWAIT, CONST_PERSISTENT);
-    REGISTER_NS_LONG_CONSTANT("FireBird\\Transaction", "WAIT", PHP_FIREBIRD_WAIT, CONST_PERSISTENT);
-    REGISTER_NS_LONG_CONSTANT("FireBird\\Transaction", "LOCK_TIMEOUT", PHP_FIREBIRD_LOCK_TIMEOUT, CONST_PERSISTENT);
-    REGISTER_NS_LONG_CONSTANT("FireBird\\Transaction", "IGNORE_LIMBO", PHP_FIREBIRD_IGNORE_LIMBO, CONST_PERSISTENT);
 
 #ifdef ZEND_SIGNALS
     // firebird replaces some signals at runtime, suppress warnings.
@@ -338,6 +268,7 @@ PHP_MINIT_FUNCTION(firebird)
     register_FireBird_Server_Info_ce();
     register_FireBird_Server_Db_Info_ce();
     register_FireBird_Server_User_Info_ce();
+    register_FireBird_TBuilder_ce();
 
     return SUCCESS;
 }

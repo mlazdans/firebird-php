@@ -56,8 +56,6 @@
 
 ZEND_BEGIN_MODULE_GLOBALS(firebird)
     bool debug;
-    zend_long default_trans_params;
-    zend_long default_lock_timeout; // only used togetger with trans_param IBASE_LOCK_TIMEOUT
 ZEND_END_MODULE_GLOBALS(firebird)
 
 ZEND_EXTERN_MODULE_GLOBALS(firebird)
@@ -132,8 +130,6 @@ typedef struct firebird_service {
 typedef struct firebird_trans {
     isc_tr_handle tr_handle;
     isc_db_handle *db_handle;
-    ISC_UINT64 trans_args;
-    ISC_UINT64 lock_timeout;
     ISC_UINT64 tr_id;
     unsigned short is_prepared_2pc;
     zend_object std;
@@ -220,29 +216,29 @@ typedef struct firebird_events {
     size_t count;
 } firebird_events;
 
+typedef struct firebird_tbuilder {
+    char read_only, ignore_limbo, auto_commit, no_auto_undo;
+
+    /**
+     * Isolation mode (level):
+     * 0 - consistency (snapshot table stability)
+     * 1 - concurrency (snapshot)
+     * 2 - read committed record version
+     * 3 - read committed no record version
+     * 4 - read committed read consistency
+     */
+    char isolation_mode;
+    ISC_SHORT lock_timeout;
+    ISC_UINT64 snapshot_at_number;
+
+    zend_object std;
+} firebird_tbuilder;
+
 enum php_firebird_option {
     /* fetch flags */
     PHP_FIREBIRD_FETCH_BLOBS        = 1,
     PHP_FIREBIRD_FETCH_ARRAYS       = 2,
     PHP_FIREBIRD_UNIXTIME           = 4,
-
-    /* transaction access mode */
-    PHP_FIREBIRD_WRITE              = 1,
-    PHP_FIREBIRD_READ               = 2,
-
-    /* transaction isolation level */
-    PHP_FIREBIRD_CONCURRENCY        = 4,
-    PHP_FIREBIRD_COMMITTED          = 8,
-        PHP_FIREBIRD_REC_NO_VERSION = 32,
-        PHP_FIREBIRD_REC_VERSION    = 64,
-    PHP_FIREBIRD_CONSISTENCY        = 16,
-
-    /* transaction lock resolution */
-    PHP_FIREBIRD_WAIT               = 128,
-    PHP_FIREBIRD_NOWAIT             = 256,
-        PHP_FIREBIRD_LOCK_TIMEOUT   = 512,
-
-    PHP_FIREBIRD_IGNORE_LIMBO       = 1024,
 };
 
 #define FBG(v) ZEND_MODULE_GLOBALS_ACCESSOR(firebird, v)
@@ -327,6 +323,9 @@ void _php_firebird_module_fatal(char *, ...)
 #define Z_SERVICE_O(zobj) \
     ((firebird_service*)((char*)(zobj) - XtOffsetOf(firebird_service, std)))
 
+#define Z_TBUILDER_O(zobj) \
+    ((firebird_tbuilder*)((char*)(zobj) - XtOffsetOf(firebird_tbuilder, std)))
+
 #define Z_TRANSACTION_P(zv) Z_TRANSACTION_O(Z_OBJ_P(zv))
 #define Z_STMT_P(zv) Z_STMT_O(Z_OBJ_P(zv))
 #define Z_DB_P(zv) Z_DB_O(Z_OBJ_P(zv))
@@ -335,6 +334,7 @@ void _php_firebird_module_fatal(char *, ...)
 #define Z_FIBER_P(zv) Z_FIBER_O(Z_OBJ_P(zv))
 #define Z_EVENT_P(zv) Z_EVENT_O(Z_OBJ_P(zv))
 #define Z_SERVICE_P(zv) Z_SERVICE_O(Z_OBJ_P(zv))
+#define Z_TBUILDER_P(zv) Z_TBUILDER_O(Z_OBJ_P(zv))
 
 // TODO: similar macros for reading
 #define xpb_insert(f, ...) do { \
@@ -356,7 +356,14 @@ void _php_firebird_module_fatal(char *, ...)
 ZEND_BEGIN_ARG_INFO_EX(arginfo_none, 0, 0, 0)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_void, 0, 0, MAY_BE_VOID)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_none_return_bool, 0, 0, _IS_BOOL, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_bool_return_none, 0, 0, 0)
+    ZEND_ARG_TYPE_INFO(0, enable, _IS_BOOL, 0)
 ZEND_END_ARG_INFO()
 
 // Database argument types
@@ -378,8 +385,7 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Database_on_event, 0, 2
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_INFO_EX(arginfo_FireBird_Database_new_transaction, 0, 0, FireBird\\Transaction, 0)
-    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, trans_args, IS_LONG, 0, 0)
-    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, lock_timeout, IS_LONG, 0, 0)
+    ZEND_ARG_OBJ_INFO(0, args, FireBird\\TBuilder, 1)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Database_reconnect_transaction, 0, 1, FireBird\\Transaction, MAY_BE_FALSE)
@@ -456,6 +462,15 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Blob_put, 0, 1, _IS_BOO
     ZEND_ARG_TYPE_INFO(0, data, IS_STRING, 0)
 ZEND_END_ARG_INFO()
 
+// TBuilder argument types
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_FireBird_TBuilder_wait, 0, 0, MAY_BE_VOID)
+    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, lock_timeout, IS_LONG, 0, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_FireBird_TBuilder_isolation_snapshot, 0, 0, MAY_BE_VOID)
+    ZEND_ARG_TYPE_INFO(0, at_number, IS_LONG, 0)
+ZEND_END_ARG_INFO()
+
 extern firebird_xpb_zmap database_create_zmap;
 extern firebird_xpb_zmap database_connect_zmap;
 extern firebird_xpb_zmap database_info_zmap;
@@ -482,6 +497,7 @@ extern zend_class_entry *FireBird_Service_Connect_Args_ce;
 extern zend_class_entry *FireBird_Server_Info_ce;
 extern zend_class_entry *FireBird_Server_Db_Info_ce;
 extern zend_class_entry *FireBird_Server_User_Info_ce;
+extern zend_class_entry *FireBird_TBuilder_ce;
 
 extern void register_FireBird_Database_ce();
 extern void register_FireBird_Transaction_ce();
@@ -501,6 +517,7 @@ extern void register_FireBird_Service_Connect_Args_ce();
 extern void register_FireBird_Server_Info_ce();
 extern void register_FireBird_Server_Db_Info_ce();
 extern void register_FireBird_Server_User_Info_ce();
+extern void register_FireBird_TBuilder_ce();
 
 #define DECLARE_FERR_PROPS(ce)                                  \
     DECLARE_PROP_STRING(ce, error_msg, ZEND_ACC_PROTECTED_SET); \
@@ -530,8 +547,8 @@ extern void register_FireBird_Server_User_Info_ce();
 
 // TODO: tidy namspacing
 void store_portable_integer(unsigned char *buffer, ISC_UINT64 value, int length);
-void transaction_ctor(firebird_trans *tr, firebird_db *db, ISC_UINT64 trans_args, ISC_UINT64 lock_timeout);
-void transaction__construct(zval *tr, zval *db, ISC_UINT64 trans_args, ISC_UINT64 lock_timeout);
+void transaction_ctor(firebird_trans *tr, firebird_db *db);
+void transaction__construct(zval *tr, zval *database, zval *builder);
 void status_fbp_error_ex(const ISC_STATUS *status, const char *file_name, size_t line_num);
 void dump_buffer(const unsigned char *buffer, int len);
 ISC_INT64 update_err_props_ex(ISC_STATUS_ARRAY status, zend_class_entry *ce, zval *obj, const char *file_name, size_t line_num);

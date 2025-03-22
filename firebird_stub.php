@@ -178,10 +178,9 @@ class Database implements IError
     function on_event(string $name, callable $f) {}
 
     /**
-     * @param ?int $lock_timeout - sets lock timeout in seconds when WAIT | LOCK_TIMEOUT $trans_args are set. Valid range 1-32767
      * @return Transaction
      * */
-    function new_transaction(int $trans_args = 0, int $lock_timeout = 0) {}
+    function new_transaction(?TBuilder $tb = null) {}
 
     /** @return Transaction|false */
     function reconnect_transaction(int $id) {}
@@ -339,15 +338,35 @@ class Service implements IError
     // function server_info() {}
 }
 
-namespace FireBird\Transaction;
-const WRITE          = 1;
-const READ           = 2;
-const CONCURRENCY    = 4;
-const COMMITTED      = 8;
-const CONSISTENCY    = 16;
-const REC_NO_VERSION = 32;
-const REC_VERSION    = 64;
-const WAIT           = 128;
-const NOWAIT         = 256;
-const LOCK_TIMEOUT   = 512;
-const IGNORE_LIMBO   = 1024;
+/**
+ * Transaction builder
+ */
+class TBuilder
+{
+    function read_only(bool $enable = true): void {}
+    function ignore_limbo(bool $enable = true): void {}
+    function auto_commit(bool $enable = true): void {}
+    function no_auto_undo(bool $enable = true): void {}
+
+    /**
+     * Lock resolution mode (WAIT, NO WAIT) with an optional LOCK TIMEOUT specification
+     *
+     * @param int $lock_timeout -1 wait forever (default), 0 no wait, 1-32767 sets lock timeout in seconds
+     */
+    function wait(int $lock_timeout = -1): void {}
+
+    // | RESTART REQUESTS // The exact semantics and effects of this clause are not clear, and we recommend you do not use this clause.
+
+    // TODO: function reserving(array $tables): void {}
+
+    /**
+     * Isolation Level
+     *
+     * The SNAPSHOT - the default level - isolation level is also known as “concurrency”.
+     */
+    function isolation_snapshot(int $at_number = 0): void {}
+    function isolation_snapshot_table_stability(): void {}
+    function isolation_read_committed_record_version(): void {}
+    function isolation_read_committed_no_record_version(): void {}
+    function isolation_read_committed_read_consistency(): void {}
+}

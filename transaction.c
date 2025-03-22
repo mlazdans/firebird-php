@@ -10,28 +10,28 @@ zend_class_entry *FireBird_Transaction_ce;
 static zend_object_handlers FireBird_Transaction_object_handlers;
 
 static void _php_firebird_process_trans(INTERNAL_FUNCTION_PARAMETERS, int commit);
-static void _php_firebird_populate_tpb(zend_long trans_argl, zend_long trans_timeout, char *last_tpb, unsigned short *len);
+static void transaction_populate_tpb(firebird_tbuilder *builder, char *last_tpb, unsigned short *len);
 
 #define ROLLBACK    0
 #define COMMIT      1
 #define RETAIN      2
 
-void transaction_ctor(firebird_trans *tr, firebird_db *db, ISC_UINT64 trans_args, ISC_UINT64 lock_timeout)
+void transaction_ctor(firebird_trans *tr, firebird_db *db)
 {
     tr->tr_handle = 0;
     tr->tr_id = 0;
     tr->is_prepared_2pc = 0;
     tr->db_handle = &db->db_handle;
-    tr->trans_args = trans_args;
-    tr->lock_timeout = lock_timeout;
 }
 
-void transaction__construct(zval *tr, zval *database, ISC_UINT64 trans_args, ISC_UINT64 lock_timeout)
+void transaction__construct(zval *tr, zval *database, zval *builder)
 {
     zend_update_property(FireBird_Transaction_ce, O_SET(tr, database));
-    zend_update_property_long(FireBird_Transaction_ce, O_SET(tr, trans_args));
-    zend_update_property_long(FireBird_Transaction_ce, O_SET(tr, lock_timeout));
-    transaction_ctor(Z_TRANSACTION_P(tr), Z_DB_P(database), trans_args, lock_timeout);
+    if (builder) {
+        zend_update_property(FireBird_Transaction_ce, O_SET(tr, builder));
+    }
+
+    transaction_ctor(Z_TRANSACTION_P(tr), Z_DB_P(database));
 }
 
 PHP_METHOD(Transaction, __construct) {
@@ -39,18 +39,16 @@ PHP_METHOD(Transaction, __construct) {
 
 int transaction_start(ISC_STATUS_ARRAY status, zval *tr_o)
 {
-    zval rv;
-    zval *trans_args = NULL, *lock_timeout = NULL;
+    zval rv, *builder_o = NULL;
     ISC_STATUS result;
     char tpb[TPB_MAX_SIZE];
     unsigned short tpb_len = 0;
 
-    trans_args = zend_read_property(FireBird_Transaction_ce, O_GET(tr_o, trans_args), 0, &rv);
-    lock_timeout = zend_read_property(FireBird_Transaction_ce, O_GET(tr_o, lock_timeout), 0, &rv);
-
-    FBDEBUG("trans_args=%d, lock_timeout=%d", Z_LVAL_P(trans_args), Z_LVAL_P(lock_timeout));
-
-    _php_firebird_populate_tpb(Z_LVAL_P(trans_args), Z_LVAL_P(lock_timeout), tpb, &tpb_len);
+    builder_o = zend_read_property(FireBird_TBuilder_ce, O_GET(tr_o, builder), 1, &rv);
+    if (Z_TYPE_P(builder_o) != IS_NULL) {
+        firebird_tbuilder *builder = Z_TBUILDER_P(builder_o);
+        transaction_populate_tpb(builder, tpb, &tpb_len);
+    }
 
     firebird_trans *tr = Z_TRANSACTION_P(tr_o);
 
@@ -275,9 +273,8 @@ void register_FireBird_Transaction_ce()
     FireBird_Transaction_ce = zend_register_internal_class(&tmp_ce);
 
     DECLARE_PROP_OBJ(FireBird_Transaction_ce, database, FireBird\\Database, ZEND_ACC_PROTECTED_SET);
+    DECLARE_PROP_OBJ(FireBird_Transaction_ce, builder, FireBird\\TBuilder, ZEND_ACC_PROTECTED_SET);
     DECLARE_PROP_LONG(FireBird_Transaction_ce, id, ZEND_ACC_PROTECTED_SET);
-    DECLARE_PROP_LONG(FireBird_Transaction_ce, trans_args, ZEND_ACC_PROTECTED_SET);
-    DECLARE_PROP_LONG(FireBird_Transaction_ce, lock_timeout, ZEND_ACC_PROTECTED_SET);
     DECLARE_ERR_PROPS(FireBird_Transaction_ce);
 
     zend_class_implements(FireBird_Transaction_ce, 1, FireBird_IError_ce);
@@ -291,58 +288,54 @@ void register_FireBird_Transaction_ce()
     FireBird_Transaction_object_handlers.free_obj = FireBird_Transaction_free_obj;
 }
 
-// TODO: maybe report conflicting flags?
-static void _php_firebird_populate_tpb(zend_long trans_argl, zend_long trans_timeout, char *last_tpb, unsigned short *len)
+static void transaction_populate_tpb(firebird_tbuilder *builder, char *tpb, unsigned short *tpb_len)
 {
-    unsigned short tpb_len = 0;
+    char *p = tpb;
 
-    *len = tpb_len;
+    *p++ = isc_tpb_version3;
 
-    if (trans_argl == 0) {
-        return;
-    }
+    *p++ = builder->read_only ? isc_tpb_read : isc_tpb_write;
+    if (builder->ignore_limbo) *p++ = isc_tpb_ignore_limbo;
+    if (builder->auto_commit) *p++ = isc_tpb_autocommit;
+    if (builder->no_auto_undo) *p++ = isc_tpb_no_auto_undo;
 
-    last_tpb[tpb_len++] = isc_tpb_version3;
-
-    if (PHP_FIREBIRD_IGNORE_LIMBO == (trans_argl & PHP_FIREBIRD_IGNORE_LIMBO)) {
-        last_tpb[tpb_len++] = isc_tpb_ignore_limbo;
-    }
-
-    /* access mode */
-    if (PHP_FIREBIRD_READ == (trans_argl & PHP_FIREBIRD_READ)) {
-        last_tpb[tpb_len++] = isc_tpb_read;
-    } else if (PHP_FIREBIRD_WRITE == (trans_argl & PHP_FIREBIRD_WRITE)) {
-        last_tpb[tpb_len++] = isc_tpb_write;
-    }
-
-    /* isolation level */
-    if (PHP_FIREBIRD_COMMITTED == (trans_argl & PHP_FIREBIRD_COMMITTED)) {
-        last_tpb[tpb_len++] = isc_tpb_read_committed;
-        if (PHP_FIREBIRD_REC_VERSION == (trans_argl & PHP_FIREBIRD_REC_VERSION)) {
-            last_tpb[tpb_len++] = isc_tpb_rec_version;
-        } else if (PHP_FIREBIRD_REC_NO_VERSION == (trans_argl & PHP_FIREBIRD_REC_NO_VERSION)) {
-            last_tpb[tpb_len++] = isc_tpb_no_rec_version;
+    if (builder->isolation_mode == 0) {
+        *p++ = isc_tpb_consistency;
+    } else if (builder->isolation_mode == 1) {
+        *p++ = isc_tpb_concurrency;
+        if (builder->snapshot_at_number) {
+            *p++ = isc_tpb_at_snapshot_number;
+            *p++ = sizeof(builder->snapshot_at_number);
+            store_portable_integer(p, builder->snapshot_at_number, sizeof(builder->snapshot_at_number));
+            p += sizeof(builder->snapshot_at_number);
         }
-    } else if (PHP_FIREBIRD_CONSISTENCY == (trans_argl & PHP_FIREBIRD_CONSISTENCY)) {
-        last_tpb[tpb_len++] = isc_tpb_consistency;
-    } else if (PHP_FIREBIRD_CONCURRENCY == (trans_argl & PHP_FIREBIRD_CONCURRENCY)) {
-        last_tpb[tpb_len++] = isc_tpb_concurrency;
+    } else if (builder->isolation_mode == 2) {
+        *p++ = isc_tpb_read_committed;
+        *p++ = isc_tpb_rec_version;
+    } else if (builder->isolation_mode == 3) {
+        *p++ = isc_tpb_read_committed;
+        *p++ = isc_tpb_no_rec_version;
+    } else if (builder->isolation_mode == 4) {
+        *p++ = isc_tpb_read_committed;
+        *p++ = isc_tpb_read_consistency;
+    } else {
+        fbp_fatal("BUG! unknown transaction isolation_mode: %d", builder->isolation_mode);
     }
 
-    /* lock resolution */
-    if (PHP_FIREBIRD_NOWAIT == (trans_argl & PHP_FIREBIRD_NOWAIT)) {
-        last_tpb[tpb_len++] = isc_tpb_nowait;
-    } else if (PHP_FIREBIRD_WAIT == (trans_argl & PHP_FIREBIRD_WAIT)) {
-        last_tpb[tpb_len++] = isc_tpb_wait;
-        if (PHP_FIREBIRD_LOCK_TIMEOUT == (trans_argl & PHP_FIREBIRD_LOCK_TIMEOUT)) {
-            last_tpb[tpb_len++] = isc_tpb_lock_timeout;
-            last_tpb[tpb_len++] = sizeof(ISC_SHORT);
-            last_tpb[tpb_len] = (ISC_SHORT)trans_timeout;
-            tpb_len += sizeof(ISC_SHORT);
-        }
+    if (builder->lock_timeout == 0) {
+        *p++ = isc_tpb_nowait;
+    } else if (builder->lock_timeout == -1) {
+        *p++ = isc_tpb_wait;
+    } else if (builder->lock_timeout > 0) {
+        *p++ = isc_tpb_lock_timeout;
+        *p++ = sizeof(builder->lock_timeout);
+        store_portable_integer(p, builder->lock_timeout, sizeof(builder->lock_timeout));
+        p += sizeof(builder->lock_timeout);
+    } else {
+        fbp_fatal("BUG! invalid lock_timeout: %d", builder->lock_timeout);
     }
 
-    *len = tpb_len;
+    *tpb_len = p - tpb;
 }
 
 static void _php_firebird_process_trans(INTERNAL_FUNCTION_PARAMETERS, int commit)
