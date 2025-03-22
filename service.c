@@ -137,6 +137,21 @@ int service_get_server_info(ISC_STATUS_ARRAY status, zval *service, zval *server
         p += len;                                          \
     } break
 
+#define READ_UI_STRING(name)                                       \
+    case isc_spb_sec_##name: {                                     \
+        len = isc_portable_integer(p, 2); p += 2;                  \
+        zend_update_property_stringl(FireBird_Server_User_Info_ce, \
+            Z_OBJ(user_info), #name, sizeof(#name) - 1, p, len);   \
+    } break
+
+#define READ_UI_LONG(name)                                      \
+    case isc_spb_sec_##name: {                                  \
+        len = 4;                                                \
+        zend_update_property_long(FireBird_Server_User_Info_ce, \
+            Z_OBJ(user_info), #name, sizeof(#name) - 1,         \
+            isc_portable_integer(p, len));                      \
+    } break
+
     while (p < end && *p != isc_info_end) {
         tag = *p++;
         FBDEBUG_NOFL("  tag: %d", tag);
@@ -184,21 +199,6 @@ int service_get_server_info(ISC_STATUS_ARRAY status, zval *service, zval *server
                 zval_ptr_dtor(&dbname);
             } break;
 
-#define READ_UI_STRING(name)                                       \
-    case isc_spb_sec_##name: {                                     \
-        len = isc_portable_integer(p, 2); p += 2;                  \
-        zend_update_property_stringl(FireBird_Server_User_Info_ce, \
-            Z_OBJ(user_info), #name, sizeof(#name) - 1, p, len);   \
-    } break
-
-#define READ_UI_LONG(name)                                      \
-    case isc_spb_sec_##name: {                                  \
-        len = 4;                                                \
-        zend_update_property_long(FireBird_Server_User_Info_ce, \
-            Z_OBJ(user_info), #name, sizeof(#name) - 1,         \
-            isc_portable_integer(p, len));                      \
-    } break
-
             // TODO: need start service
             case isc_info_svc_get_users: {
                 get_users_requested = 1;
@@ -219,11 +219,11 @@ int service_get_server_info(ISC_STATUS_ARRAY status, zval *service, zval *server
 
                         case isc_info_truncated: {
                             fbp_error("Server user info buffer error: truncated");
-                        } return FAILURE;
+                        } goto error;
 
                         case isc_info_error: {
                             fbp_error("Server user info buffer error");
-                        } return FAILURE;
+                        } goto error;
 
                         default: {
                             fbp_fatal("BUG! Unhandled isc_info_svc_get_users tag: %d", (char)*(p - 1));
@@ -235,14 +235,14 @@ int service_get_server_info(ISC_STATUS_ARRAY status, zval *service, zval *server
             } break;
 
             case isc_info_truncated: {
-                _php_firebird_module_error("Server info buffer error: truncated");
-            } return FAILURE;
+                fbp_error("Server info buffer error: truncated");
+            } goto error;
             case isc_info_error: {
-                _php_firebird_module_error("Server info buffer error");
-            } return FAILURE;
+                fbp_error("Server info buffer error");
+            } goto error;
 
             default: {
-                _php_firebird_module_fatal("BUG! Unhandled isc_info_svc_* tag: %d", tag);
+                fbp_fatal("BUG! Unhandled isc_info_svc_* tag: %d", tag);
             } break;
         }
     }
@@ -253,6 +253,10 @@ int service_get_server_info(ISC_STATUS_ARRAY status, zval *service, zval *server
     zval_ptr_dtor(&users);
 
     return SUCCESS;
+
+error:
+    zval_ptr_dtor(&users);
+    return FAILURE;
 }
 
 PHP_METHOD(Service, get_server_info)
