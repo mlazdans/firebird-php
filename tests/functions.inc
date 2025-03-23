@@ -241,7 +241,7 @@ function replace_binary(string $data): string
 function run_tests(\FireBird\Transaction $t, array $select_tests): array
 {
     $results = [];
-    foreach($select_tests as [$test_name, $sql, $bind_args, $fetch_flags]) {
+    foreach($select_tests as $i=>[$test_name, $sql, $bind_args, $fetch_flags]) {
         $test_results = [];
         printf("%s\n", str_pad("$test_name ", 79, "-", STR_PAD_RIGHT));
         if($s = $t->query($sql, ...$bind_args)) {
@@ -253,10 +253,10 @@ function run_tests(\FireBird\Transaction $t, array $select_tests): array
             }
 
             if(false === $r) {
-                print_error_and_die("fetch", $s);
+                print_error_and_die("fetch [$i]", $s);
             }
         } else {
-            print_error_and_die("query", $t);
+            print_error_and_die("query [$i]", $t);
         }
         print "\n";
 
