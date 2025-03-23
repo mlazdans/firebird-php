@@ -177,9 +177,7 @@ class Database implements IError
     /** @return bool */
     function on_event(string $name, callable $f) {}
 
-    /**
-     * @return Transaction
-     * */
+    /** @return Transaction */
     function new_transaction(?TBuilder $tb = null) {}
 
     /** @return Transaction|false */
@@ -197,8 +195,9 @@ class Transaction implements IError
 {
     use Fb_Error;
 
-    protected(set) Database $database;
     protected(set) int $id;
+    protected(set) Database $database;
+    protected(set) TBuilder $builder;
 
     private function __construct() {}
 
@@ -348,6 +347,14 @@ class Service implements IError
  */
 class TBuilder
 {
+    readonly bool $is_read_only;
+    readonly bool $is_ignore_limbo;
+    readonly bool $is_auto_commit;
+    readonly bool $is_no_auto_undo;
+    readonly int $isolation_mode;
+    readonly int $lock_timeout;
+    readonly int $snapshot_at_number;
+
     /** @return static  */
     function read_only(bool $enable = true) {}
 
@@ -390,4 +397,6 @@ class TBuilder
 
     /** @return static  */
     function isolation_read_committed_read_consistency() {}
+
+    function dump_state(): void {}
 }
