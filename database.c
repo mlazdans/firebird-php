@@ -148,13 +148,10 @@ PHP_METHOD(Database, drop)
 }
 
 int database_get_info(ISC_STATUS_ARRAY status, isc_db_handle *db_handle, firebird_db_info *db_info,
-    size_t info_req_size, char *info_req,
-    size_t info_resp_size, char *info_resp,
-    size_t max_limbo_count)
+    size_t info_req_size, char *info_req, size_t info_resp_size, char *info_resp, size_t max_limbo_count)
 {
-    if (isc_database_info(status, db_handle,
-        info_req_size, info_req, info_resp_size, info_resp)) {
-            return FAILURE;
+    if (isc_database_info(status, db_handle, info_req_size, info_req, info_resp_size, info_resp)) {
+        return FAILURE;
     }
 
     // TODO: IXpbBuilder code duplication all over the place.
@@ -166,21 +163,48 @@ int database_get_info(ISC_STATUS_ARRAY status, isc_db_handle *db_handle, firebir
 
     dpb = IUtil_getXpbBuilder(utl, st, IXpbBuilder_INFO_RESPONSE, info_resp, info_resp_size);
 
-    ISC_INT64 len, total_len = 0;
+    const char *str;
+    ISC_INT64 len; // total_len = 0;
     size_t limbo_count = 0;
 
-#define READ_BIGINT(tag) \
-    case isc_info_##tag: db_info->info_##tag = IXpbBuilder_getBigInt(dpb, st); break
+#define READ_BIGINT(item) \
+    case isc_info_##item: db_info->info_##item = IXpbBuilder_getBigInt(dpb, st); break
+
+#define READ_STR_ARRAY(item) \
+    case isc_info_##item: { \
+        ISC_UCHAR count = *b++; \
+        ISC_UCHAR str_len; \
+        array_init(&db_info->info_##item); \
+        FBDEBUG_NOFL("  count: %d", count); \
+        for (int i = 0; i < count; i++) { \
+            str_len = *b++; \
+            FBDEBUG_NOFL("  item: %.*s", str_len, b); \
+            add_next_index_stringl(&db_info->info_##item, b, str_len); \
+            b += str_len; \
+        } \
+    } break
 
     FBDEBUG("Parsing DB info buffer");
+    if (Z_TYPE(db_info->info_limbo) != IS_ARRAY) {
+        array_init(&db_info->info_limbo);
+    }
+
     for (IXpbBuilder_rewind(dpb, st); !IXpbBuilder_isEof(dpb, st); IXpbBuilder_moveNext(dpb, st)) {
-        unsigned char tag = IXpbBuilder_getTag(dpb, st); total_len++;
+        unsigned char tag = IXpbBuilder_getTag(dpb, st);
         const ISC_UCHAR* b = IXpbBuilder_getBytes(dpb, st);
-        len = IXpbBuilder_getLength(dpb, st); total_len += 2;
-        total_len += len;
+        len = IXpbBuilder_getLength(dpb, st);
 
         switch(tag) {
-            READ_BIGINT(db_id);
+            // b[0] holds count of entries, at the moment = 1
+            // b[1] holds str length
+            // b[2] holds pointer to str (not null terminated)
+            READ_STR_ARRAY(isc_version);
+            READ_STR_ARRAY(firebird_version);
+
+            // case : {
+            //     dump_buffer(b, len);
+            // } break;
+
             READ_BIGINT(reads);
             READ_BIGINT(writes);
             READ_BIGINT(fetches);
@@ -188,8 +212,8 @@ int database_get_info(ISC_STATUS_ARRAY status, isc_db_handle *db_handle, firebir
             READ_BIGINT(page_size);
             READ_BIGINT(num_buffers);
             case isc_info_limbo: {
-                if(limbo_count < max_limbo_count) {
-                    db_info->info_limbo[limbo_count++] = IXpbBuilder_getBigInt(dpb, st);
+                if(limbo_count++ < max_limbo_count) {
+                    add_next_index_long(&db_info->info_limbo, IXpbBuilder_getBigInt(dpb, st));
                 } else {
                     IXpbBuilder_moveNext(dpb, st);
                 }
@@ -207,6 +231,11 @@ int database_get_info(ISC_STATUS_ARRAY status, isc_db_handle *db_handle, firebir
             READ_BIGINT(backout_count);
             READ_BIGINT(purge_count);
             READ_BIGINT(expunge_count);
+
+            READ_BIGINT(sweep_interval);
+            READ_BIGINT(ods_version);
+            READ_BIGINT(ods_minor_version);
+            READ_BIGINT(no_reserve);
 
             // All fields populated, not sure if needed
             // case fb_info_features: {
@@ -233,8 +262,6 @@ int database_get_info(ISC_STATUS_ARRAY status, isc_db_handle *db_handle, firebir
         }
     }
 
-    db_info->info_limbo_count = limbo_count;
-
     return SUCCESS;
 }
 
@@ -245,28 +272,27 @@ PHP_METHOD(Database, get_info)
     ISC_STATUS_ARRAY status = { 0 };
     firebird_db *db = Z_DB_P(ZEND_THIS);
 
-    // Full info, except limbo
+    // firebird\src\jrd\inf.cpp
     static char info_req[] = {
-        isc_info_db_id,
+        // isc_info_db_id              Not very useful. Path to DB, HOST, sizable byte array, needs parsing
         isc_info_reads,
         isc_info_writes,
         isc_info_fetches,
         isc_info_marks,
 
-        // isc_info_implementation,
-        // isc_info_isc_version / isc_info_firebird_version,
-        // isc_info_base_level,
+        // isc_info_implementation     Bunch of codes from info_db_implementations, needs parsing
+        isc_info_isc_version,
+        // isc_info_base_level         This info item is so old it apparently uses an archaic format, not a standard vax integer format
         isc_info_page_size,
         isc_info_num_buffers,
-        // isc_info_limbo, // this will return a list, need parse into an array
+        // isc_info_limbo              Will fetch with get_limbo_transactions()
         isc_info_current_memory,
         isc_info_max_memory,
-        // isc_info_window_turns, / unused?
-        // isc_info_license, / unused?
+        // isc_info_window_turns       Unused
+        // isc_info_license            Unused
 
         isc_info_allocation,
         isc_info_attachment_id,
-
         // These are per table?
         isc_info_read_seq_count,
         isc_info_read_idx_count,
@@ -277,7 +303,101 @@ PHP_METHOD(Database, get_info)
         isc_info_purge_count,
         isc_info_expunge_count,
 
-        // fb_info_features,
+        isc_info_sweep_interval,
+        isc_info_ods_version,
+        isc_info_ods_minor_version,
+        isc_info_no_reserve,
+
+        // Some deprecated WAL and JOURNAL items was not added here
+
+        // isc_info_forced_writes		= 52,
+        // isc_info_user_names = 53,
+        // isc_info_page_errors = 54,
+        // isc_info_record_errors = 55,
+        // isc_info_bpage_errors = 56,
+        // isc_info_dpage_errors = 57,
+        // isc_info_ipage_errors = 58,
+        // isc_info_ppage_errors = 59,
+        // isc_info_tpage_errors = 60,
+
+        // isc_info_set_page_buffers = 61,
+        // isc_info_db_sql_dialect = 62,
+        // isc_info_db_read_only = 63,
+        // isc_info_db_size_in_pages = 64,
+
+        // frb_info_att_charset = 101,
+        // isc_info_db_class = 102,
+        isc_info_firebird_version,
+        // isc_info_oldest_transaction = 104,
+        // isc_info_oldest_active = 105,
+        // isc_info_oldest_snapshot = 106,
+        // isc_info_next_transaction = 107,
+        // isc_info_db_provider = 108,
+        // isc_info_active_transactions = 109,
+        // isc_info_active_tran_count = 110,
+        // isc_info_creation_date = 111,
+        // isc_info_db_file_size = 112,
+        // fb_info_page_contents = 113,
+
+        // fb_info_implementation                   Bunch of codes from info_db_implementations, needs parsing
+
+        // fb_info_page_warns = 115,
+        // fb_info_record_warns = 116,
+        // fb_info_bpage_warns = 117,
+        // fb_info_dpage_warns = 118,
+        // fb_info_ipage_warns = 119,
+        // fb_info_ppage_warns = 120,
+        // fb_info_tpage_warns = 121,
+        // fb_info_pip_errors = 122,
+        // fb_info_pip_warns = 123,
+
+        // fb_info_pages_used = 124,
+        // fb_info_pages_free = 125,
+
+        // fb_info_ses_idle_timeout_db = 129,
+        // fb_info_ses_idle_timeout_att = 130,
+        // fb_info_ses_idle_timeout_run = 131,
+
+        // fb_info_conn_flags = 132,
+
+        // fb_info_crypt_key = 133,
+        // fb_info_crypt_state = 134,
+
+        // fb_info_statement_timeout_db = 135,
+        // fb_info_statement_timeout_att = 136,
+
+        // fb_info_protocol_version = 137,
+        // fb_info_crypt_plugin = 138,
+
+        // fb_info_creation_timestamp_tz = 139,
+
+        // fb_info_wire_crypt = 140,
+
+        // fb_info_features                          Results of info_features. All features filled on FB5.0. Test on older versions
+
+        // fb_info_next_attachment = 142,
+        // fb_info_next_statement = 143,
+
+        // fb_info_db_guid = 144,
+        // fb_info_db_file_id = 145,
+
+        // fb_info_replica_mode = 146,
+
+        // fb_info_username = 147,
+        // fb_info_sqlrole = 148,
+
+        // fb_info_parallel_workers = 149,
+
+        // Wire stats items, implemented by Remote provider only
+        // fb_info_wire_out_packets = 150,
+        // fb_info_wire_in_packets = 151,
+        // fb_info_wire_out_bytes = 152,
+        // fb_info_wire_in_bytes = 153,
+        // fb_info_wire_snd_packets = 154,
+        // fb_info_wire_rcv_packets = 155,
+        // fb_info_wire_snd_bytes = 156,
+        // fb_info_wire_rcv_bytes = 157,
+        // fb_info_wire_roundtrips = 158,
 
         isc_info_end
     };
@@ -311,7 +431,6 @@ PHP_METHOD(Database, get_info)
 #define UP_LONG(name) \
     zend_update_property_long(FireBird_Db_Info_ce, Z_OBJ_P(return_value), #name, sizeof(#name) - 1, db->info.info_##name)
 
-    UP_LONG(db_id);
     UP_LONG(reads);
     UP_LONG(writes);
     UP_LONG(fetches);
@@ -332,6 +451,23 @@ PHP_METHOD(Database, get_info)
     UP_LONG(backout_count);
     UP_LONG(purge_count);
     UP_LONG(expunge_count);
+
+    UP_LONG(sweep_interval);
+    UP_LONG(ods_version);
+    UP_LONG(ods_minor_version);
+    UP_LONG(no_reserve);
+
+    if (Z_TYPE(db->info.info_isc_version) == IS_ARRAY) {
+        zend_update_property(FireBird_Db_Info_ce, Z_OBJ_P(return_value), "isc_version", sizeof("isc_version") - 1, &db->info.info_isc_version);
+    }
+
+    if (Z_TYPE(db->info.info_firebird_version) == IS_ARRAY) {
+        zend_update_property(FireBird_Db_Info_ce, Z_OBJ_P(return_value), "firebird_version", sizeof("firebird_version") - 1, &db->info.info_firebird_version);
+    }
+
+    if (Z_TYPE(db->info.info_limbo) == IS_ARRAY) {
+        zend_update_property(FireBird_Db_Info_ce, Z_OBJ_P(return_value), "limbo", sizeof("limbo") - 1, &db->info.info_limbo);
+    }
 }
 
 PHP_METHOD(Database, on_event)
@@ -462,29 +598,19 @@ PHP_METHOD(Database, get_limbo_transactions)
     }
 
     static char info_req[] = { isc_info_limbo, isc_info_end };
-    char info_resp[1024] = { 0 }; // TODO: depending on max_count
+    char info_resp[1024] = { 0 }; // TODO: depending on max_count, roughly 7 bytes per transaction id
 
     firebird_db *db = Z_DB_P(ZEND_THIS);
     firebird_db_info info = { 0 };
-    info.info_limbo = emalloc(sizeof(info.info_limbo) * max_count);
 
+    array_init(&info.info_limbo);
     if(database_get_info(status, &db->db_handle, &info, sizeof(info_req), info_req, sizeof(info_resp), info_resp, max_count)) {
         update_err_props(status, FireBird_Database_ce, ZEND_THIS);
+        zval_ptr_dtor(&info.info_limbo);
         RETURN_FALSE;
     }
 
-    FBDEBUG("get_limbo_transactions OK");
-
-    array_init(return_value);
-    HashTable *ht_tr = Z_ARRVAL_P(return_value);
-
-    for (ISC_INT64 i = 0; i < info.info_limbo_count; i++) {
-        FBDEBUG_NOFL("  ID: %u", info.info_limbo[i]);
-        ZVAL_LONG(&tr_id, info.info_limbo[i]);
-        zend_hash_next_index_insert(ht_tr, &tr_id);
-    }
-
-    efree(info.info_limbo);
+    ZVAL_ARR(return_value, Z_ARR(info.info_limbo));
 }
 
 const zend_function_entry FireBird_Database_methods[] = {
@@ -527,6 +653,10 @@ static void FireBird_Database_free_obj(zend_object *obj)
             db->db_handle = 0;
         }
     }
+
+    zval_ptr_dtor(&db->info.info_isc_version);
+    zval_ptr_dtor(&db->info.info_firebird_version);
+    zval_ptr_dtor(&db->info.info_limbo);
 
     zend_object_std_dtor(&db->std);
 }

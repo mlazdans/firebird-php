@@ -100,24 +100,32 @@ firebird_xpb_zmap service_connect_zmap = XPB_ZMAP_INIT(
 
 firebird_xpb_zmap database_info_zmap = XPB_ZMAP_INIT(
     ((const char []){
-        isc_info_db_id, isc_info_reads, isc_info_writes, isc_info_fetches, isc_info_marks,
+        isc_info_reads, isc_info_writes, isc_info_fetches, isc_info_marks,
         isc_info_page_size, isc_info_num_buffers, isc_info_current_memory, isc_info_max_memory,
 
         isc_info_allocation, isc_info_attachment_id, isc_info_read_seq_count, isc_info_read_idx_count, isc_info_insert_count,
         isc_info_update_count, isc_info_delete_count, isc_info_backout_count, isc_info_purge_count, isc_info_expunge_count,
+
+        isc_info_isc_version, isc_info_firebird_version, isc_info_limbo,
+        isc_info_sweep_interval, isc_info_ods_version, isc_info_ods_minor_version, isc_info_no_reserve,
     }),
     ((const char *[]){
-        "db_id", "reads", "writes", "fetches", "marks",
+        "reads", "writes", "fetches", "marks",
         "page_size", "num_buffers", "current_memory", "max_memory",
 
         "allocation", "attachment_id", "read_seq_count", "read_idx_count", "insert_count",
         "update_count", "delete_count", "backout_count", "purge_count", "expunge_count",
+
+        "isc_version", "firebird_version", "limbo",
+        "sweep_interval", "ods_version", "ods_minor_version", "no_reserve",
     }),
     ((uint32_t []) {
-        MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG,
+        MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG,
         MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG,
         MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG,
         MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG,
+        MAY_BE_ARRAY, MAY_BE_ARRAY, MAY_BE_ARRAY,
+        MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG,
     })
 );
 

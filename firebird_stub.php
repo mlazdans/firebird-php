@@ -49,11 +49,10 @@ class Error
 
 class Db_Info
 {
-	public int $db_id { get; }
-	public int $reads { get; }
-	public int $writes { get; }
-	public int $fetches { get; }
-	public int $marks { get; }
+    public int $reads { get; }
+    public int $writes { get; }
+    public int $fetches { get; }
+    public int $marks { get; }
 
     public int $page_size { get; }
     public int $num_buffers { get; }
@@ -70,6 +69,15 @@ class Db_Info
     public int $backout_count { get; }
     public int $purge_count { get; }
     public int $expunge_count { get; }
+
+    public array $isc_version { get; }
+    public array $firebird_version { get; }
+    public array $limbo { get; }
+
+    public int $sweep_interval { get; }
+    public int $ods_version { get; }
+    public int $ods_minor_version { get; }
+    public int $no_reserve { get; }
 }
 
 class Blob_Info

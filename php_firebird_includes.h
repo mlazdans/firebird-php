@@ -83,7 +83,6 @@ typedef struct {
 } firebird_array;
 
 typedef struct firebird_db_info {
-    ISC_LONG info_db_id;
     ISC_LONG info_reads;
     ISC_LONG info_writes;
     ISC_LONG info_fetches;
@@ -91,8 +90,6 @@ typedef struct firebird_db_info {
 
     ISC_LONG info_page_size;
     ISC_LONG info_num_buffers;
-    ISC_LONG *info_limbo;
-    ISC_LONG info_limbo_count;
     ISC_LONG info_current_memory;
     ISC_LONG info_max_memory;
 
@@ -106,6 +103,15 @@ typedef struct firebird_db_info {
     ISC_LONG info_backout_count;
     ISC_LONG info_purge_count;
     ISC_LONG info_expunge_count;
+
+    ISC_LONG info_sweep_interval;
+    ISC_LONG info_ods_version;
+    ISC_LONG info_ods_minor_version;
+    ISC_LONG info_no_reserve;
+
+    zval info_isc_version;
+    zval info_firebird_version;
+    zval info_limbo;
 } firebird_db_info;
 
 typedef struct firebird_db {
@@ -593,9 +599,7 @@ int blob_close(ISC_STATUS_ARRAY status, firebird_blob *blob);
 int blob_put(ISC_STATUS_ARRAY status, firebird_blob *blob, const char *buf, size_t buf_size);
 void blob_id___construct(zval *blob_id_o, ISC_QUAD bl_id);
 int database_get_info(ISC_STATUS_ARRAY status, isc_db_handle *db_handle, firebird_db_info *db_info,
-    size_t info_req_size, char *info_req,
-    size_t info_resp_size, char *info_resp,
-    size_t max_limbo_count);
+    size_t info_req_size, char *info_req, size_t info_resp_size, char *info_resp, size_t max_limbo_count);
 void event_ast_routine(void *_ev, ISC_USHORT length, const ISC_UCHAR *result_buffer);
 void tbuilder_populate_tpb(firebird_tbuilder *builder, char *tpb, unsigned short *tpb_len);
 
