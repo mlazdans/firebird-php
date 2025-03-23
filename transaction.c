@@ -10,7 +10,6 @@ zend_class_entry *FireBird_Transaction_ce;
 static zend_object_handlers FireBird_Transaction_object_handlers;
 
 static void _php_firebird_process_trans(INTERNAL_FUNCTION_PARAMETERS, int commit);
-static void transaction_populate_tpb(firebird_tbuilder *builder, char *last_tpb, unsigned short *len);
 
 #define ROLLBACK    0
 #define COMMIT      1
@@ -47,7 +46,8 @@ int transaction_start(ISC_STATUS_ARRAY status, zval *tr_o)
     builder_o = zend_read_property(FireBird_TBuilder_ce, O_GET(tr_o, builder), 1, &rv);
     if (Z_TYPE_P(builder_o) != IS_NULL) {
         firebird_tbuilder *builder = Z_TBUILDER_P(builder_o);
-        transaction_populate_tpb(builder, tpb, &tpb_len);
+        tbuilder_populate_tpb(builder, tpb, &tpb_len);
+        ZEND_ASSERT(tpb_len <= sizeof(tpb));
     }
 
     firebird_trans *tr = Z_TRANSACTION_P(tr_o);
@@ -286,56 +286,6 @@ void register_FireBird_Transaction_ce()
 
     FireBird_Transaction_object_handlers.offset = XtOffsetOf(firebird_trans, std);
     FireBird_Transaction_object_handlers.free_obj = FireBird_Transaction_free_obj;
-}
-
-static void transaction_populate_tpb(firebird_tbuilder *builder, char *tpb, unsigned short *tpb_len)
-{
-    char *p = tpb;
-
-    *p++ = isc_tpb_version3;
-
-    *p++ = builder->read_only ? isc_tpb_read : isc_tpb_write;
-    if (builder->ignore_limbo) *p++ = isc_tpb_ignore_limbo;
-    if (builder->auto_commit) *p++ = isc_tpb_autocommit;
-    if (builder->no_auto_undo) *p++ = isc_tpb_no_auto_undo;
-
-    if (builder->isolation_mode == 0) {
-        *p++ = isc_tpb_consistency;
-    } else if (builder->isolation_mode == 1) {
-        *p++ = isc_tpb_concurrency;
-        if (builder->snapshot_at_number) {
-            *p++ = isc_tpb_at_snapshot_number;
-            *p++ = sizeof(builder->snapshot_at_number);
-            store_portable_integer(p, builder->snapshot_at_number, sizeof(builder->snapshot_at_number));
-            p += sizeof(builder->snapshot_at_number);
-        }
-    } else if (builder->isolation_mode == 2) {
-        *p++ = isc_tpb_read_committed;
-        *p++ = isc_tpb_rec_version;
-    } else if (builder->isolation_mode == 3) {
-        *p++ = isc_tpb_read_committed;
-        *p++ = isc_tpb_no_rec_version;
-    } else if (builder->isolation_mode == 4) {
-        *p++ = isc_tpb_read_committed;
-        *p++ = isc_tpb_read_consistency;
-    } else {
-        fbp_fatal("BUG! unknown transaction isolation_mode: %d", builder->isolation_mode);
-    }
-
-    if (builder->lock_timeout == 0) {
-        *p++ = isc_tpb_nowait;
-    } else if (builder->lock_timeout == -1) {
-        *p++ = isc_tpb_wait;
-    } else if (builder->lock_timeout > 0) {
-        *p++ = isc_tpb_lock_timeout;
-        *p++ = sizeof(builder->lock_timeout);
-        store_portable_integer(p, builder->lock_timeout, sizeof(builder->lock_timeout));
-        p += sizeof(builder->lock_timeout);
-    } else {
-        fbp_fatal("BUG! invalid lock_timeout: %d", builder->lock_timeout);
-    }
-
-    *tpb_len = p - tpb;
 }
 
 static void _php_firebird_process_trans(INTERNAL_FUNCTION_PARAMETERS, int commit)

@@ -39,7 +39,7 @@
 #define METADATALENGTH 68
 #endif
 
-#define TPB_MAX_SIZE (8*sizeof(char))
+#define TPB_MAX_SIZE (32)
 
 #ifdef FIREBIRD_DEBUG
 #define FBDEBUG(format, ...) if(FBG(debug))php_printf(format " (%s:%d)\n" __VA_OPT__(,) __VA_ARGS__, __FILE__, __LINE__);
@@ -588,6 +588,7 @@ int database_get_info(ISC_STATUS_ARRAY status, isc_db_handle *db_handle, firebir
     size_t info_resp_size, char *info_resp,
     size_t max_limbo_count);
 void event_ast_routine(void *_ev, ISC_USHORT length, const ISC_UCHAR *result_buffer);
+void tbuilder_populate_tpb(firebird_tbuilder *builder, char *tpb, unsigned short *tpb_len);
 
 #define fbp_error(msg, ...) _php_firebird_module_error(msg " (%s:%d)\n" __VA_OPT__(,) __VA_ARGS__, __FILE__, __LINE__)
 #define fbp_fatal(msg, ...) _php_firebird_module_fatal(msg " (%s:%d)\n" __VA_OPT__(,) __VA_ARGS__, __FILE__, __LINE__)
