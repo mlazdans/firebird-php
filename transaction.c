@@ -294,9 +294,9 @@ static void transaction_process(INTERNAL_FUNCTION_PARAMETERS, int mode)
 
     if (mode == COMMIT) {
         result = isc_commit_transaction(status, &tr->tr_handle);
-    } else if (mode == ROLLBACK | RETAIN) {
+    } else if (mode == (ROLLBACK | RETAIN)) {
         result = isc_rollback_retaining(status, &tr->tr_handle);
-    } else if (mode == COMMIT | RETAIN) {
+    } else if (mode == (COMMIT | RETAIN)) {
         result = isc_commit_retaining(status, &tr->tr_handle);
     } else {
         result = isc_rollback_transaction(status, &tr->tr_handle);
