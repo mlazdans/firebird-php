@@ -132,6 +132,8 @@ PHP_METHOD(Transaction, prepare)
     }
 }
 
+// TODO: should be possible to query database w/o explicit transaction
+// For example SET TRANSACTION
 PHP_METHOD(Transaction, query)
 {
     zval rv, *bind_args;

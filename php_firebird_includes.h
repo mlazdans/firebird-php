@@ -299,6 +299,8 @@ void _php_firebird_module_fatal(char *, ...)
     zend_string_release(prop_##name##_name);                                          \
 } while (0)
 
+// TODO: these macros are very bad idea because not type checking. It is easy to
+// make mistakes calling these on *zend_object or *zval and vice versa
 #define Z_TRANSACTION_O(zobj) \
     ((firebird_trans*)((char*)(zobj) - XtOffsetOf(firebird_trans, std)))
 
