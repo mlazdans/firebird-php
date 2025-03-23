@@ -248,15 +248,15 @@ static void FireBird_Transaction_free_obj(zend_object *obj)
 
     firebird_trans *tr = Z_TRANSACTION_O(obj);
 
-    // Let Firebird auto handle this
-    // if(tr->tr_handle && !tr->disconnected) {
-    //     ISC_STATUS_ARRAY status;
-    //     if(isc_rollback_transaction(status, &tr->tr_handle)) {
-    //         status_fbp_error(status);
-    //     } else {
-    //         tr->tr_handle = 0;
-    //     }
-    // }
+    // MAYBE: not to close automatically in some strict mode or smth
+    if(tr->tr_handle && !tr->is_prepared_2pc) {
+        ISC_STATUS_ARRAY status;
+        if(isc_rollback_transaction(status, &tr->tr_handle)) {
+            status_fbp_error(status);
+        } else {
+            tr->tr_handle = 0;
+        }
+    }
 
     zend_object_std_dtor(&tr->std);
 }
