@@ -59,27 +59,30 @@ static PHP_GINIT_FUNCTION(firebird);
 firebird_xpb_zmap database_create_zmap = XPB_ZMAP_INIT(
     ((const char []){
         isc_dpb_user_name, isc_dpb_password, isc_dpb_set_db_charset, isc_dpb_sweep_interval,
-        isc_dpb_set_page_buffers, isc_dpb_page_size, isc_dpb_force_write, isc_dpb_overwrite
+        isc_dpb_set_page_buffers, isc_dpb_page_size, isc_dpb_force_write, isc_dpb_overwrite,
+        isc_dpb_connect_timeout
     }),
     ((const char *[]){
         "user_name", "password", "set_db_charset", "sweep_interval",
-        "set_page_buffers", "page_size", "force_write", "overwrite"
+        "set_page_buffers", "page_size", "force_write", "overwrite",
+        "timeout"
     }),
     ((uint32_t []) {
         MAY_BE_STRING, MAY_BE_STRING, MAY_BE_STRING, MAY_BE_LONG,
-        MAY_BE_LONG, MAY_BE_LONG, MAY_BE_BOOL, MAY_BE_BOOL
+        MAY_BE_LONG, MAY_BE_LONG, MAY_BE_BOOL, MAY_BE_BOOL,
+        MAY_BE_LONG
     })
 );
 
 firebird_xpb_zmap database_connect_zmap = XPB_ZMAP_INIT(
     ((const char []){
-        isc_dpb_user_name, isc_dpb_password, isc_dpb_lc_ctype, isc_dpb_sql_role_name, isc_dpb_num_buffers
+        isc_dpb_user_name, isc_dpb_password, isc_dpb_lc_ctype, isc_dpb_sql_role_name, isc_dpb_num_buffers, isc_dpb_connect_timeout
     }),
     ((const char *[]){
-        "user_name", "password", "charset", "role_name", "num_buffers"
+        "user_name", "password", "charset", "role_name", "num_buffers", "timeout"
     }),
     ((uint32_t []) {
-        MAY_BE_STRING, MAY_BE_STRING, MAY_BE_STRING, MAY_BE_STRING, MAY_BE_LONG
+        MAY_BE_STRING, MAY_BE_STRING, MAY_BE_STRING, MAY_BE_STRING, MAY_BE_LONG, MAY_BE_LONG
     })
 );
 

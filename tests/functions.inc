@@ -211,6 +211,7 @@ function init_tmp_db(string $charset = "", bool $drop = true): \FireBird\Databas
     $args = new \FireBird\Create_Args;
     $args->database = $database;
     $args->page_size = 16 * 1024;
+    $args->timeout = 10;
     args_apply_defaults($args);
 
     // overrides

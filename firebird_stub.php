@@ -134,6 +134,7 @@ class Connect_Args
     var string $role_name;
     var string $charset;
     var int $num_buffers;
+    var int $timeout;
 }
 
 class Create_Args
@@ -147,6 +148,7 @@ class Create_Args
     var int $page_size;
     var bool $force_write;
     var bool $overwrite;
+    var int $timeout;
 }
 
 class Service_Connect_Args
