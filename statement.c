@@ -27,7 +27,7 @@ static int statement_bind(ISC_STATUS_ARRAY status, zval *stmt_o, XSQLDA *sqlda, 
 
 void statement_ctor(zval *stmt_o, zval *transaction)
 {
-    zend_update_property(FireBird_Statement_ce, O_SET(stmt_o, transaction));
+    OBJ_SET(FireBird_Statement_ce, stmt_o, "transaction", transaction);
 
     firebird_stmt *stmt = Z_STMT_P(stmt_o);
     firebird_trans *tr = Z_TRANSACTION_P(transaction);

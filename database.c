@@ -14,7 +14,7 @@ int database_connect(ISC_STATUS_ARRAY status, firebird_db *db)
     short num_dpb_written;
 
     // TODO: check if instance of Create_Args
-    database = zend_read_property(FireBird_Connect_Args_ce, O_GET(&db->args, database), 0, &rv);
+    database = OBJ_GET(FireBird_Connect_Args_ce, &db->args, "database", &rv);
 
     if ((Z_TYPE_P(database) != IS_STRING) || !Z_STRLEN_P(database)) {
         zend_throw_exception_ex(zend_ce_value_error, 0, "database argument is not set");
@@ -46,7 +46,7 @@ PHP_METHOD(Database, connect)
 
     ZVAL_COPY_VALUE(&db->args, args);
 
-    zend_update_property(FireBird_Database_ce, THIS_SET(args));
+    OBJ_SET(FireBird_Database_ce, ZEND_THIS, "args", args);
 
     if (FAILURE == database_connect(status, db)) {
         update_err_props(status, FireBird_Database_ce, ZEND_THIS);
@@ -54,9 +54,6 @@ PHP_METHOD(Database, connect)
     }
 
     RETURN_TRUE;
-    // object_init_ex(return_value, FireBird_Connection_ce);
-    // connection_ctor(return_value, ZEND_THIS);
-    // zend_update_property(FireBird_Connection_ce, O_SET(return_value, args));
 }
 
 // Flags used by createDatabase() jrd/jrd.cpp
@@ -96,7 +93,7 @@ int database_create(ISC_STATUS_ARRAY status, zval *db_o, zval *args_o)
     short num_dpb_written;
     firebird_db *db = Z_DB_P(db_o);
 
-    database = zend_read_property(FireBird_Create_Args_ce, O_GET(args_o, database), 0, &rv);
+    database = OBJ_GET(FireBird_Connect_Args_ce, args_o, "database", &rv);
 
     if ((Z_TYPE_P(database) != IS_STRING) || !Z_STRLEN_P(database)) {
         zend_throw_exception_ex(zend_ce_value_error, 0, "Database parameter not set");
@@ -125,7 +122,7 @@ PHP_METHOD(Database, create)
         Z_PARAM_OBJECT_OF_CLASS(args, FireBird_Create_Args_ce)
     ZEND_PARSE_PARAMETERS_END();
 
-    zend_update_property(FireBird_Database_ce, THIS_SET(args));
+    OBJ_SET(FireBird_Database_ce, ZEND_THIS, "args", args);
 
     if (FAILURE == database_create(status, ZEND_THIS, args)) {
         update_err_props(status, FireBird_Database_ce, ZEND_THIS);
@@ -133,10 +130,6 @@ PHP_METHOD(Database, create)
     }
 
     RETURN_TRUE;
-
-    // object_init_ex(return_value, FireBird_Connection_ce);
-    // connection_ctor(return_value, ZEND_THIS);
-    // zend_update_property(FireBird_Connection_ce, O_SET(return_value, args));
 }
 
 PHP_METHOD(Database, drop)
@@ -471,7 +464,6 @@ PHP_METHOD(Database, get_limbo_transactions)
     static char info_req[] = { isc_info_limbo, isc_info_end };
     char info_resp[1024] = { 0 }; // TODO: depending on max_count
 
-    // database = zend_read_property(FireBird_Database_ce, THIS_GET(database), 0, &rv);
     firebird_db *db = Z_DB_P(ZEND_THIS);
     firebird_db_info info = { 0 };
     info.info_limbo = emalloc(sizeof(info.info_limbo) * max_count);

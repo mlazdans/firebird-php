@@ -25,9 +25,9 @@ void transaction_ctor(firebird_trans *tr, firebird_db *db)
 
 void transaction__construct(zval *tr, zval *database, zval *builder)
 {
-    zend_update_property(FireBird_Transaction_ce, O_SET(tr, database));
+    OBJ_SET(FireBird_Transaction_ce, tr, "database", database);
     if (builder) {
-        zend_update_property(FireBird_Transaction_ce, O_SET(tr, builder));
+        OBJ_SET(FireBird_Transaction_ce, tr, "builder", builder);
     }
 
     transaction_ctor(Z_TRANSACTION_P(tr), Z_DB_P(database));
@@ -43,10 +43,9 @@ int transaction_start(ISC_STATUS_ARRAY status, zval *tr_o)
     char tpb[TPB_MAX_SIZE];
     unsigned short tpb_len = 0;
 
-    builder_o = zend_read_property(FireBird_TBuilder_ce, O_GET(tr_o, builder), 1, &rv);
+    builder_o = zend_read_property(FireBird_TBuilder_ce, Z_OBJ_P(tr_o), "builder", sizeof("builder") - 1, 1, &rv); // Silent check
     if (Z_TYPE_P(builder_o) != IS_NULL) {
-        firebird_tbuilder *builder = Z_TBUILDER_P(builder_o);
-        tbuilder_populate_tpb(builder, tpb, &tpb_len);
+        tbuilder_populate_tpb(Z_TBUILDER_P(builder_o), tpb, &tpb_len);
         ZEND_ASSERT(tpb_len <= sizeof(tpb));
     }
 

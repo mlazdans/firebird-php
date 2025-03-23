@@ -278,11 +278,11 @@ void _php_firebird_module_fatal(char *, ...)
 #define min(a,b) ((a)<(b)?(a):(b))
 #endif
 
-#define O_SET(o, name) Z_OBJ_P(o), #name, sizeof(#name) - 1, name
-#define THIS_SET(name) O_SET(ZEND_THIS, name)
+#define OBJ_GET(ce, zobj, prop, rv) \
+    zend_read_property(ce, Z_OBJ_P(zobj), prop, sizeof(prop) - 1, 0, rv)
 
-#define O_GET(o, name) Z_OBJ_P(o), #name, sizeof(#name) - 1
-#define THIS_GET(name) O_GET(ZEND_THIS, name)
+#define OBJ_SET(ce, zobj, prop, val) zend_update_property(ce, Z_OBJ_P(zobj), prop, sizeof(prop) - 1, val)
+#define OBJ_SET_LONG(ce, zobj, prop, val) zend_update_property_long(ce, Z_OBJ_P(zobj), #prop, sizeof(#prop) - 1, val)
 
 #define DECLARE_PROP_OBJ(class_ce, name, obj_name, visibilty) DECLARE_PROP(class_ce, name, ZEND_TYPE_INIT_CLASS(zend_string_init(#obj_name, sizeof(#obj_name)-1, 1), 0, 0), visibilty)
 #define DECLARE_PROP_LONG(class_ce, name, visibilty) DECLARE_PROP(class_ce, name, ZEND_TYPE_INIT_MASK(MAY_BE_LONG), visibilty)

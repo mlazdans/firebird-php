@@ -33,7 +33,7 @@ int service_connect(ISC_STATUS_ARRAY status, firebird_service *svc)
     const char *dpb_buffer;
     short num_dpb_written;
 
-    service_name = zend_read_property(FireBird_Service_Connect_Args_ce, O_GET(&svc->args, service_name), 0, &rv);
+    service_name = OBJ_GET(FireBird_Service_Connect_Args_ce, &svc->args, "service_name", &rv);
 
     if ((Z_TYPE_P(service_name) != IS_STRING) || !Z_STRLEN_P(service_name)) {
         zend_throw_exception_ex(zend_ce_value_error, 0, "service_name argument is not set");
@@ -66,7 +66,7 @@ PHP_METHOD(Service, connect)
 
     ZVAL_COPY_VALUE(&svc->args, args);
 
-    zend_update_property(FireBird_Service_ce, THIS_SET(args));
+    OBJ_SET(FireBird_Service_ce, ZEND_THIS, "args", args);
 
     if (FAILURE == service_connect(status, svc)) {
         update_err_props(status, FireBird_Service_ce, ZEND_THIS);

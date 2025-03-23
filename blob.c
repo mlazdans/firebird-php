@@ -38,13 +38,14 @@ void blob_ctor(firebird_blob *blob, isc_db_handle *db_handle, isc_tr_handle *tr_
     blob->tr_handle = tr_handle;
 }
 
-void blob___construct(zval *blob_o, zval *transaction)
+void blob___construct(zval *blob, zval *transaction)
 {
-    object_init_ex(blob_o, FireBird_Blob_ce);
-    zend_update_property(FireBird_Blob_ce, O_SET(blob_o, transaction));
+    object_init_ex(blob, FireBird_Blob_ce);
+    OBJ_SET(FireBird_Blob_ce, blob, "transaction", transaction);
+
     firebird_trans *tr = Z_TRANSACTION_P(transaction);
 
-    blob_ctor(Z_BLOB_P(blob_o), tr->db_handle, &tr->tr_handle);
+    blob_ctor(Z_BLOB_P(blob), tr->db_handle, &tr->tr_handle);
 }
 
 PHP_METHOD(Blob, __construct)
@@ -150,10 +151,10 @@ PHP_METHOD(Blob, info)
     firebird_blob *blob = Z_BLOB_P(ZEND_THIS);
 
     object_init_ex(return_value, FireBird_Blob_Info_ce);
-    zend_update_property_long(FireBird_Blob_Info_ce, Z_OBJ_P(return_value), "num_segments", sizeof("num_segments") - 1, blob->num_segments);
-    zend_update_property_long(FireBird_Blob_Info_ce, Z_OBJ_P(return_value), "max_segment", sizeof("max_segment") - 1, blob->max_segment);
-    zend_update_property_long(FireBird_Blob_Info_ce, Z_OBJ_P(return_value), "total_length", sizeof("total_length") - 1, blob->total_length);
-    zend_update_property_long(FireBird_Blob_Info_ce, Z_OBJ_P(return_value), "type", sizeof("type") - 1, blob->type);
+    OBJ_SET_LONG(FireBird_Blob_Info_ce, return_value, "num_segments", blob->num_segments);
+    OBJ_SET_LONG(FireBird_Blob_Info_ce, return_value, "max_segment", blob->max_segment);
+    OBJ_SET_LONG(FireBird_Blob_Info_ce, return_value, "total_length", blob->total_length);
+    OBJ_SET_LONG(FireBird_Blob_Info_ce, return_value, "type", blob->type);
 }
 
 int blob_get(ISC_STATUS_ARRAY status, firebird_blob *blob, zval *return_value, size_t max_len)
