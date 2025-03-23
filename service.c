@@ -200,13 +200,19 @@ int service_get_server_info(ISC_STATUS_ARRAY status, zval *service, zval *server
             // TODO: need start service
             case isc_info_svc_get_users: {
                 get_users_requested = 1;
-                FBDEBUG("Parsing user info block: %d", isc_portable_integer(p, 2));
+                FBDEBUG("Parsing user info block: %d bytes", isc_portable_integer(p, 2));
                 p += 2;
 
                 zval user_info;
-                object_init_ex(&user_info, FireBird_Server_User_Info_ce);
 
-                while (p < end && *p != isc_info_flag_end && *p != isc_info_end) {
+                while (p < end && *p != isc_info_end) {
+                    if (*p == isc_spb_sec_username) { // Assuming isc_spb_sec_username always first?
+                        if (Z_TYPE(user_info) == IS_OBJECT) {
+                            add_next_index_zval(&users, &user_info);
+                        }
+                        object_init_ex(&user_info, FireBird_Server_User_Info_ce);
+                    }
+
                     switch (*p++) {
                         READ_UI_STRING(username);
                         READ_UI_STRING(firstname);
@@ -237,7 +243,9 @@ int service_get_server_info(ISC_STATUS_ARRAY status, zval *service, zval *server
                     }
                     p += len;
                 }
-                add_next_index_zval(&users, &user_info);
+                if (Z_TYPE(user_info) == IS_OBJECT) {
+                    add_next_index_zval(&users, &user_info);
+                }
             } break;
 
             case isc_info_truncated: {
