@@ -348,30 +348,46 @@ class Service implements IError
  */
 class TBuilder
 {
-    function read_only(bool $enable = true): void {}
-    function ignore_limbo(bool $enable = true): void {}
-    function auto_commit(bool $enable = true): void {}
-    function no_auto_undo(bool $enable = true): void {}
+    /** @return static  */
+    function read_only(bool $enable = true) {}
+
+    /** @return static  */
+    function ignore_limbo(bool $enable = true) {}
+
+    /** @return static  */
+    function auto_commit(bool $enable = true) {}
+
+    /** @return static  */
+    function no_auto_undo(bool $enable = true) {}
 
     /**
      * Lock resolution mode (WAIT, NO WAIT) with an optional LOCK TIMEOUT specification
      *
      * @param int $lock_timeout -1 wait forever (default), 0 no wait, 1-32767 sets lock timeout in seconds
+     * @return static
      */
-    function wait(int $lock_timeout = -1): void {}
+    function wait(int $lock_timeout = -1) {}
 
     // | RESTART REQUESTS // The exact semantics and effects of this clause are not clear, and we recommend you do not use this clause.
 
-    // TODO: function reserving(array $tables): void {}
+    // TODO: function reserving(array $tables) {}
 
     /**
-     * Isolation Level
+     * Isolation Level SNAPSHOT - the default level. Also known as "concurrency"
      *
-     * The SNAPSHOT - the default level - isolation level is also known as “concurrency”.
+     * @return static
      */
-    function isolation_snapshot(int $at_number = 0): void {}
-    function isolation_snapshot_table_stability(): void {}
-    function isolation_read_committed_record_version(): void {}
-    function isolation_read_committed_no_record_version(): void {}
-    function isolation_read_committed_read_consistency(): void {}
+    function isolation_snapshot(int $at_number = 0) {}
+
+    /** @return static  */
+    function isolation_snapshot_table_stability() {}
+
+    /** @return static  */
+    function isolation_read_committed_record_version() {}
+
+    /** @return static  */
+    function isolation_read_committed_no_record_version() {}
+
+    /** @return static  */
+    function isolation_read_committed_read_consistency() {}
 }

@@ -17,11 +17,13 @@ static zend_object_handlers FireBird_TBuilder_object_handlers;
     ZEND_PARSE_PARAMETERS_END();                          \
     firebird_tbuilder *builder = Z_TBUILDER_P(ZEND_THIS); \
     builder->name = (bool)enable;                         \
+    RETVAL_OBJ_COPY(Z_OBJ_P(ZEND_THIS));                  \
 } while(0)
 
 #define tbuilder_update_isolation_mode(mode)              \
     firebird_tbuilder *builder = Z_TBUILDER_P(ZEND_THIS); \
-    builder->isolation_mode = mode
+    builder->isolation_mode = mode;                       \
+    RETVAL_OBJ_COPY(Z_OBJ_P(ZEND_THIS))
 
 PHP_METHOD(TBuilder, __construct)
 {
@@ -64,6 +66,8 @@ PHP_METHOD(TBuilder, wait)
 
     firebird_tbuilder *builder = Z_TBUILDER_O(ZEND_THIS);
     builder->lock_timeout = lock_timeout;
+
+    RETVAL_OBJ_COPY(Z_OBJ_P(ZEND_THIS));
 }
 
 PHP_METHOD(TBuilder, isolation_snapshot_table_stability)
@@ -100,16 +104,16 @@ PHP_METHOD(TBuilder, isolation_read_committed_read_consistency)
 
 const zend_function_entry FireBird_TBuilder_methods[] = {
     PHP_ME(TBuilder, __construct, arginfo_none, ZEND_ACC_PUBLIC)
-    PHP_ME(TBuilder, read_only, arginfo_bool_return_none, ZEND_ACC_PUBLIC)
-    PHP_ME(TBuilder, ignore_limbo, arginfo_bool_return_none, ZEND_ACC_PUBLIC)
-    PHP_ME(TBuilder, auto_commit, arginfo_bool_return_none, ZEND_ACC_PUBLIC)
-    PHP_ME(TBuilder, no_auto_undo, arginfo_bool_return_none, ZEND_ACC_PUBLIC)
+    PHP_ME(TBuilder, read_only, arginfo_FireBird_TBuilder_flag_return_static, ZEND_ACC_PUBLIC)
+    PHP_ME(TBuilder, ignore_limbo, arginfo_FireBird_TBuilder_flag_return_static, ZEND_ACC_PUBLIC)
+    PHP_ME(TBuilder, auto_commit, arginfo_FireBird_TBuilder_flag_return_static, ZEND_ACC_PUBLIC)
+    PHP_ME(TBuilder, no_auto_undo, arginfo_FireBird_TBuilder_flag_return_static, ZEND_ACC_PUBLIC)
     PHP_ME(TBuilder, wait, arginfo_FireBird_TBuilder_wait, ZEND_ACC_PUBLIC)
-    PHP_ME(TBuilder, isolation_snapshot_table_stability, arginfo_void, ZEND_ACC_PUBLIC)
+    PHP_ME(TBuilder, isolation_snapshot_table_stability, arginfo_static, ZEND_ACC_PUBLIC)
     PHP_ME(TBuilder, isolation_snapshot, arginfo_FireBird_TBuilder_isolation_snapshot, ZEND_ACC_PUBLIC)
-    PHP_ME(TBuilder, isolation_read_committed_record_version, arginfo_void, ZEND_ACC_PUBLIC)
-    PHP_ME(TBuilder, isolation_read_committed_no_record_version, arginfo_void, ZEND_ACC_PUBLIC)
-    PHP_ME(TBuilder, isolation_read_committed_read_consistency, arginfo_void, ZEND_ACC_PUBLIC)
+    PHP_ME(TBuilder, isolation_read_committed_record_version, arginfo_static, ZEND_ACC_PUBLIC)
+    PHP_ME(TBuilder, isolation_read_committed_no_record_version, arginfo_static, ZEND_ACC_PUBLIC)
+    PHP_ME(TBuilder, isolation_read_committed_read_consistency, arginfo_static, ZEND_ACC_PUBLIC)
 
     PHP_FE_END
 };
