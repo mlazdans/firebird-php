@@ -9,7 +9,7 @@
 zend_class_entry *FireBird_Transaction_ce;
 static zend_object_handlers FireBird_Transaction_object_handlers;
 
-static void _php_firebird_process_trans(INTERNAL_FUNCTION_PARAMETERS, int commit);
+static void transaction_process(INTERNAL_FUNCTION_PARAMETERS, int mode);
 
 #define ROLLBACK    0
 #define COMMIT      1
@@ -83,23 +83,19 @@ PHP_METHOD(Transaction, start) {
 }
 
 PHP_METHOD(Transaction, commit) {
-    ZEND_PARSE_PARAMETERS_NONE();
-    _php_firebird_process_trans(INTERNAL_FUNCTION_PARAM_PASSTHRU, COMMIT);
+    transaction_process(INTERNAL_FUNCTION_PARAM_PASSTHRU, COMMIT);
 }
 
 PHP_METHOD(Transaction, commit_ret) {
-    ZEND_PARSE_PARAMETERS_NONE();
-    _php_firebird_process_trans(INTERNAL_FUNCTION_PARAM_PASSTHRU, COMMIT | RETAIN);
+    transaction_process(INTERNAL_FUNCTION_PARAM_PASSTHRU, COMMIT | RETAIN);
 }
 
 PHP_METHOD(Transaction, rollback) {
-    ZEND_PARSE_PARAMETERS_NONE();
-    _php_firebird_process_trans(INTERNAL_FUNCTION_PARAM_PASSTHRU, ROLLBACK);
+    transaction_process(INTERNAL_FUNCTION_PARAM_PASSTHRU, ROLLBACK);
 }
 
 PHP_METHOD(Transaction, rollback_ret) {
-    ZEND_PARSE_PARAMETERS_NONE();
-    _php_firebird_process_trans(INTERNAL_FUNCTION_PARAM_PASSTHRU, ROLLBACK | RETAIN);
+    transaction_process(INTERNAL_FUNCTION_PARAM_PASSTHRU, ROLLBACK | RETAIN);
 }
 
 int prepare_for_transaction(INTERNAL_FUNCTION_PARAMETERS, const ISC_SCHAR* sql)
@@ -113,7 +109,7 @@ int prepare_for_transaction(INTERNAL_FUNCTION_PARAMETERS, const ISC_SCHAR* sql)
 
         // Do we CREATE DATABASE?
         if (error_code_long == isc_dsql_crdb_prepare_err) {
-            _php_firebird_module_error("CREATE DATABASE detected on active connection. Use Database::create() instead.");
+            fbp_error("CREATE DATABASE detected on active connection. Use Database::create() instead.");
         }
 
         zval_ptr_dtor(return_value);
@@ -288,26 +284,23 @@ void register_FireBird_Transaction_ce()
     FireBird_Transaction_object_handlers.free_obj = FireBird_Transaction_free_obj;
 }
 
-static void _php_firebird_process_trans(INTERNAL_FUNCTION_PARAMETERS, int commit)
+static void transaction_process(INTERNAL_FUNCTION_PARAMETERS, int mode)
 {
+    ZEND_PARSE_PARAMETERS_NONE();
+
     zval rv, *val;
     ISC_STATUS result;
     ISC_STATUS_ARRAY status;
     firebird_trans *tr = Z_TRANSACTION_P(ZEND_THIS);
 
-    switch (commit) {
-        default: /* == case ROLLBACK: */
-            result = isc_rollback_transaction(status, &tr->tr_handle);
-            break;
-        case COMMIT:
-            result = isc_commit_transaction(status, &tr->tr_handle);
-            break;
-        case (ROLLBACK | RETAIN):
-            result = isc_rollback_retaining(status, &tr->tr_handle);
-            break;
-        case (COMMIT | RETAIN):
-            result = isc_commit_retaining(status, &tr->tr_handle);
-            break;
+    if (mode == COMMIT) {
+        result = isc_commit_transaction(status, &tr->tr_handle);
+    } else if (mode == ROLLBACK | RETAIN) {
+        result = isc_rollback_retaining(status, &tr->tr_handle);
+    } else if (mode == COMMIT | RETAIN) {
+        result = isc_commit_retaining(status, &tr->tr_handle);
+    } else {
+        result = isc_rollback_transaction(status, &tr->tr_handle);
     }
 
     if (result) {
@@ -347,37 +340,30 @@ int transaction_get_info(ISC_STATUS_ARRAY status, firebird_trans *tr)
         switch(tag) {
             case isc_info_end: break;
 
-            case isc_info_tra_id:
-            {
+            case isc_info_tra_id: {
                 val = IXpbBuilder_getBigInt(dpb, st);
                 FBDEBUG_NOFL("  tag: %d len: %d val: %d", tag, len, val);
                 tr->tr_id = (ISC_UINT64)val;
             } break;
 
-            case fb_info_tra_dbpath:
-            {
+            case fb_info_tra_dbpath: {
                 str = IXpbBuilder_getString(dpb, st);
                 FBDEBUG_NOFL("  tag: %d len: %d val: %s", tag, len, str);
             } break;
 
-            case isc_info_truncated:
-            {
-                _php_firebird_module_error("Transaction info buffer error: truncated");
+            case isc_info_truncated: {
+                fbp_error("Transaction info buffer error: truncated");
             } return FAILURE;
 
-            case isc_info_error:
-            {
-                _php_firebird_module_error("Transaction info buffer error");
+            case isc_info_error: {
+                fbp_error("Transaction info buffer error");
             } return FAILURE;
 
-            default:
-            {
-                _php_firebird_module_fatal("BUG! Unhandled Transaction info tag: %d", tag);
+            default: {
+                fbp_fatal("BUG! Unhandled Transaction info tag: %d", tag);
             } break;
         }
     }
-
-    // dump_buffer(info_resp, total_len);
 
     return SUCCESS;
 }
