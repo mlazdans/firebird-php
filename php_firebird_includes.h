@@ -282,7 +282,7 @@ void _php_firebird_module_fatal(char *, ...)
     zend_read_property(ce, Z_OBJ_P(zobj), prop, sizeof(prop) - 1, 0, rv)
 
 #define OBJ_SET(ce, zobj, prop, val) zend_update_property(ce, Z_OBJ_P(zobj), prop, sizeof(prop) - 1, val)
-#define OBJ_SET_LONG(ce, zobj, prop, val) zend_update_property_long(ce, Z_OBJ_P(zobj), #prop, sizeof(#prop) - 1, val)
+#define OBJ_SET_LONG(ce, zobj, prop, val) zend_update_property_long(ce, Z_OBJ_P(zobj), prop, sizeof(prop) - 1, val)
 
 #define DECLARE_PROP_OBJ(class_ce, name, obj_name, visibilty) DECLARE_PROP(class_ce, name, ZEND_TYPE_INIT_CLASS(zend_string_init(#obj_name, sizeof(#obj_name)-1, 1), 0, 0), visibilty)
 #define DECLARE_PROP_LONG(class_ce, name, visibilty) DECLARE_PROP(class_ce, name, ZEND_TYPE_INIT_MASK(MAY_BE_LONG), visibilty)
