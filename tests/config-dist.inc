@@ -11,3 +11,4 @@ class Config {
     static bool $skip_ext_error = true;
 }
 
+srand(((int)microtime()*1000000));

@@ -4,7 +4,22 @@ namespace FireBirdTests;
 
 require_once(__DIR__."/config.inc");
 
-srand(((int)(double)microtime()*1000000));
+class Mon_Transaction
+{
+    public ?int $MON_TRANSACTION_ID;
+    public ?int $MON_ATTACHMENT_ID;
+    public ?int $MON_STATE;
+    public ?string $MON_TIMESTAMP;
+    public ?int $MON_TOP_TRANSACTION;
+    public ?int $MON_OLDEST_TRANSACTION;
+    public ?int $MON_OLDEST_ACTIVE;
+    public ?int $MON_ISOLATION_MODE;
+    public ?int $MON_LOCK_TIMEOUT;
+    public ?int $MON_READ_ONLY;
+    public ?int $MON_AUTO_COMMIT;
+    public ?int $MON_AUTO_UNDO;
+    public ?int $MON_STAT_ID;
+}
 
 function out_table(\FireBird\Transaction $t, string $table_name)
 {
@@ -359,6 +374,116 @@ function query_and_fetch_and_print_or_die(\FireBird\Transaction $t, string $sql,
     fetch_and_print_or_die(query_or_die($t, $sql), $flags);
 }
 
-function hl(?string $msg = null): void {
+function hl(?string $msg = null): void
+{
     print str_pad($msg ? " $msg " : "", 80, "=", STR_PAD_BOTH)."\n";
+}
+
+function unstrip_fb_specials(array &$data)
+{
+    foreach($data as $k=>$v) {
+        if(false === ($pos = strpos($k, '$'))) continue;
+        unset($data[$k]);
+        $new_k = str_replace('$', '_', $k);
+        $data[$new_k] = $v;
+    }
+}
+
+function cmp_builder(\FireBird\TBuilder $b, array $mon_row, bool $is_ReadConsistency_enabled): bool
+{
+    /** @var Mon_Transaction $m */
+    $m = (object)$mon_row;
+
+    $error = false;
+
+    if($b->is_read_only !== (bool)$m->MON_READ_ONLY){
+        $error = true;
+        printf("Transaction param is_read_only: [%d] does not match actual [%d]\n", $b->is_read_only, $m->MON_READ_ONLY);
+    }
+
+    if($b->is_auto_commit !== (bool)$m->MON_AUTO_COMMIT){
+        $error = true;
+        printf("Transaction param is_auto_commit: [%d] does not match actual [%d]\n", $b->is_auto_commit, $m->MON_AUTO_COMMIT);
+    }
+
+    if($b->is_no_auto_undo === (bool)$m->MON_AUTO_UNDO){
+        $error = true;
+        printf("Transaction param is_no_auto_undo: [%d] does not match actual [%d]\n", $b->is_no_auto_undo, !$m->MON_AUTO_UNDO);
+    }
+
+    if($is_ReadConsistency_enabled && ($b->isolation_mode === 2 || $b->isolation_mode === 3)) {
+        if($m->MON_ISOLATION_MODE !== 4){
+            $error = true;
+            printf("Transaction param isolation_mode: 4 does not match actual [%d]\n", $m->MON_ISOLATION_MODE);
+        }
+
+    } else {
+        if($b->isolation_mode !== $m->MON_ISOLATION_MODE){
+            $error = true;
+            printf("Transaction param isolation_mode: [%d] does not match actual [%d]\n", $b->isolation_mode, $m->MON_ISOLATION_MODE);
+        }
+    }
+
+    if($b->lock_timeout !== $m->MON_LOCK_TIMEOUT){
+        $error = true;
+        printf("Transaction param lock_timeout: [%d] does not match actual [%d]\n", $b->lock_timeout, $m->MON_LOCK_TIMEOUT);
+    }
+
+    return $error;
+}
+
+function random_builder(): \FireBird\TBuilder
+{
+    $b = new \FireBird\TBuilder;
+
+    if(rand(0, 1))$b->read_only();
+    if(rand(0, 1))$b->ignore_limbo();
+    if(rand(0, 1))$b->auto_commit();
+    if(rand(0, 1))$b->no_auto_undo();
+
+    $f = [
+        'isolation_snapshot',
+        'isolation_snapshot_table_stability',
+        'isolation_read_committed_record_version',
+        'isolation_read_committed_no_record_version',
+        'isolation_read_committed_read_consistency',
+    ];
+    $b->{$f[rand(0, count($f) - 1)]}();
+
+    if(rand(0, 1)) {
+        $b->wait(0);
+    } else {
+        $b->wait(rand(1, 0x7FFF));
+    }
+
+    return $b;
+}
+
+function get_isolation_level_or_die(\FireBird\Transaction $t): int
+{
+    $q = $t->query('SELECT MON$ISOLATION_MODE FROM MON$TRANSACTIONS WHERE MON$TRANSACTION_ID = CURRENT_TRANSACTION') or print_error_and_die("query", $t);
+    $row = $q->fetch_array() or print_error_and_die("fetch", $q);
+
+    return $row['MON$ISOLATION_MODE'];
+}
+
+// ReadConsistency = 0 in firebird.conf modifies behaviour of these:
+// 2 - read committed record version
+// 3 - read committed no record version
+// Both of these levels are set to 4 (read committed read consistency)
+function is_ReadConsistency_enabled(\FireBird\Database $db): bool
+{
+    // 3
+    $t = $db->new_transaction();
+    $t->query("SET TRANSACTION ISOLATION LEVEL READ COMMITTED NO RECORD_VERSION") or print_error_and_die("set trans", $t);
+    if(get_isolation_level_or_die($t) != 3) return true;
+    $t->rollback() or print_error_and_die("rollback", $t);
+
+    // 2
+    $t = $db->new_transaction();
+    $t->query("SET TRANSACTION ISOLATION LEVEL READ COMMITTED RECORD_VERSION") or print_error_and_die("set trans", $t);
+    if(get_isolation_level_or_die($t) != 2) return true;
+    $t->rollback() or print_error_and_die("rollback", $t);
+
+    return false;
 }
