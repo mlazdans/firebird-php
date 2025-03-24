@@ -1,20 +1,21 @@
 #include <firebird/fb_c_api.h>
+#include "fbp_blob.h"
 #include "php.h"
 #include "php_firebird.h"
 #include "php_firebird_includes.h"
 
-void blob_ctor(firebird_blob *blob, isc_db_handle *db_handle, isc_tr_handle *tr_handle)
+void fbp_blob_ctor(firebird_blob *blob, isc_db_handle *db_handle, isc_tr_handle *tr_handle)
 {
     blob->db_handle = db_handle;
     blob->tr_handle = tr_handle;
 }
 
-int blob_close(firebird_blob *blob)
+int fbp_blob_close(firebird_blob *blob)
 {
     return isc_close_blob(FBG(status), &blob->bl_handle) ? FAILURE : SUCCESS;
 }
 
-int blob_get_info(firebird_blob *blob)
+int fbp_blob_get_info(firebird_blob *blob)
 {
     static char bl_items[] = {
         isc_info_blob_num_segments,
@@ -72,7 +73,7 @@ int blob_get_info(firebird_blob *blob)
     return SUCCESS;
 }
 
-int blob_get(firebird_blob *blob, zval *return_value, size_t max_len)
+int fbp_blob_get(firebird_blob *blob, zval *return_value, size_t max_len)
 {
     ISC_STATUS stat;
     zend_string *bl_data;
@@ -109,7 +110,7 @@ int blob_get(firebird_blob *blob, zval *return_value, size_t max_len)
     return SUCCESS;
 }
 
-int blob_put(firebird_blob *blob, const char *buf, size_t buf_size)
+int fbp_blob_put(firebird_blob *blob, const char *buf, size_t buf_size)
 {
     zend_ulong put_cnt = 0, rem_cnt;
     unsigned short chunk_size;
@@ -127,12 +128,12 @@ int blob_put(firebird_blob *blob, const char *buf, size_t buf_size)
     return SUCCESS;
 }
 
-int blob_create(firebird_blob *blob)
+int fbp_blob_create(firebird_blob *blob)
 {
     char bpb[] = { isc_bpb_version1, isc_bpb_type, 1, isc_bpb_type_stream };
 
     if (isc_create_blob2(FBG(status), blob->db_handle, blob->tr_handle, &blob->bl_handle, &blob->bl_id, sizeof(bpb), bpb) ||
-        blob_get_info(blob)) {
+        fbp_blob_get_info(blob)) {
             return FAILURE;
     }
 
@@ -141,12 +142,12 @@ int blob_create(firebird_blob *blob)
     return SUCCESS;
 }
 
-int blob_open(firebird_blob *blob)
+int fbp_blob_open(firebird_blob *blob)
 {
     char bpb[] = { isc_bpb_version1, isc_bpb_type, 1, isc_bpb_type_stream };
 
     if (isc_open_blob2(FBG(status), blob->db_handle, blob->tr_handle, &blob->bl_handle, &blob->bl_id, sizeof(bpb), bpb) ||
-        blob_get_info(blob)) {
+        fbp_blob_get_info(blob)) {
             return FAILURE;
     }
 

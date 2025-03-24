@@ -13,6 +13,8 @@
 #include "php_firebird_includes.h"
 #include "pdo_firebird_utils.h"
 
+#include "fbp_blob.h"
+
 zend_class_entry *FireBird_Statement_ce;
 static zend_object_handlers FireBird_Statement_object_handlers;
 
@@ -580,10 +582,10 @@ static void _php_firebird_fetch_hash(INTERNAL_FUNCTION_PARAMETERS, int fetch_typ
                     if (flags & PHP_FIREBIRD_FETCH_BLOBS) {
                         firebird_blob blob = {0};
 
-                        blob_ctor(&blob, stmt->db_handle, stmt->tr_handle);
+                        fbp_blob_ctor(&blob, stmt->db_handle, stmt->tr_handle);
                         blob.bl_id = *(ISC_QUAD *) var->sqldata;
 
-                        if (blob_open(&blob) || blob_get(&blob, &result, 0) || blob_close(&blob)) {
+                        if (fbp_blob_open(&blob) || fbp_blob_get(&blob, &result, 0) || fbp_blob_close(&blob)) {
                             update_err_props(FBG(status), FireBird_Statement_ce, ZEND_THIS);
                             goto _php_firebird_fetch_error;
                         }
@@ -968,11 +970,11 @@ static int statement_bind(ISC_STATUS_ARRAY status, zval *stmt_o, XSQLDA *sqlda, 
                     convert_to_string(b_var);
 
                     firebird_blob blob = {0};
-                    blob_ctor(&blob, stmt->db_handle, stmt->tr_handle);
+                    fbp_blob_ctor(&blob, stmt->db_handle, stmt->tr_handle);
 
-                    if (blob_create(&blob) ||
-                        blob_put(&blob, Z_STRVAL_P(b_var), Z_STRLEN_P(b_var)) ||
-                        blob_close(&blob)) {
+                    if (fbp_blob_create(&blob) ||
+                        fbp_blob_put(&blob, Z_STRVAL_P(b_var), Z_STRLEN_P(b_var)) ||
+                        fbp_blob_close(&blob)) {
                             return FAILURE;
                     }
 

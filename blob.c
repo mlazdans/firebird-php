@@ -48,7 +48,7 @@ void FireBird_Blob___construct(zval *Blob, zval *Transaction)
     firebird_trans *tr = get_firebird_trans_from_zval(Transaction);
     firebird_blob *blob = get_firebird_blob_from_zval(Blob);
 
-    blob_ctor(blob, tr->db_handle, &tr->tr_handle);
+    fbp_blob_ctor(blob, tr->db_handle, &tr->tr_handle);
 
     OBJ_SET(FireBird_Blob_ce, Blob, "transaction", Transaction);
 }
@@ -68,7 +68,7 @@ int FireBird_Blob_close(zval *Blob)
 {
     firebird_blob *blob = get_firebird_blob_from_zval(Blob);
 
-    if (blob_close(blob)) {
+    if (fbp_blob_close(blob)) {
         update_err_props(FBG(status), FireBird_Blob_ce, Blob);
         return FAILURE;
     }
@@ -102,7 +102,7 @@ int FireBird_Blob_get(zval *Blob, zval *return_value, size_t max_len)
 {
     firebird_blob *blob = get_firebird_blob_from_zval(Blob);
 
-    if (blob_get(blob, return_value, max_len)) {
+    if (fbp_blob_get(blob, return_value, max_len)) {
         update_err_props(FBG(status), FireBird_Blob_ce, Blob);
         return FAILURE;
     }
@@ -130,7 +130,7 @@ int FireBird_Blob_put(zval *Blob, const char *buf, size_t buf_size)
 {
     firebird_blob *blob = get_firebird_blob_from_zval(Blob);
 
-    if (blob_put(blob, buf, buf_size)) {
+    if (fbp_blob_put(blob, buf, buf_size)) {
         update_err_props(FBG(status), FireBird_Blob_ce, Blob);
         return FAILURE;
     }
@@ -159,7 +159,7 @@ int FireBird_Blob_open(zval *Blob, zval *Blob_Id)
 
     blob->bl_id = blob_id->bl_id;
 
-    if (blob_open(blob)) {
+    if (fbp_blob_open(blob)) {
         update_err_props(FBG(status), FireBird_Blob_ce, Blob);
         return FAILURE;
     }
@@ -189,7 +189,7 @@ int FireBird_Blob_create(zval *Blob)
 {
     firebird_blob *blob = get_firebird_blob_from_zval(Blob);
 
-    if (blob_create(blob)) {
+    if (fbp_blob_create(blob)) {
         update_err_props(FBG(status), FireBird_Blob_ce, Blob);
         return FAILURE;
     }
@@ -234,7 +234,7 @@ static void free_FireBird_Blob(zend_object *obj)
     firebird_blob *blob = get_firebird_blob_from_obj(obj);
 
     if (blob->bl_handle) {
-        if (blob_close(blob)) {
+        if (fbp_blob_close(blob)) {
             status_fbp_error(FBG(status));
         } else {
             blob->bl_handle = 0;

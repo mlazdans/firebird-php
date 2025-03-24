@@ -28,6 +28,7 @@
 
 #include <firebird/fb_c_api.h>
 #include <ibase.h>
+#include "fbp_blob.h"
 
 #define PHP_FIREBIRD_VERSION "0.0.1-alpha"
 
@@ -128,23 +129,6 @@ typedef struct firebird_stmt {
     ISC_ULONG insert_count, update_count, delete_count, affected_count;
     zend_object std;
 } firebird_stmt;
-
-typedef struct firebird_blob {
-    isc_blob_handle bl_handle;
-    isc_db_handle *db_handle;
-    isc_tr_handle *tr_handle;
-
-    ISC_QUAD bl_id;
-    ISC_LONG max_segment;
-    ISC_LONG num_segments;
-    ISC_LONG total_length;
-    ISC_LONG type; // 0 - segmented, 1 - streamed
-    ISC_LONG position;
-
-    unsigned short is_writable;
-
-    zend_object std;
-} firebird_blob;
 
 typedef struct firebird_blob_id {
     ISC_QUAD bl_id;
@@ -528,20 +512,12 @@ int statement_info(ISC_STATUS_ARRAY status, firebird_stmt *stmt);
 void declare_props_zmap(zend_class_entry *ce, const firebird_xpb_zmap *xpb_zmap);
 void xpb_insert_zmap(zend_class_entry *ce, zval *args, const firebird_xpb_zmap *xpb_zmap, struct IXpbBuilder* xpb, struct IStatus* st);
 
-void blob_ctor(firebird_blob *blob, isc_db_handle *db_handle, isc_tr_handle *tr_handle);
 void FireBird_Blob___construct(zval *Blob, zval *Transaction);
 int FireBird_Blob_open(zval *Blob, zval *Blob_Id);
 int FireBird_Blob_create(zval *Blob);
 // int FireBird_Blob_close(zval *Blob);
 // int FireBird_Blob_cancel(zval *Blob);
 // int FireBird_Blob_get(zval *Blob, zval *return_value, size_t max_len)
-
-int blob_get_info(firebird_blob *blob);
-int blob_create(firebird_blob *blob);
-int blob_open(firebird_blob *blob);
-int blob_get(firebird_blob *blob, zval *return_value, size_t max_len);
-int blob_close(firebird_blob *blob);
-int blob_put(firebird_blob *blob, const char *buf, size_t buf_size);
 
 void blob_id___construct(zval *blob_id_o, ISC_QUAD bl_id);
 
