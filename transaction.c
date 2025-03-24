@@ -165,19 +165,22 @@ PHP_METHOD(Transaction, open_blob)
         Z_PARAM_OBJECT_OF_CLASS(id, FireBird_Blob_Id_ce)
     ZEND_PARSE_PARAMETERS_END();
 
+    firebird_trans *tr = Z_TRANSACTION_P(ZEND_THIS);
     firebird_blob_id *blob_id = Z_BLOB_ID_P(id);
 
-    blob___construct(return_value, ZEND_THIS);
+    object_init_ex(return_value, FireBird_Blob_ce);
     firebird_blob *blob = Z_BLOB_P(return_value);
 
     blob->bl_id = blob_id->bl_id;
 
     // TODO: pass ce and obj to these functions to reflect more precisely where the error was
-    if (FAILURE == blob_open(status, blob)) {
+    if (blob_open(status, tr->db_handle, &tr->tr_handle, blob) || blob_get_info(status, blob)) {
         update_err_props(status, FireBird_Transaction_ce, ZEND_THIS);
         zval_ptr_dtor(return_value);
         RETURN_FALSE;
     }
+
+    blob_update_props(return_value);
 }
 
 PHP_METHOD(Transaction, create_blob)
@@ -187,14 +190,17 @@ PHP_METHOD(Transaction, create_blob)
 
     ZEND_PARSE_PARAMETERS_NONE();
 
-    blob___construct(return_value, ZEND_THIS);
+    object_init_ex(return_value, FireBird_Blob_ce);
     firebird_blob *blob = Z_BLOB_P(return_value);
+    firebird_trans *tr = Z_TRANSACTION_P(ZEND_THIS);
 
-    if (FAILURE == blob_create(status, blob)) {
+    if (blob_create(status, tr->db_handle, &tr->tr_handle, blob) || blob_get_info(status, blob)) {
         update_err_props(status, FireBird_Transaction_ce, ZEND_THIS);
         zval_ptr_dtor(return_value);
         RETURN_FALSE;
     }
+
+    blob_update_props(return_value);
 }
 
 PHP_METHOD(Transaction, prepare_2pc)

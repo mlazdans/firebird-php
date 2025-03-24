@@ -130,13 +130,13 @@ typedef struct firebird_stmt {
 
 typedef struct firebird_blob {
     isc_blob_handle bl_handle;
-    isc_db_handle *db_handle;
-    isc_tr_handle *tr_handle;
+
     ISC_QUAD bl_id;
     ISC_LONG max_segment;
     ISC_LONG num_segments;
     ISC_LONG total_length;
     ISC_LONG type; // 0 - segmented, 1 - streamed
+    ISC_LONG position;
 
     unsigned short is_writable;
 
@@ -445,10 +445,7 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Statement_set_name, 0, 
 ZEND_END_ARG_INFO()
 
 // Blob argument types
-ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Blob_info, 0, 0, FireBird\\Blob_Info, MAY_BE_FALSE)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Blob_get, 0, 0, IS_STRING, 0)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_FireBird_Blob_get, 0, 0, MAY_BE_STRING|MAY_BE_FALSE)
     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, max_len, IS_LONG, 0, 0)
 ZEND_END_ARG_INFO()
 
@@ -485,7 +482,6 @@ extern zend_class_entry *FireBird_Statement_ce;
 extern zend_class_entry *FireBird_IError_ce;
 extern zend_class_entry *FireBird_Error_ce;
 extern zend_class_entry *FireBird_Blob_ce;
-extern zend_class_entry *FireBird_Blob_Info_ce;
 extern zend_class_entry *FireBird_Blob_Id_ce;
 extern zend_class_entry *FireBird_Var_Info_ce;
 extern zend_class_entry *FireBird_Db_Info_ce;
@@ -505,7 +501,6 @@ extern void register_FireBird_Error_ce();
 extern void register_FireBird_Connect_Args_ce();
 extern void register_FireBird_Create_Args_ce();
 extern void register_FireBird_Blob_ce();
-extern void register_FireBird_Blob_Info_ce();
 extern void register_FireBird_Blob_Id_ce();
 extern void register_FireBird_Var_Info_ce();
 extern void register_FireBird_Db_Info_ce();
@@ -560,14 +555,15 @@ int statement_execute(zval *stmt_o, zval *bind_args, uint32_t num_bind_args, zen
 int statement_info(ISC_STATUS_ARRAY status, firebird_stmt *stmt);
 void declare_props_zmap(zend_class_entry *ce, const firebird_xpb_zmap *xpb_zmap);
 void xpb_insert_zmap(zend_class_entry *ce, zval *args, const firebird_xpb_zmap *xpb_zmap, struct IXpbBuilder* xpb, struct IStatus* st);
-void blob_ctor(firebird_blob *blob, isc_db_handle *db_handle, isc_tr_handle *tr_handle);
-void blob___construct(zval *blob_o, zval *transaction);
+// void blob_ctor(firebird_blob *blob, isc_db_handle *db_handle, isc_tr_handle *tr_handle);
+// void blob___construct(zval *blob_o, zval *transaction);
 int blob_get_info(ISC_STATUS_ARRAY status, firebird_blob *blob);
-int blob_create(ISC_STATUS_ARRAY status, firebird_blob *blob);
-int blob_open(ISC_STATUS_ARRAY status, firebird_blob *blob);
+int blob_create(ISC_STATUS_ARRAY status, isc_db_handle *db_handle, isc_tr_handle *tr_handle, firebird_blob *blob);
+int blob_open(ISC_STATUS_ARRAY status, isc_db_handle *db_handle, isc_tr_handle *tr_handle, firebird_blob *blob);
 int blob_get(ISC_STATUS_ARRAY status, firebird_blob *blob, zval *return_value, size_t max_len);
 int blob_close(ISC_STATUS_ARRAY status, firebird_blob *blob);
 int blob_put(ISC_STATUS_ARRAY status, firebird_blob *blob, const char *buf, size_t buf_size);
+void blob_update_props(zval *blob_o);
 void blob_id___construct(zval *blob_id_o, ISC_QUAD bl_id);
 int database_get_info(ISC_STATUS_ARRAY status, isc_db_handle *db_handle, zval *db_info,
     size_t info_req_size, char *info_req, size_t info_resp_size, char *info_resp, size_t max_limbo_count);

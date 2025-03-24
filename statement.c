@@ -578,15 +578,15 @@ static void _php_firebird_fetch_hash(INTERNAL_FUNCTION_PARAMETERS, int fetch_typ
                     break;
                 case SQL_BLOB:
                     if (flags & PHP_FIREBIRD_FETCH_BLOBS) {
-                        firebird_blob blob;
-                        blob_ctor(&blob, stmt->db_handle, stmt->tr_handle);
-
+                        firebird_blob blob = {0};
                         blob.bl_id = *(ISC_QUAD *) var->sqldata;
 
-                        if (blob_open(status, &blob) || blob_get(status, &blob, &result, 0) || blob_close(status, &blob)) {
-                            update_err_props(status, FireBird_Statement_ce, ZEND_THIS);
-                            goto _php_firebird_fetch_error;
-                        }
+                        if (blob_open(status, stmt->db_handle, stmt->tr_handle, &blob) ||
+                            blob_get(status, &blob, &result, 0) ||
+                            blob_close(status, &blob)) {
+                                update_err_props(status, FireBird_Statement_ce, ZEND_THIS);
+                                goto _php_firebird_fetch_error;
+                            }
                     } else {
                         blob_id___construct(&result, *(ISC_QUAD *) var->sqldata);
                     }
@@ -967,19 +967,11 @@ static int statement_bind(ISC_STATUS_ARRAY status, zval *stmt_o, XSQLDA *sqlda, 
                 } else {
                     convert_to_string(b_var);
 
-                    firebird_blob blob;
-                    blob_ctor(&blob, stmt->db_handle, stmt->tr_handle);
-
-                    if (FAILURE == blob_create(status, &blob)) {
-                        return FAILURE;
-                    }
-
-                    if (FAILURE == blob_put(status, &blob, Z_STRVAL_P(b_var), Z_STRLEN_P(b_var)) != SUCCESS) {
-                        return FAILURE;
-                    }
-
-                    if (FAILURE == blob_close(status, &blob)) {
-                        return FAILURE;
+                    firebird_blob blob = {0};
+                    if (blob_create(status, stmt->db_handle, stmt->tr_handle, &blob) ||
+                        blob_put(status, &blob, Z_STRVAL_P(b_var), Z_STRLEN_P(b_var)) ||
+                        blob_close(status, &blob)) {
+                            return FAILURE;
                     }
 
                     bl_id = blob.bl_id;

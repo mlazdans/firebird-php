@@ -300,7 +300,6 @@ PHP_MINIT_FUNCTION(firebird)
     register_FireBird_Transaction_ce();
     register_FireBird_Statement_ce();
     register_FireBird_Blob_ce();
-    register_FireBird_Blob_Info_ce();
     register_FireBird_Blob_Id_ce();
     register_FireBird_Var_Info_ce();
     register_FireBird_Db_Info_ce();

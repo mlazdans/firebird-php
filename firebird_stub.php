@@ -6,6 +6,9 @@ const FETCH_BLOBS    = 1;
 const FETCH_ARRAYS   = 2;
 const FETCH_UNIXTIME = 4;
 
+const BLOB_TYPE_SEGMENTED = 0;
+const BLOB_STREAMED = 1;
+
 class Server_Info
 {
     public string $server_version;
@@ -81,14 +84,6 @@ class Db_Info
     public int $no_reserve { get; }
 }
 
-class Blob_Info
-{
-    public int $num_segments { get; }
-    public int $max_segment { get; }
-    public int $total_length { get; }
-    public int $type { get; }
-}
-
 class Var_Info
 {
     public string $name { get; }
@@ -103,6 +98,7 @@ class Var_Info
 
 class Blob_Id
 {
+    private function __construct() {}
 }
 
 interface IError
@@ -290,7 +286,14 @@ class Blob implements IError
 {
     use Fb_Error;
 
-    protected(set) Transaction $transaction;
+    public int $num_segments { get; }
+    public int $max_segment { get; }
+    public int $total_length { get; }
+    public int $type { get; }
+    public int $position { get; }
+    public bool $is_writable { get; }
+
+    // protected(set) Transaction $transaction;
 
     private function __construct() {}
 
@@ -299,9 +302,6 @@ class Blob implements IError
 
     /** @return bool */
     function cancel() {}
-
-    /** @return Blob_Info|false */
-    function info() {}
 
     /** @return string|false */
     function get(int $max_len = 0) {}
