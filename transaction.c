@@ -30,7 +30,7 @@ void transaction__construct(zval *tr, zval *database, zval *builder)
         OBJ_SET(FireBird_Transaction_ce, tr, "builder", builder);
     }
 
-    transaction_ctor(Z_TRANSACTION_P(tr), Z_DB_P(database));
+    transaction_ctor(get_firebird_trans_from_zval(tr), get_firebird_db_from_zval(database));
 }
 
 PHP_METHOD(Transaction, __construct) {
@@ -45,11 +45,11 @@ int transaction_start(ISC_STATUS_ARRAY status, zval *tr_o)
 
     builder_o = zend_read_property(FireBird_TBuilder_ce, Z_OBJ_P(tr_o), "builder", sizeof("builder") - 1, 1, &rv); // Silent check
     if (Z_TYPE_P(builder_o) != IS_NULL) {
-        tbuilder_populate_tpb(Z_TBUILDER_P(builder_o), tpb, &tpb_len);
+        tbuilder_populate_tpb(get_firebird_tbuilder_from_zval(builder_o), tpb, &tpb_len);
         ZEND_ASSERT(tpb_len <= sizeof(tpb));
     }
 
-    firebird_trans *tr = Z_TRANSACTION_P(tr_o);
+    firebird_trans *tr = get_firebird_trans_from_zval(tr_o);
 
     // TODO: isc_start_multiple, isc_prepare_transaction, isc_prepare_transaction2
     // isc_start_multiple()       - Begins a new transaction against multiple databases.
@@ -165,11 +165,11 @@ PHP_METHOD(Transaction, open_blob)
         Z_PARAM_OBJECT_OF_CLASS(id, FireBird_Blob_Id_ce)
     ZEND_PARSE_PARAMETERS_END();
 
-    firebird_trans *tr = Z_TRANSACTION_P(ZEND_THIS);
-    firebird_blob_id *blob_id = Z_BLOB_ID_P(id);
+    firebird_trans *tr = get_firebird_trans_from_zval(ZEND_THIS);
+    firebird_blob_id *blob_id = get_firebird_blob_id_from_zval(id);
 
     object_init_ex(return_value, FireBird_Blob_ce);
-    firebird_blob *blob = Z_BLOB_P(return_value);
+    firebird_blob *blob = get_firebird_blob_from_zval(return_value);
 
     blob->bl_id = blob_id->bl_id;
 
@@ -191,8 +191,8 @@ PHP_METHOD(Transaction, create_blob)
     ZEND_PARSE_PARAMETERS_NONE();
 
     object_init_ex(return_value, FireBird_Blob_ce);
-    firebird_blob *blob = Z_BLOB_P(return_value);
-    firebird_trans *tr = Z_TRANSACTION_P(ZEND_THIS);
+    firebird_blob *blob = get_firebird_blob_from_zval(return_value);
+    firebird_trans *tr = get_firebird_trans_from_zval(ZEND_THIS);
 
     if (blob_create(status, tr->db_handle, &tr->tr_handle, blob)) {
         update_err_props(status, FireBird_Transaction_ce, ZEND_THIS);
@@ -206,7 +206,7 @@ PHP_METHOD(Transaction, create_blob)
 PHP_METHOD(Transaction, prepare_2pc)
 {
     ISC_STATUS_ARRAY status;
-    firebird_trans *tr = Z_TRANSACTION_P(ZEND_THIS);
+    firebird_trans *tr = get_firebird_trans_from_zval(ZEND_THIS);
 
     ZEND_PARSE_PARAMETERS_NONE();
 
@@ -254,7 +254,7 @@ static void FireBird_Transaction_free_obj(zend_object *obj)
 {
     FBDEBUG("FireBird_Transaction_free_obj");
 
-    firebird_trans *tr = Z_TRANSACTION_O(obj);
+    firebird_trans *tr = get_firebird_trans_from_obj(obj);
 
     // MAYBE: not to close automatically in some strict mode or smth
     if(tr->tr_handle && !tr->is_prepared_2pc) {
@@ -298,7 +298,7 @@ static void transaction_process(INTERNAL_FUNCTION_PARAMETERS, int mode)
     zval rv, *val;
     ISC_STATUS result;
     ISC_STATUS_ARRAY status;
-    firebird_trans *tr = Z_TRANSACTION_P(ZEND_THIS);
+    firebird_trans *tr = get_firebird_trans_from_zval(ZEND_THIS);
 
     if (mode == COMMIT) {
         result = isc_commit_transaction(status, &tr->tr_handle);

@@ -81,7 +81,7 @@ static void FireBird_Event_free_obj(zend_object *obj)
 {
     FBDEBUG("FireBird_Event_free_obj");
 
-    firebird_event *event = Z_EVENT_O(obj);
+    firebird_event *event = get_firebird_event_from_obj(obj);
 
     zend_object_std_dtor(&event->std);
 }

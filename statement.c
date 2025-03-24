@@ -29,8 +29,8 @@ void statement_ctor(zval *stmt_o, zval *transaction)
 {
     OBJ_SET(FireBird_Statement_ce, stmt_o, "transaction", transaction);
 
-    firebird_stmt *stmt = Z_STMT_P(stmt_o);
-    firebird_trans *tr = Z_TRANSACTION_P(transaction);
+    firebird_stmt *stmt = get_firebird_stmt_from_zval(stmt_o);
+    firebird_trans *tr = get_firebird_trans_from_zval(transaction);
 
     stmt->db_handle = tr->db_handle;
     stmt->tr_handle = &tr->tr_handle;
@@ -63,7 +63,7 @@ PHP_METHOD(Statement, close)
 {
     ZEND_PARSE_PARAMETERS_NONE();
 
-    firebird_stmt *stmt = Z_STMT_P(ZEND_THIS);
+    firebird_stmt *stmt = get_firebird_stmt_from_zval(ZEND_THIS);
     ISC_STATUS_ARRAY status;
 
     if (isc_dsql_free_statement(status, &stmt->stmt_handle, DSQL_close)) {
@@ -78,7 +78,7 @@ PHP_METHOD(Statement, free)
 {
     ZEND_PARSE_PARAMETERS_NONE();
 
-    firebird_stmt *stmt = Z_STMT_P(ZEND_THIS);
+    firebird_stmt *stmt = get_firebird_stmt_from_zval(ZEND_THIS);
     ISC_STATUS_ARRAY status;
 
     if (isc_dsql_free_statement(status, &stmt->stmt_handle, DSQL_drop)) {
@@ -110,7 +110,7 @@ PHP_METHOD(Statement, execute)
 
 int statement_prepare(ISC_STATUS_ARRAY status, zval *stmt_o, const ISC_SCHAR *sql)
 {
-    firebird_stmt *stmt = Z_STMT_P(stmt_o);
+    firebird_stmt *stmt = get_firebird_stmt_from_zval(stmt_o);
 
     // TODO: configure auto-close, throw or warning
     if (stmt->stmt_handle > 0) {
@@ -203,7 +203,7 @@ void statement_var_info(zval *return_value, XSQLVAR *var)
 PHP_METHOD(Statement, get_var_info_in)
 {
     zend_long num;
-    firebird_stmt *stmt = Z_STMT_P(ZEND_THIS);
+    firebird_stmt *stmt = get_firebird_stmt_from_zval(ZEND_THIS);
 
     ZEND_PARSE_PARAMETERS_START(1, 1)
         Z_PARAM_LONG(num)
@@ -219,7 +219,7 @@ PHP_METHOD(Statement, get_var_info_in)
 PHP_METHOD(Statement, get_var_info_out)
 {
     zend_long num;
-    firebird_stmt *stmt = Z_STMT_P(ZEND_THIS);
+    firebird_stmt *stmt = get_firebird_stmt_from_zval(ZEND_THIS);
 
     ZEND_PARSE_PARAMETERS_START(1, 1)
         Z_PARAM_LONG(num)
@@ -234,7 +234,7 @@ PHP_METHOD(Statement, get_var_info_out)
 
 PHP_METHOD(Statement, set_name)
 {
-    firebird_stmt *stmt = Z_STMT_P(ZEND_THIS);
+    firebird_stmt *stmt = get_firebird_stmt_from_zval(ZEND_THIS);
     ISC_STATUS_ARRAY status;
     char *name;
     size_t name_len;
@@ -285,7 +285,7 @@ static void FireBird_Statement_free_obj(zend_object *obj)
 {
     FBDEBUG("FireBird_Statement_free_obj");
 
-    firebird_stmt *stmt = Z_STMT_O(obj);
+    firebird_stmt *stmt = get_firebird_stmt_from_obj(obj);
 
     if (stmt->stmt_handle) {
         ISC_STATUS_ARRAY status;
@@ -509,7 +509,7 @@ static void _php_firebird_fetch_hash(INTERNAL_FUNCTION_PARAMETERS, int fetch_typ
 {
     zval *result_arg;
     zend_long i, flags = 0;
-    firebird_stmt *stmt = Z_STMT_P(ZEND_THIS);
+    firebird_stmt *stmt = get_firebird_stmt_from_zval(ZEND_THIS);
     ISC_STATUS_ARRAY status;
 
     if (stmt->out_sqlda == NULL || !stmt->has_more_rows) {
@@ -642,7 +642,7 @@ enum execute_fn {
 int statement_execute(zval *stmt_o, zval *bind_args, uint32_t num_bind_args, zend_class_entry *ce, zval *ce_o)
 {
     ISC_STATUS_ARRAY status;
-    firebird_stmt *stmt = Z_STMT_P(stmt_o);
+    firebird_stmt *stmt = get_firebird_stmt_from_zval(stmt_o);
 
     if (num_bind_args != stmt->in_sqlda->sqld) {
         zend_throw_exception_ex(zend_ce_argument_count_error, 0,
@@ -882,7 +882,7 @@ static void _php_firebird_alloc_xsqlda(XSQLDA *sqlda)
 static int statement_bind(ISC_STATUS_ARRAY status, zval *stmt_o, XSQLDA *sqlda, zval *b_vars)
 {
     int i, rv = SUCCESS;
-    firebird_stmt *stmt = Z_STMT_P(stmt_o);
+    firebird_stmt *stmt = get_firebird_stmt_from_zval(stmt_o);
 
     if(sqlda->sqld > 0) {
         // In case of repeated calls to execute()
@@ -961,9 +961,9 @@ static int statement_bind(ISC_STATUS_ARRAY status, zval *stmt_o, XSQLDA *sqlda, 
             case SQL_BLOB:
                 ISC_QUAD bl_id;
                 if (Z_TYPE_P(b_var) == IS_OBJECT && Z_OBJCE_P(b_var) == FireBird_Blob_Id_ce) {
-                    bl_id = Z_BLOB_ID_P(b_var)->bl_id;
+                    bl_id = get_firebird_blob_id_from_zval(b_var)->bl_id;
                 } else if (Z_TYPE_P(b_var) == IS_OBJECT && Z_OBJCE_P(b_var) == FireBird_Blob_ce) {
-                    bl_id = Z_BLOB_P(b_var)->bl_id;
+                    bl_id = get_firebird_blob_from_zval(b_var)->bl_id;
                 } else {
                     convert_to_string(b_var);
 

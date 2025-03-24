@@ -43,9 +43,9 @@ static zend_object_handlers FireBird_Blob_object_handlers, FireBird_Blob_Id_obje
 //     object_init_ex(blob, FireBird_Blob_ce);
 //     // OBJ_SET(FireBird_Blob_ce, blob, "transaction", transaction);
 
-//     firebird_trans *tr = Z_TRANSACTION_P(transaction);
+//     firebird_trans *tr = get_firebird_trans_from_zval(transaction);
 
-//     blob_ctor(Z_BLOB_P(blob), tr->db_handle, &tr->tr_handle);
+//     blob_ctor(get_firebird_blob_from_zval(blob), tr->db_handle, &tr->tr_handle);
 // }
 
 PHP_METHOD(Blob, __construct)
@@ -59,7 +59,7 @@ int blob_close(ISC_STATUS_ARRAY status, firebird_blob *blob)
 
 PHP_METHOD(Blob, close)
 {
-    firebird_blob *blob = Z_BLOB_P(ZEND_THIS);
+    firebird_blob *blob = get_firebird_blob_from_zval(ZEND_THIS);
     ISC_STATUS_ARRAY status;
 
     if (blob_close(status, blob)) {
@@ -72,7 +72,7 @@ PHP_METHOD(Blob, close)
 
 PHP_METHOD(Blob, cancel)
 {
-    firebird_blob *blob = Z_BLOB_P(ZEND_THIS);
+    firebird_blob *blob = get_firebird_blob_from_zval(ZEND_THIS);
     ISC_STATUS_ARRAY status;
 
     if (isc_cancel_blob(status, &blob->bl_handle)) {
@@ -143,7 +143,7 @@ int blob_get_info(ISC_STATUS_ARRAY status, firebird_blob *blob)
 
 void blob_update_props(zval *blob_o)
 {
-    firebird_blob *blob = Z_BLOB_P(blob_o);
+    firebird_blob *blob = get_firebird_blob_from_zval(blob_o);
 
     OBJ_SET_LONG(FireBird_Blob_ce, blob_o, "num_segments", blob->num_segments);
     OBJ_SET_LONG(FireBird_Blob_ce, blob_o, "max_segment", blob->max_segment);
@@ -193,7 +193,7 @@ int blob_get(ISC_STATUS_ARRAY status, firebird_blob *blob, zval *return_value, s
 PHP_METHOD(Blob, get)
 {
     ISC_STATUS_ARRAY status;
-    firebird_blob *blob = Z_BLOB_P(ZEND_THIS);
+    firebird_blob *blob = get_firebird_blob_from_zval(ZEND_THIS);
     zend_long max_len = 0;
 
     ZEND_PARSE_PARAMETERS_START(0, 1)
@@ -229,7 +229,7 @@ int blob_put(ISC_STATUS_ARRAY status, firebird_blob *blob, const char *buf, size
 PHP_METHOD(Blob, put)
 {
     ISC_STATUS_ARRAY status;
-    firebird_blob *blob = Z_BLOB_P(ZEND_THIS);
+    firebird_blob *blob = get_firebird_blob_from_zval(ZEND_THIS);
     char *data;
     size_t data_len;
 
@@ -272,7 +272,7 @@ static void FireBird_Blob_free_obj(zend_object *obj)
 {
     FBDEBUG("FireBird_Blob_free_obj");
 
-    firebird_blob *blob = Z_BLOB_O(obj);
+    firebird_blob *blob = get_firebird_blob_from_obj(obj);
 
     if (blob->bl_handle) {
         ISC_STATUS_ARRAY status;
@@ -320,7 +320,7 @@ void blob_id_ctor(firebird_blob_id *blob_id, ISC_QUAD bl_id)
 void blob_id___construct(zval *blob_id_o, ISC_QUAD bl_id)
 {
     object_init_ex(blob_id_o, FireBird_Blob_Id_ce);
-    blob_id_ctor(Z_BLOB_ID_P(blob_id_o), bl_id);
+    blob_id_ctor(get_firebird_blob_id_from_zval(blob_id_o), bl_id);
 }
 
 static zend_object *FireBird_Blob_Id_create(zend_class_entry *ce)
@@ -339,7 +339,7 @@ static void FireBird_Blob_Id_free_obj(zend_object *obj)
 {
     FBDEBUG("FireBird_Blob_Id_free_obj");
 
-    firebird_blob_id *blob_id = Z_BLOB_ID_O(obj);
+    firebird_blob_id *blob_id = get_firebird_blob_id_from_obj(obj);
 
     zend_object_std_dtor(&blob_id->std);
 }

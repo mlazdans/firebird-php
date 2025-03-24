@@ -616,4 +616,22 @@ void store_portable_integer(unsigned char *buffer, ISC_UINT64 value, int length)
     }
 }
 
+#define fbp_object_accessor(strct)                                               \
+    zend_always_inline strct *get_ ##strct## _from_obj(const zend_object *obj) { \
+        return (strct*)((char*)(obj) - XtOffsetOf(strct, std));                  \
+    }                                                                            \
+    zend_always_inline strct *get_ ##strct## _from_zval(const zval *zv) {        \
+        return get_ ##strct## _from_obj(Z_OBJ_P(zv));                            \
+    }
+
+fbp_object_accessor(firebird_trans)
+fbp_object_accessor(firebird_stmt)
+fbp_object_accessor(firebird_db);
+fbp_object_accessor(firebird_blob);
+fbp_object_accessor(firebird_blob_id);
+// fbp_object_accessor(zend_fiber);
+fbp_object_accessor(firebird_event);
+fbp_object_accessor(firebird_service);
+fbp_object_accessor(firebird_tbuilder);
+
 #endif /* HAVE_FIREBIRD */

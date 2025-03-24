@@ -37,7 +37,7 @@ PHP_METHOD(Database, connect)
 {
     zval *args = NULL;
     ISC_STATUS_ARRAY status = {0};
-    firebird_db *db = Z_DB_P(ZEND_THIS);
+    firebird_db *db = get_firebird_db_from_zval(ZEND_THIS);
 
     ZEND_PARSE_PARAMETERS_START(1, 1)
         Z_PARAM_OBJECT_OF_CLASS(args, FireBird_Connect_Args_ce)
@@ -90,7 +90,7 @@ int database_create(ISC_STATUS_ARRAY status, zval *db_o, zval *args_o)
     zval rv, *database;
     const char *dpb_buffer;
     short num_dpb_written;
-    firebird_db *db = Z_DB_P(db_o);
+    firebird_db *db = get_firebird_db_from_zval(db_o);
 
     database = OBJ_GET(FireBird_Connect_Args_ce, args_o, "database", &rv);
 
@@ -136,7 +136,7 @@ PHP_METHOD(Database, drop)
     ZEND_PARSE_PARAMETERS_NONE();
 
     ISC_STATUS_ARRAY status = {0};
-    firebird_db *db = Z_DB_P(ZEND_THIS);
+    firebird_db *db = get_firebird_db_from_zval(ZEND_THIS);
 
     if (isc_drop_database(status, &db->db_handle)) {
         update_err_props(status, FireBird_Database_ce, ZEND_THIS);
@@ -326,7 +326,7 @@ PHP_METHOD(Database, get_info)
     ZEND_PARSE_PARAMETERS_NONE();
 
     ISC_STATUS_ARRAY status = { 0 };
-    firebird_db *db = Z_DB_P(ZEND_THIS);
+    firebird_db *db = get_firebird_db_from_zval(ZEND_THIS);
 
     // firebird\src\jrd\inf.cpp
     static char info_req[] = {
@@ -480,12 +480,12 @@ PHP_METHOD(Database, on_event)
     char *name;
     size_t name_len;
 
-    firebird_db *db = Z_DB_P(ZEND_THIS);
+    firebird_db *db = get_firebird_db_from_zval(ZEND_THIS);
 
     zval ievent;
     object_init_ex(&ievent, FireBird_Event_ce);
 
-    firebird_event *event = Z_EVENT_P(&ievent);
+    firebird_event *event = get_firebird_event_from_zval(&ievent);
     ZVAL_COPY(&event->instance, &ievent);
 
     // zval *f;
@@ -541,7 +541,7 @@ PHP_METHOD(Database, disconnect) {
     ZEND_PARSE_PARAMETERS_NONE();
 
     ISC_STATUS_ARRAY status;
-    firebird_db *db = Z_DB_P(ZEND_THIS);
+    firebird_db *db = get_firebird_db_from_zval(ZEND_THIS);
 
     FBDEBUG("Connection::disconnect()");
 
@@ -571,7 +571,7 @@ PHP_METHOD(Database, reconnect_transaction)
     object_init_ex(return_value, FireBird_Transaction_ce);
     transaction__construct(return_value, ZEND_THIS, NULL);
 
-    firebird_trans *tr = Z_TRANSACTION_P(return_value);
+    firebird_trans *tr = get_firebird_trans_from_zval(return_value);
 
     FBDEBUG("Connection, reconnect_transaction: %d", id);
     if (
@@ -619,7 +619,7 @@ PHP_METHOD(Database, get_limbo_transactions)
 
     static char info_req[] = { isc_info_limbo, isc_info_end };
 
-    firebird_db *db = Z_DB_P(ZEND_THIS);
+    firebird_db *db = get_firebird_db_from_zval(ZEND_THIS);
     zval db_info = { 0 };
 
     object_init_ex(&db_info, FireBird_Db_Info_ce);
@@ -669,7 +669,7 @@ static void FireBird_Database_free_obj(zend_object *obj)
 {
     FBDEBUG("FireBird_Database_free_obj");
 
-    firebird_db *db = Z_DB_O(obj);
+    firebird_db *db = get_firebird_db_from_obj(obj);
 
     if(db->db_handle) {
         ISC_STATUS_ARRAY status;

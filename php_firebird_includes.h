@@ -276,45 +276,6 @@ void _php_firebird_module_fatal(char *, ...)
     zend_string_release(prop_##name##_name);                                          \
 } while (0)
 
-// TODO: these macros are very bad idea because not type checking. It is easy to
-// make mistakes calling these on *zend_object or *zval and vice versa
-#define Z_TRANSACTION_O(zobj) \
-    ((firebird_trans*)((char*)(zobj) - XtOffsetOf(firebird_trans, std)))
-
-#define Z_STMT_O(zobj) \
-    ((firebird_stmt*)((char*)(zobj) - XtOffsetOf(firebird_stmt, std)))
-
-#define Z_DB_O(zobj) \
-    ((firebird_db*)((char*)(zobj) - XtOffsetOf(firebird_db, std)))
-
-#define Z_BLOB_O(zobj) \
-    ((firebird_blob*)((char*)(zobj) - XtOffsetOf(firebird_blob, std)))
-
-#define Z_BLOB_ID_O(zobj) \
-    ((firebird_blob_id*)((char*)(zobj) - XtOffsetOf(firebird_blob_id, std)))
-
-#define Z_FIBER_O(zobj) \
-    ((zend_fiber*)((char*)(zobj) - XtOffsetOf(zend_fiber, std)))
-
-#define Z_EVENT_O(zobj) \
-    ((firebird_event*)((char*)(zobj) - XtOffsetOf(firebird_event, std)))
-
-#define Z_SERVICE_O(zobj) \
-    ((firebird_service*)((char*)(zobj) - XtOffsetOf(firebird_service, std)))
-
-#define Z_TBUILDER_O(zobj) \
-    ((firebird_tbuilder*)((char*)(zobj) - XtOffsetOf(firebird_tbuilder, std)))
-
-#define Z_TRANSACTION_P(zv) Z_TRANSACTION_O(Z_OBJ_P(zv))
-#define Z_STMT_P(zv) Z_STMT_O(Z_OBJ_P(zv))
-#define Z_DB_P(zv) Z_DB_O(Z_OBJ_P(zv))
-#define Z_BLOB_P(zv) Z_BLOB_O(Z_OBJ_P(zv))
-#define Z_BLOB_ID_P(zv) Z_BLOB_ID_O(Z_OBJ_P(zv))
-#define Z_FIBER_P(zv) Z_FIBER_O(Z_OBJ_P(zv))
-#define Z_EVENT_P(zv) Z_EVENT_O(Z_OBJ_P(zv))
-#define Z_SERVICE_P(zv) Z_SERVICE_O(Z_OBJ_P(zv))
-#define Z_TBUILDER_P(zv) Z_TBUILDER_O(Z_OBJ_P(zv))
-
 // TODO: similar macros for reading
 #define xpb_insert(f, ...) do { \
     IXpbBuilder_insert##f(__VA_ARGS__); \
@@ -569,6 +530,20 @@ int database_get_info(ISC_STATUS_ARRAY status, isc_db_handle *db_handle, zval *d
     size_t info_req_size, char *info_req, size_t info_resp_size, char *info_resp, size_t max_limbo_count);
 void event_ast_routine(void *_ev, ISC_USHORT length, const ISC_UCHAR *result_buffer);
 void tbuilder_populate_tpb(firebird_tbuilder *builder, char *tpb, unsigned short *tpb_len);
+
+#define fbp_declare_object_accessor(strct)                   \
+    strct *get_ ##strct## _from_obj(const zend_object *obj); \
+    strct *get_ ##strct## _from_zval(const zval *zv)
+
+fbp_declare_object_accessor(firebird_trans);
+fbp_declare_object_accessor(firebird_stmt);
+fbp_declare_object_accessor(firebird_db);
+fbp_declare_object_accessor(firebird_blob);
+fbp_declare_object_accessor(firebird_blob_id);
+// fbp_declare_object_accessor(zend_fiber);
+fbp_declare_object_accessor(firebird_event);
+fbp_declare_object_accessor(firebird_service);
+fbp_declare_object_accessor(firebird_tbuilder);
 
 #define fbp_error(msg, ...) _php_firebird_module_error(msg " (%s:%d)\n" __VA_OPT__(,) __VA_ARGS__, __FILE__, __LINE__)
 #define fbp_fatal(msg, ...) _php_firebird_module_fatal(msg " (%s:%d)\n" __VA_OPT__(,) __VA_ARGS__, __FILE__, __LINE__)

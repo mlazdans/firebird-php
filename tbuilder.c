@@ -9,21 +9,23 @@
 zend_class_entry *FireBird_TBuilder_ce;
 static zend_object_handlers FireBird_TBuilder_object_handlers;
 
-#define tbuilder_update_flag(name) do {                   \
-    zend_bool enable = true;                              \
-    ZEND_PARSE_PARAMETERS_START(0, 1)                     \
-        Z_PARAM_OPTIONAL                                  \
-        Z_PARAM_BOOL(enable)                              \
-    ZEND_PARSE_PARAMETERS_END();                          \
-    firebird_tbuilder *builder = Z_TBUILDER_P(ZEND_THIS); \
-    builder->name = (bool)enable;                         \
-    RETVAL_OBJ_COPY(Z_OBJ_P(ZEND_THIS));                  \
+#define tbuilder_update_flag(name) do {             \
+    zend_bool enable = true;                        \
+    ZEND_PARSE_PARAMETERS_START(0, 1)               \
+        Z_PARAM_OPTIONAL                            \
+        Z_PARAM_BOOL(enable)                        \
+    ZEND_PARSE_PARAMETERS_END();                    \
+    firebird_tbuilder *builder =                    \
+        get_firebird_tbuilder_from_zval(ZEND_THIS); \
+    builder->name = (bool)enable;                   \
+    RETVAL_OBJ_COPY(Z_OBJ_P(ZEND_THIS));            \
 } while(0)
 
-#define tbuilder_update_isolation_mode(mode)              \
-    firebird_tbuilder *builder = Z_TBUILDER_P(ZEND_THIS); \
-    builder->isolation_mode = mode;                       \
-    builder->snapshot_at_number = 0;                      \
+#define tbuilder_update_isolation_mode(mode)        \
+    firebird_tbuilder *builder =                    \
+        get_firebird_tbuilder_from_zval(ZEND_THIS); \
+    builder->isolation_mode = mode;                 \
+    builder->snapshot_at_number = 0;                \
     RETVAL_OBJ_COPY(Z_OBJ_P(ZEND_THIS))
 
 PHP_METHOD(TBuilder, __construct)
@@ -66,7 +68,7 @@ PHP_METHOD(TBuilder, wait)
         RETURN_THROWS();
     }
 
-    firebird_tbuilder *builder = Z_TBUILDER_P(ZEND_THIS);
+    firebird_tbuilder *builder = get_firebird_tbuilder_from_zval(ZEND_THIS);
     builder->lock_timeout = lock_timeout;
 
     RETVAL_OBJ_COPY(Z_OBJ_P(ZEND_THIS));
@@ -111,7 +113,7 @@ PHP_METHOD(TBuilder, isolation_read_committed_read_consistency)
 PHP_METHOD(TBuilder, dump_state)
 {
     ZEND_PARSE_PARAMETERS_NONE();
-    firebird_tbuilder *b = Z_TBUILDER_P(ZEND_THIS);
+    firebird_tbuilder *b = get_firebird_tbuilder_from_zval(ZEND_THIS);
 
     php_printf("TBuilder::dump_state\n");
     php_printf("  read_only: %d\n", b->read_only);
@@ -154,14 +156,14 @@ static void FireBird_TBuilder_free_obj(zend_object *obj)
 {
     FBDEBUG("FireBird_TBuilder_free_obj");
 
-    firebird_tbuilder *builder = Z_TBUILDER_O(obj);
+    firebird_tbuilder *builder = get_firebird_tbuilder_from_obj(obj);
 
     zend_object_std_dtor(&builder->std);
 }
 
 static zval *FireBird_TBuilder_read_property(zend_object *obj, zend_string *name, int type, void **cache_slot, zval *rv)
 {
-    firebird_tbuilder *b = Z_TBUILDER_O(obj);
+    firebird_tbuilder *b = get_firebird_tbuilder_from_obj(obj);
 
     if (zend_string_equals_literal(name, "is_read_only")) {
         ZVAL_BOOL(rv, b->read_only);

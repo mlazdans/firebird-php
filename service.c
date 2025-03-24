@@ -58,7 +58,7 @@ PHP_METHOD(Service, connect)
 {
     zval *args = NULL;
     ISC_STATUS_ARRAY status = {0};
-    firebird_service *svc = Z_SERVICE_P(ZEND_THIS);
+    firebird_service *svc = get_firebird_service_from_zval(ZEND_THIS);
 
     ZEND_PARSE_PARAMETERS_START(1, 1)
         Z_PARAM_OBJECT_OF_CLASS(args, FireBird_Service_Connect_Args_ce)
@@ -80,7 +80,7 @@ PHP_METHOD(Service, disconnect) {
     ZEND_PARSE_PARAMETERS_NONE();
 
     ISC_STATUS_ARRAY status;
-    firebird_service *svc = Z_SERVICE_P(ZEND_THIS);
+    firebird_service *svc = get_firebird_service_from_zval(ZEND_THIS);
 
     FBDEBUG("Service::disconnect()");
 
@@ -101,7 +101,7 @@ int service_get_server_info(ISC_STATUS_ARRAY status, zval *service, zval *server
     size_t req_size, char *req_buff,
     size_t resp_size, char *resp_buff)
 {
-    firebird_service *svc = Z_SERVICE_P(service);
+    firebird_service *svc = get_firebird_service_from_zval(service);
 
     static char spb[] = { isc_info_svc_timeout, 10, 0, 0, 0 };
     static char action[] = { isc_action_svc_display_user_adm };
@@ -307,7 +307,7 @@ PHP_METHOD(Service, get_server_info)
 int service_addmod_user(zval *service, zval *user_info, const ISC_UCHAR tag)
 {
     ISC_STATUS_ARRAY status = {0};
-    firebird_service *svc = Z_SERVICE_P(service);
+    firebird_service *svc = get_firebird_service_from_zval(service);
 
     struct IMaster* master = fb_get_master_interface();
     struct IStatus* st = IMaster_getStatus(master);
@@ -360,7 +360,7 @@ PHP_METHOD(Service, modify_user)
 PHP_METHOD(Service, delete_user)
 {
     ISC_STATUS_ARRAY status = {0};
-    firebird_service *svc = Z_SERVICE_P(ZEND_THIS);
+    firebird_service *svc = get_firebird_service_from_zval(ZEND_THIS);
     zend_string *username = NULL;
     char buf[128] = {0};
     char *p = buf;
@@ -396,7 +396,7 @@ PHP_METHOD(Service, delete_user)
 PHP_METHOD(Service, backup)
 {
     ISC_STATUS_ARRAY status = {0};
-    firebird_service *svc = Z_SERVICE_P(ZEND_THIS);
+    firebird_service *svc = get_firebird_service_from_zval(ZEND_THIS);
     zend_string *dbname, *bkp_file;
     zend_long options = 0;
 
@@ -435,7 +435,7 @@ PHP_METHOD(Service, backup)
 PHP_METHOD(Service, restore)
 {
     ISC_STATUS_ARRAY status = {0};
-    firebird_service *svc = Z_SERVICE_P(ZEND_THIS);
+    firebird_service *svc = get_firebird_service_from_zval(ZEND_THIS);
     zend_string *dbname, *bkp_file;
     zend_long options = 0;
 
@@ -498,7 +498,7 @@ static void FireBird_Service_free_obj(zend_object *obj)
 {
     FBDEBUG("FireBird_Service_free_obj");
 
-    firebird_service *svc = Z_SERVICE_O(obj);
+    firebird_service *svc = get_firebird_service_from_obj(obj);
 
     if(svc->svc_handle) {
         ISC_STATUS_ARRAY status;
