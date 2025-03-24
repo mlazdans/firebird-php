@@ -47,6 +47,7 @@ class Error
     public int $error_code_long { get; }
 }
 
+// TODO: sync
 class Db_Info
 {
     public int $reads { get; }

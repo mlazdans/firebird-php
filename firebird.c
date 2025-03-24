@@ -108,6 +108,18 @@ firebird_xpb_zmap database_info_zmap = XPB_ZMAP_INIT(
 
         isc_info_isc_version, isc_info_firebird_version, isc_info_limbo,
         isc_info_sweep_interval, isc_info_ods_version, isc_info_ods_minor_version, isc_info_no_reserve,
+
+        isc_info_forced_writes, isc_info_set_page_buffers, isc_info_db_sql_dialect, isc_info_db_read_only, isc_info_db_size_in_pages,
+        isc_info_oldest_transaction, isc_info_oldest_active, isc_info_oldest_snapshot, isc_info_next_transaction,
+
+        isc_info_creation_date, isc_info_db_file_size, fb_info_pages_used, fb_info_pages_free,
+
+        fb_info_ses_idle_timeout_db, fb_info_ses_idle_timeout_att, fb_info_ses_idle_timeout_run, fb_info_conn_flags,
+        fb_info_crypt_key, fb_info_crypt_state, fb_info_statement_timeout_db, fb_info_statement_timeout_att,
+        fb_info_protocol_version, fb_info_crypt_plugin, fb_info_wire_crypt,
+
+        fb_info_next_attachment, fb_info_next_statement, fb_info_db_guid, fb_info_db_file_id,
+        fb_info_replica_mode, fb_info_username, fb_info_sqlrole, fb_info_parallel_workers
     }),
     ((const char *[]){
         "reads", "writes", "fetches", "marks",
@@ -118,6 +130,18 @@ firebird_xpb_zmap database_info_zmap = XPB_ZMAP_INIT(
 
         "isc_version", "firebird_version", "limbo",
         "sweep_interval", "ods_version", "ods_minor_version", "no_reserve",
+
+        "forced_writes", "set_page_buffers", "db_sql_dialect", "db_read_only", "db_size_in_pages",
+        "oldest_transaction", "oldest_active", "oldest_snapshot", "next_transaction",
+
+        "creation_date", "db_file_size", "pages_used", "pages_free",
+
+        "ses_idle_timeout_db", "ses_idle_timeout_att", "ses_idle_timeout_run", "conn_flags",
+        "crypt_key", "crypt_state", "statement_timeout_db", "statement_timeout_att", "protocol_version", "crypt_plugin", "wire_crypt",
+
+        "next_attachment", "next_statement", "db_guid", "db_file_id",
+        "replica_mode", "username", "sqlrole", "parallel_workers"
+
     }),
     ((uint32_t []) {
         MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG,
@@ -126,6 +150,13 @@ firebird_xpb_zmap database_info_zmap = XPB_ZMAP_INIT(
         MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG,
         MAY_BE_ARRAY, MAY_BE_ARRAY, MAY_BE_ARRAY,
         MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG,
+        MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG,
+        MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG,
+        MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG,
+        MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG,
+        MAY_BE_STRING, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_STRING, MAY_BE_STRING,
+        MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG,
+        MAY_BE_LONG, MAY_BE_STRING, MAY_BE_STRING, MAY_BE_LONG,
     })
 );
 

@@ -106,6 +106,9 @@ int service_get_server_info(ISC_STATUS_ARRAY status, zval *service, zval *server
     static char spb[] = { isc_info_svc_timeout, 10, 0, 0, 0 };
     static char action[] = { isc_action_svc_display_user_adm };
 
+    // TODO: isc_action_svc_db_stats   - ibase_db_info()
+    // TODO: isc_action_svc_properties - ibase_maintain_db()
+
     if (isc_service_start(status, &svc->svc_handle, NULL, sizeof(action), action)) {
         return FAILURE;
     }
