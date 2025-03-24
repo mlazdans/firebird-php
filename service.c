@@ -16,7 +16,7 @@ int service_build_dpb(zend_class_entry *ce, zval *args, const firebird_xpb_zmap 
     struct IMaster* master = fb_get_master_interface();
     struct IStatus* st = IMaster_getStatus(master);
     struct IUtil* utl = IMaster_getUtilInterface(master);
-    struct IXpbBuilder* xpb = IUtil_getXpbBuilder(utl, st, IXpbBuilder_SPB_ATTACH, NULL, 0); // TODO: SPB?
+    struct IXpbBuilder* xpb = IUtil_getXpbBuilder(utl, st, IXpbBuilder_SPB_ATTACH, NULL, 0);
 
     xpb_insert_tag(isc_spb_version3);
     xpb_insert_zmap(ce, args, xpb_zmap, xpb, st);
@@ -200,7 +200,6 @@ int service_get_server_info(ISC_STATUS_ARRAY status, zval *service, zval *server
                 zval_ptr_dtor(&dbname);
             } break;
 
-            // TODO: need start service
             case isc_info_svc_get_users: {
                 get_users_requested = 1;
                 FBDEBUG("Parsing user info block: %d bytes", isc_portable_integer(p, 2));

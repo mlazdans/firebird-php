@@ -293,9 +293,15 @@ class Blob implements IError
     public int $position { get; }
     public bool $is_writable { get; }
 
-    // protected(set) Transaction $transaction;
+    public Transaction $transaction { get; }
 
-    private function __construct() {}
+    function __construct(\FireBird\Transaction $tr) {}
+
+    /** @return bool */
+    function create() {}
+
+    /** @return Blob|false */
+    function open(Blob_Id $id) {}
 
     /** @return bool */
     function close() {}
