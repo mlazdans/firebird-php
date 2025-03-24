@@ -364,7 +364,7 @@ int blob_create(ISC_STATUS_ARRAY status, isc_db_handle *db_handle, isc_tr_handle
 {
     char bpb[] = { isc_bpb_version1, isc_bpb_type, 1, isc_bpb_type_stream };
 
-    if (isc_create_blob2(status, db_handle, tr_handle, &blob->bl_handle, &blob->bl_id, sizeof(bpb), bpb)) {
+    if (isc_create_blob2(status, db_handle, tr_handle, &blob->bl_handle, &blob->bl_id, sizeof(bpb), bpb) || blob_get_info(status, blob)) {
         return FAILURE;
     }
 
@@ -377,7 +377,7 @@ int blob_open(ISC_STATUS_ARRAY status, isc_db_handle *db_handle, isc_tr_handle *
 {
     char bpb[] = { isc_bpb_version1, isc_bpb_type, 1, isc_bpb_type_stream };
 
-    if (isc_open_blob2(status, db_handle, tr_handle, &blob->bl_handle, &blob->bl_id, sizeof(bpb), bpb)) {
+    if (isc_open_blob2(status, db_handle, tr_handle, &blob->bl_handle, &blob->bl_id, sizeof(bpb), bpb) || blob_get_info(status, blob)) {
         return FAILURE;
     }
 
