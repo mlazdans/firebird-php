@@ -41,6 +41,10 @@
 
 #define TPB_MAX_SIZE (32)
 
+// For limbo buffers. Need roughly 7 bytes per transaction id
+#define TRANS_ID_SIZE 8
+#define TRANS_MAX_STACK_COUNT 128
+
 #ifdef FIREBIRD_DEBUG
 #define FBDEBUG(format, ...) if(FBG(debug))php_printf(format " (%s:%d)\n" __VA_OPT__(,) __VA_ARGS__, __FILE__, __LINE__);
 #define FBDEBUG_NOFL(format, ...) if(FBG(debug))php_printf(format "\n" __VA_OPT__(,) __VA_ARGS__);
