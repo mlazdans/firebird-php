@@ -13,7 +13,6 @@ int database_connect(ISC_STATUS_ARRAY status, firebird_db *db)
     const char *dpb_buffer;
     short num_dpb_written;
 
-    // TODO: check if instance of Create_Args
     database = OBJ_GET(FireBird_Connect_Args_ce, &db->args, "database", &rv);
 
     if ((Z_TYPE_P(database) != IS_STRING) || !Z_STRLEN_P(database)) {
@@ -154,8 +153,6 @@ int database_get_info(ISC_STATUS_ARRAY status, isc_db_handle *db_handle, zval *d
         return FAILURE;
     }
 
-    // TODO: IXpbBuilder code duplication all over the place.
-    // Maybe using firebird_xpb_zmap?
     struct IMaster* master = fb_get_master_interface();
     struct IStatus* st = IMaster_getStatus(master);
     struct IUtil* utl = IMaster_getUtilInterface(master);
@@ -182,12 +179,15 @@ int database_get_info(ISC_STATUS_ARRAY status, isc_db_handle *db_handle, zval *d
             #item, sizeof(#item) - 1, IXpbBuilder_getBigInt(dpb, st));   \
         break
 
-#define READ_STR_(item, pref)                                         \
-    case pref ## _info_ ## item:                                         \
+#define READ_STR_(item, pref)                                               \
+    case pref ## _info_ ## item:                                            \
         zend_update_property_stringl(FireBird_Db_Info_ce, Z_OBJ_P(db_info), \
-            #item, sizeof(#item) - 1, b, len);   \
+            #item, sizeof(#item) - 1, b, len);                              \
         break
 
+// b[0] holds count of entries, at the moment = 1
+// b[1] holds str length
+// b[2] holds pointer to str (not null terminated)
 #define READ_STR_ARRAY(item)                                        \
     case isc_info_##item: {                                         \
         ISC_UCHAR count = *b++;                                     \
@@ -214,13 +214,6 @@ int database_get_info(ISC_STATUS_ARRAY status, isc_db_handle *db_handle, zval *d
         len = IXpbBuilder_getLength(dpb, st);
 
         switch(tag) {
-            // case : {
-            //     dump_buffer(b, len);
-            // } break;
-
-            // b[0] holds count of entries, at the moment = 1
-            // b[1] holds str length
-            // b[2] holds pointer to str (not null terminated)
             READ_STR_ARRAY(isc_version);
             READ_STR_ARRAY(firebird_version);
 
