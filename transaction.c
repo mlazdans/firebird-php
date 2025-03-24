@@ -6,6 +6,8 @@
 #include "zend_attributes.h"
 #include "php_firebird_includes.h"
 
+#include "blob.h"
+
 zend_class_entry *FireBird_Transaction_ce;
 static zend_object_handlers FireBird_Transaction_object_handlers;
 

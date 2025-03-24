@@ -29,6 +29,7 @@
 
 #include <firebird/fb_c_api.h>
 #include "php.h"
+#include "blob.h"
 
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE

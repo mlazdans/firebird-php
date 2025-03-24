@@ -14,6 +14,7 @@
 #include "pdo_firebird_utils.h"
 
 #include "fbp_blob.h"
+#include "blob.h"
 
 zend_class_entry *FireBird_Statement_ce;
 static zend_object_handlers FireBird_Statement_object_handlers;

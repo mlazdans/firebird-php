@@ -28,7 +28,11 @@
 #include "php_firebird.h"
 #include "php_firebird_includes.h"
 
-zend_class_entry *FireBird_Blob_ce, *FireBird_Blob_Id_ce;
+#include "blob.h"
+
+zend_class_entry *FireBird_Blob_ce;
+zend_class_entry *FireBird_Blob_Id_ce;
+
 static zend_object_handlers FireBird_Blob_object_handlers, FireBird_Blob_Id_object_handlers;
 
 static void _FireBird_Blob_update_props(zval *Blob)
