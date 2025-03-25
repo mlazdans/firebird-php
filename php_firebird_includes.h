@@ -163,7 +163,6 @@ void _php_firebird_module_fatal(char *, ...)
     zend_string_release(prop_##name##_name);                                          \
 } while (0)
 
-// TODO: similar macros for reading
 #define xpb_insert(f, ...) do { \
     IXpbBuilder_insert##f(__VA_ARGS__); \
     if (IStatus_getState(st) & IStatus_STATE_ERRORS) { \

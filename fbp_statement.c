@@ -47,7 +47,6 @@ void fbp_statement_ctor(firebird_stmt *stmt, firebird_trans *tr)
     stmt->tr_handle = &tr->tr_handle;
 }
 
-// TODO: move xsqlda functions into its own module or utils
 void fbp_alloc_xsqlda(XSQLDA *sqlda)
 {
     int i;
@@ -114,7 +113,6 @@ void fbp_alloc_xsqlda(XSQLDA *sqlda)
                 break;
         } /* switch */
 
-        // XXX: Engine should allocate this for outbound XSQLDA? No?
         if (var->sqltype & 1) { /* sql NULL flag */
             var->sqlind = emalloc(sizeof(short));
         } else {
@@ -132,7 +130,7 @@ void fbp_free_xsqlda(XSQLDA *sqlda)
         var = sqlda->sqlvar;
         for (i = 0; i < min(sqlda->sqld, sqlda->sqln); i++, var++) {
             efree(var->sqldata);
-            if (var->sqlind) { // XXX: should free for out sqlda or not?
+            if (var->sqlind) {
                 efree(var->sqlind);
             }
         }
@@ -454,7 +452,6 @@ int fbp_statement_execute(firebird_stmt *stmt, zval *bind_args, uint32_t num_bin
     return SUCCESS;
 }
 
-// int statement_prepare(ISC_STATUS_ARRAY status, zval *stmt_o, const ISC_SCHAR *sql)
 int fbp_statement_prepare(firebird_stmt *stmt, const ISC_SCHAR *sql)
 {
     // TODO: configure auto-close, throw or warning
