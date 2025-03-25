@@ -4,6 +4,9 @@
 #include "zend_attributes.h"
 #include "php_firebird_includes.h"
 
+#include "database.h"
+#include "transaction.h"
+
 zend_class_entry *FireBird_Database_ce, *FireBird_Db_Info_ce;
 static zend_object_handlers FireBird_Database_object_handlers;
 
@@ -20,7 +23,7 @@ int database_connect(ISC_STATUS_ARRAY status, firebird_db *db)
         return FAILURE;
     }
 
-    if (FAILURE == database_build_dpb(FireBird_Connect_Args_ce, &db->args, &database_connect_zmap, &dpb_buffer, &num_dpb_written)) {
+    if (FAILURE == _FireBird_Database_build_dpb(FireBird_Connect_Args_ce, &db->args, &database_connect_zmap, &dpb_buffer, &num_dpb_written)) {
         return FAILURE;
     }
 
@@ -99,7 +102,7 @@ int database_create(ISC_STATUS_ARRAY status, zval *db_o, zval *args_o)
         return FAILURE;
     }
 
-    if (FAILURE == database_build_dpb(FireBird_Create_Args_ce, args_o, &database_create_zmap, &dpb_buffer, &num_dpb_written)) {
+    if (FAILURE == _FireBird_Database_build_dpb(FireBird_Create_Args_ce, args_o, &database_create_zmap, &dpb_buffer, &num_dpb_written)) {
         return FAILURE;
     }
 
@@ -526,15 +529,15 @@ PHP_METHOD(Database, on_event)
 }
 
 PHP_METHOD(Database, new_transaction) {
-    zval *tb = NULL;
+    zval *Tb = NULL;
 
     ZEND_PARSE_PARAMETERS_START(0, 1)
         Z_PARAM_OPTIONAL
-        Z_PARAM_OBJECT_OF_CLASS(tb, FireBird_TBuilder_ce)
+        Z_PARAM_OBJECT_OF_CLASS(Tb, FireBird_TBuilder_ce)
     ZEND_PARSE_PARAMETERS_END();
 
     object_init_ex(return_value, FireBird_Transaction_ce);
-    transaction__construct(return_value, ZEND_THIS, tb);
+    FireBird_Transaction___construct(return_value, ZEND_THIS, Tb);
 }
 
 PHP_METHOD(Database, disconnect) {
@@ -558,6 +561,22 @@ PHP_METHOD(Database, disconnect) {
     RETURN_FALSE;
 }
 
+void FireBird_Database_reconnect_transaction(zval *Db, zval *return_value, zend_long id)
+{
+    object_init_ex(return_value, FireBird_Transaction_ce);
+    FireBird_Transaction___construct(return_value, Db, NULL);
+    firebird_trans *tr = get_firebird_trans_from_zval(return_value);
+
+    FBDEBUG("Connection, reconnect_transaction: %d", id);
+    if (fbp_transaction_reconnect(tr, id)) {
+        update_err_props(FBG(status), FireBird_Database_ce, Db);
+        zval_ptr_dtor(return_value);
+        RETURN_FALSE;
+    }
+
+    zend_update_property_long(FireBird_Transaction_ce, Z_OBJ_P(return_value), "id", 2, (zend_long)tr->tr_id);
+}
+
 PHP_METHOD(Database, reconnect_transaction)
 {
     ISC_STATUS_ARRAY status;
@@ -568,21 +587,7 @@ PHP_METHOD(Database, reconnect_transaction)
         Z_PARAM_LONG(id)
     ZEND_PARSE_PARAMETERS_END();
 
-    object_init_ex(return_value, FireBird_Transaction_ce);
-    transaction__construct(return_value, ZEND_THIS, NULL);
-
-    firebird_trans *tr = get_firebird_trans_from_zval(return_value);
-
-    FBDEBUG("Connection, reconnect_transaction: %d", id);
-    if (
-        isc_reconnect_transaction(status, tr->db_handle, &tr->tr_handle, sizeof(id), (const ISC_SCHAR *)&id) ||
-        transaction_get_info(status, tr)) {
-            update_err_props(status, FireBird_Database_ce, ZEND_THIS);
-            zval_ptr_dtor(return_value);
-            RETURN_FALSE;
-    }
-
-    zend_update_property_long(FireBird_Transaction_ce, Z_OBJ_P(return_value), "id", 2, (zend_long)tr->tr_id);
+    FireBird_Database_reconnect_transaction(ZEND_THIS, return_value, id);
 }
 
 PHP_METHOD(Database, get_limbo_transactions)
@@ -720,7 +725,10 @@ void register_FireBird_Database_ce()
     FireBird_Database_object_handlers.free_obj = FireBird_Database_free_obj;
 }
 
-int database_build_dpb(zend_class_entry *ce, zval *args, const firebird_xpb_zmap *xpb_zmap, const char **dpb_buf, short *num_dpb_written)
+/**
+ * zval* Args intanceof Create_Args|Connect_Args
+ */
+int _FireBird_Database_build_dpb(zend_class_entry *ce, zval *Args, const firebird_xpb_zmap *xpb_zmap, const char **dpb_buf, short *num_dpb_written)
 {
     struct IMaster* master = fb_get_master_interface();
     struct IStatus* st = IMaster_getStatus(master);
@@ -735,7 +743,7 @@ int database_build_dpb(zend_class_entry *ce, zval *args, const firebird_xpb_zmap
     xpb_insert_tag(isc_dpb_version2);
     xpb_insert_int(isc_dpb_sql_dialect, SQL_DIALECT_CURRENT);
 
-    xpb_insert_zmap(ce, args, xpb_zmap, xpb, st);
+    xpb_insert_zmap(ce, Args, xpb_zmap, xpb, st);
 
 #if FB_API_VER >= 40
     // Do not handle directly INT128 or DECFLOAT, convert to VARCHAR at server instead

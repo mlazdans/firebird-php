@@ -29,6 +29,8 @@
 #include <firebird/fb_c_api.h>
 #include <ibase.h>
 #include "fbp_blob.h"
+#include "fbp_transaction.h"
+#include "fbp_statement.h"
 
 #define PHP_FIREBIRD_VERSION "0.0.1-alpha"
 
@@ -66,34 +68,11 @@ ZEND_END_MODULE_GLOBALS(firebird)
 
 ZEND_EXTERN_MODULE_GLOBALS(firebird)
 
-typedef struct firebird_bind_buf {
-    union {
-#ifdef SQL_BOOLEAN
-        FB_BOOLEAN bval;
-#endif
-        short sval;
-        float fval;
-        ISC_LONG lval;
-        ISC_QUAD qval;
-        ISC_TIMESTAMP tsval;
-        ISC_DATE dtval;
-        ISC_TIME tmval;
-    } val;
-    short sqlind;
-} firebird_bind_buf;
-
-typedef struct {
-    ISC_ARRAY_DESC ar_desc;
-    ISC_LONG ar_size; /* size of entire array in bytes */
-    unsigned short el_type, el_size;
-} firebird_array;
-
-typedef struct firebird_db {
-    isc_db_handle db_handle;
-    zval args;
-
-    zend_object std;
-} firebird_db;
+// typedef struct {
+//     ISC_ARRAY_DESC ar_desc;
+//     ISC_LONG ar_size; /* size of entire array in bytes */
+//     unsigned short el_type, el_size;
+// } firebird_array;
 
 typedef struct firebird_service {
     isc_svc_handle svc_handle;
@@ -105,30 +84,6 @@ typedef struct firebird_service {
     // zval instance;
     zend_object std;
 } firebird_service;
-
-typedef struct firebird_trans {
-    isc_tr_handle tr_handle;
-    isc_db_handle *db_handle;
-    ISC_UINT64 tr_id;
-    unsigned short is_prepared_2pc;
-    zend_object std;
-} firebird_trans;
-
-typedef struct firebird_stmt {
-    isc_stmt_handle stmt_handle;
-    isc_db_handle *db_handle;
-    isc_tr_handle *tr_handle;
-    XSQLDA *in_sqlda, *out_sqlda;
-    unsigned char statement_type, has_more_rows;
-    firebird_array *in_array, *out_array;
-    unsigned short in_array_cnt, out_array_cnt;
-    firebird_bind_buf *bind_buf;
-    // unsigned short dialect;
-    const ISC_SCHAR *query;
-    const ISC_SCHAR *name;
-    ISC_ULONG insert_count, update_count, delete_count, affected_count;
-    zend_object std;
-} firebird_stmt;
 
 typedef struct firebird_blob_id {
     ISC_QUAD bl_id;
@@ -179,24 +134,6 @@ typedef struct firebird_events {
     firebird_event *events;
     size_t count;
 } firebird_events;
-
-typedef struct firebird_tbuilder {
-    char read_only, ignore_limbo, auto_commit, no_auto_undo;
-
-    /**
-     * Isolation mode (level):
-     * 0 - consistency (snapshot table stability)
-     * 1 - concurrency (snapshot)
-     * 2 - read committed record version
-     * 3 - read committed no record version
-     * 4 - read committed read consistency
-     */
-    char isolation_mode;
-    ISC_SHORT lock_timeout;
-    ISC_UINT64 snapshot_at_number;
-
-    zend_object std;
-} firebird_tbuilder;
 
 enum php_firebird_option {
     /* fetch flags */
@@ -355,6 +292,11 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Service_restore, 0, 2, 
 ZEND_END_ARG_INFO()
 
 // Transaction argument types
+ZEND_BEGIN_ARG_INFO_EX(arginfo_FireBird_Transaction___construct, 0, 0, 1)
+    ZEND_ARG_OBJ_INFO(0, database, FireBird\\Database, 0)
+    ZEND_ARG_OBJ_INFO(0, builder, FireBird\\TBuilder, 0)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Transaction_prepare, 0, 0, FireBird\\Statement, MAY_BE_FALSE)
     ZEND_ARG_TYPE_INFO(0, sql, IS_STRING, 0)
 ZEND_END_ARG_INFO()
@@ -372,6 +314,10 @@ ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Transacti
 ZEND_END_ARG_INFO()
 
 // Statement argument types
+ZEND_BEGIN_ARG_INFO_EX(arginfo_FireBird_Statement___construct, 0, 0, 1)
+    ZEND_ARG_OBJ_INFO(0, transaction, FireBird\\Transaction, 0)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_FireBird_Statement_fetch_row, 0, 0, MAY_BE_ARRAY|MAY_BE_FALSE|MAY_BE_NULL)
     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, flags, IS_LONG, 0, 0)
 ZEND_END_ARG_INFO()
@@ -432,13 +378,9 @@ extern firebird_events fb_events;
 
 extern zend_class_entry *FireBird_Connect_Args_ce;
 extern zend_class_entry *FireBird_Create_Args_ce;
-extern zend_class_entry *FireBird_Database_ce;
-extern zend_class_entry *FireBird_Transaction_ce;
-extern zend_class_entry *FireBird_Statement_ce;
 extern zend_class_entry *FireBird_IError_ce;
 extern zend_class_entry *FireBird_Error_ce;
 extern zend_class_entry *FireBird_Var_Info_ce;
-extern zend_class_entry *FireBird_Db_Info_ce;
 extern zend_class_entry *FireBird_Event_ce;
 extern zend_class_entry *FireBird_Service_ce;
 extern zend_class_entry *FireBird_Service_Connect_Args_ce;
@@ -447,15 +389,11 @@ extern zend_class_entry *FireBird_Server_Db_Info_ce;
 extern zend_class_entry *FireBird_Server_User_Info_ce;
 extern zend_class_entry *FireBird_TBuilder_ce;
 
-extern void register_FireBird_Database_ce();
-extern void register_FireBird_Transaction_ce();
-extern void register_FireBird_Statement_ce();
 extern void register_FireBird_IError_ce();
 extern void register_FireBird_Error_ce();
 extern void register_FireBird_Connect_Args_ce();
 extern void register_FireBird_Create_Args_ce();
 extern void register_FireBird_Var_Info_ce();
-extern void register_FireBird_Db_Info_ce();
 extern void register_FireBird_Event_ce();
 extern void register_FireBird_Service_ce();
 extern void register_FireBird_Service_Connect_Args_ce();
@@ -492,35 +430,16 @@ extern void register_FireBird_TBuilder_ce();
 
 // TODO: tidy namspacing
 void store_portable_integer(unsigned char *buffer, ISC_UINT64 value, int length);
-void transaction_ctor(firebird_trans *tr, firebird_db *db);
-void transaction__construct(zval *tr, zval *database, zval *builder);
 void status_fbp_error_ex(const ISC_STATUS *status, const char *file_name, size_t line_num);
 void dump_buffer(const unsigned char *buffer, int len);
 ISC_INT64 update_err_props_ex(ISC_STATUS_ARRAY status, zend_class_entry *ce, zval *obj, const char *file_name, size_t line_num);
-int transaction_start(ISC_STATUS_ARRAY status, zval *tr_o);
-int transaction_get_info(ISC_STATUS_ARRAY status, firebird_trans *tr);
 int status_err_msg(const ISC_STATUS *status, char *msg, unsigned short msg_size);
-int database_build_dpb(zend_class_entry *ce, zval *args_o, const firebird_xpb_zmap *xpb_map, const char **dpb_buf, short *num_dpb_written);
-void statement_ctor(zval *stmt_o, zval *transaction);
-int statement_prepare(ISC_STATUS_ARRAY status, zval *stmt_o, const ISC_SCHAR *sql);
-int statement_execute(zval *stmt_o, zval *bind_args, uint32_t num_bind_args, zend_class_entry *ce, zval *ce_o);
-int statement_info(ISC_STATUS_ARRAY status, firebird_stmt *stmt);
 void declare_props_zmap(zend_class_entry *ce, const firebird_xpb_zmap *xpb_zmap);
 void xpb_insert_zmap(zend_class_entry *ce, zval *args, const firebird_xpb_zmap *xpb_zmap, struct IXpbBuilder* xpb, struct IStatus* st);
 
-void FireBird_Blob___construct(zval *Blob, zval *Transaction);
-int FireBird_Blob_open(zval *Blob, zval *Blob_Id);
-int FireBird_Blob_create(zval *Blob);
-// int FireBird_Blob_close(zval *Blob);
-// int FireBird_Blob_cancel(zval *Blob);
-// int FireBird_Blob_get(zval *Blob, zval *return_value, size_t max_len)
-
 void blob_id___construct(zval *blob_id_o, ISC_QUAD bl_id);
 
-int database_get_info(ISC_STATUS_ARRAY status, isc_db_handle *db_handle, zval *db_info,
-    size_t info_req_size, char *info_req, size_t info_resp_size, char *info_resp, size_t max_limbo_count);
 void event_ast_routine(void *_ev, ISC_USHORT length, const ISC_UCHAR *result_buffer);
-void tbuilder_populate_tpb(firebird_tbuilder *builder, char *tpb, unsigned short *tpb_len);
 
 #define fbp_declare_object_accessor(strct)                   \
     strct *get_ ##strct## _from_obj(const zend_object *obj); \

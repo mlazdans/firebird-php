@@ -27,10 +27,6 @@
 #include "config.h"
 #endif
 
-#include <firebird/fb_c_api.h>
-#include "php.h"
-#include "blob.h"
-
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
@@ -38,6 +34,9 @@
 
 #if HAVE_FIREBIRD
 
+#include <time.h>
+#include <firebird/fb_c_api.h>
+#include "php.h"
 #include "php_ini.h"
 #include "ext/standard/php_standard.h"
 // #include "ext/standard/md5.h"
@@ -46,11 +45,10 @@
 #include "SAPI.h"
 #include "zend_interfaces.h"
 
-#include <time.h>
-
-#define ROLLBACK    0
-#define COMMIT      1
-#define RETAIN      2
+#include "blob.h"
+#include "database.h"
+#include "transaction.h"
+#include "statement.h"
 
 #define CHECK_LINK(link) { if (link==NULL) { php_error_docref(NULL, E_WARNING, "A link to the server could not be established"); RETURN_FALSE; } }
 

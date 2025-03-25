@@ -206,7 +206,7 @@ class Transaction implements IError
     protected(set) Database $database;
     protected(set) TBuilder $builder;
 
-    private function __construct() {}
+    function __construct(Database $database, ?TBuilder $builder = null) {}
 
     /** @return bool */
     function start() {}
@@ -252,7 +252,8 @@ class Statement implements IError
     protected(set) int $delete_count;
     protected(set) int $affected_count; // insert + update + delete
 
-    private function __construct() {}
+    // TODO: query, prepare
+    function __construct(Transaction $transaction) {}
 
     /** @return object|false|null */
     function fetch_object(int $flags = 0) {}

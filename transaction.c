@@ -7,140 +7,154 @@
 #include "php_firebird_includes.h"
 
 #include "blob.h"
+#include "database.h"
+#include "transaction.h"
+#include "statement.h"
+#include "fbp_transaction.h"
 
 zend_class_entry *FireBird_Transaction_ce;
-static zend_object_handlers FireBird_Transaction_object_handlers;
+static zend_object_handlers object_handlers_FireBird_Transaction;
 
-static void transaction_process(INTERNAL_FUNCTION_PARAMETERS, int mode);
-
-#define ROLLBACK    0
-#define COMMIT      1
-#define RETAIN      2
-
-void transaction_ctor(firebird_trans *tr, firebird_db *db)
+void FireBird_Transaction___construct(zval *Tr, zval *Database, zval *Builder)
 {
-    tr->tr_handle = 0;
-    tr->tr_id = 0;
-    tr->is_prepared_2pc = 0;
-    tr->db_handle = &db->db_handle;
-}
-
-void transaction__construct(zval *tr, zval *database, zval *builder)
-{
-    OBJ_SET(FireBird_Transaction_ce, tr, "database", database);
-    if (builder) {
-        OBJ_SET(FireBird_Transaction_ce, tr, "builder", builder);
+    OBJ_SET(FireBird_Transaction_ce, Tr, "database", Database);
+    if (Builder) {
+        OBJ_SET(FireBird_Transaction_ce, Tr, "builder", Builder);
     }
 
-    transaction_ctor(get_firebird_trans_from_zval(tr), get_firebird_db_from_zval(database));
+    fbp_transaction_ctor(
+        get_firebird_trans_from_zval(Tr),
+        get_firebird_db_from_zval(Database),
+        Builder ? get_firebird_tbuilder_from_zval(Builder) : NULL
+    );
 }
 
-PHP_METHOD(Transaction, __construct) {
+PHP_METHOD(Transaction, __construct)
+{
+    zval *Database, *Builder = NULL;
+
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+        Z_PARAM_OBJECT_OF_CLASS(Database, FireBird_Database_ce)
+        Z_PARAM_OPTIONAL
+        Z_PARAM_OBJECT_OF_CLASS(Builder, FireBird_TBuilder_ce)
+    ZEND_PARSE_PARAMETERS_END();
+
+    FireBird_Transaction___construct(ZEND_THIS, Database, Builder);
 }
 
-int transaction_start(ISC_STATUS_ARRAY status, zval *tr_o)
+void FireBird_Transaction_start(zval *Tr, zval *return_value)
 {
     zval rv, *builder_o = NULL;
     ISC_STATUS result;
     char tpb[TPB_MAX_SIZE];
     unsigned short tpb_len = 0;
 
-    builder_o = zend_read_property(FireBird_TBuilder_ce, Z_OBJ_P(tr_o), "builder", sizeof("builder") - 1, 1, &rv); // Silent check
-    if (Z_TYPE_P(builder_o) != IS_NULL) {
-        tbuilder_populate_tpb(get_firebird_tbuilder_from_zval(builder_o), tpb, &tpb_len);
-        ZEND_ASSERT(tpb_len <= sizeof(tpb));
-    }
+    firebird_trans *tr = get_firebird_trans_from_zval(Tr);
 
-    firebird_trans *tr = get_firebird_trans_from_zval(tr_o);
+    if (fbp_transaction_start(tr)) {
+        update_err_props(FBG(status), FireBird_Transaction_ce, Tr);
+        RETURN_FALSE;
+    }
 
     // TODO: isc_start_multiple, isc_prepare_transaction, isc_prepare_transaction2
     // isc_start_multiple()       - Begins a new transaction against multiple databases.
     // isc_prepare_transaction()  - Executes the first phase of a two-phase commit against multiple databases.
     // isc_prepare_transaction2() - Performs the first phase of a two-phase commit for multi-database transactions.
-    if(isc_start_transaction(status, &tr->tr_handle, 1, tr->db_handle, tpb_len, tpb)) {
-        return FAILURE;
-    }
+    // if(isc_start_transaction(status, &tr->tr_handle, 1, tr->db_handle, tpb_len, tpb)) {
+    //     return FAILURE;
+    // }
 
-    if(transaction_get_info(status, tr)) {
-        return FAILURE;
-    }
-
-    zend_update_property_long(FireBird_Transaction_ce, Z_OBJ_P(tr_o), "id", 2, (zend_long)tr->tr_id);
-
-    return SUCCESS;
-}
-
-PHP_METHOD(Transaction, start) {
-    ISC_STATUS_ARRAY status;
-
-    ZEND_PARSE_PARAMETERS_NONE();
-
-    if(FAILURE == transaction_start(status, ZEND_THIS)) {
-        update_err_props(status, FireBird_Transaction_ce, ZEND_THIS);
-        RETURN_FALSE;
-    }
+    zend_update_property_long(FireBird_Transaction_ce, Z_OBJ_P(Tr), "id", 2, (zend_long)tr->tr_id);
 
     RETURN_TRUE;
 }
 
+PHP_METHOD(Transaction, start) {
+    ZEND_PARSE_PARAMETERS_NONE();
+
+    FireBird_Transaction_start(ZEND_THIS, return_value);
+}
+
+static void _FireBird_Transaction_finalize(INTERNAL_FUNCTION_PARAMETERS, int mode)
+{
+    ZEND_PARSE_PARAMETERS_NONE();
+
+    firebird_trans *tr = get_firebird_trans_from_zval(ZEND_THIS);
+
+    if (fbp_transaction_finalize(tr, mode)) {
+        update_err_props(FBG(status), FireBird_Transaction_ce, ZEND_THIS);
+        RETURN_FALSE;
+    } else {
+        RETURN_TRUE;
+    }
+}
+
 PHP_METHOD(Transaction, commit) {
-    transaction_process(INTERNAL_FUNCTION_PARAM_PASSTHRU, COMMIT);
+    _FireBird_Transaction_finalize(INTERNAL_FUNCTION_PARAM_PASSTHRU, TR_FINMODE_COMMIT);
 }
 
 PHP_METHOD(Transaction, commit_ret) {
-    transaction_process(INTERNAL_FUNCTION_PARAM_PASSTHRU, COMMIT | RETAIN);
+    _FireBird_Transaction_finalize(INTERNAL_FUNCTION_PARAM_PASSTHRU, TR_FINMODE_COMMIT | TR_FINMODE_RETAIN);
 }
 
 PHP_METHOD(Transaction, rollback) {
-    transaction_process(INTERNAL_FUNCTION_PARAM_PASSTHRU, ROLLBACK);
+    _FireBird_Transaction_finalize(INTERNAL_FUNCTION_PARAM_PASSTHRU, TR_FINMODE_ROLLBACK);
 }
 
 PHP_METHOD(Transaction, rollback_ret) {
-    transaction_process(INTERNAL_FUNCTION_PARAM_PASSTHRU, ROLLBACK | RETAIN);
+    _FireBird_Transaction_finalize(INTERNAL_FUNCTION_PARAM_PASSTHRU, TR_FINMODE_ROLLBACK | TR_FINMODE_RETAIN);
 }
 
-int prepare_for_transaction(INTERNAL_FUNCTION_PARAMETERS, const ISC_SCHAR* sql)
+// TODO: create prepare on Stament class and move there
+int FireBird_Transaction_prepare(zval *Tr, zval *return_Stmt, const ISC_SCHAR* sql)
 {
-    ISC_STATUS_ARRAY status;
+    object_init_ex(return_Stmt, FireBird_Statement_ce);
+    FireBird_Statement___construct(return_Stmt, Tr);
+    firebird_stmt *stmt = get_firebird_stmt_from_zval(return_Stmt);
 
-    object_init_ex(return_value, FireBird_Statement_ce);
-    statement_ctor(return_value, ZEND_THIS);
-    if (FAILURE == statement_prepare(status, return_value, sql)) {
-        ISC_INT64 error_code_long = update_err_props(status, FireBird_Transaction_ce, ZEND_THIS);
+    if (fbp_statement_prepare(stmt, sql)) {
+        ISC_INT64 error_code_long = update_err_props(FBG(status), FireBird_Transaction_ce, Tr);
 
         // Do we CREATE DATABASE?
         if (error_code_long == isc_dsql_crdb_prepare_err) {
             fbp_error("CREATE DATABASE detected on active connection. Use Database::create() instead.");
         }
 
-        zval_ptr_dtor(return_value);
+        zval_ptr_dtor(return_Stmt);
+        ZVAL_FALSE(return_Stmt);
         return FAILURE;
     }
+
+    zend_update_property_long(FireBird_Statement_ce, Z_OBJ_P(return_Stmt), "num_vars_in", sizeof("num_vars_in") - 1,
+        stmt->in_sqlda->sqld
+    );
+
+    zend_update_property_long(FireBird_Statement_ce, Z_OBJ_P(return_Stmt), "num_vars_out", sizeof("num_vars_out") - 1,
+        stmt->out_sqlda->sqld
+    );
 
     return SUCCESS;
 }
 
 PHP_METHOD(Transaction, prepare)
 {
-    zval rv;
     zend_string *sql;
 
     ZEND_PARSE_PARAMETERS_START(1, 1)
         Z_PARAM_STR(sql)
     ZEND_PARSE_PARAMETERS_END();
 
-    if (FAILURE == prepare_for_transaction(INTERNAL_FUNCTION_PARAM_PASSTHRU, ZSTR_VAL(sql))) {
-        RETURN_FALSE;
-    }
+    FireBird_Transaction_prepare(ZEND_THIS, return_value, ZSTR_VAL(sql));
 }
 
 // TODO: should be possible to query database w/o explicit transaction
 // For example SET TRANSACTION
 PHP_METHOD(Transaction, query)
 {
-    zval rv, *bind_args;
+    zval *bind_args;
     uint32_t num_bind_args;
     zend_string *sql;
+    zval Stmt;
 
     ZEND_PARSE_PARAMETERS_START(1, -1)
         Z_PARAM_STR(sql)
@@ -148,14 +162,18 @@ PHP_METHOD(Transaction, query)
         Z_PARAM_VARIADIC('+', bind_args, num_bind_args)
     ZEND_PARSE_PARAMETERS_END();
 
-    if(FAILURE == prepare_for_transaction(INTERNAL_FUNCTION_PARAM_PASSTHRU, ZSTR_VAL(sql))) {
+    if (FireBird_Transaction_prepare(ZEND_THIS, &Stmt, ZSTR_VAL(sql))) {
         RETURN_FALSE;
     }
 
-    if (FAILURE == statement_execute(return_value, bind_args, num_bind_args, FireBird_Transaction_ce, ZEND_THIS)) {
-        zval_ptr_dtor(return_value);
+    if (FireBird_Statement_execute(&Stmt, bind_args, num_bind_args)) {
+        zval_ptr_dtor(&Stmt);
         RETURN_FALSE;
     }
+
+    RETVAL_COPY(&Stmt);
+
+    zval_ptr_dtor(&Stmt);
 }
 
 PHP_METHOD(Transaction, open_blob)
@@ -213,7 +231,7 @@ PHP_METHOD(Transaction, prepare_2pc)
 }
 
 const zend_function_entry FireBird_Transaction_methods[] = {
-    PHP_ME(Transaction, __construct, arginfo_none, ZEND_ACC_PRIVATE)
+    PHP_ME(Transaction, __construct, arginfo_FireBird_Transaction___construct, ZEND_ACC_PUBLIC | ZEND_ACC_CTOR)
     PHP_ME(Transaction, start, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
     PHP_ME(Transaction, commit, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
     PHP_ME(Transaction, commit_ret, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
@@ -227,7 +245,7 @@ const zend_function_entry FireBird_Transaction_methods[] = {
     PHP_FE_END
 };
 
-static zend_object *FireBird_Transaction_create(zend_class_entry *ce)
+static zend_object *new_FireBird_Transaction(zend_class_entry *ce)
 {
     firebird_trans *tr = zend_object_alloc(sizeof(firebird_trans), ce);
 
@@ -237,9 +255,9 @@ static zend_object *FireBird_Transaction_create(zend_class_entry *ce)
     return &tr->std;
 }
 
-static void FireBird_Transaction_free_obj(zend_object *obj)
+static void free_FireBird_Transaction(zend_object *obj)
 {
-    FBDEBUG("FireBird_Transaction_free_obj");
+    FBDEBUG("free_FireBird_Transaction");
 
     firebird_trans *tr = get_firebird_trans_from_obj(obj);
 
@@ -269,95 +287,11 @@ void register_FireBird_Transaction_ce()
 
     zend_class_implements(FireBird_Transaction_ce, 1, FireBird_IError_ce);
 
-    FireBird_Transaction_ce->create_object = FireBird_Transaction_create;
-    FireBird_Transaction_ce->default_object_handlers = &FireBird_Transaction_object_handlers;
+    FireBird_Transaction_ce->create_object = new_FireBird_Transaction;
+    FireBird_Transaction_ce->default_object_handlers = &object_handlers_FireBird_Transaction;
 
-    memcpy(&FireBird_Transaction_object_handlers, &std_object_handlers, sizeof(zend_object_handlers));
+    memcpy(&object_handlers_FireBird_Transaction, &std_object_handlers, sizeof(zend_object_handlers));
 
-    FireBird_Transaction_object_handlers.offset = XtOffsetOf(firebird_trans, std);
-    FireBird_Transaction_object_handlers.free_obj = FireBird_Transaction_free_obj;
-}
-
-static void transaction_process(INTERNAL_FUNCTION_PARAMETERS, int mode)
-{
-    ZEND_PARSE_PARAMETERS_NONE();
-
-    zval rv, *val;
-    ISC_STATUS result;
-    ISC_STATUS_ARRAY status;
-    firebird_trans *tr = get_firebird_trans_from_zval(ZEND_THIS);
-
-    if (mode == COMMIT) {
-        result = isc_commit_transaction(status, &tr->tr_handle);
-    } else if (mode == (ROLLBACK | RETAIN)) {
-        result = isc_rollback_retaining(status, &tr->tr_handle);
-    } else if (mode == (COMMIT | RETAIN)) {
-        result = isc_commit_retaining(status, &tr->tr_handle);
-    } else {
-        result = isc_rollback_transaction(status, &tr->tr_handle);
-    }
-
-    if (result) {
-        update_err_props(status, FireBird_Transaction_ce, ZEND_THIS);
-        RETVAL_FALSE;
-    } else {
-        RETVAL_TRUE;
-    }
-}
-
-int transaction_get_info(ISC_STATUS_ARRAY status, firebird_trans *tr)
-{
-    static char info_req[] = { isc_info_tra_id };
-    char info_resp[(sizeof(ISC_INT64) * 2)] = { 0 };
-
-    if (isc_transaction_info(status, &tr->tr_handle, sizeof(info_req), info_req, sizeof(info_resp), info_resp)) {
-        return FAILURE;
-    }
-
-    struct IMaster* master = fb_get_master_interface();
-    struct IStatus* st = IMaster_getStatus(master);
-    struct IUtil* utl = IMaster_getUtilInterface(master);
-    struct IXpbBuilder* dpb;
-
-    dpb = IUtil_getXpbBuilder(utl, st, IXpbBuilder_INFO_RESPONSE, info_resp, sizeof(info_resp));
-
-    ISC_INT64 val, len, total_len = 0;
-    const char *str;
-    unsigned char tag;
-
-    FBDEBUG("Parsing Transaction info buffer");
-    for (IXpbBuilder_rewind(dpb, st); !IXpbBuilder_isEof(dpb, st); IXpbBuilder_moveNext(dpb, st)) {
-        tag = IXpbBuilder_getTag(dpb, st); total_len++;
-        len = IXpbBuilder_getLength(dpb, st); total_len += 2;
-        total_len += len;
-
-        switch(tag) {
-            case isc_info_end: break;
-
-            case isc_info_tra_id: {
-                val = IXpbBuilder_getBigInt(dpb, st);
-                FBDEBUG_NOFL("  tag: %d len: %d val: %d", tag, len, val);
-                tr->tr_id = (ISC_UINT64)val;
-            } break;
-
-            case fb_info_tra_dbpath: {
-                str = IXpbBuilder_getString(dpb, st);
-                FBDEBUG_NOFL("  tag: %d len: %d val: %s", tag, len, str);
-            } break;
-
-            case isc_info_truncated: {
-                fbp_error("Transaction info buffer error: truncated");
-            } return FAILURE;
-
-            case isc_info_error: {
-                fbp_error("Transaction info buffer error");
-            } return FAILURE;
-
-            default: {
-                fbp_fatal("BUG! Unhandled Transaction info tag: %d", tag);
-            } break;
-        }
-    }
-
-    return SUCCESS;
+    object_handlers_FireBird_Transaction.offset = XtOffsetOf(firebird_trans, std);
+    object_handlers_FireBird_Transaction.free_obj = free_FireBird_Transaction;
 }

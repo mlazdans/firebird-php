@@ -29,6 +29,7 @@
 #include "php_firebird_includes.h"
 
 #include "blob.h"
+#include "transaction.h"
 
 zend_class_entry *FireBird_Blob_ce;
 zend_class_entry *FireBird_Blob_Id_ce;
