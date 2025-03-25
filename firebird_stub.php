@@ -270,6 +270,9 @@ class Statement implements IError
     function execute(...$bind_args) {}
 
     /** @return bool */
+    function query(string $sql, ...$bind_args) {}
+
+    /** @return bool */
     function close() {}
 
     /** @return bool */

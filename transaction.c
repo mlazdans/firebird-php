@@ -44,25 +44,12 @@ PHP_METHOD(Transaction, __construct)
 
 void FireBird_Transaction_start(zval *Tr, zval *return_value)
 {
-    zval rv, *builder_o = NULL;
-    ISC_STATUS result;
-    char tpb[TPB_MAX_SIZE];
-    unsigned short tpb_len = 0;
-
     firebird_trans *tr = get_firebird_trans_from_zval(Tr);
 
     if (fbp_transaction_start(tr)) {
         update_err_props(FBG(status), FireBird_Transaction_ce, Tr);
         RETURN_FALSE;
     }
-
-    // TODO: isc_start_multiple, isc_prepare_transaction, isc_prepare_transaction2
-    // isc_start_multiple()       - Begins a new transaction against multiple databases.
-    // isc_prepare_transaction()  - Executes the first phase of a two-phase commit against multiple databases.
-    // isc_prepare_transaction2() - Performs the first phase of a two-phase commit for multi-database transactions.
-    // if(isc_start_transaction(status, &tr->tr_handle, 1, tr->db_handle, tpb_len, tpb)) {
-    //     return FAILURE;
-    // }
 
     zend_update_property_long(FireBird_Transaction_ce, Z_OBJ_P(Tr), "id", 2, (zend_long)tr->tr_id);
 
@@ -195,13 +182,12 @@ PHP_METHOD(Transaction, create_blob)
 
 PHP_METHOD(Transaction, prepare_2pc)
 {
-    ISC_STATUS_ARRAY status;
-    firebird_trans *tr = get_firebird_trans_from_zval(ZEND_THIS);
-
     ZEND_PARSE_PARAMETERS_NONE();
 
-    if (isc_prepare_transaction(status, &tr->tr_handle)) {
-        update_err_props(status, FireBird_Transaction_ce, ZEND_THIS);
+    firebird_trans *tr = get_firebird_trans_from_zval(ZEND_THIS);
+
+    if (isc_prepare_transaction(FBG(status), &tr->tr_handle)) {
+        update_err_props(FBG(status), FireBird_Transaction_ce, ZEND_THIS);
         RETURN_FALSE;
     }
 
@@ -248,9 +234,8 @@ static void free_FireBird_Transaction(zend_object *obj)
 
     // MAYBE: not to close automatically in some strict mode or smth
     if(tr->tr_handle && !tr->is_prepared_2pc) {
-        ISC_STATUS_ARRAY status;
-        if(isc_rollback_transaction(status, &tr->tr_handle)) {
-            status_fbp_error(status);
+        if(isc_rollback_transaction(FBG(status), &tr->tr_handle)) {
+            status_fbp_error(FBG(status));
         } else {
             tr->tr_handle = 0;
         }

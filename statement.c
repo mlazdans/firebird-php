@@ -181,6 +181,34 @@ PHP_METHOD(Statement, prepare)
     RETVAL_BOOL(SUCCESS == FireBird_Statement_prepare(ZEND_THIS, ZSTR_VAL(sql)));
 }
 
+int FireBird_Statement_query(zval *Stmt, const ISC_SCHAR* sql, zval *bind_args, uint32_t num_bind_args)
+{
+    if (FireBird_Statement_prepare(Stmt, sql)) {
+        return FAILURE;
+    }
+
+    if (FireBird_Statement_execute(Stmt, bind_args, num_bind_args)) {
+        return FAILURE;
+    }
+
+    return SUCCESS;
+}
+
+PHP_METHOD(Statement, query)
+{
+    zval *bind_args;
+    uint32_t num_bind_args;
+    zend_string *sql;
+
+    ZEND_PARSE_PARAMETERS_START(1, -1)
+        Z_PARAM_STR(sql)
+        Z_PARAM_OPTIONAL
+        Z_PARAM_VARIADIC('+', bind_args, num_bind_args)
+    ZEND_PARSE_PARAMETERS_END();
+
+    RETVAL_BOOL(SUCCESS == FireBird_Statement_query(ZEND_THIS, ZSTR_VAL(sql), bind_args, num_bind_args));
+}
+
 void statement_var_info(zval *return_value, XSQLVAR *var)
 {
     object_init_ex(return_value, FireBird_Var_Info_ce);
@@ -255,6 +283,7 @@ const zend_function_entry FireBird_Statement_methods[] = {
     PHP_ME(Statement, fetch_object, arginfo_FireBird_Statement_fetch_object, ZEND_ACC_PUBLIC)
     PHP_ME(Statement, prepare, arginfo_FireBird_Statement_prepare, ZEND_ACC_PUBLIC)
     PHP_ME(Statement, execute, arginfo_FireBird_Statement_execute, ZEND_ACC_PUBLIC)
+    PHP_ME(Statement, query, arginfo_FireBird_Statement_query, ZEND_ACC_PUBLIC)
     PHP_ME(Statement, close, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
     PHP_ME(Statement, free, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
     PHP_ME(Statement, get_var_info_in, arginfo_FireBird_Statement_get_var_info_in_out, ZEND_ACC_PUBLIC)
