@@ -132,7 +132,8 @@ int fbp_blob_put(firebird_blob *blob, const char *buf, size_t buf_size)
         put_cnt += chunk_size;
     }
 
-    blob->position = put_cnt;
+    blob->position += put_cnt;
+    blob->total_length += put_cnt;
 
     return SUCCESS;
 }
