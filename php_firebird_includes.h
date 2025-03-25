@@ -422,9 +422,6 @@ ISC_INT64 update_err_props_ex(ISC_STATUS_ARRAY status, zend_class_entry *ce, zva
 int status_err_msg(const ISC_STATUS *status, char *msg, unsigned short msg_size);
 void declare_props_zmap(zend_class_entry *ce, const firebird_xpb_zmap *xpb_zmap);
 void xpb_insert_zmap(zend_class_entry *ce, zval *args, const firebird_xpb_zmap *xpb_zmap, struct IXpbBuilder* xpb, struct IStatus* st);
-
-void blob_id___construct(zval *blob_id_o, ISC_QUAD bl_id);
-
 void event_ast_routine(void *_ev, ISC_USHORT length, const ISC_UCHAR *result_buffer);
 
 #define fbp_declare_object_accessor(strct)                   \

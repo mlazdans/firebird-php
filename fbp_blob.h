@@ -27,6 +27,7 @@ typedef struct firebird_blob_id {
 } firebird_blob_id;
 
 void fbp_blob_ctor(firebird_blob *blob, isc_db_handle *db_handle, isc_tr_handle *tr_handle);
+void fbp_blob_id_ctor(firebird_blob_id *blob_id, ISC_QUAD bl_id);
 int fbp_blob_close(firebird_blob *blob);
 int fbp_blob_get_info(firebird_blob *blob);
 int fbp_blob_get(firebird_blob *blob, zval *return_value, size_t max_len);

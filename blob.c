@@ -275,15 +275,9 @@ void register_FireBird_Blob_ce()
     FireBird_Blob_object_handlers.free_obj = free_FireBird_Blob;
 }
 
-void blob_id_ctor(firebird_blob_id *blob_id, ISC_QUAD bl_id)
+void FireBird_Blob_Id___construct(zval *Blob_Id, ISC_QUAD bl_id)
 {
-    blob_id->bl_id = bl_id;
-}
-
-void blob_id___construct(zval *blob_id_o, ISC_QUAD bl_id)
-{
-    object_init_ex(blob_id_o, FireBird_Blob_Id_ce);
-    blob_id_ctor(get_firebird_blob_id_from_zval(blob_id_o), bl_id);
+    fbp_blob_id_ctor(get_firebird_blob_id_from_zval(Blob_Id), bl_id);
 }
 
 static zend_object *FireBird_Blob_Id_create(zend_class_entry *ce)

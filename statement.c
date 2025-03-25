@@ -15,6 +15,7 @@
 
 #include "statement.h"
 #include "transaction.h"
+#include "blob.h"
 
 zend_class_entry *FireBird_Statement_ce;
 static zend_object_handlers FireBird_Statement_object_handlers;
@@ -585,7 +586,8 @@ void FireBird_Statement_fetch(zval *Stmt, zval *return_value, int flags, int fet
                             goto _php_firebird_fetch_error;
                         }
                     } else {
-                        blob_id___construct(&result, *(ISC_QUAD *) var->sqldata);
+                        object_init_ex(&result, FireBird_Blob_Id_ce);
+                        FireBird_Blob_Id___construct(&result, *(ISC_QUAD *) var->sqldata);
                     }
                     break;
                 case SQL_ARRAY:

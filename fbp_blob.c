@@ -11,6 +11,11 @@ void fbp_blob_ctor(firebird_blob *blob, isc_db_handle *db_handle, isc_tr_handle 
     blob->tr_handle = tr_handle;
 }
 
+void fbp_blob_id_ctor(firebird_blob_id *blob_id, ISC_QUAD bl_id)
+{
+    blob_id->bl_id = bl_id;
+}
+
 int fbp_blob_close(firebird_blob *blob)
 {
     return isc_close_blob(FBG(status), &blob->bl_handle) ? FAILURE : SUCCESS;
