@@ -462,7 +462,7 @@ static int _php_firebird_var_zval(zval *val, void *data, int type, int len, int 
                 isc_decode_timestamp(&ts, &t);
             }
 
-            if (flags & PHP_FIREBIRD_UNIXTIME) {
+            if (flags & FBP_FETCH_UNIXTIME) {
                 ZVAL_LONG(val, mktime(&t));
             } else {
                 char timeBuf[80] = {0};
@@ -497,7 +497,7 @@ format_date_time:
 #if HAVE_STRUCT_TM_TM_ZONE
             t.tm_zone = tzname[0];
 #endif
-            if (flags & PHP_FIREBIRD_UNIXTIME) {
+            if (flags & FBP_FETCH_UNIXTIME) {
                 ZVAL_LONG(val, mktime(&t));
             } else {
                 l = strftime(string_data, sizeof(string_data), format, &t);
@@ -508,7 +508,7 @@ format_date_time:
     return SUCCESS;
 }
 
-void FireBird_Statement_fetch(zval *Stmt, zval *return_value, zend_long flags, int fetch_type)
+void FireBird_Statement_fetch(zval *Stmt, zval *return_value, int flags, int fetch_type)
 {
     zval *result_arg;
     zend_long i;
@@ -574,7 +574,7 @@ void FireBird_Statement_fetch(zval *Stmt, zval *return_value, zend_long flags, i
                     _php_firebird_var_zval(&result, var->sqldata, var->sqltype, var->sqllen, var->sqlscale, flags);
                     break;
                 case SQL_BLOB:
-                    if (flags & PHP_FIREBIRD_FETCH_BLOBS) {
+                    if (flags & FBP_FETCH_BLOBS) {
                         firebird_blob blob = {0};
 
                         fbp_blob_ctor(&blob, stmt->db_handle, stmt->tr_handle);
@@ -589,7 +589,7 @@ void FireBird_Statement_fetch(zval *Stmt, zval *return_value, zend_long flags, i
                     }
                     break;
                 case SQL_ARRAY:
-                    _php_firebird_module_fatal("ARRAY type is not supported.");
+                    fbp_fatal("ARRAY type is not supported.");
                     break;
                 _php_firebird_fetch_error:
                     zval_ptr_dtor_nogc(&result);

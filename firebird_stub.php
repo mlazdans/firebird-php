@@ -3,8 +3,7 @@
 namespace FireBird;
 
 const FETCH_BLOBS    = 1;
-const FETCH_ARRAYS   = 2;
-const FETCH_UNIXTIME = 4;
+const FETCH_UNIXTIME = 2;
 
 const BLOB_TYPE_SEGMENTED = 0;
 const BLOB_STREAMED = 1;

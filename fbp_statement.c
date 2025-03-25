@@ -89,7 +89,7 @@ void fbp_alloc_xsqlda(XSQLDA *sqlda)
                 var->sqldata = emalloc(sizeof(ISC_TIME));
                 break;
             case SQL_ARRAY:
-                _php_firebird_module_fatal("ARRAY type is not supported.");
+                fbp_fatal("ARRAY type is not supported.");
                 break;
             case SQL_BLOB:
                 var->sqldata = emalloc(sizeof(ISC_QUAD));
@@ -270,7 +270,7 @@ int fbp_statement_bind(firebird_stmt *stmt, XSQLDA *sqlda, zval *b_vars)
                                 } else if (!zend_binary_strncasecmp(Z_STRVAL_P(b_var), Z_STRLEN_P(b_var), "false", 5, 5)) {
                                     *(FB_BOOLEAN *)var->sqldata = FB_FALSE;
                                 } else {
-                                    _php_firebird_module_error("Parameter %d: cannot convert string to boolean", i+1);
+                                    fbp_error("Parameter %d: cannot convert string to boolean", i+1);
                                     rv = FAILURE;
                                     continue;
                                 }
@@ -281,7 +281,7 @@ int fbp_statement_bind(firebird_stmt *stmt, XSQLDA *sqlda, zval *b_vars)
                         stmt->bind_buf[i].sqlind = -1;
                         break;
                     default:
-                        _php_firebird_module_error("Parameter %d: must be boolean", i+1);
+                        fbp_error("Parameter %d: must be boolean", i+1);
                         rv = FAILURE;
                         continue;
                 }
@@ -289,7 +289,7 @@ int fbp_statement_bind(firebird_stmt *stmt, XSQLDA *sqlda, zval *b_vars)
                 continue;
 #endif
             case SQL_ARRAY:
-                _php_firebird_module_fatal("ARRAY type is not supported.");
+                fbp_fatal("ARRAY type is not supported.");
                 continue;
         } /* switch */
 
@@ -421,7 +421,7 @@ int fbp_statement_execute(firebird_stmt *stmt, zval *bind_args, uint32_t num_bin
         case isc_info_sql_stmt_put_segment:
             break;
         default:
-            _php_firebird_module_fatal("BUG: Unrecognized stmt->statement_type: %d. Possibly a new server feature.", stmt->statement_type);
+            fbp_fatal("BUG: Unrecognized stmt->statement_type: %d. Possibly a new server feature.", stmt->statement_type);
             break;
     }
 

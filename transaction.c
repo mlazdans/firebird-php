@@ -77,19 +77,19 @@ static void _FireBird_Transaction_finalize(INTERNAL_FUNCTION_PARAMETERS, int mod
 }
 
 PHP_METHOD(Transaction, commit) {
-    _FireBird_Transaction_finalize(INTERNAL_FUNCTION_PARAM_PASSTHRU, TR_FINMODE_COMMIT);
+    _FireBird_Transaction_finalize(INTERNAL_FUNCTION_PARAM_PASSTHRU, FBP_TR_COMMIT);
 }
 
 PHP_METHOD(Transaction, commit_ret) {
-    _FireBird_Transaction_finalize(INTERNAL_FUNCTION_PARAM_PASSTHRU, TR_FINMODE_COMMIT | TR_FINMODE_RETAIN);
+    _FireBird_Transaction_finalize(INTERNAL_FUNCTION_PARAM_PASSTHRU, FBP_TR_COMMIT | FBP_TR_RETAIN);
 }
 
 PHP_METHOD(Transaction, rollback) {
-    _FireBird_Transaction_finalize(INTERNAL_FUNCTION_PARAM_PASSTHRU, TR_FINMODE_ROLLBACK);
+    _FireBird_Transaction_finalize(INTERNAL_FUNCTION_PARAM_PASSTHRU, FBP_TR_ROLLBACK);
 }
 
 PHP_METHOD(Transaction, rollback_ret) {
-    _FireBird_Transaction_finalize(INTERNAL_FUNCTION_PARAM_PASSTHRU, TR_FINMODE_ROLLBACK | TR_FINMODE_RETAIN);
+    _FireBird_Transaction_finalize(INTERNAL_FUNCTION_PARAM_PASSTHRU, FBP_TR_ROLLBACK | FBP_TR_RETAIN);
 }
 
 int FireBird_Transaction_prepare(zval *Tr, zval *return_value, const ISC_SCHAR* sql)

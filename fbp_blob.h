@@ -21,6 +21,11 @@ typedef struct firebird_blob {
     zend_object std;
 } firebird_blob;
 
+typedef struct firebird_blob_id {
+    ISC_QUAD bl_id;
+    zend_object std;
+} firebird_blob_id;
+
 void fbp_blob_ctor(firebird_blob *blob, isc_db_handle *db_handle, isc_tr_handle *tr_handle);
 int fbp_blob_close(firebird_blob *blob);
 int fbp_blob_get_info(firebird_blob *blob);

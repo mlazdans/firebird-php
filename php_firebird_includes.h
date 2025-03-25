@@ -68,12 +68,6 @@ ZEND_END_MODULE_GLOBALS(firebird)
 
 ZEND_EXTERN_MODULE_GLOBALS(firebird)
 
-// typedef struct {
-//     ISC_ARRAY_DESC ar_desc;
-//     ISC_LONG ar_size; /* size of entire array in bytes */
-//     unsigned short el_type, el_size;
-// } firebird_array;
-
 typedef struct firebird_service {
     isc_svc_handle svc_handle;
     zval args;
@@ -84,16 +78,6 @@ typedef struct firebird_service {
     // zval instance;
     zend_object std;
 } firebird_service;
-
-typedef struct firebird_blob_id {
-    ISC_QUAD bl_id;
-    zend_object std;
-} firebird_blob_id;
-
-typedef struct firebird_vary {
-    unsigned short vary_length;
-    char vary_string[1];
-} firebird_vary;
 
 typedef struct firebird_xpb_zmap {
     const char *tags, **names;
@@ -134,13 +118,6 @@ typedef struct firebird_events {
     firebird_event *events;
     size_t count;
 } firebird_events;
-
-enum php_firebird_option {
-    /* fetch flags */
-    PHP_FIREBIRD_FETCH_BLOBS        = 1,
-    PHP_FIREBIRD_FETCH_ARRAYS       = 2,
-    PHP_FIREBIRD_UNIXTIME           = 4,
-};
 
 #define FBG(v) ZEND_MODULE_GLOBALS_ACCESSOR(firebird, v)
 

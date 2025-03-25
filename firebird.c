@@ -282,9 +282,8 @@ PHP_MINIT_FUNCTION(firebird)
 {
     REGISTER_INI_ENTRIES();
 
-    REGISTER_NS_LONG_CONSTANT("FireBird", "FETCH_BLOBS", PHP_FIREBIRD_FETCH_BLOBS, CONST_PERSISTENT);
-    REGISTER_NS_LONG_CONSTANT("FireBird", "FETCH_ARRAYS", PHP_FIREBIRD_FETCH_ARRAYS, CONST_PERSISTENT);
-    REGISTER_NS_LONG_CONSTANT("FireBird", "FETCH_UNIXTIME", PHP_FIREBIRD_UNIXTIME, CONST_PERSISTENT);
+    REGISTER_NS_LONG_CONSTANT("FireBird", "FETCH_BLOBS", FBP_FETCH_BLOBS, CONST_PERSISTENT);
+    REGISTER_NS_LONG_CONSTANT("FireBird", "FETCH_UNIXTIME", FBP_FETCH_UNIXTIME, CONST_PERSISTENT);
 
 #ifdef ZEND_SIGNALS
     // firebird replaces some signals at runtime, suppress warnings.
@@ -562,7 +561,7 @@ void xpb_insert_zmap(zend_class_entry *ce, zval *args, const firebird_xpb_zmap *
 
 #ifdef PHP_DEBUG
         if (!zend_hash_exists(&ce->properties_info, prop_name)) {
-            _php_firebird_module_fatal("BUG! Property %s does not exist for %s::%s. Verify xpb_zmap",
+            fbp_fatal("BUG! Property %s does not exist for %s::%s. Verify xpb_zmap",
                 xpb_zmap->names[i], ZSTR_VAL(ce->name), xpb_zmap->names[i]);
             zend_string_release(prop_name);
             continue;
@@ -601,7 +600,7 @@ void xpb_insert_zmap(zend_class_entry *ce, zval *args, const firebird_xpb_zmap *
                 FBDEBUG("property: %s is null", xpb_zmap->names[i]);
                 break;
             default:
-                _php_firebird_module_fatal("BUG! Unhandled: type %s for property %s::%s",
+                fbp_fatal("BUG! Unhandled: type %s for property %s::%s",
                     zend_get_type_by_const(Z_TYPE_P(val)), ZSTR_VAL(ce->name), xpb_zmap->names[i]);
                 break;
         }

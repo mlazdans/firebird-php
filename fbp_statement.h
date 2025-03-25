@@ -4,6 +4,11 @@
 #include <ibase.h>
 #include "php.h"
 
+enum firebird_fetch_flag {
+    FBP_FETCH_BLOBS      = 1,
+    FBP_FETCH_UNIXTIME   = 2,
+};
+
 typedef struct firebird_bind_buf {
     union {
 #ifdef SQL_BOOLEAN
@@ -26,7 +31,6 @@ typedef struct firebird_stmt {
     isc_tr_handle *tr_handle;
     XSQLDA *in_sqlda, *out_sqlda;
     unsigned char statement_type, has_more_rows;
-    // firebird_array *in_array, *out_array;
     unsigned short in_array_cnt, out_array_cnt;
     firebird_bind_buf *bind_buf;
     // unsigned short dialect;
@@ -35,6 +39,11 @@ typedef struct firebird_stmt {
     ISC_ULONG insert_count, update_count, delete_count, affected_count;
     zend_object std;
 } firebird_stmt;
+
+typedef struct firebird_vary {
+    unsigned short vary_length;
+    char vary_string[1];
+} firebird_vary;
 
 void fbp_alloc_xsqlda(XSQLDA *sqlda);
 void fbp_free_xsqlda(XSQLDA *sqlda);

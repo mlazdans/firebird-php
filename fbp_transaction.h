@@ -1,9 +1,11 @@
 #ifndef FBP_TRANSACTION_H
 #define FBP_TRANSACTION_H
 
-#define TR_FINMODE_ROLLBACK    0
-#define TR_FINMODE_COMMIT      1
-#define TR_FINMODE_RETAIN      2
+enum firebird_tr_fin_flag {
+    FBP_TR_ROLLBACK = 1,
+    FBP_TR_COMMIT   = 2,
+    FBP_TR_RETAIN   = 4,
+};
 
 #include <ibase.h>
 #include "php.h"

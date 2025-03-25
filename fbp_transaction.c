@@ -100,11 +100,11 @@ int fbp_transaction_finalize(firebird_trans *tr, int mode)
 {
     ISC_STATUS result;
 
-    if (mode == TR_FINMODE_COMMIT) {
+    if (mode == FBP_TR_COMMIT) {
         result = isc_commit_transaction(FBG(status), &tr->tr_handle);
-    } else if (mode == (TR_FINMODE_ROLLBACK | TR_FINMODE_RETAIN)) {
+    } else if (mode == (FBP_TR_ROLLBACK | FBP_TR_RETAIN)) {
         result = isc_rollback_retaining(FBG(status), &tr->tr_handle);
-    } else if (mode == (TR_FINMODE_COMMIT | TR_FINMODE_RETAIN)) {
+    } else if (mode == (FBP_TR_COMMIT | FBP_TR_RETAIN)) {
         result = isc_commit_retaining(FBG(status), &tr->tr_handle);
     } else {
         result = isc_rollback_transaction(FBG(status), &tr->tr_handle);
