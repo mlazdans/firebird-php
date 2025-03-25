@@ -22,8 +22,8 @@
 zend_class_entry *FireBird_Statement_ce;
 static zend_object_handlers FireBird_Statement_object_handlers;
 
-#define FETCH_ROW       1
-#define FETCH_ARRAY     2
+#define RETURN_ROW       1
+#define RETURN_ARRAY     2
 
 void FireBird_Statement___construct(zval *Stmt, zval *Transaction)
 {
@@ -46,7 +46,7 @@ PHP_METHOD(Statement, __construct)
     FireBird_Statement___construct(ZEND_THIS, Transaction);
 }
 
-static void _FireBird_Statement_fetch(INTERNAL_FUNCTION_PARAMETERS, int fetch_type)
+static void _FireBird_Statement_fetch(INTERNAL_FUNCTION_PARAMETERS, int return_type)
 {
     zend_long flags = 0;
 
@@ -55,22 +55,22 @@ static void _FireBird_Statement_fetch(INTERNAL_FUNCTION_PARAMETERS, int fetch_ty
         Z_PARAM_LONG(flags)
     ZEND_PARSE_PARAMETERS_END();
 
-    FireBird_Statement_fetch(ZEND_THIS, return_value, flags, fetch_type);
+    FireBird_Statement_fetch(ZEND_THIS, return_value, flags, return_type);
 }
 
 PHP_METHOD(Statement, fetch_row)
 {
-    _FireBird_Statement_fetch(INTERNAL_FUNCTION_PARAM_PASSTHRU, FETCH_ROW);
+    _FireBird_Statement_fetch(INTERNAL_FUNCTION_PARAM_PASSTHRU, RETURN_ROW);
 }
 
 PHP_METHOD(Statement, fetch_array)
 {
-    _FireBird_Statement_fetch(INTERNAL_FUNCTION_PARAM_PASSTHRU, FETCH_ARRAY);
+    _FireBird_Statement_fetch(INTERNAL_FUNCTION_PARAM_PASSTHRU, RETURN_ARRAY);
 }
 
 PHP_METHOD(Statement, fetch_object)
 {
-    _FireBird_Statement_fetch(INTERNAL_FUNCTION_PARAM_PASSTHRU, FETCH_ARRAY);
+    _FireBird_Statement_fetch(INTERNAL_FUNCTION_PARAM_PASSTHRU, RETURN_ARRAY);
 
     if (Z_TYPE_P(return_value) == IS_ARRAY) {
         convert_to_object(return_value);
@@ -511,7 +511,7 @@ format_date_time:
     return SUCCESS;
 }
 
-void FireBird_Statement_fetch(zval *Stmt, zval *return_value, int flags, int fetch_type)
+void FireBird_Statement_fetch(zval *Stmt, zval *return_value, int flags, int return_type)
 {
     zval *result_arg;
     zend_long i;
@@ -544,7 +544,7 @@ void FireBird_Statement_fetch(zval *Stmt, zval *return_value, int flags, int fet
         XSQLVAR *var = &stmt->out_sqlda->sqlvar[i];
         char buf[METADATALENGTH+4], *alias = var->aliasname;
 
-        if (! (fetch_type & FETCH_ROW)) {
+        if (! (return_type & RETURN_ROW)) {
             int i = 0;
             char const *base = "FIELD"; /* use 'FIELD' if name is empty */
 
@@ -600,13 +600,13 @@ void FireBird_Statement_fetch(zval *Stmt, zval *return_value, int flags, int fet
                     RETURN_FALSE;
             } /* switch */
 
-            if (fetch_type & FETCH_ROW) {
+            if (return_type & RETURN_ROW) {
                 add_index_zval(return_value, i, &result);
             } else {
                 add_assoc_zval(return_value, alias, &result);
             }
         } else {
-            if (fetch_type & FETCH_ROW) {
+            if (return_type & RETURN_ROW) {
                 add_index_null(return_value, i);
             } else {
                 add_assoc_null(return_value, alias);

@@ -76,14 +76,6 @@ int FireBird_Database_create(zval *Db, zval *Create_Args)
 {
     firebird_db *db = get_firebird_db_from_zval(Db);
 
-    // ZVAL_COPY_VALUE(&db->args, Connect_Args);
-
-    // database = OBJ_GET(FireBird_Connect_Args_ce, Connect_Args, "database", &rv);
-    // if ((Z_TYPE_P(database) != IS_STRING) || !Z_STRLEN_P(database)) {
-    //     zend_throw_exception_ex(zend_ce_value_error, 0, "database argument is not set");
-    //     return FAILURE;
-    // }
-
     if (fbp_database_create(db, Create_Args)) {
         update_err_props(FBG(status), FireBird_Database_ce, Db);
         return FAILURE;

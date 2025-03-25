@@ -118,8 +118,6 @@ PHP_METHOD(Transaction, prepare)
     FireBird_Transaction_prepare(ZEND_THIS, return_value, ZSTR_VAL(sql));
 }
 
-// TODO: should be possible to query database w/o explicit transaction
-// For example SET TRANSACTION
 PHP_METHOD(Transaction, query)
 {
     zval *bind_args;
@@ -192,11 +190,6 @@ PHP_METHOD(Transaction, prepare_2pc)
     }
 
     tr->is_prepared_2pc = 1;
-
-    // if (fb_disconnect_transaction(status, &tr->tr_handle)) {
-    //     update_err_props(status, FireBird_Transaction_ce, ZEND_THIS);
-    //     RETURN_FALSE;
-    // }
 
     RETURN_TRUE;
 }
