@@ -29,7 +29,10 @@
 #include "php_firebird_includes.h"
 
 #include "blob.h"
+#include "fbp_blob.h"
 #include "fbp_statement.h"
+
+fbp_object_accessor(firebird_stmt);
 
 enum execute_fn {
     EXECUTE,

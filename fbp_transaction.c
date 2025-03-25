@@ -5,6 +5,9 @@
 
 #include "fbp_transaction.h"
 
+fbp_object_accessor(firebird_trans);
+fbp_object_accessor(firebird_tbuilder);
+
 void fbp_transaction_ctor(firebird_trans *tr, firebird_db *db, firebird_tbuilder *builder)
 {
     tr->tr_handle = 0;

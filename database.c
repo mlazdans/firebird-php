@@ -5,57 +5,40 @@
 #include "php_firebird_includes.h"
 
 #include "database.h"
-#include "transaction.h"
+#include "fbp_database.h"
 
-zend_class_entry *FireBird_Database_ce, *FireBird_Db_Info_ce;
+#include "transaction.h"
+#include "fbp_transaction.h"
+
+zend_class_entry *FireBird_Database_ce;
+zend_class_entry *FireBird_Db_Info_ce;
+
 static zend_object_handlers FireBird_Database_object_handlers;
 
-int database_connect(ISC_STATUS_ARRAY status, firebird_db *db)
+int FireBird_Database_connect(zval *Db, zval *Connect_Args)
 {
-    zval rv, *database;
-    const char *dpb_buffer;
-    short num_dpb_written;
+    firebird_db *db = get_firebird_db_from_zval(Db);
 
-    database = OBJ_GET(FireBird_Connect_Args_ce, &db->args, "database", &rv);
-
-    if ((Z_TYPE_P(database) != IS_STRING) || !Z_STRLEN_P(database)) {
-        zend_throw_exception_ex(zend_ce_value_error, 0, "database argument is not set");
+    if (fbp_database_connect(db, Connect_Args)) {
+        update_err_props(FBG(status), FireBird_Database_ce, Db);
         return FAILURE;
     }
 
-    if (FAILURE == _FireBird_Database_build_dpb(FireBird_Connect_Args_ce, &db->args, &database_connect_zmap, &dpb_buffer, &num_dpb_written)) {
-        return FAILURE;
-    }
-
-    FBDEBUG("Database::connect: %s", Z_STRVAL_P(database));
-    if (isc_attach_database(status, (short)Z_STRLEN_P(database), Z_STRVAL_P(database), &db->db_handle, num_dpb_written, dpb_buffer)) {
-        return FAILURE;
-    }
-    FBDEBUG_NOFL("  connected, handle: %d", db->db_handle);
+    OBJ_SET(FireBird_Database_ce, Db, "args", Connect_Args);
 
     return SUCCESS;
 }
 
 PHP_METHOD(Database, connect)
 {
-    zval *args = NULL;
-    ISC_STATUS_ARRAY status = {0};
+    zval *Connect_Args = NULL;
     firebird_db *db = get_firebird_db_from_zval(ZEND_THIS);
 
     ZEND_PARSE_PARAMETERS_START(1, 1)
-        Z_PARAM_OBJECT_OF_CLASS(args, FireBird_Connect_Args_ce)
+        Z_PARAM_OBJECT_OF_CLASS(Connect_Args, FireBird_Connect_Args_ce)
     ZEND_PARSE_PARAMETERS_END();
 
-    ZVAL_COPY_VALUE(&db->args, args);
-
-    OBJ_SET(FireBird_Database_ce, ZEND_THIS, "args", args);
-
-    if (FAILURE == database_connect(status, db)) {
-        update_err_props(status, FireBird_Database_ce, ZEND_THIS);
-        RETURN_FALSE;
-    }
-
-    RETURN_TRUE;
+    RETVAL_BOOL(SUCCESS == FireBird_Database_connect(ZEND_THIS, Connect_Args));
 }
 
 // Flags used by createDatabase() jrd/jrd.cpp
@@ -88,247 +71,58 @@ PHP_METHOD(Database, connect)
 // dpb_session_tz
 // dpb_set_force_write
 // ✅ dpb_force_write
-int database_create(ISC_STATUS_ARRAY status, zval *db_o, zval *args_o)
+
+int FireBird_Database_create(zval *Db, zval *Create_Args)
 {
-    zval rv, *database;
-    const char *dpb_buffer;
-    short num_dpb_written;
-    firebird_db *db = get_firebird_db_from_zval(db_o);
+    firebird_db *db = get_firebird_db_from_zval(Db);
 
-    database = OBJ_GET(FireBird_Connect_Args_ce, args_o, "database", &rv);
+    // ZVAL_COPY_VALUE(&db->args, Connect_Args);
 
-    if ((Z_TYPE_P(database) != IS_STRING) || !Z_STRLEN_P(database)) {
-        zend_throw_exception_ex(zend_ce_value_error, 0, "Database parameter not set");
+    // database = OBJ_GET(FireBird_Connect_Args_ce, Connect_Args, "database", &rv);
+    // if ((Z_TYPE_P(database) != IS_STRING) || !Z_STRLEN_P(database)) {
+    //     zend_throw_exception_ex(zend_ce_value_error, 0, "database argument is not set");
+    //     return FAILURE;
+    // }
+
+    if (fbp_database_create(db, Create_Args)) {
+        update_err_props(FBG(status), FireBird_Database_ce, Db);
         return FAILURE;
     }
 
-    if (FAILURE == _FireBird_Database_build_dpb(FireBird_Create_Args_ce, args_o, &database_create_zmap, &dpb_buffer, &num_dpb_written)) {
-        return FAILURE;
-    }
-
-    FBDEBUG("database_create: %s", Z_STRVAL_P(database));
-    if (isc_create_database(status, (short)Z_STRLEN_P(database), Z_STRVAL_P(database), &db->db_handle, num_dpb_written, dpb_buffer, 0)) {
-        return FAILURE;
-    }
-    FBDEBUG("Created, handle: %d", db->db_handle);
+    OBJ_SET(FireBird_Database_ce, Db, "args", Create_Args);
 
     return SUCCESS;
 }
 
 PHP_METHOD(Database, create)
 {
-    zval *args = NULL;
-    ISC_STATUS_ARRAY status = {0};
+    zval *Create_Args = NULL;
 
     ZEND_PARSE_PARAMETERS_START(1, 1)
-        Z_PARAM_OBJECT_OF_CLASS(args, FireBird_Create_Args_ce)
+        Z_PARAM_OBJECT_OF_CLASS(Create_Args, FireBird_Create_Args_ce)
     ZEND_PARSE_PARAMETERS_END();
 
-    OBJ_SET(FireBird_Database_ce, ZEND_THIS, "args", args);
-
-    if (FAILURE == database_create(status, ZEND_THIS, args)) {
-        update_err_props(status, FireBird_Database_ce, ZEND_THIS);
-        RETURN_FALSE;
-    }
-
-    RETURN_TRUE;
+    RETVAL_BOOL(SUCCESS == FireBird_Database_create(ZEND_THIS, Create_Args));
 }
 
 PHP_METHOD(Database, drop)
 {
     ZEND_PARSE_PARAMETERS_NONE();
 
-    ISC_STATUS_ARRAY status = {0};
     firebird_db *db = get_firebird_db_from_zval(ZEND_THIS);
 
-    if (isc_drop_database(status, &db->db_handle)) {
-        update_err_props(status, FireBird_Database_ce, ZEND_THIS);
+    if (isc_drop_database(FBG(status), &db->db_handle)) {
+        update_err_props(FBG(status), FireBird_Database_ce, ZEND_THIS);
         RETURN_FALSE;
     }
 
     RETURN_TRUE;
 }
 
-int database_get_info(ISC_STATUS_ARRAY status, isc_db_handle *db_handle, zval *db_info,
-    size_t info_req_size, char *info_req, size_t info_resp_size, char *info_resp, size_t max_limbo_count)
-{
-    if (isc_database_info(status, db_handle, info_req_size, info_req, info_resp_size, info_resp)) {
-        return FAILURE;
-    }
-
-    struct IMaster* master = fb_get_master_interface();
-    struct IStatus* st = IMaster_getStatus(master);
-    struct IUtil* utl = IMaster_getUtilInterface(master);
-    struct IXpbBuilder* dpb;
-
-    dpb = IUtil_getXpbBuilder(utl, st, IXpbBuilder_INFO_RESPONSE, info_resp, info_resp_size);
-
-    const char *str;
-    ISC_INT64 len;
-    size_t limbo_count = 0;
-    zval info_limbo;
-
-    array_init(&info_limbo);
-
-#define READ_BIGINT(item) READ_BIGINT_(item, isc)
-#define READ_BIGINT_FB(item) READ_BIGINT_(item, fb)
-
-#define READ_STR(item) READ_STR_(item, isc)
-#define READ_STR_FB(item) READ_STR_(item, fb)
-
-#define READ_BIGINT_(item, pref)                                         \
-    case pref ## _info_ ## item:                                         \
-        zend_update_property_long(FireBird_Db_Info_ce, Z_OBJ_P(db_info), \
-            #item, sizeof(#item) - 1, IXpbBuilder_getBigInt(dpb, st));   \
-        break
-
-#define READ_STR_(item, pref)                                               \
-    case pref ## _info_ ## item:                                            \
-        zend_update_property_stringl(FireBird_Db_Info_ce, Z_OBJ_P(db_info), \
-            #item, sizeof(#item) - 1, b, len);                              \
-        break
-
-// b[0] holds count of entries, at the moment = 1
-// b[1] holds str length
-// b[2] holds pointer to str (not null terminated)
-#define READ_STR_ARRAY(item)                                        \
-    case isc_info_##item: {                                         \
-        ISC_UCHAR count = *b++;                                     \
-        ISC_UCHAR str_len;                                          \
-        zval str_arr;                                               \
-        array_init(&str_arr);                                       \
-        FBDEBUG_NOFL("  count: %d", count);                         \
-        for (int i = 0; i < count; i++) {                           \
-            str_len = *b++;                                         \
-            FBDEBUG_NOFL("  item: %.*s", str_len, b);               \
-            add_next_index_stringl(&str_arr, b, str_len);           \
-            b += str_len;                                           \
-        }                                                           \
-        zend_update_property(FireBird_Db_Info_ce, Z_OBJ_P(db_info), \
-            #item, sizeof(#item) - 1, &str_arr);                    \
-        zval_ptr_dtor(&str_arr);                                    \
-    } break
-
-    FBDEBUG("Parsing DB info buffer");
-
-    for (IXpbBuilder_rewind(dpb, st); !IXpbBuilder_isEof(dpb, st); IXpbBuilder_moveNext(dpb, st)) {
-        unsigned char tag = IXpbBuilder_getTag(dpb, st);
-        const ISC_UCHAR* b = IXpbBuilder_getBytes(dpb, st);
-        len = IXpbBuilder_getLength(dpb, st);
-
-        switch(tag) {
-            READ_STR_ARRAY(isc_version);
-            READ_STR_ARRAY(firebird_version);
-
-            // TODO: format date/time
-            case isc_info_creation_date: {
-                struct tm t;
-                isc_decode_timestamp((ISC_TIMESTAMP *) b, &t);
-                zend_update_property_long(FireBird_Db_Info_ce, Z_OBJ_P(db_info), "creation_date", sizeof("creation_date") - 1, mktime(&t));
-            } break;
-
-            READ_BIGINT(reads);
-            READ_BIGINT(writes);
-            READ_BIGINT(fetches);
-            READ_BIGINT(marks);
-            READ_BIGINT(page_size);
-            READ_BIGINT(num_buffers);
-            case isc_info_limbo: {
-                if(limbo_count++ < max_limbo_count) {
-                    add_next_index_long(&info_limbo, IXpbBuilder_getBigInt(dpb, st));
-                } else {
-                    IXpbBuilder_moveNext(dpb, st);
-                }
-            } break;
-            READ_BIGINT(current_memory);
-            READ_BIGINT(max_memory);
-
-            READ_BIGINT(allocation);
-            READ_BIGINT(attachment_id);
-            READ_BIGINT(read_seq_count);
-            READ_BIGINT(read_idx_count);
-            READ_BIGINT(insert_count);
-            READ_BIGINT(update_count);
-            READ_BIGINT(delete_count);
-            READ_BIGINT(backout_count);
-            READ_BIGINT(purge_count);
-            READ_BIGINT(expunge_count);
-
-            READ_BIGINT(sweep_interval);
-            READ_BIGINT(ods_version);
-            READ_BIGINT(ods_minor_version);
-            READ_BIGINT(no_reserve);
-            READ_BIGINT(forced_writes);
-
-            READ_BIGINT(set_page_buffers);
-            READ_BIGINT(db_sql_dialect);
-            READ_BIGINT(db_read_only);
-            READ_BIGINT(db_size_in_pages);
-
-            READ_BIGINT(oldest_transaction);
-            READ_BIGINT(oldest_active);
-            READ_BIGINT(oldest_snapshot);
-            READ_BIGINT(next_transaction);
-            READ_BIGINT(db_file_size); // always 0 for me
-            READ_BIGINT_FB(pages_used);
-            READ_BIGINT_FB(pages_free);
-            READ_BIGINT_FB(ses_idle_timeout_db);
-            READ_BIGINT_FB(ses_idle_timeout_att);
-            READ_BIGINT_FB(ses_idle_timeout_run);
-            READ_BIGINT_FB(conn_flags);
-            READ_BIGINT_FB(crypt_state);
-            READ_BIGINT_FB(statement_timeout_db);
-            READ_BIGINT_FB(statement_timeout_att);
-            READ_BIGINT_FB(protocol_version);
-            READ_STR_FB(crypt_key);
-            READ_STR_FB(crypt_plugin);
-            READ_STR_FB(wire_crypt);
-
-            READ_BIGINT_FB(next_attachment);
-            READ_BIGINT_FB(next_statement);
-            READ_BIGINT_FB(db_guid);
-            READ_BIGINT_FB(db_file_id);
-            READ_BIGINT_FB(replica_mode);
-            READ_STR_FB(username);
-            READ_STR_FB(sqlrole);
-            READ_BIGINT_FB(parallel_workers);
-
-            // All fields populated, not sure if needed
-            // case fb_info_features: {
-            //     for (unsigned i = 0; i < len; i++){
-            //         if (b[i] == 0) {
-            //             _php_firebird_module_error("Bad provider feature value: %d", b[i]);
-            //         } else if (b[i] < fb_feature_max) {
-            //             FBDEBUG_NOFL("  feature: %d", b[i]);
-            //         }
-            //     }
-            // } break;
-
-            case isc_info_end: break;
-            case isc_info_truncated: {
-                fbp_error("DB info buffer error: truncated");
-            } return FAILURE;
-            case isc_info_error: {
-                fbp_error("DB info buffer error");
-            } return FAILURE;
-
-            default: {
-                dump_buffer(b, len);
-                fbp_fatal("BUG! Unhandled DB info tag: %d", tag);
-            } break;
-        }
-    }
-
-    zend_update_property(FireBird_Db_Info_ce, Z_OBJ_P(db_info), "limbo", sizeof("limbo") - 1, &info_limbo);
-
-    return SUCCESS;
-}
-
 PHP_METHOD(Database, get_info)
 {
     ZEND_PARSE_PARAMETERS_NONE();
 
-    ISC_STATUS_ARRAY status = { 0 };
     firebird_db *db = get_firebird_db_from_zval(ZEND_THIS);
 
     // firebird\src\jrd\inf.cpp
@@ -469,8 +263,8 @@ PHP_METHOD(Database, get_info)
 
     object_init_ex(return_value, FireBird_Db_Info_ce);
 
-    if(database_get_info(status, &db->db_handle, return_value, sizeof(info_req), info_req, sizeof(info_resp), info_resp, 0)) {
-        update_err_props(status, FireBird_Database_ce, ZEND_THIS);
+    if (fbp_database_get_info(db, return_value, sizeof(info_req), info_req, sizeof(info_resp), info_resp, 0)) {
+        update_err_props(FBG(status), FireBird_Database_ce, ZEND_THIS);
         zval_ptr_dtor(return_value);
         RETURN_FALSE;
     }
@@ -478,8 +272,6 @@ PHP_METHOD(Database, get_info)
 
 PHP_METHOD(Database, on_event)
 {
-    ISC_STATUS_ARRAY status;
-
     char *name;
     size_t name_len;
 
@@ -516,8 +308,8 @@ PHP_METHOD(Database, on_event)
 
     FBDEBUG("Events: alloceted event: '%s', event_ptr: %p", name, event);
 
-    if (isc_que_events(status, event->db_handle, &event->event_id, event->buff_len, event->event_buffer, event_ast_routine, NULL)) {
-        update_err_props(status, FireBird_Database_ce, ZEND_THIS);
+    if (isc_que_events(FBG(status), event->db_handle, &event->event_id, event->buff_len, event->event_buffer, event_ast_routine, NULL)) {
+        update_err_props(FBG(status), FireBird_Database_ce, ZEND_THIS);
         zval_ptr_dtor(&ievent);
         RETURN_FALSE;
     }
@@ -540,18 +332,18 @@ PHP_METHOD(Database, new_transaction) {
     FireBird_Transaction___construct(return_value, ZEND_THIS, Tb);
 }
 
-PHP_METHOD(Database, disconnect) {
+PHP_METHOD(Database, disconnect)
+{
     ZEND_PARSE_PARAMETERS_NONE();
 
-    ISC_STATUS_ARRAY status;
     firebird_db *db = get_firebird_db_from_zval(ZEND_THIS);
 
     FBDEBUG("Connection::disconnect()");
 
     if(db->db_handle) {
         FBDEBUG("Closing handle: %d", db->db_handle);
-        if(isc_detach_database(status, &db->db_handle)){
-            update_err_props(status, FireBird_Database_ce, ZEND_THIS);
+        if(isc_detach_database(FBG(status), &db->db_handle)){
+            update_err_props(FBG(status), FireBird_Database_ce, ZEND_THIS);
         } else {
             db->db_handle = 0;
             RETURN_TRUE;
@@ -579,7 +371,6 @@ void FireBird_Database_reconnect_transaction(zval *Db, zval *return_value, zend_
 
 PHP_METHOD(Database, reconnect_transaction)
 {
-    ISC_STATUS_ARRAY status;
     zend_long id;
     zval rv, *database;
 
@@ -592,7 +383,6 @@ PHP_METHOD(Database, reconnect_transaction)
 
 PHP_METHOD(Database, get_limbo_transactions)
 {
-    ISC_STATUS_ARRAY status;
     zend_long max_count;
     zval rv, tr_id;
 
@@ -629,8 +419,8 @@ PHP_METHOD(Database, get_limbo_transactions)
 
     object_init_ex(&db_info, FireBird_Db_Info_ce);
 
-    if(database_get_info(status, &db->db_handle, &db_info, sizeof(info_req), info_req, info_resp_capacity, info_resp, max_count)) {
-        update_err_props(status, FireBird_Database_ce, ZEND_THIS);
+    if (fbp_database_get_info(db, &db_info, sizeof(info_req), info_req, info_resp_capacity, info_resp, max_count)) {
+        update_err_props(FBG(status), FireBird_Database_ce, ZEND_THIS);
         RETVAL_FALSE;
         goto free;
     }
@@ -646,7 +436,7 @@ free:
 
 const zend_function_entry FireBird_Database_methods[] = {
     PHP_ME(Database, connect, arginfo_FireBird_Database_connect, ZEND_ACC_PUBLIC)
-    PHP_ME(Database, create, arginfo_FireBird_Database_create, ZEND_ACC_PUBLIC)
+    PHP_ME(Database, create, arginfo_new_FireBird_Database, ZEND_ACC_PUBLIC)
     PHP_ME(Database, drop, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
     PHP_ME(Database, get_info, arginfo_FireBird_Database_get_info, ZEND_ACC_PUBLIC)
     PHP_ME(Database, on_event, arginfo_FireBird_Database_on_event, ZEND_ACC_PUBLIC)
@@ -657,9 +447,9 @@ const zend_function_entry FireBird_Database_methods[] = {
     PHP_FE_END
 };
 
-static zend_object *FireBird_Database_create(zend_class_entry *ce)
+static zend_object *new_FireBird_Database(zend_class_entry *ce)
 {
-    FBDEBUG("FireBird_Database_create");
+    FBDEBUG("new_FireBird_Database");
 
     firebird_db *db = zend_object_alloc(sizeof(firebird_db), ce);
     db->db_handle = 0;
@@ -670,16 +460,15 @@ static zend_object *FireBird_Database_create(zend_class_entry *ce)
     return &db->std;
 }
 
-static void FireBird_Database_free_obj(zend_object *obj)
+static void free_FireBird_Database(zend_object *obj)
 {
-    FBDEBUG("FireBird_Database_free_obj");
+    FBDEBUG("free_FireBird_Database");
 
     firebird_db *db = get_firebird_db_from_obj(obj);
 
     if(db->db_handle) {
-        ISC_STATUS_ARRAY status;
-        if(isc_detach_database(status, &db->db_handle)) {
-            status_fbp_error(status);
+        if(isc_detach_database(FBG(status), &db->db_handle)) {
+            status_fbp_error(FBG(status));
         } else {
             db->db_handle = 0;
         }
@@ -716,48 +505,13 @@ void register_FireBird_Database_ce()
 
     zend_class_implements(FireBird_Database_ce, 1, FireBird_IError_ce);
 
-    FireBird_Database_ce->create_object = FireBird_Database_create;
+    FireBird_Database_ce->create_object = new_FireBird_Database;
     FireBird_Database_ce->default_object_handlers = &FireBird_Database_object_handlers;
 
     memcpy(&FireBird_Database_object_handlers, &std_object_handlers, sizeof(zend_object_handlers));
 
     FireBird_Database_object_handlers.offset = XtOffsetOf(firebird_db, std);
-    FireBird_Database_object_handlers.free_obj = FireBird_Database_free_obj;
-}
-
-/**
- * zval* Args intanceof Create_Args|Connect_Args
- */
-int _FireBird_Database_build_dpb(zend_class_entry *ce, zval *Args, const firebird_xpb_zmap *xpb_zmap, const char **dpb_buf, short *num_dpb_written)
-{
-    struct IMaster* master = fb_get_master_interface();
-    struct IStatus* st = IMaster_getStatus(master);
-    struct IUtil* utl = IMaster_getUtilInterface(master);
-    struct IXpbBuilder* xpb = IUtil_getXpbBuilder(utl, st, IXpbBuilder_DPB, NULL, 0);
-
-    zend_property_info *prop_info = NULL;
-    zend_string *prop_name = NULL;
-    zval rv, *val, *checkval;
-    int i;
-
-    xpb_insert_tag(isc_dpb_version2);
-    xpb_insert_int(isc_dpb_sql_dialect, SQL_DIALECT_CURRENT);
-
-    xpb_insert_zmap(ce, Args, xpb_zmap, xpb, st);
-
-#if FB_API_VER >= 40
-    // Do not handle directly INT128 or DECFLOAT, convert to VARCHAR at server instead
-    xpb_insert_string(isc_dpb_set_bind, "int128 to varchar;decfloat to varchar");
-#endif
-
-    *num_dpb_written = IXpbBuilder_getBufferLength(xpb, st);
-    *dpb_buf = IXpbBuilder_getBuffer(xpb, st);
-
-    // Needed? Not needed?
-    // IXpbBuilder_dispose(xpb);
-    // IStatus_dispose(st);
-
-    return SUCCESS;
+    FireBird_Database_object_handlers.free_obj = free_FireBird_Database;
 }
 
 void register_FireBird_Db_Info_ce()

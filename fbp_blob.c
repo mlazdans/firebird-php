@@ -5,6 +5,9 @@
 
 #include "fbp_blob.h"
 
+fbp_object_accessor(firebird_blob);
+fbp_object_accessor(firebird_blob_id);
+
 void fbp_blob_ctor(firebird_blob *blob, isc_db_handle *db_handle, isc_tr_handle *tr_handle)
 {
     blob->db_handle = db_handle;

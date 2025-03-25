@@ -29,6 +29,8 @@ typedef struct firebird_tbuilder {
     zend_object std;
 } firebird_tbuilder;
 
+fbp_declare_object_accessor(firebird_tbuilder);
+
 typedef struct firebird_trans {
     isc_tr_handle tr_handle;
     isc_db_handle *db_handle;
@@ -38,6 +40,8 @@ typedef struct firebird_trans {
 
     zend_object std;
 } firebird_trans;
+
+fbp_declare_object_accessor(firebird_trans);
 
 void fbp_transaction_ctor(firebird_trans *tr, firebird_db *db, firebird_tbuilder *builder);
 int fbp_transaction_start(firebird_trans *tr);

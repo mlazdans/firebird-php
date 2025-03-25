@@ -28,9 +28,6 @@
 
 #include <firebird/fb_c_api.h>
 #include <ibase.h>
-#include "fbp_blob.h"
-#include "fbp_transaction.h"
-#include "fbp_statement.h"
 
 #define PHP_FIREBIRD_VERSION "0.0.1-alpha"
 
@@ -215,7 +212,7 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Database_connect, 0, 1,
     ZEND_ARG_OBJ_INFO(0, args, FireBird\\Connect_Args, 0)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Database_create, 0, 1, _IS_BOOL, 0)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_new_FireBird_Database, 0, 1, _IS_BOOL, 0)
     ZEND_ARG_OBJ_INFO(0, args, FireBird\\Create_Args, 0)
 ZEND_END_ARG_INFO()
 
@@ -428,15 +425,17 @@ void event_ast_routine(void *_ev, ISC_USHORT length, const ISC_UCHAR *result_buf
     strct *get_ ##strct## _from_obj(const zend_object *obj); \
     strct *get_ ##strct## _from_zval(const zval *zv)
 
-fbp_declare_object_accessor(firebird_trans);
-fbp_declare_object_accessor(firebird_stmt);
-fbp_declare_object_accessor(firebird_db);
-fbp_declare_object_accessor(firebird_blob);
-fbp_declare_object_accessor(firebird_blob_id);
+#define fbp_object_accessor(strct)                                               \
+    zend_always_inline strct *get_ ##strct## _from_obj(const zend_object *obj) { \
+        return (strct*)((char*)(obj) - XtOffsetOf(strct, std));                  \
+    }                                                                            \
+    zend_always_inline strct *get_ ##strct## _from_zval(const zval *zv) {        \
+        return get_ ##strct## _from_obj(Z_OBJ_P(zv));                            \
+    }
+
 // fbp_declare_object_accessor(zend_fiber);
 fbp_declare_object_accessor(firebird_event);
 fbp_declare_object_accessor(firebird_service);
-fbp_declare_object_accessor(firebird_tbuilder);
 
 #define fbp_error(msg, ...) _php_firebird_module_error(msg " (%s:%d)\n" __VA_OPT__(,) __VA_ARGS__, __FILE__, __LINE__)
 #define fbp_fatal(msg, ...) _php_firebird_module_fatal(msg " (%s:%d)\n" __VA_OPT__(,) __VA_ARGS__, __FILE__, __LINE__)

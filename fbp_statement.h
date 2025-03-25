@@ -4,6 +4,8 @@
 #include <ibase.h>
 #include "php.h"
 
+#include "fbp_transaction.h"
+
 enum firebird_fetch_flag {
     FBP_FETCH_BLOBS      = 1,
     FBP_FETCH_UNIXTIME   = 2,
@@ -39,6 +41,8 @@ typedef struct firebird_stmt {
     ISC_ULONG insert_count, update_count, delete_count, affected_count;
     zend_object std;
 } firebird_stmt;
+
+fbp_declare_object_accessor(firebird_stmt);
 
 typedef struct firebird_vary {
     unsigned short vary_length;

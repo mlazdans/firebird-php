@@ -5,6 +5,7 @@
 #include "zend_exceptions.h"
 #include "zend_attributes.h"
 #include "php_firebird_includes.h"
+#include "fbp_transaction.h"
 
 zend_class_entry *FireBird_TBuilder_ce;
 static zend_object_handlers FireBird_TBuilder_object_handlers;

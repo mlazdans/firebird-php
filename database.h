@@ -11,6 +11,8 @@ extern zend_class_entry *FireBird_Db_Info_ce;
 void register_FireBird_Database_ce();
 void register_FireBird_Db_Info_ce();
 
-int _FireBird_Database_build_dpb(zend_class_entry *ce, zval *Args, const firebird_xpb_zmap *xpb_zmap, const char **dpb_buf, short *num_dpb_written);
+int FireBird_Database_connect(zval *Db, zval *Connect_Args);
+int FireBird_Database_create(zval *Db, zval *Create_Args);
+void FireBird_Database_reconnect_transaction(zval *Db, zval *return_value, zend_long id);
 
 #endif /* DATABASE_H */
