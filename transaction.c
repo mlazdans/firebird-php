@@ -105,33 +105,17 @@ PHP_METHOD(Transaction, rollback_ret) {
     _FireBird_Transaction_finalize(INTERNAL_FUNCTION_PARAM_PASSTHRU, TR_FINMODE_ROLLBACK | TR_FINMODE_RETAIN);
 }
 
-// TODO: create prepare on Stament class and move there
-int FireBird_Transaction_prepare(zval *Tr, zval *return_Stmt, const ISC_SCHAR* sql)
+int FireBird_Transaction_prepare(zval *Tr, zval *return_value, const ISC_SCHAR* sql)
 {
-    object_init_ex(return_Stmt, FireBird_Statement_ce);
-    FireBird_Statement___construct(return_Stmt, Tr);
-    firebird_stmt *stmt = get_firebird_stmt_from_zval(return_Stmt);
+    object_init_ex(return_value, FireBird_Statement_ce);
+    FireBird_Statement___construct(return_value, Tr);
 
-    if (fbp_statement_prepare(stmt, sql)) {
-        ISC_INT64 error_code_long = update_err_props(FBG(status), FireBird_Transaction_ce, Tr);
-
-        // Do we CREATE DATABASE?
-        if (error_code_long == isc_dsql_crdb_prepare_err) {
-            fbp_error("CREATE DATABASE detected on active connection. Use Database::create() instead.");
-        }
-
-        zval_ptr_dtor(return_Stmt);
-        ZVAL_FALSE(return_Stmt);
+    if (FireBird_Statement_prepare(return_value, sql)) {
+        update_err_props(FBG(status), FireBird_Transaction_ce, Tr);
+        zval_ptr_dtor(return_value);
+        ZVAL_FALSE(return_value);
         return FAILURE;
     }
-
-    zend_update_property_long(FireBird_Statement_ce, Z_OBJ_P(return_Stmt), "num_vars_in", sizeof("num_vars_in") - 1,
-        stmt->in_sqlda->sqld
-    );
-
-    zend_update_property_long(FireBird_Statement_ce, Z_OBJ_P(return_Stmt), "num_vars_out", sizeof("num_vars_out") - 1,
-        stmt->out_sqlda->sqld
-    );
 
     return SUCCESS;
 }
@@ -167,6 +151,7 @@ PHP_METHOD(Transaction, query)
     }
 
     if (FireBird_Statement_execute(&Stmt, bind_args, num_bind_args)) {
+        update_err_props(FBG(status), FireBird_Transaction_ce, ZEND_THIS);
         zval_ptr_dtor(&Stmt);
         RETURN_FALSE;
     }

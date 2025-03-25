@@ -252,7 +252,6 @@ class Statement implements IError
     protected(set) int $delete_count;
     protected(set) int $affected_count; // insert + update + delete
 
-    // TODO: query, prepare
     function __construct(Transaction $transaction) {}
 
     /** @return object|false|null */
@@ -263,6 +262,9 @@ class Statement implements IError
 
     /** @return array|false|null */
     function fetch_row(int $flags = 0) {}
+
+    /** @return bool */
+    function prepare(string $sql) {}
 
     /** @return bool */
     function execute(...$bind_args) {}

@@ -101,6 +101,11 @@ int FireBird_Statement_execute(zval *Stmt, zval *bind_args, uint32_t num_bind_ar
 {
     firebird_stmt *stmt = get_firebird_stmt_from_zval(Stmt);
 
+    if (!stmt->statement_type) {
+        zend_throw_exception_ex(spl_ce_RuntimeException, 0, "Execute with unprepared statement.");
+        return FAILURE;
+    }
+
     if (num_bind_args != stmt->in_sqlda->sqld) {
         zend_throw_exception_ex(zend_ce_argument_count_error, 0,
             "Statement expects %d arguments, %d given", stmt->in_sqlda->sqld, num_bind_args);
@@ -108,6 +113,7 @@ int FireBird_Statement_execute(zval *Stmt, zval *bind_args, uint32_t num_bind_ar
     }
 
     if (fbp_statement_execute(stmt, bind_args, num_bind_args)) {
+        update_err_props(FBG(status), FireBird_Statement_ce, Stmt);
         return FAILURE;
     }
 
@@ -130,6 +136,42 @@ PHP_METHOD(Statement, execute)
     ZEND_PARSE_PARAMETERS_END();
 
     RETVAL_BOOL(SUCCESS == FireBird_Statement_execute(ZEND_THIS, bind_args, num_bind_args));
+}
+
+int FireBird_Statement_prepare(zval *Stmt, const ISC_SCHAR* sql)
+{
+    firebird_stmt *stmt = get_firebird_stmt_from_zval(Stmt);
+
+    if (fbp_statement_prepare(stmt, sql)) {
+        ISC_INT64 error_code_long = update_err_props(FBG(status), FireBird_Statement_ce, Stmt);
+
+        // Do we CREATE DATABASE?
+        if (error_code_long == isc_dsql_crdb_prepare_err) {
+            fbp_error("CREATE DATABASE detected on active connection. Use Database::create() instead.");
+        }
+        return FAILURE;
+    }
+
+    zend_update_property_long(FireBird_Statement_ce, Z_OBJ_P(Stmt), "num_vars_in", sizeof("num_vars_in") - 1,
+        stmt->in_sqlda->sqld
+    );
+
+    zend_update_property_long(FireBird_Statement_ce, Z_OBJ_P(Stmt), "num_vars_out", sizeof("num_vars_out") - 1,
+        stmt->out_sqlda->sqld
+    );
+
+    return SUCCESS;
+}
+
+PHP_METHOD(Statement, prepare)
+{
+    zend_string *sql;
+
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+        Z_PARAM_STR(sql)
+    ZEND_PARSE_PARAMETERS_END();
+
+    RETVAL_BOOL(SUCCESS == FireBird_Statement_prepare(ZEND_THIS, ZSTR_VAL(sql)));
 }
 
 void statement_var_info(zval *return_value, XSQLVAR *var)
@@ -201,10 +243,11 @@ PHP_METHOD(Statement, set_name)
 }
 
 const zend_function_entry FireBird_Statement_methods[] = {
-    PHP_ME(Statement, __construct, arginfo_none, ZEND_ACC_PRIVATE)
+    PHP_ME(Statement, __construct, arginfo_FireBird_Statement___construct, ZEND_ACC_PUBLIC | ZEND_ACC_CTOR)
     PHP_ME(Statement, fetch_row, arginfo_FireBird_Statement_fetch_row, ZEND_ACC_PUBLIC)
     PHP_ME(Statement, fetch_array, arginfo_FireBird_Statement_fetch_row, ZEND_ACC_PUBLIC)
     PHP_ME(Statement, fetch_object, arginfo_FireBird_Statement_fetch_object, ZEND_ACC_PUBLIC)
+    PHP_ME(Statement, prepare, arginfo_FireBird_Statement_prepare, ZEND_ACC_PUBLIC)
     PHP_ME(Statement, execute, arginfo_FireBird_Statement_execute, ZEND_ACC_PUBLIC)
     PHP_ME(Statement, close, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
     PHP_ME(Statement, free, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
