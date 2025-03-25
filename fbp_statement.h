@@ -6,11 +6,6 @@
 
 #include "fbp_transaction.h"
 
-enum firebird_fetch_flag {
-    FBP_FETCH_BLOBS      = 1,
-    FBP_FETCH_UNIXTIME   = 2,
-};
-
 typedef struct firebird_bind_buf {
     union {
 #ifdef SQL_BOOLEAN

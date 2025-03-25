@@ -49,51 +49,12 @@
 #include "database.h"
 #include "transaction.h"
 #include "statement.h"
-#include "fbp_statement.h"
+#include "service.h"
 
 #define CHECK_LINK(link) { if (link==NULL) { php_error_docref(NULL, E_WARNING, "A link to the server could not be established"); RETURN_FALSE; } }
 
 ZEND_DECLARE_MODULE_GLOBALS(firebird)
 static PHP_GINIT_FUNCTION(firebird);
-
-firebird_xpb_zmap service_connect_zmap = XPB_ZMAP_INIT(
-    ((const char []){
-        isc_spb_user_name, isc_spb_password
-    }),
-    ((const char *[]){
-        "user_name", "password"
-    }),
-    ((uint32_t []) {
-        MAY_BE_STRING, MAY_BE_STRING
-    })
-);
-
-firebird_xpb_zmap server_info_zmap = XPB_ZMAP_INIT(
-    ((const char []){
-        isc_info_svc_server_version, isc_info_svc_implementation, isc_info_svc_get_env, isc_info_svc_get_env_lock, isc_info_svc_get_env_msg,
-        isc_info_svc_user_dbpath
-    }),
-    ((const char *[]){
-        "server_version", "implementation", "get_env", "get_env_lock", "get_env_msg",
-        "user_dbpath"
-    }),
-    ((uint32_t []) {
-        MAY_BE_STRING, MAY_BE_STRING, MAY_BE_STRING, MAY_BE_STRING, MAY_BE_STRING,
-        MAY_BE_STRING
-    })
-);
-
-firebird_xpb_zmap user_info_zmap = XPB_ZMAP_INIT(
-    ((const char []){
-        isc_spb_sec_username, isc_spb_sec_password, isc_spb_sec_firstname, isc_spb_sec_middlename, isc_spb_sec_lastname, isc_spb_sec_admin
-    }),
-    ((const char *[]){
-        "username", "password", "firstname", "middlename", "lastname", "admin"
-    }),
-    ((uint32_t []) {
-        MAY_BE_STRING, MAY_BE_STRING, MAY_BE_STRING, MAY_BE_STRING, MAY_BE_STRING, MAY_BE_TRUE | MAY_BE_FALSE,
-    })
-);
 
 static const zend_function_entry firebird_functions[] = {
     PHP_FE_END
@@ -297,7 +258,7 @@ PHP_MINFO_FUNCTION(firebird)
 
 }
 
-void dump_buffer(const unsigned char *buffer, int len){
+void dump_buffer(int len, const unsigned char *buffer){
     int i;
     for (i = 0; i < len; i++) {
         if(buffer[i] < 31 || buffer[i] > 126)
@@ -525,6 +486,5 @@ void store_portable_integer(unsigned char *buffer, ISC_UINT64 value, int length)
 
 // fbp_object_accessor(zend_fiber);
 fbp_object_accessor(firebird_event);
-fbp_object_accessor(firebird_service);
 
 #endif /* HAVE_FIREBIRD */

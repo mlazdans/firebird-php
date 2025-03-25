@@ -4,6 +4,11 @@
 #include <ibase.h>
 #include "php.h"
 
+enum firebird_fetch_flag {
+    FBP_FETCH_BLOBS      = 1,
+    FBP_FETCH_UNIXTIME   = 2,
+};
+
 extern zend_class_entry *FireBird_Statement_ce;
 extern void register_FireBird_Statement_ce();
 

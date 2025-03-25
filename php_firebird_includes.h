@@ -65,17 +65,6 @@ ZEND_END_MODULE_GLOBALS(firebird)
 
 ZEND_EXTERN_MODULE_GLOBALS(firebird)
 
-typedef struct firebird_service {
-    isc_svc_handle svc_handle;
-    zval args;
-    // char *hostname;
-    // char *username;
-    // zend_resource *res;
-
-    // zval instance;
-    zend_object std;
-} firebird_service;
-
 typedef struct firebird_xpb_zmap {
     const char *tags, **names;
     uint32_t *ztypes;
@@ -351,31 +340,18 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_FireBird_TBuilder_flag_return_st
     ZEND_ARG_TYPE_INFO(0, enable, _IS_BOOL, 0)
 ZEND_END_ARG_INFO()
 
-extern firebird_xpb_zmap service_connect_zmap;
-extern firebird_xpb_zmap server_info_zmap;
-extern firebird_xpb_zmap user_info_zmap;
 extern firebird_events fb_events;
 
 extern zend_class_entry *FireBird_IError_ce;
 extern zend_class_entry *FireBird_Error_ce;
 extern zend_class_entry *FireBird_Var_Info_ce;
 extern zend_class_entry *FireBird_Event_ce;
-extern zend_class_entry *FireBird_Service_ce;
-extern zend_class_entry *FireBird_Service_Connect_Args_ce;
-extern zend_class_entry *FireBird_Server_Info_ce;
-extern zend_class_entry *FireBird_Server_Db_Info_ce;
-extern zend_class_entry *FireBird_Server_User_Info_ce;
 extern zend_class_entry *FireBird_TBuilder_ce;
 
 extern void register_FireBird_IError_ce();
 extern void register_FireBird_Error_ce();
 extern void register_FireBird_Var_Info_ce();
 extern void register_FireBird_Event_ce();
-extern void register_FireBird_Service_ce();
-extern void register_FireBird_Service_Connect_Args_ce();
-extern void register_FireBird_Server_Info_ce();
-extern void register_FireBird_Server_Db_Info_ce();
-extern void register_FireBird_Server_User_Info_ce();
 extern void register_FireBird_TBuilder_ce();
 
 #define DECLARE_FERR_PROPS(ce)                                  \
@@ -407,7 +383,7 @@ extern void register_FireBird_TBuilder_ce();
 // TODO: tidy namspacing
 void store_portable_integer(unsigned char *buffer, ISC_UINT64 value, int length);
 void status_fbp_error_ex(const ISC_STATUS *status, const char *file_name, size_t line_num);
-void dump_buffer(const unsigned char *buffer, int len);
+void dump_buffer(int len, const unsigned char *buffer);
 ISC_INT64 update_err_props_ex(ISC_STATUS_ARRAY status, zend_class_entry *ce, zval *obj, const char *file_name, size_t line_num);
 int status_err_msg(const ISC_STATUS *status, char *msg, unsigned short msg_size);
 void declare_props_zmap(zend_class_entry *ce, const firebird_xpb_zmap *xpb_zmap);
@@ -428,7 +404,6 @@ void event_ast_routine(void *_ev, ISC_USHORT length, const ISC_UCHAR *result_buf
 
 // fbp_declare_object_accessor(zend_fiber);
 fbp_declare_object_accessor(firebird_event);
-fbp_declare_object_accessor(firebird_service);
 
 #define fbp_error(msg, ...) _php_firebird_module_error(msg " (%s:%d)\n" __VA_OPT__(,) __VA_ARGS__, __FILE__, __LINE__)
 #define fbp_fatal(msg, ...) _php_firebird_module_fatal(msg " (%s:%d)\n" __VA_OPT__(,) __VA_ARGS__, __FILE__, __LINE__)

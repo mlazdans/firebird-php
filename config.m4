@@ -54,7 +54,7 @@ if test "$PHP_FIREBIRD" != "no"; then
   fi
 
   AC_DEFINE(HAVE_FIREBIRD,1,[ ])
-  PHP_NEW_EXTENSION(firebird, [firebird.c fbp_database.c database.c fbp_transaction.c transaction.c fbp_statement.c statement.c fbp_blob.c blob.c error.c args.c var_info.c event.c service.c tbuilder.c], $ext_shared,, -DZEND_ENABLE_STATIC_TSRMLS_CACHE=1,[cxx])
+  PHP_NEW_EXTENSION(firebird, [firebird.c fbp_database.c database.c fbp_transaction.c transaction.c fbp_statement.c statement.c fbp_blob.c blob.c error.c args.c var_info.c event.c fbp_service.c service.c tbuilder.c], $ext_shared,, -DZEND_ENABLE_STATIC_TSRMLS_CACHE=1,[cxx])
   PHP_SUBST(FIREBIRD_SHARED_LIBADD)
 
   PHP_REQUIRE_CXX()

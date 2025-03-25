@@ -6,8 +6,6 @@
 #include "database.h"
 #include "fbp_database.h"
 
-fbp_object_accessor(firebird_db);
-
 firebird_xpb_zmap fbp_database_create_zmap = XPB_ZMAP_INIT(
     ((const char []){
         isc_dpb_user_name, isc_dpb_password, isc_dpb_set_db_charset, isc_dpb_sweep_interval,
@@ -26,7 +24,7 @@ firebird_xpb_zmap fbp_database_create_zmap = XPB_ZMAP_INIT(
     })
 );
 
-firebird_xpb_zmap database_connect_zmap = XPB_ZMAP_INIT(
+firebird_xpb_zmap fbp_database_connect_zmap = XPB_ZMAP_INIT(
     ((const char []){
         isc_dpb_user_name, isc_dpb_password, isc_dpb_lc_ctype, isc_dpb_sql_role_name, isc_dpb_num_buffers, isc_dpb_connect_timeout
     }),
@@ -38,7 +36,7 @@ firebird_xpb_zmap database_connect_zmap = XPB_ZMAP_INIT(
     })
 );
 
-firebird_xpb_zmap database_info_zmap = XPB_ZMAP_INIT(
+firebird_xpb_zmap fbp_database_info_zmap = XPB_ZMAP_INIT(
     ((const char []){
         isc_info_reads, isc_info_writes, isc_info_fetches, isc_info_marks,
         isc_info_page_size, isc_info_num_buffers, isc_info_current_memory, isc_info_max_memory,
@@ -100,6 +98,8 @@ firebird_xpb_zmap database_info_zmap = XPB_ZMAP_INIT(
     })
 );
 
+fbp_object_accessor(firebird_db);
+
 /**
  * zval* Args intanceof Create_Args|Connect_Args
  */
@@ -141,7 +141,7 @@ int fbp_database_connect(firebird_db *db, zval *Connect_Args)
     const char *dpb_buffer;
     short num_dpb_written;
 
-    if (FAILURE == fbp_database_build_dpb(FireBird_Connect_Args_ce, Connect_Args, &database_connect_zmap, &dpb_buffer, &num_dpb_written)) {
+    if (FAILURE == fbp_database_build_dpb(FireBird_Connect_Args_ce, Connect_Args, &fbp_database_connect_zmap, &dpb_buffer, &num_dpb_written)) {
         return FAILURE;
     }
 
@@ -346,7 +346,7 @@ int fbp_database_get_info(firebird_db *db, zval *Db_Info,
             } return FAILURE;
 
             default: {
-                dump_buffer(b, len);
+                dump_buffer(len, b);
                 fbp_fatal("BUG! Unhandled DB info tag: %d", tag);
             } break;
         }
