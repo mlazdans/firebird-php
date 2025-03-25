@@ -7,9 +7,13 @@
 
 extern zend_class_entry *FireBird_Database_ce;
 extern zend_class_entry *FireBird_Db_Info_ce;
+extern zend_class_entry *FireBird_Connect_Args_ce;
+extern zend_class_entry *FireBird_Create_Args_ce;
 
 void register_FireBird_Database_ce();
 void register_FireBird_Db_Info_ce();
+void register_FireBird_Connect_Args_ce();
+void register_FireBird_Create_Args_ce();
 
 int FireBird_Database_connect(zval *Db, zval *Connect_Args);
 int FireBird_Database_create(zval *Db, zval *Create_Args);

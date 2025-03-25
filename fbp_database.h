@@ -4,6 +4,10 @@
 #include <ibase.h>
 #include "php.h"
 
+extern firebird_xpb_zmap fbp_database_create_zmap;
+extern firebird_xpb_zmap fbp_database_connect_zmap;
+extern firebird_xpb_zmap fbp_database_info_zmap;
+
 typedef struct firebird_db {
     isc_db_handle db_handle;
 

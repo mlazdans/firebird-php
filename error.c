@@ -3,7 +3,6 @@
 #include "zend_attributes.h"
 
 #include "php_firebird_includes.h"
-#include "pdo_firebird_utils.h"
 
 zend_class_entry *FireBird_IError_ce;
 zend_class_entry *FireBird_Error_ce;

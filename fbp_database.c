@@ -8,6 +8,98 @@
 
 fbp_object_accessor(firebird_db);
 
+firebird_xpb_zmap fbp_database_create_zmap = XPB_ZMAP_INIT(
+    ((const char []){
+        isc_dpb_user_name, isc_dpb_password, isc_dpb_set_db_charset, isc_dpb_sweep_interval,
+        isc_dpb_set_page_buffers, isc_dpb_page_size, isc_dpb_force_write, isc_dpb_overwrite,
+        isc_dpb_connect_timeout
+    }),
+    ((const char *[]){
+        "user_name", "password", "set_db_charset", "sweep_interval",
+        "set_page_buffers", "page_size", "force_write", "overwrite",
+        "timeout"
+    }),
+    ((uint32_t []) {
+        MAY_BE_STRING, MAY_BE_STRING, MAY_BE_STRING, MAY_BE_LONG,
+        MAY_BE_LONG, MAY_BE_LONG, MAY_BE_BOOL, MAY_BE_BOOL,
+        MAY_BE_LONG
+    })
+);
+
+firebird_xpb_zmap database_connect_zmap = XPB_ZMAP_INIT(
+    ((const char []){
+        isc_dpb_user_name, isc_dpb_password, isc_dpb_lc_ctype, isc_dpb_sql_role_name, isc_dpb_num_buffers, isc_dpb_connect_timeout
+    }),
+    ((const char *[]){
+        "user_name", "password", "charset", "role_name", "num_buffers", "timeout"
+    }),
+    ((uint32_t []) {
+        MAY_BE_STRING, MAY_BE_STRING, MAY_BE_STRING, MAY_BE_STRING, MAY_BE_LONG, MAY_BE_LONG
+    })
+);
+
+firebird_xpb_zmap database_info_zmap = XPB_ZMAP_INIT(
+    ((const char []){
+        isc_info_reads, isc_info_writes, isc_info_fetches, isc_info_marks,
+        isc_info_page_size, isc_info_num_buffers, isc_info_current_memory, isc_info_max_memory,
+
+        isc_info_allocation, isc_info_attachment_id, isc_info_read_seq_count, isc_info_read_idx_count, isc_info_insert_count,
+        isc_info_update_count, isc_info_delete_count, isc_info_backout_count, isc_info_purge_count, isc_info_expunge_count,
+
+        isc_info_isc_version, isc_info_firebird_version, isc_info_limbo,
+        isc_info_sweep_interval, isc_info_ods_version, isc_info_ods_minor_version, isc_info_no_reserve,
+
+        isc_info_forced_writes, isc_info_set_page_buffers, isc_info_db_sql_dialect, isc_info_db_read_only, isc_info_db_size_in_pages,
+        isc_info_oldest_transaction, isc_info_oldest_active, isc_info_oldest_snapshot, isc_info_next_transaction,
+
+        isc_info_creation_date, isc_info_db_file_size, fb_info_pages_used, fb_info_pages_free,
+
+        fb_info_ses_idle_timeout_db, fb_info_ses_idle_timeout_att, fb_info_ses_idle_timeout_run, fb_info_conn_flags,
+        fb_info_crypt_key, fb_info_crypt_state, fb_info_statement_timeout_db, fb_info_statement_timeout_att,
+        fb_info_protocol_version, fb_info_crypt_plugin, fb_info_wire_crypt,
+
+        fb_info_next_attachment, fb_info_next_statement, fb_info_db_guid, fb_info_db_file_id,
+        fb_info_replica_mode, fb_info_username, fb_info_sqlrole, fb_info_parallel_workers
+    }),
+    ((const char *[]){
+        "reads", "writes", "fetches", "marks",
+        "page_size", "num_buffers", "current_memory", "max_memory",
+
+        "allocation", "attachment_id", "read_seq_count", "read_idx_count", "insert_count",
+        "update_count", "delete_count", "backout_count", "purge_count", "expunge_count",
+
+        "isc_version", "firebird_version", "limbo",
+        "sweep_interval", "ods_version", "ods_minor_version", "no_reserve",
+
+        "forced_writes", "set_page_buffers", "db_sql_dialect", "db_read_only", "db_size_in_pages",
+        "oldest_transaction", "oldest_active", "oldest_snapshot", "next_transaction",
+
+        "creation_date", "db_file_size", "pages_used", "pages_free",
+
+        "ses_idle_timeout_db", "ses_idle_timeout_att", "ses_idle_timeout_run", "conn_flags",
+        "crypt_key", "crypt_state", "statement_timeout_db", "statement_timeout_att", "protocol_version", "crypt_plugin", "wire_crypt",
+
+        "next_attachment", "next_statement", "db_guid", "db_file_id",
+        "replica_mode", "username", "sqlrole", "parallel_workers"
+
+    }),
+    ((uint32_t []) {
+        MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG,
+        MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG,
+        MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG,
+        MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG,
+        MAY_BE_ARRAY, MAY_BE_ARRAY, MAY_BE_ARRAY,
+        MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG,
+        MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG,
+        MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG,
+        MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG,
+        MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG,
+        MAY_BE_STRING, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_STRING, MAY_BE_STRING,
+        MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG,
+        MAY_BE_LONG, MAY_BE_STRING, MAY_BE_STRING, MAY_BE_LONG,
+    })
+);
+
 /**
  * zval* Args intanceof Create_Args|Connect_Args
  */
@@ -70,7 +162,7 @@ int fbp_database_create(firebird_db *db, zval *Create_Args)
     const char *dpb_buffer;
     short num_dpb_written;
 
-    if (FAILURE == fbp_database_build_dpb(FireBird_Create_Args_ce, Create_Args, &database_create_zmap, &dpb_buffer, &num_dpb_written)) {
+    if (FAILURE == fbp_database_build_dpb(FireBird_Create_Args_ce, Create_Args, &fbp_database_create_zmap, &dpb_buffer, &num_dpb_written)) {
         return FAILURE;
     }
 

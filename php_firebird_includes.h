@@ -351,16 +351,11 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_FireBird_TBuilder_flag_return_st
     ZEND_ARG_TYPE_INFO(0, enable, _IS_BOOL, 0)
 ZEND_END_ARG_INFO()
 
-extern firebird_xpb_zmap database_create_zmap;
-extern firebird_xpb_zmap database_connect_zmap;
-extern firebird_xpb_zmap database_info_zmap;
 extern firebird_xpb_zmap service_connect_zmap;
 extern firebird_xpb_zmap server_info_zmap;
 extern firebird_xpb_zmap user_info_zmap;
 extern firebird_events fb_events;
 
-extern zend_class_entry *FireBird_Connect_Args_ce;
-extern zend_class_entry *FireBird_Create_Args_ce;
 extern zend_class_entry *FireBird_IError_ce;
 extern zend_class_entry *FireBird_Error_ce;
 extern zend_class_entry *FireBird_Var_Info_ce;
@@ -374,8 +369,6 @@ extern zend_class_entry *FireBird_TBuilder_ce;
 
 extern void register_FireBird_IError_ce();
 extern void register_FireBird_Error_ce();
-extern void register_FireBird_Connect_Args_ce();
-extern void register_FireBird_Create_Args_ce();
 extern void register_FireBird_Var_Info_ce();
 extern void register_FireBird_Event_ce();
 extern void register_FireBird_Service_ce();
