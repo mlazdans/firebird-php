@@ -37,8 +37,10 @@ typedef struct firebird_stmt {
 } firebird_stmt;
 
 void fbp_alloc_xsqlda(XSQLDA *sqlda);
+void fbp_free_xsqlda(XSQLDA *sqlda);
 
 void fbp_statement_ctor(firebird_stmt *stmt, firebird_trans *tr);
+void fbp_statement_free(firebird_stmt *s);
 int fbp_update_statement_info(firebird_stmt *stmt);
 int fbp_statement_prepare(firebird_stmt *stmt, const ISC_SCHAR *sql);
 int fbp_statement_execute(firebird_stmt *stmt, zval *bind_args, uint32_t num_bind_args);

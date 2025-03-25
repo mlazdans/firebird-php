@@ -44,7 +44,7 @@ void fbp_statement_ctor(firebird_stmt *stmt, firebird_trans *tr)
     stmt->tr_handle = &tr->tr_handle;
 }
 
-// TODO: move into its own module or utils
+// TODO: move xsqlda functions into its own module or utils
 void fbp_alloc_xsqlda(XSQLDA *sqlda)
 {
     int i;
@@ -118,6 +118,23 @@ void fbp_alloc_xsqlda(XSQLDA *sqlda)
             var->sqlind = NULL;
         }
     } /* for */
+}
+
+void fbp_free_xsqlda(XSQLDA *sqlda)
+{
+    int i;
+    XSQLVAR *var;
+
+    if (sqlda) {
+        var = sqlda->sqlvar;
+        for (i = 0; i < min(sqlda->sqld, sqlda->sqln); i++, var++) {
+            efree(var->sqldata);
+            if (var->sqlind) { // XXX: should free for out sqlda or not?
+                efree(var->sqlind);
+            }
+        }
+        efree(sqlda);
+    }
 }
 
 int fbp_statement_bind(firebird_stmt *stmt, XSQLDA *sqlda, zval *b_vars)
@@ -504,3 +521,21 @@ int fbp_statement_prepare(firebird_stmt *stmt, const ISC_SCHAR *sql)
     return SUCCESS;
 }
 
+void fbp_statement_free(firebird_stmt *s)
+{
+    if (s->in_sqlda) {
+        efree(s->in_sqlda);
+    }
+    if (s->out_sqlda) {
+        fbp_free_xsqlda(s->out_sqlda);
+    }
+    // if (s->in_array) {
+    //     efree(s->in_array);
+    // }
+    // if (s->out_array) {
+    //     efree(s->out_array);
+    // }
+    if(s->bind_buf) {
+        efree(s->bind_buf);
+    }
+}
