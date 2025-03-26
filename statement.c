@@ -124,7 +124,7 @@ int FireBird_Statement_execute(zval *Stmt, zval *bind_args, uint32_t num_bind_ar
         return FAILURE;
     }
 
-    if (fbp_statement_execute(stmt, bind_args, num_bind_args)) {
+    if (fbp_statement_execute(stmt, bind_args, num_bind_args, 0)) {
         update_err_props(FBG(status), FireBird_Statement_ce, Stmt);
         return FAILURE;
     }

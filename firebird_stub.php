@@ -273,6 +273,13 @@ class Transaction implements IError
 
     /** @return bool */
     function prepare_2pc() {}
+
+    /**
+     * To execute a statement that does not return any data a single time, call
+     * execute_immediate() instead of prepare() and execute() or query()
+     *
+     * @return bool */
+    function execute_immediate(string $sql, ...$bind_args) {}
 }
 
 class Statement implements IError

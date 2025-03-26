@@ -10,7 +10,9 @@
 #include "database.h"
 #include "transaction.h"
 #include "statement.h"
+#include "fbp_statement.h"
 #include "fbp_transaction.h"
+#include "fbp_blob.h"
 
 zend_class_entry *FireBird_Transaction_ce;
 static zend_object_handlers object_handlers_FireBird_Transaction;
@@ -147,6 +149,119 @@ PHP_METHOD(Transaction, query)
     zval_ptr_dtor(&Stmt);
 }
 
+PHP_METHOD(Transaction, execute_immediate)
+{
+    zval *bind_args;
+    uint32_t num_bind_args;
+    char *sql;
+    size_t sql_len;
+
+    ZEND_PARSE_PARAMETERS_START(1, -1)
+        Z_PARAM_STRING(sql, sql_len)
+        Z_PARAM_OPTIONAL
+        Z_PARAM_VARIADIC('+', bind_args, num_bind_args)
+    ZEND_PARSE_PARAMETERS_END();
+
+    firebird_trans *tr = get_firebird_trans_from_zval(ZEND_THIS);
+
+    firebird_stmt stmtb = {0};
+    firebird_stmt *stmt = &stmtb;
+    fbp_statement_ctor(stmt, tr);
+    stmt->query = sql;
+
+    ISC_STATUS isc_result;
+    if (isc_dsql_allocate_statement(FBG(status), stmt->db_handle, &stmt->stmt_handle)) {
+        update_err_props(FBG(status), FireBird_Transaction_ce, ZEND_THIS);
+        RETURN_FALSE;
+    }
+
+    if (num_bind_args > 0) {
+        stmt->in_sqlda = emalloc(XSQLDA_LENGTH(num_bind_args));
+        stmt->in_sqlda->sqln = num_bind_args;
+        stmt->in_sqlda->sqld = num_bind_args;
+        stmt->in_sqlda->version = SQLDA_CURRENT_VERSION;
+        stmt->bind_buf = safe_emalloc(sizeof(firebird_bind_buf), num_bind_args, 0);
+
+        // Here we need some kind of fbp_statement_bind() but in reverse -
+        // populate in_sqlda types accordingly to bind_args types. Unfortunately
+        // there is not much information to be extracted about table fields
+        // involved in a query without isc_dsql_describe_bind() which requires
+        // isc_dsql_prepare() to be called, but that beats the purpose of
+        // immediate execution
+        //
+        // For now I will just parse NULLs and BLOBs. Other types will just go
+        // as strings
+        int is_blob;
+        XSQLDA *sqlda = stmt->in_sqlda;
+        ISC_QUAD bl_id;
+        for (size_t i = 0; i < num_bind_args; ++i) {
+            zval *b_var = &bind_args[i];
+            XSQLVAR *var = &sqlda->sqlvar[i];
+
+            FBDEBUG_NOFL("Arg: %d, type: %d", i, Z_TYPE_P(b_var));
+
+            if (Z_TYPE_P(b_var) == IS_NULL) {
+                FBDEBUG_NOFL("  is null");
+                stmt->bind_buf[i].sqlind = -1;
+                var->sqltype = SQL_TEXT | 1; // set bit 1 indicates NULL-able type
+                var->sqldata = NULL;
+                continue;
+            }
+
+            stmt->bind_buf[i].sqlind = 0;
+
+            var->sqldata = (void*)&stmt->bind_buf[i].val;
+
+            if (Z_TYPE_P(b_var) == IS_TRUE || Z_TYPE_P(b_var) == IS_FALSE) {
+                FBDEBUG_NOFL("  is bool: %i", zend_is_true(b_var));
+                var->sqltype = SQL_BOOLEAN;
+                var->sqllen = 1;
+                *(FB_BOOLEAN *)var->sqldata = zend_is_true(b_var) ? FB_TRUE : FB_FALSE;
+                continue;
+            }
+
+            is_blob = 0;
+            if (Z_TYPE_P(b_var) == IS_OBJECT) {
+                FBDEBUG_NOFL("  is object");
+                if (Z_OBJCE_P(b_var) == FireBird_Blob_Id_ce) {
+                    bl_id = get_firebird_blob_id_from_zval(b_var)->bl_id;
+                    is_blob = 1;
+                } else if (Z_OBJCE_P(b_var) == FireBird_Blob_ce) {
+                    bl_id = get_firebird_blob_from_zval(b_var)->bl_id;
+                    is_blob = 1;
+                }
+            }
+
+            if (is_blob) {
+                FBDEBUG_NOFL("     is blob");
+                var->sqltype = SQL_BLOB;
+                stmt->bind_buf[i].val.qval = bl_id;
+                continue;
+            }
+
+            convert_to_string(b_var);
+            var->sqldata = Z_STRVAL_P(b_var);
+            var->sqllen	 = Z_STRLEN_P(b_var);
+            var->sqltype = SQL_TEXT;
+        }
+    }
+
+    if (fbp_statement_execute(stmt, bind_args, num_bind_args, FBP_STMT_EXECUTE_IMMEDIATE)) {
+        update_err_props(FBG(status), FireBird_Transaction_ce, ZEND_THIS);
+        RETURN_FALSE;
+    }
+
+    fbp_statement_free(stmt);
+
+    if (isc_dsql_free_statement(FBG(status), &stmt->stmt_handle, DSQL_drop)) {
+        update_err_props(FBG(status), FireBird_Transaction_ce, ZEND_THIS);
+        RETURN_FALSE;
+    }
+
+    RETURN_TRUE;
+}
+
+
 PHP_METHOD(Transaction, open_blob)
 {
     zval *Blob_Id;
@@ -204,6 +319,7 @@ const zend_function_entry FireBird_Transaction_methods[] = {
     PHP_ME(Transaction, rollback_ret, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
     PHP_ME(Transaction, prepare, arginfo_FireBird_Transaction_prepare, ZEND_ACC_PUBLIC)
     PHP_ME(Transaction, query, arginfo_FireBird_Transaction_query, ZEND_ACC_PUBLIC)
+    PHP_ME(Transaction, execute_immediate, arginfo_FireBird_Transaction_execute_immediate, ZEND_ACC_PUBLIC)
     PHP_ME(Transaction, open_blob, arginfo_FireBird_Transaction_open_blob, ZEND_ACC_PUBLIC)
     PHP_ME(Transaction, create_blob, arginfo_FireBird_Transaction_create_blob, ZEND_ACC_PUBLIC)
     PHP_ME(Transaction, prepare_2pc, arginfo_none_return_bool, ZEND_ACC_PUBLIC)

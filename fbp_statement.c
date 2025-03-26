@@ -34,12 +34,6 @@
 
 fbp_object_accessor(firebird_stmt);
 
-enum execute_fn {
-    EXECUTE,
-    EXECUTE2,
-    EXECUTE_IMMEDIATE,
-};
-
 void fbp_statement_ctor(firebird_stmt *stmt, firebird_trans *tr)
 {
     stmt->stmt_handle = 0;
@@ -352,11 +346,10 @@ int fbp_update_statement_info(firebird_stmt *stmt)
     return SUCCESS;
 }
 
-// int fbp_statement_execute(zval *stmt_o, zval *bind_args, uint32_t num_bind_args, zend_class_entry *ce, zval *ce_o)
-int fbp_statement_execute(firebird_stmt *stmt, zval *bind_args, uint32_t num_bind_args)
+int fbp_statement_execute(firebird_stmt *stmt, zval *bind_args, uint32_t num_bind_args, enum firebird_stmt_execute_fn exfn_in)
 {
     /* has placeholders */
-    if (stmt->in_sqlda->sqld > 0) {
+    if (stmt->in_sqlda != NULL && stmt->in_sqlda->sqld > 0) {
         if (fbp_statement_bind(stmt, stmt->in_sqlda, bind_args)) {
             return FAILURE;
         }
@@ -393,47 +386,52 @@ int fbp_statement_execute(firebird_stmt *stmt, zval *bind_args, uint32_t num_bin
         // CREATE DATABASE statement and have db_handle and trans_handle point
         // to handles with a NULL value.
 
-    enum execute_fn exfn = EXECUTE;
+    enum firebird_stmt_execute_fn exfn = exfn_in;
 
-    switch(stmt->statement_type) {
-        case isc_info_sql_stmt_select:
-        case isc_info_sql_stmt_select_for_upd:
-            exfn = EXECUTE;
-            break;
+    if (exfn == 0) {
+        switch(stmt->statement_type) {
+            case isc_info_sql_stmt_select:
+            case isc_info_sql_stmt_select_for_upd:
+                exfn = FBP_STMT_EXECUTE;
+                break;
 
-        case isc_info_sql_stmt_exec_procedure:
-        case isc_info_sql_stmt_insert:
-        case isc_info_sql_stmt_update:
-        case isc_info_sql_stmt_delete:
-            exfn = EXECUTE2;
-            break;
+            case isc_info_sql_stmt_exec_procedure:
+            case isc_info_sql_stmt_insert:
+            case isc_info_sql_stmt_update:
+            case isc_info_sql_stmt_delete:
+                exfn = FBP_STMT_EXECUTE2;
+                break;
 
-        case isc_info_sql_stmt_ddl:
-        case isc_info_sql_stmt_start_trans: // TODO: warn/throw about already started transaction
-        case isc_info_sql_stmt_commit:
-        case isc_info_sql_stmt_rollback:
-        case isc_info_sql_stmt_savepoint:
-        case isc_info_sql_stmt_set_generator:
-            exfn = EXECUTE_IMMEDIATE;
-            break;
+            case isc_info_sql_stmt_ddl:
+            case isc_info_sql_stmt_start_trans: // TODO: warn/throw about already started transaction
+            case isc_info_sql_stmt_commit:
+            case isc_info_sql_stmt_rollback:
+            case isc_info_sql_stmt_savepoint:
+            case isc_info_sql_stmt_set_generator:
+                exfn = FBP_STMT_EXECUTE_IMMEDIATE;
+                break;
 
-        // Seems that these are not used anymore
-        case isc_info_sql_stmt_get_segment:
-        case isc_info_sql_stmt_put_segment:
-            break;
-        default:
-            fbp_fatal("BUG: Unrecognized stmt->statement_type: %d. Possibly a new server feature.", stmt->statement_type);
-            break;
+            // Seems that these are not used anymore
+            case isc_info_sql_stmt_get_segment:
+            case isc_info_sql_stmt_put_segment:
+                break;
+            default:
+                fbp_fatal("BUG: Unrecognized stmt->statement_type: %d. Possibly a new server feature.", stmt->statement_type);
+                break;
+        }
     }
 
     ISC_STATUS isc_result;
-    if (exfn == EXECUTE_IMMEDIATE) {
-        FBDEBUG("isc_dsql_execute_immediate(): handle=%d, type=%d", stmt->stmt_handle, stmt->statement_type);
-        if (isc_dsql_free_statement(FBG(status), &stmt->stmt_handle, DSQL_drop)) {
-            return FAILURE;
+    if (exfn == FBP_STMT_EXECUTE_IMMEDIATE) {
+        if (exfn_in == 0) {
+            FBDEBUG("isc_dsql_execute_immediate(): handle=%d, type=%d", stmt->stmt_handle, stmt->statement_type);
+            fbp_notice("This statement could be executed more efficiently using \\FireBird\\Transaction::execute_immediate()\n------\n%s\n------", stmt->query);
+            if (isc_dsql_free_statement(FBG(status), &stmt->stmt_handle, DSQL_drop)) {
+                return FAILURE;
+            }
         }
         isc_result = isc_dsql_execute_immediate(FBG(status), stmt->db_handle, stmt->tr_handle, 0, stmt->query, SQL_DIALECT_CURRENT, stmt->in_sqlda);
-    } else if (exfn == EXECUTE2) {
+    } else if (exfn == FBP_STMT_EXECUTE2) {
         FBDEBUG("isc_dsql_execute2(): handle=%d, type=%d", stmt->stmt_handle, stmt->statement_type);
         isc_result = isc_dsql_execute2(FBG(status), stmt->tr_handle, &stmt->stmt_handle, SQLDA_CURRENT_VERSION, stmt->in_sqlda, stmt->out_sqlda);
     } else {
@@ -445,7 +443,7 @@ int fbp_statement_execute(firebird_stmt *stmt, zval *bind_args, uint32_t num_bin
         return FAILURE;
     }
 
-    stmt->has_more_rows = stmt->out_sqlda->sqld > 0;
+    stmt->has_more_rows = stmt->out_sqlda && stmt->out_sqlda->sqld > 0;
 
     fbp_update_statement_info(stmt);
 
