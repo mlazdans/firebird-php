@@ -519,21 +519,21 @@ int fbp_statement_prepare(firebird_stmt *stmt, const ISC_SCHAR *sql)
     return SUCCESS;
 }
 
-void fbp_statement_free(firebird_stmt *s)
+void fbp_statement_free(firebird_stmt *stmt)
 {
-    if (s->in_sqlda) {
-        efree(s->in_sqlda);
+    if (stmt->in_sqlda) {
+        efree(stmt->in_sqlda);
     }
-    if (s->out_sqlda) {
-        fbp_free_xsqlda(s->out_sqlda);
+    if (stmt->out_sqlda) {
+        fbp_free_xsqlda(stmt->out_sqlda);
     }
-    // if (s->in_array) {
-    //     efree(s->in_array);
+    // if (stmt->in_array) {
+    //     efree(stmt->in_array);
     // }
-    // if (s->out_array) {
-    //     efree(s->out_array);
+    // if (stmt->out_array) {
+    //     efree(stmt->out_array);
     // }
-    if(s->bind_buf) {
-        efree(s->bind_buf);
+    if(stmt->bind_buf) {
+        efree(stmt->bind_buf);
     }
 }
