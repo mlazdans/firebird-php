@@ -156,22 +156,22 @@ function load_file_or_die(string $path): string
     return $data;
 }
 
-function query_from_file(\FireBird\Transaction $t, string $file_name): \FireBird\Statement|false
+function exec_from_file(\FireBird\Transaction $t, string $file_name): bool
 {
-    return $t->query(load_file_or_die(Config::$pwd."/$file_name"));
+    return $t->execute_immediate(load_file_or_die(Config::$pwd."/$file_name"));
 }
 
-function query_from_file_ddl(\FireBird\Transaction $t, string $file_name): \FireBird\Statement
+function exec_from_file_ddl(\FireBird\Transaction $t, string $file_name): bool
 {
-    if(false === ($s = query_from_file($t, $file_name))) {
-        print_error_and_die("query_from_file_ddl", $t);
+    if(false === ($s = exec_from_file($t, $file_name))) {
+        print_error_and_die("exec_from_file_ddl", $t);
     }
 
     if(!$t->commit_ret()) {
         print_error_and_die("commit_ret", $t);
     }
 
-    return $s;
+    return true;
 }
 
 function gen_random_db_file_name_or_die(): string
@@ -313,6 +313,23 @@ function query_or_error(\FireBird\Transaction $t, string $sql, ...$bind_args): \
     return $s;
 }
 
+function execute_immediate_or_error(\FireBird\Transaction $t, string $sql, ...$bind_args): bool
+{
+    if(false === ($s = $t->execute_immediate($sql, ...$bind_args))){
+        print_error("execute_immediate", $t);
+    }
+    return $s;
+}
+
+function execute_immediate_or_die(\FireBird\Transaction $t, string $sql, ...$bind_args): bool
+{
+    if($s = execute_immediate_or_error($t, $sql, ...$bind_args)) {
+        return $s;
+    } else {
+        die;
+    }
+}
+
 function query_or_die(\FireBird\Transaction $t, string $sql, ...$bind_args): \FireBird\Statement
 {
     if($s = query_or_error($t, $sql, ...$bind_args)) {
@@ -355,9 +372,37 @@ function query_bulk(\FireBird\Transaction $t, array $queries): bool
     return true;
 }
 
+function execute_immediate_bulk(\FireBird\Transaction $t, array $queries, bool $verbose = false): bool
+{
+    foreach($queries as $query_tuple) {
+        if(is_array($query_tuple)) {
+            [$sql, $bind_args] = $query_tuple;
+        } else {
+            $sql = $query_tuple;
+            $bind_args = [];
+        }
+
+        if($verbose){
+            print "$sql;\n";
+        }
+
+        if(!execute_immediate_or_error($t, $sql, ...$bind_args)){
+            return false;
+        }
+    }
+    return true;
+}
+
 function query_bulk_or_die(\FireBird\Transaction $t, array $queries): void
 {
     if(!query_bulk($t, $queries)){
+        die;
+    }
+}
+
+function execute_immediate_bulk_or_die(\FireBird\Transaction $t, array $queries): void
+{
+    if(!execute_immediate_bulk($t, $queries)){
         die;
     }
 }
@@ -490,13 +535,13 @@ function is_ReadConsistency_enabled(\FireBird\Database $db): bool
 {
     // 3
     $t = $db->new_transaction();
-    $t->query("SET TRANSACTION ISOLATION LEVEL READ COMMITTED NO RECORD_VERSION") or print_error_and_die("set trans", $t);
+    $t->execute_immediate("SET TRANSACTION ISOLATION LEVEL READ COMMITTED NO RECORD_VERSION") or print_error_and_die("set trans", $t);
     if(get_isolation_level_or_die($t) != 3) return true;
     $t->rollback() or print_error_and_die("rollback", $t);
 
     // 2
     $t = $db->new_transaction();
-    $t->query("SET TRANSACTION ISOLATION LEVEL READ COMMITTED RECORD_VERSION") or print_error_and_die("set trans", $t);
+    $t->execute_immediate("SET TRANSACTION ISOLATION LEVEL READ COMMITTED RECORD_VERSION") or print_error_and_die("set trans", $t);
     if(get_isolation_level_or_die($t) != 2) return true;
     $t->rollback() or print_error_and_die("rollback", $t);
 

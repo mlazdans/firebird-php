@@ -18,7 +18,7 @@ require_once('functions.inc');
         print_error_and_die("transaction", $conn);
     }
 
-    query_or_die($t,
+    execute_immediate_or_die($t,
         "CREATE table test6 (
             iter		integer,
             v_char		char(1000),
@@ -32,7 +32,7 @@ require_once('functions.inc');
             v_varchar   varchar(10000)
             )");
 
-    query_or_die($t,
+    execute_immediate_or_die($t,
         "CREATE procedure add1 (arg integer)
         returns (result integer)
         as

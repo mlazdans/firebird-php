@@ -27,7 +27,7 @@ require_once('functions.inc');
         "COMMIT RETAIN",
     ];
 
-    query_bulk_or_die($t, $queries);
+    execute_immediate_bulk_or_die($t, $queries);
 
     query_and_fetch_and_print_or_die($t, 'SELECT NEXT VALUE FOR GEN_GEN FROM RDB$DATABASE', \FireBird\FETCH_BLOBS);
     query_and_fetch_and_print_or_die($t, 'SELECT NEXT VALUE FOR GEN_GEN FROM RDB$DATABASE', \FireBird\FETCH_BLOBS);

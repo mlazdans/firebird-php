@@ -19,7 +19,7 @@ require_once('functions.inc');
     }
 
     $t->start() or print_error_and_die("transaction start", $t);
-    $t->query(load_file_or_die(Config::$pwd."/001-table.sql")) or print_error_and_die("create_table", $t);
+    $t->execute_immediate(load_file_or_die(Config::$pwd."/001-table.sql")) or print_error_and_die("create_table", $t);
     $t->commit_ret() or print_error_and_die("commit_ret", $t);
 
     $table = "TEST_001";
@@ -64,13 +64,16 @@ require_once('functions.inc');
     printf("Expected b->total_length=%d, actual=%d\n", $l, $b->total_length);
     $b->close() or print_error_and_die("blob close", $b);
     $queries[] = ["INSERT INTO $table (BLOB_1) VALUES (?)", [$b]];
+    $queries[] = ["INSERT INTO $table (BLOB_1) VALUES (?)", [null]];
+    $queries[] = ["INSERT INTO $table (BLOB_1) VALUES (?)", ["Some textual argument"]];
+    $queries[] = "INSERT INTO $table (BLOB_1) VALUES ('Some inlined argument')";
     print "\n";
 
     $b = $t->create_blob() or print_error_and_die("\$t->create_blob", $t);
     $b->put("Will cancel this one") or print_error_and_die("blob put", $b);
     $b->cancel() or print_error_and_die("blob cancel", $b);
 
-    query_bulk_or_die($t, $queries);
+    execute_immediate_bulk_or_die($t, $queries);
 
     $q = query_or_die($t, "SELECT BLOB_1 FROM $table");
     fetch_and_print_or_die($q, \FireBird\FETCH_BLOBS);

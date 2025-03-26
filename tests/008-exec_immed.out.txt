@@ -1,0 +1,70 @@
+object {
+  ["BLOB_1"]=>
+  string(6) "blobby"
+  ["DECFLOAT_16"]=>
+  string(1) "0"
+  ["DECFLOAT_34"]=>
+  string(1) "0"
+  ["BOOL_1"]=>
+  bool(true)
+}
+object {
+  ["BLOB_1"]=>
+  NULL
+  ["DECFLOAT_16"]=>
+  string(14) "2.718281828459"
+  ["DECFLOAT_34"]=>
+  NULL
+  ["BOOL_1"]=>
+  bool(true)
+}
+object {
+  ["BLOB_1"]=>
+  NULL
+  ["DECFLOAT_16"]=>
+  NULL
+  ["DECFLOAT_34"]=>
+  string(14) "2.718281828459"
+  ["BOOL_1"]=>
+  bool(true)
+}
+object {
+  ["BLOB_1"]=>
+  NULL
+  ["DECFLOAT_16"]=>
+  string(17) "2.718281828459045"
+  ["DECFLOAT_34"]=>
+  NULL
+  ["BOOL_1"]=>
+  bool(true)
+}
+object {
+  ["BLOB_1"]=>
+  NULL
+  ["DECFLOAT_16"]=>
+  NULL
+  ["DECFLOAT_34"]=>
+  string(32) "2.718281828459045235360287471352"
+  ["BOOL_1"]=>
+  bool(true)
+}
+object {
+  ["BLOB_1"]=>
+  NULL
+  ["DECFLOAT_16"]=>
+  NULL
+  ["DECFLOAT_34"]=>
+  NULL
+  ["BOOL_1"]=>
+  bool(true)
+}
+object {
+  ["BLOB_1"]=>
+  NULL
+  ["DECFLOAT_16"]=>
+  NULL
+  ["DECFLOAT_34"]=>
+  NULL
+  ["BOOL_1"]=>
+  bool(false)
+}

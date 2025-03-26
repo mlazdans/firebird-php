@@ -18,7 +18,7 @@ require_once('functions.inc');
         print_error_and_die("transaction", $conn);
     }
 
-    if(!query_from_file_ddl($t, "001-table.sql")) {
+    if(!exec_from_file_ddl($t, "001-table.sql")) {
         print_error_and_die("create_table", $t);
     }
 

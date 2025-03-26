@@ -28,7 +28,7 @@ require_once('functions.inc');
         echo "Precision required: 18\n";
     }
 
-    $q = query_or_die($t,
+    $q = execute_immediate_or_die($t,
         "CREATE table test3 (
             iter                  integer not null,
             v_char                char(1000),

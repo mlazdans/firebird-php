@@ -40,6 +40,18 @@ Put number: 8
 Put number: 9
 "
 }
+object {
+  ["BLOB_1"]=>
+  NULL
+}
+object {
+  ["BLOB_1"]=>
+  string(21) "Some textual argument"
+}
+object {
+  ["BLOB_1"]=>
+  string(21) "Some inlined argument"
+}
 [4] BLOB_1 instanceof \FireBird\Blob_Id: 1
 Expected is_writable=0, actual=0
 Expected b->position=0, actual=0
