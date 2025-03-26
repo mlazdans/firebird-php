@@ -120,6 +120,8 @@ void fbp_transaction_build_tpb(firebird_tbuilder *builder, char *tpb, unsigned s
 {
     char *p = tpb;
 
+    FBDEBUG("Creating transaction start buffer");
+
     *p++ = isc_tpb_version3;
 
     *p++ = builder->read_only ? isc_tpb_read : isc_tpb_write;
@@ -128,6 +130,7 @@ void fbp_transaction_build_tpb(firebird_tbuilder *builder, char *tpb, unsigned s
     if (builder->no_auto_undo) *p++ = isc_tpb_no_auto_undo;
 
     if (builder->isolation_mode == 0) {
+        FBDEBUG_NOFL("  isolation_mode = isc_tpb_consistency");
         *p++ = isc_tpb_consistency;
     } else if (builder->isolation_mode == 1) {
         *p++ = isc_tpb_concurrency;
@@ -136,29 +139,44 @@ void fbp_transaction_build_tpb(firebird_tbuilder *builder, char *tpb, unsigned s
             *p++ = sizeof(builder->snapshot_at_number);
             store_portable_integer(p, builder->snapshot_at_number, sizeof(builder->snapshot_at_number));
             p += sizeof(builder->snapshot_at_number);
+            FBDEBUG_NOFL("  isolation_mode = isc_tpb_concurrency");
+            FBDEBUG_NOFL("                   isc_tpb_at_snapshot_number = %d", builder->snapshot_at_number);
+        } else {
+            FBDEBUG_NOFL("  isolation_mode = isc_tpb_concurrency");
         }
     } else if (builder->isolation_mode == 2) {
         *p++ = isc_tpb_read_committed;
         *p++ = isc_tpb_rec_version;
+        FBDEBUG_NOFL("  isolation_mode = isc_tpb_read_committed");
+        FBDEBUG_NOFL("                   isc_tpb_rec_version");
     } else if (builder->isolation_mode == 3) {
         *p++ = isc_tpb_read_committed;
         *p++ = isc_tpb_no_rec_version;
+        FBDEBUG_NOFL("  isolation_mode = isc_tpb_read_committed");
+        FBDEBUG_NOFL("                   isc_tpb_no_rec_version");
     } else if (builder->isolation_mode == 4) {
         *p++ = isc_tpb_read_committed;
         *p++ = isc_tpb_read_consistency;
+        FBDEBUG_NOFL("  isolation_mode = isc_tpb_read_committed");
+        FBDEBUG_NOFL("                   isc_tpb_read_consistency");
     } else {
         fbp_fatal("BUG! unknown transaction isolation_mode: %d", builder->isolation_mode);
     }
 
     if (builder->lock_timeout == 0) {
         *p++ = isc_tpb_nowait;
+        FBDEBUG_NOFL("  isc_tpb_nowait");
     } else if (builder->lock_timeout == -1) {
         *p++ = isc_tpb_wait;
+        FBDEBUG_NOFL("  isc_tpb_wait");
     } else if (builder->lock_timeout > 0) {
+        *p++ = isc_tpb_wait;
         *p++ = isc_tpb_lock_timeout;
         *p++ = sizeof(builder->lock_timeout);
         store_portable_integer(p, builder->lock_timeout, sizeof(builder->lock_timeout));
         p += sizeof(builder->lock_timeout);
+        FBDEBUG_NOFL("  isc_tpb_wait");
+        FBDEBUG_NOFL("    isc_tpb_lock_timeout = %d", builder->lock_timeout);
     } else {
         fbp_fatal("BUG! invalid lock_timeout: %d", builder->lock_timeout);
     }
