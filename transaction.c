@@ -100,7 +100,6 @@ int FireBird_Transaction_prepare(zval *Tr, zval *return_value, const ISC_SCHAR* 
     if (FireBird_Statement_prepare(return_value, sql)) {
         update_err_props(FBG(status), FireBird_Transaction_ce, Tr);
         zval_ptr_dtor(return_value);
-        ZVAL_FALSE(return_value);
         return FAILURE;
     }
 
@@ -115,7 +114,9 @@ PHP_METHOD(Transaction, prepare)
         Z_PARAM_STR(sql)
     ZEND_PARSE_PARAMETERS_END();
 
-    FireBird_Transaction_prepare(ZEND_THIS, return_value, ZSTR_VAL(sql));
+    if (FireBird_Transaction_prepare(ZEND_THIS, return_value, ZSTR_VAL(sql))) {
+        RETURN_FALSE;
+    }
 }
 
 PHP_METHOD(Transaction, query)
