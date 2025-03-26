@@ -33,7 +33,7 @@ PHP_METHOD(Transaction, __construct)
 {
     zval *Database, *Builder = NULL;
 
-    ZEND_PARSE_PARAMETERS_START(1, 1)
+    ZEND_PARSE_PARAMETERS_START(1, 2)
         Z_PARAM_OBJECT_OF_CLASS(Database, FireBird_Database_ce)
         Z_PARAM_OPTIONAL
         Z_PARAM_OBJECT_OF_CLASS(Builder, FireBird_TBuilder_ce)
