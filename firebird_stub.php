@@ -48,7 +48,6 @@ class Error
     public int $error_code_long { get; }
 }
 
-// TODO: sync
 class Db_Info
 {
     public int $reads { get; }
@@ -80,6 +79,45 @@ class Db_Info
     public int $ods_version { get; }
     public int $ods_minor_version { get; }
     public int $no_reserve { get; }
+
+    public int $forced_writes { get; }
+    public int $set_page_buffers { get; }
+    public int $db_sql_dialect { get; }
+    public int $db_read_only { get; }
+    public int $db_size_in_pages { get; }
+
+    public int $oldest_transaction { get; }
+    public int $oldest_active { get; }
+    public int $oldest_snapshot { get; }
+    public int $next_transaction { get; }
+
+    public int $creation_date { get; }
+    public int $db_file_size { get; }
+    public int $pages_used { get; }
+    public int $pages_free { get; }
+
+    public int $ses_idle_timeout_db { get; }
+    public int $ses_idle_timeout_att { get; }
+    public int $ses_idle_timeout_run { get; }
+    public int $conn_flags { get; }
+
+    public string $crypt_key { get; }
+    public int $crypt_state { get; }
+    public int $statement_timeout_db { get; }
+    public int $statement_timeout_att { get; }
+    public int $protocol_version { get; }
+    public string $crypt_plugin { get; }
+    public string $wire_crypt { get; }
+
+    public int $next_attachment { get; }
+    public int $next_statement { get; }
+    public int $db_guid { get; }
+    public int $db_file_id { get; }
+
+    public int $replica_mode { get; }
+    public string $username { get; }
+    public string $sqlrole { get; }
+    public int $parallel_workers { get; }
 }
 
 class Var_Info

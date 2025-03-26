@@ -84,15 +84,21 @@ firebird_xpb_zmap fbp_database_info_zmap = XPB_ZMAP_INIT(
     ((uint32_t []) {
         MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG,
         MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG,
+
         MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG,
         MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG,
+
         MAY_BE_ARRAY, MAY_BE_ARRAY, MAY_BE_ARRAY,
         MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG,
+
         MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG,
+
         MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG,
         MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG,
+
         MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG,
         MAY_BE_STRING, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_STRING, MAY_BE_STRING,
+
         MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG, MAY_BE_LONG,
         MAY_BE_LONG, MAY_BE_STRING, MAY_BE_STRING, MAY_BE_LONG,
     })
@@ -253,7 +259,7 @@ int fbp_database_get_info(firebird_db *db, zval *Db_Info,
             READ_STR_ARRAY(isc_version);
             READ_STR_ARRAY(firebird_version);
 
-            // TODO: format date/time
+            // TODO: add property with formatted date/time
             case isc_info_creation_date: {
                 struct tm t;
                 isc_decode_timestamp((ISC_TIMESTAMP *) b, &t);
