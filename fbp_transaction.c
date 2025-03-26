@@ -83,11 +83,11 @@ int fbp_transaction_get_info(firebird_trans *tr)
             } break;
 
             case isc_info_truncated: {
-                fbp_error("Transaction info buffer error: truncated");
+                fbp_warning("Transaction info buffer error: truncated");
             } return FAILURE;
 
             case isc_info_error: {
-                fbp_error("Transaction info buffer error");
+                fbp_warning("Transaction info buffer error");
             } return FAILURE;
 
             default: {

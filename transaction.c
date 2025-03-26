@@ -229,7 +229,7 @@ static void free_FireBird_Transaction(zend_object *obj)
     // MAYBE: not to close automatically in some strict mode or smth
     if(tr->tr_handle && !tr->is_prepared_2pc) {
         if(isc_rollback_transaction(FBG(status), &tr->tr_handle)) {
-            status_fbp_error(FBG(status));
+            fbp_status_error(FBG(status));
         } else {
             tr->tr_handle = 0;
         }

@@ -271,7 +271,7 @@ int fbp_statement_bind(firebird_stmt *stmt, XSQLDA *sqlda, zval *b_vars)
                                 } else if (!zend_binary_strncasecmp(Z_STRVAL_P(b_var), Z_STRLEN_P(b_var), "false", 5, 5)) {
                                     *(FB_BOOLEAN *)var->sqldata = FB_FALSE;
                                 } else {
-                                    fbp_error("Parameter %d: cannot convert string to boolean", i+1);
+                                    fbp_warning("Parameter %d: cannot convert string to boolean", i+1);
                                     rv = FAILURE;
                                     continue;
                                 }
@@ -282,7 +282,7 @@ int fbp_statement_bind(firebird_stmt *stmt, XSQLDA *sqlda, zval *b_vars)
                         stmt->bind_buf[i].sqlind = -1;
                         break;
                     default:
-                        fbp_error("Parameter %d: must be boolean", i+1);
+                        fbp_warning("Parameter %d: must be boolean", i+1);
                         rv = FAILURE;
                         continue;
                 }

@@ -271,7 +271,7 @@ void fbp_dump_buffer(int len, const unsigned char *buffer){
     }
 }
 
-int fbp_status_err_msg(const ISC_STATUS *status, char *msg, unsigned short msg_size)
+int fbp_get_status_err_msg(const ISC_STATUS *status, char *msg, unsigned short msg_size)
 {
     char *s = msg;
     const ISC_STATUS* pstatus = status;
@@ -288,18 +288,6 @@ int fbp_status_err_msg(const ISC_STATUS *status, char *msg, unsigned short msg_s
     } else {
         return 0;
     }
-}
-
-// Use this when object is beeing destroyed but some clean-up errors happen
-void fbp_status_error_ex(const ISC_STATUS *status, const char *file_name, size_t line_num)
-{
-    char msg[1024] = { 0 };
-    fbp_status_err_msg(status, msg, sizeof(msg));
-#ifdef PHP_DEBUG
-    _php_firebird_module_error("firebird-php error: %s (%s:%d)\n", msg, file_name, line_num);
-#else
-    _php_firebird_module_error("firebird-php error: %s", msg);
-#endif
 }
 
 #define UPD_CODES() \
@@ -374,23 +362,19 @@ ISC_INT64 fbp_update_err_props_ex(ISC_STATUS_ARRAY status, zend_class_entry *ce,
     return error_code_long;
 }
 
-void _php_firebird_module_error(char *msg, ...)
+// Use this when object is beeing destroyed but some clean-up errors happen
+void fbp_status_error_ex(const ISC_STATUS *status, const char *file_name, size_t line_num)
 {
-    va_list ap;
-    char buf[1024] = { 0 };
-
-    va_start(ap, msg);
-
-    /* vsnprintf NUL terminates the buf and writes at most n-1 chars+NUL */
-    vsnprintf(buf, sizeof(buf), msg, ap);
-    va_end(ap);
-
-    // IBG(sql_code) = -999; /* no SQL error */
-
-    php_error_docref(NULL, E_WARNING, "%s", buf);
+    char msg[1024] = { 0 };
+    fbp_get_status_err_msg(status, msg, sizeof(msg));
+#ifdef PHP_DEBUG
+    fbp_error_ex(E_WARNING, "firebird-php error: %s (%s:%d)\n", msg, file_name, line_num);
+#else
+    fbp_error_ex(E_WARNING, "firebird-php error: %s", msg);
+#endif
 }
 
-void _php_firebird_module_fatal(char *msg, ...)
+void fbp_error_ex(long level, char *msg, ...)
 {
     va_list ap;
     char buf[1024] = {0};
@@ -403,7 +387,7 @@ void _php_firebird_module_fatal(char *msg, ...)
 
     // IBG(sql_code) = -999; /* no SQL error */
 
-    php_error_docref(NULL, E_ERROR, "%s", buf);
+    php_error_docref(NULL, level, "%s", buf);
 }
 
 void fbp_declare_props_from_zmap(zend_class_entry *ce, const firebird_xpb_zmap *xpb_zmap)

@@ -159,7 +159,7 @@ int FireBird_Statement_prepare(zval *Stmt, const ISC_SCHAR* sql)
 
         // Do we CREATE DATABASE?
         if (error_code_long == isc_dsql_crdb_prepare_err) {
-            fbp_error("CREATE DATABASE detected on active connection. Use Database::create() instead.");
+            fbp_warning("CREATE DATABASE detected on active connection. Use Database::create() instead.");
         }
         return FAILURE;
     }
@@ -304,7 +304,7 @@ static void free_FireBird_Statement(zend_object *obj)
 
     if (stmt->stmt_handle) {
         if (isc_dsql_free_statement(FBG(status), &stmt->stmt_handle, DSQL_drop)) {
-            status_fbp_error(FBG(status));
+            fbp_status_error(FBG(status));
         } else {
             stmt->stmt_handle = 0;
         }

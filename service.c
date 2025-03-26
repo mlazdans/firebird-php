@@ -256,7 +256,7 @@ static void FireBird_Service_free_obj(zend_object *obj)
 
     if(svc->svc_handle) {
         if(isc_service_detach(FBG(status), &svc->svc_handle)) {
-            status_fbp_error(FBG(status));
+            fbp_status_error(FBG(status));
         } else {
             svc->svc_handle = 0;
         }

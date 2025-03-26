@@ -243,7 +243,7 @@ static void free_FireBird_Blob(zend_object *obj)
 
     if (blob->bl_handle) {
         if (fbp_blob_close(blob)) {
-            status_fbp_error(FBG(status));
+            fbp_status_error(FBG(status));
         } else {
             blob->bl_handle = 0;
         }

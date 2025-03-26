@@ -32,7 +32,7 @@ PHP_METHOD(Event, consume)
 
             // FBDEBUG("  fci: %p, fcc: %p", &event->fci, &event->fcc);
             if (FAILURE == zend_call_function(&event->fci, &event->fcc)) {
-                _php_firebird_module_fatal("Failed to call function");
+                fbp_fatal("Failed to call function");
                 RETURN_FALSE;
             }
         }
@@ -137,7 +137,7 @@ void event_ast_routine(void *__ev, ISC_USHORT length, const ISC_UCHAR *result_bu
 
     current_event->buff_len = length;
     if(length > 11) {
-        _php_firebird_module_fatal("length > 11");
+        fbp_fatal("length > 11");
         return;
     }
 
@@ -151,7 +151,7 @@ void event_ast_routine(void *__ev, ISC_USHORT length, const ISC_UCHAR *result_bu
     if (current_event->state == NEW) {
         current_event->state = ACTIVE;
         if (isc_que_events(status, current_event->db_handle, &current_event->event_id, length, current_event->event_buffer, event_ast_routine, NULL)) {
-            status_fbp_error(status);
+            fbp_status_error(status);
         }
     } else if (current_event->state == ACTIVE) {
         current_event->posted_count += counts[0];
@@ -192,7 +192,7 @@ void event_ast_routine(void *__ev, ISC_USHORT length, const ISC_UCHAR *result_bu
         //     _php_firebird_module_fatal("ZEND_FIBER_STATUS_DEAD2");
         // } else {
         //     if (isc_que_events(status, current_event->db_handle, &current_event->event_id, length, current_event->event_buffer, event_ast_routine, NULL)) {
-        //         status_fbp_error(status);
+        //         fbp_status_error(status);
         //     }
         // }
     }

@@ -68,10 +68,10 @@ int fbp_blob_get_info(firebird_blob *blob)
             case isc_info_end:
                 break;
             case isc_info_truncated:
-                fbp_error("BLOB info buffer error: truncated");
+                fbp_warning("BLOB info buffer error: truncated");
                 return FAILURE;
             case isc_info_error:
-                fbp_error("BLOB info buffer error");
+                fbp_warning("BLOB info buffer error");
                 return FAILURE;
             default:
                 fbp_fatal("BUG! Unhandled BLOB info tag: %d", tag);

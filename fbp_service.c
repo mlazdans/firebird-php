@@ -223,11 +223,11 @@ int fbp_service_get_server_info(firebird_service *svc, zval *Server_Info,
                         } break;
 
                         case isc_info_truncated: {
-                            fbp_error("Server user info buffer error: truncated");
+                            fbp_warning("Server user info buffer error: truncated");
                         } goto error;
 
                         case isc_info_error: {
-                            fbp_error("Server user info buffer error");
+                            fbp_warning("Server user info buffer error");
                         } goto error;
 
                         default: {
@@ -242,10 +242,10 @@ int fbp_service_get_server_info(firebird_service *svc, zval *Server_Info,
             } break;
 
             case isc_info_truncated: {
-                fbp_error("Server info buffer error: truncated");
+                fbp_warning("Server info buffer error: truncated");
             } goto error;
             case isc_info_error: {
-                fbp_error("Server info buffer error");
+                fbp_warning("Server info buffer error");
             } goto error;
 
             default: {

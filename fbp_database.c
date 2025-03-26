@@ -345,10 +345,10 @@ int fbp_database_get_info(firebird_db *db, zval *Db_Info,
 
             case isc_info_end: break;
             case isc_info_truncated: {
-                fbp_error("DB info buffer error: truncated");
+                fbp_warning("DB info buffer error: truncated");
             } return FAILURE;
             case isc_info_error: {
-                fbp_error("DB info buffer error");
+                fbp_warning("DB info buffer error");
             } return FAILURE;
 
             default: {
