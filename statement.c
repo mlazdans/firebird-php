@@ -22,6 +22,8 @@
 zend_class_entry *FireBird_Statement_ce;
 static zend_object_handlers FireBird_Statement_object_handlers;
 
+void FireBird_Var_Info_from_var(zval *return_value, XSQLVAR *var);
+
 #define RETURN_ROW       1
 #define RETURN_ARRAY     2
 
@@ -212,19 +214,6 @@ PHP_METHOD(Statement, query)
     RETVAL_BOOL(SUCCESS == FireBird_Statement_query(ZEND_THIS, ZSTR_VAL(sql), bind_args, num_bind_args));
 }
 
-void statement_var_info(zval *return_value, XSQLVAR *var)
-{
-    object_init_ex(return_value, FireBird_Var_Info_ce);
-    zend_update_property_string(FireBird_Var_Info_ce, Z_OBJ_P(return_value), "name", sizeof("name") - 1, var->sqlname);
-    zend_update_property_string(FireBird_Var_Info_ce, Z_OBJ_P(return_value), "alias", sizeof("alias") - 1, var->aliasname);
-    zend_update_property_string(FireBird_Var_Info_ce, Z_OBJ_P(return_value), "relation", sizeof("relation") - 1, var->relname);
-    zend_update_property_long(FireBird_Var_Info_ce, Z_OBJ_P(return_value), "byte_length", sizeof("byte_length") - 1, var->sqllen);
-    zend_update_property_long(FireBird_Var_Info_ce, Z_OBJ_P(return_value), "type", sizeof("type") - 1, var->sqltype & ~1);
-    zend_update_property_long(FireBird_Var_Info_ce, Z_OBJ_P(return_value), "sub_type", sizeof("sub_type") - 1, var->sqlsubtype);
-    zend_update_property_long(FireBird_Var_Info_ce, Z_OBJ_P(return_value), "scale", sizeof("scale") - 1, var->sqlscale);
-    zend_update_property_bool(FireBird_Var_Info_ce, Z_OBJ_P(return_value), "nullable", sizeof("nullable") - 1, var->sqltype & 1);
-}
-
 PHP_METHOD(Statement, get_var_info_in)
 {
     zend_long num;
@@ -238,7 +227,7 @@ PHP_METHOD(Statement, get_var_info_in)
         RETURN_FALSE;
     }
 
-    statement_var_info(return_value, stmt->in_sqlda->sqlvar + num);
+    FireBird_Var_Info_from_var(return_value, stmt->in_sqlda->sqlvar + num);
 }
 
 PHP_METHOD(Statement, get_var_info_out)
@@ -254,7 +243,7 @@ PHP_METHOD(Statement, get_var_info_out)
         RETURN_FALSE;
     }
 
-    statement_var_info(return_value, stmt->out_sqlda->sqlvar + num);
+    FireBird_Var_Info_from_var(return_value, stmt->out_sqlda->sqlvar + num);
 }
 
 PHP_METHOD(Statement, set_name)
