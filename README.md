@@ -18,7 +18,7 @@
 |✅    | ibase_commit             |                                       |
 |✅    | ibase_commit_ret         |                                       |
 |✅    | ibase_connect            |                                       |
-|❌    | ibase_db_info            |                                       |
+|❓    | ibase_db_info            | Not sure if this is worth it. It appears this returns unstructured data anyways. |
 |✅    | ibase_delete_user        |                                       |
 |✅    | ibase_drop_db            |                                       |
 |✅    | ibase_errcode            |                                       |
@@ -32,7 +32,7 @@
 |✅    | ibase_free_query         |                                       |
 |✅    | ibase_free_result        |                                       |
 |🚫   | ibase_gen_id             | Can be easily done in PHP space       |
-|❌    | ibase_maintain_db        |                                       |
+|⏳    | ibase_maintain_db        | Implemented: shutdown_db(), db_online() |
 |✅    | ibase_modify_user        |                                       |
 |✅    | ibase_name_result        |                                       |
 |✅    | ibase_num_fields         |                                       |

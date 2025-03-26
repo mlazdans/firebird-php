@@ -305,3 +305,43 @@ int fbp_service_delete_user(firebird_service *svc, const char *username, ISC_USH
 
     return SUCCESS;
 }
+
+int _fbp_service_properties(firebird_service *svc, char *dbname, size_t dbname_len, ISC_USHORT action, ISC_ULONG arg)
+{
+    char buf[256] = {0};
+    char *p = buf;
+
+    *p++ = isc_action_svc_properties;
+    *p++ = isc_spb_dbname;
+
+    ISC_UCHAR bytes_num = min(dbname_len, sizeof(buf) - (p - buf) - 2);
+    fbp_store_portable_integer(p, bytes_num, 2); p += 2;
+    memcpy(p, dbname, bytes_num); p += bytes_num;
+
+    if (action == isc_spb_prp_db_online) {
+        arg |= action;
+        action = isc_spb_options;
+    }
+
+    *p++ = (ISC_UCHAR) action;
+
+    fbp_store_portable_integer(p, arg, 4); p += 4;
+
+    fbp_dump_buffer(p - buf, buf);
+    if (isc_service_start(FBG(status), &svc->svc_handle, NULL, (ISC_USHORT)(p - buf), buf)) {
+        return FAILURE;
+    }
+
+    return SUCCESS;
+
+}
+
+int fbp_service_shutdown_db(firebird_service *svc, char *dbname, size_t dbname_len, ISC_UCHAR mode)
+{
+    return _fbp_service_properties(svc, dbname, dbname_len, isc_spb_prp_shutdown_db, mode);
+}
+
+int fbp_service_db_online(firebird_service *svc, char *dbname, size_t dbname_len, ISC_UCHAR mode)
+{
+    return _fbp_service_properties(svc, dbname, dbname_len, isc_spb_prp_db_online, mode);
+}

@@ -8,6 +8,11 @@ const FETCH_UNIXTIME = 2;
 const BLOB_TYPE_SEGMENTED = 0;
 const BLOB_STREAMED = 1;
 
+const SM_NORMAL = 0;
+const SM_MULTI  = 1;
+const SM_SINGLE = 2;
+const SM_FULL   = 3;
+
 class Server_Info
 {
     public string $server_version;
@@ -404,8 +409,28 @@ class Service implements IError
     /** @return bool */
     function restore(string $bkp_file, string $dbname, int $options = 0) {}
 
-    // function db_info() {}
-    // function server_info() {}
+    /** @return bool */
+    function shutdown_db(string $dbname, $mode = 0) {}
+
+    /** @return bool */
+    function db_online(string $dbname, $mode = 0) {}
+
+    // isc_spb_prp_page_buffers
+    // isc_spb_prp_sweep_interval
+    // isc_spb_prp_deny_new_attachment
+    // isc_spb_prp_deny_new_transactions
+    // isc_spb_prp_reserve_space
+    // isc_spb_prp_write_mode
+    // isc_spb_prp_access_mode
+    // isc_spb_prp_set_sql_dialect
+    // isc_spb_prp_activate
+    // isc_spb_prp_nolinger
+    // isc_spb_prp_force_shutdown
+    // isc_spb_prp_attachments_shutdown
+    // isc_spb_prp_transactions_shutdown
+    // isc_spb_prp_shutdown_mode
+    // isc_spb_prp_online_mode
+    // isc_spb_prp_replica_mode
 }
 
 /**
