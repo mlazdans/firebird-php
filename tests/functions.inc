@@ -204,30 +204,44 @@ function args_apply_defaults(\FireBird\Create_Args|\FireBird\Connect_Args  $args
     }
 }
 
-function init_tmp_db(string $charset = "", bool $drop = true): \FireBird\Database
+function init_tmp_db(string $db_file = "", string $charset = "", bool $drop = true): \FireBird\Database
 {
-    $database = gen_random_db_file_name_or_die();
-
-    $args = new \FireBird\Create_Args;
-    $args->database = $database;
-    $args->page_size = 16 * 1024;
-    $args->timeout = 10;
-    args_apply_defaults($args);
-
-    // overrides
-    if($charset)$args->set_db_charset = $charset;
-
     $db = new \FireBird\Database;
-    if($db->create($args)) {
-        register_shutdown_function(function() use ($db, $drop) {
-            if($drop && !$db->drop()) {
-                print_error_and_die("drop", $db);
-            }
-        });
-        return $db;
-    }
 
-    print_error_and_die("create", $db);
+    if(empty($db_file)){
+        $args = new \FireBird\Create_Args;
+        $args->database = gen_random_db_file_name_or_die();
+        $args->page_size = 16 * 1024;
+        $args->timeout = 10;
+        args_apply_defaults($args);
+        // overrides
+        if($charset)$args->set_db_charset = $charset;
+        if($db->create($args)) {
+            register_shutdown_function(function() use ($db, $drop) {
+                if($drop && !$db->drop()) {
+                    print_error_and_die("drop", $db);
+                }
+            });
+            return $db;
+        }
+        print_error_and_die("create", $db);
+    } else {
+        $args = new \FireBird\Connect_Args;
+        $args->database = Config::$host.":$db_file";
+        args_apply_defaults($args);
+        // overrides
+        if($charset)$args->charset = $charset;
+
+        if($db->connect($args)) {
+            register_shutdown_function(function() use ($db, $drop) {
+                if($drop && !$db->disconnect()) {
+                    print_error_and_die("disconnect", $db);
+                }
+            });
+            return $db;
+        }
+        print_error_and_die("connect", $db);
+    }
 }
 
 function var_bin(mixed $v): void {
