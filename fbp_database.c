@@ -358,6 +358,7 @@ int fbp_database_get_info(firebird_db *db, zval *Db_Info,
         }
     }
 
+    // TODO: info_limbo leaks
     zend_update_property(FireBird_Db_Info_ce, Z_OBJ_P(Db_Info), "limbo", sizeof("limbo") - 1, &info_limbo);
 
     return SUCCESS;

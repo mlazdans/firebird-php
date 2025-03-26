@@ -1,3 +1,4 @@
+Limbo transaction count: 1, expected count: 1
 ==================================== Step 1 ====================================
 object {
   ["BLOB_1"]=>

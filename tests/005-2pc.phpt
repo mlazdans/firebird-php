@@ -62,6 +62,20 @@ require_once('functions.inc');
         $db->disconnect()                           or print_error_and_die("disconnect2", $db);
     };
 
+    $get_limbo_array = function() use ($args) {
+        $db = new \FireBird\Database();
+        $db->connect($args) or print_error_and_die("limbo connection", $db);
+
+        if(false === ($limbo = $db->get_limbo_transactions(100))) {
+            print_error_and_die("get_limbo_transactions", $db);
+        }
+
+        printf("Limbo transaction count: %d, expected count: %d\n", count($limbo), 1);
+        $db->disconnect() or print_error_and_die("disconnect limbo", $db);
+    };
+
+    $get_limbo_array();
+
     $reconnecter = function(int $tr_id) use ($args) {
         $db = new \FireBird\Database();
 

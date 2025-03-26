@@ -108,7 +108,7 @@ void register_FireBird_Event_ce()
 
 firebird_events fb_events = {0};
 
-// TODO: most likely won't fork in threaded environment or with multi database connections
+// TODO: most likely won't work in threaded environment or with multi database connections
 void event_ast_routine(void *__ev, ISC_USHORT length, const ISC_UCHAR *result_buffer)
 {
     firebird_event *current_event = NULL;
