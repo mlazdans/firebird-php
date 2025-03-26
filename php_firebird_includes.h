@@ -167,7 +167,7 @@ void _php_firebird_module_fatal(char *, ...)
     IXpbBuilder_insert##f(__VA_ARGS__); \
     if (IStatus_getState(st) & IStatus_STATE_ERRORS) { \
         char _st_msg[1024] = {0}; \
-        status_err_msg(IStatus_getErrors(st), _st_msg, sizeof(_st_msg)); \
+        fbp_status_err_msg(IStatus_getErrors(st), _st_msg, sizeof(_st_msg)); \
         _php_firebird_module_fatal(_st_msg); \
     } \
 } while(0)
@@ -379,14 +379,13 @@ extern void register_FireBird_TBuilder_ce();
     } while(0)
 #endif
 
-// TODO: tidy namspacing
-void store_portable_integer(unsigned char *buffer, ISC_UINT64 value, int length);
-void status_fbp_error_ex(const ISC_STATUS *status, const char *file_name, size_t line_num);
-void dump_buffer(int len, const unsigned char *buffer);
-ISC_INT64 update_err_props_ex(ISC_STATUS_ARRAY status, zend_class_entry *ce, zval *obj, const char *file_name, size_t line_num);
-int status_err_msg(const ISC_STATUS *status, char *msg, unsigned short msg_size);
-void declare_props_zmap(zend_class_entry *ce, const firebird_xpb_zmap *xpb_zmap);
-void xpb_insert_zmap(zend_class_entry *ce, zval *args, const firebird_xpb_zmap *xpb_zmap, struct IXpbBuilder* xpb, struct IStatus* st);
+void fbp_store_portable_integer(unsigned char *buffer, ISC_UINT64 value, int length);
+int fbp_status_err_msg(const ISC_STATUS *status, char *msg, unsigned short msg_size);
+void fbp_status_error_ex(const ISC_STATUS *status, const char *file_name, size_t line_num);
+void fbp_dump_buffer(int len, const unsigned char *buffer);
+ISC_INT64 fbp_update_err_props_ex(ISC_STATUS_ARRAY status, zend_class_entry *ce, zval *obj, const char *file_name, size_t line_num);
+void fbp_declare_props_from_zmap(zend_class_entry *ce, const firebird_xpb_zmap *xpb_zmap);
+void fbp_insert_xpb_from_zmap(zend_class_entry *ce, zval *args, const firebird_xpb_zmap *xpb_zmap, struct IXpbBuilder* xpb, struct IStatus* st);
 void event_ast_routine(void *_ev, ISC_USHORT length, const ISC_UCHAR *result_buffer);
 
 #define fbp_declare_object_accessor(strct)                   \
@@ -407,8 +406,8 @@ fbp_declare_object_accessor(firebird_event);
 #define fbp_error(msg, ...) _php_firebird_module_error(msg " (%s:%d)\n" __VA_OPT__(,) __VA_ARGS__, __FILE__, __LINE__)
 #define fbp_fatal(msg, ...) _php_firebird_module_fatal(msg " (%s:%d)\n" __VA_OPT__(,) __VA_ARGS__, __FILE__, __LINE__)
 
-#define status_fbp_error(status) status_fbp_error_ex(status, __FILE__, __LINE__)
-#define update_err_props(status, ce, obj) update_err_props_ex(status, ce, obj, __FILE__, __LINE__)
+#define status_fbp_error(status) fbp_status_error_ex(status, __FILE__, __LINE__)
+#define update_err_props(status, ce, obj) fbp_update_err_props_ex(status, ce, obj, __FILE__, __LINE__)
 #define update_ferr_props(ce, obj, error_msg, error_msg_len, error_code, error_code_long)                      \
     do {                                                                                                       \
         zend_update_property_stringl(ce, obj, "error_msg", sizeof("error_msg") - 1, error_msg, error_msg_len); \

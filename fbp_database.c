@@ -124,7 +124,7 @@ int fbp_database_build_dpb(zend_class_entry *ce, zval *Args, const firebird_xpb_
     xpb_insert_tag(isc_dpb_version2);
     xpb_insert_int(isc_dpb_sql_dialect, SQL_DIALECT_CURRENT);
 
-    xpb_insert_zmap(ce, Args, xpb_zmap, xpb, st);
+    fbp_insert_xpb_from_zmap(ce, Args, xpb_zmap, xpb, st);
 
 #if FB_API_VER >= 40
     // Do not handle directly INT128 or DECFLOAT, convert to VARCHAR at server instead
@@ -352,7 +352,7 @@ int fbp_database_get_info(firebird_db *db, zval *Db_Info,
             } return FAILURE;
 
             default: {
-                dump_buffer(len, b);
+                fbp_dump_buffer(len, b);
                 fbp_fatal("BUG! Unhandled DB info tag: %d", tag);
             } break;
         }

@@ -258,7 +258,7 @@ PHP_MINFO_FUNCTION(firebird)
 
 }
 
-void dump_buffer(int len, const unsigned char *buffer){
+void fbp_dump_buffer(int len, const unsigned char *buffer){
     int i;
     for (i = 0; i < len; i++) {
         if(buffer[i] < 31 || buffer[i] > 126)
@@ -271,7 +271,7 @@ void dump_buffer(int len, const unsigned char *buffer){
     }
 }
 
-int status_err_msg(const ISC_STATUS *status, char *msg, unsigned short msg_size)
+int fbp_status_err_msg(const ISC_STATUS *status, char *msg, unsigned short msg_size)
 {
     char *s = msg;
     const ISC_STATUS* pstatus = status;
@@ -291,10 +291,10 @@ int status_err_msg(const ISC_STATUS *status, char *msg, unsigned short msg_size)
 }
 
 // Use this when object is beeing destroyed but some clean-up errors happen
-void status_fbp_error_ex(const ISC_STATUS *status, const char *file_name, size_t line_num)
+void fbp_status_error_ex(const ISC_STATUS *status, const char *file_name, size_t line_num)
 {
     char msg[1024] = { 0 };
-    status_err_msg(status, msg, sizeof(msg));
+    fbp_status_err_msg(status, msg, sizeof(msg));
 #ifdef PHP_DEBUG
     _php_firebird_module_error("firebird-php error: %s (%s:%d)\n", msg, file_name, line_num);
 #else
@@ -307,7 +307,7 @@ void status_fbp_error_ex(const ISC_STATUS *status, const char *file_name, size_t
     error_code_long = isc_portable_integer((const ISC_UCHAR*)(&pstatus[1]), 4)
 
 // Returns last error_code_long from the status array
-ISC_INT64 update_err_props_ex(ISC_STATUS_ARRAY status, zend_class_entry *ce, zval *obj, const char *file_name, size_t line_num)
+ISC_INT64 fbp_update_err_props_ex(ISC_STATUS_ARRAY status, zend_class_entry *ce, zval *obj, const char *file_name, size_t line_num)
 {
     if (!(status[0] == 1 && status[1])){
         return 0;
@@ -406,7 +406,7 @@ void _php_firebird_module_fatal(char *msg, ...)
     php_error_docref(NULL, E_ERROR, "%s", buf);
 }
 
-void declare_props_zmap(zend_class_entry *ce, const firebird_xpb_zmap *xpb_zmap)
+void fbp_declare_props_from_zmap(zend_class_entry *ce, const firebird_xpb_zmap *xpb_zmap)
 {
     for (int i = 0; i < xpb_zmap->count; i++) {
         zval prop_def_val;
@@ -419,7 +419,7 @@ void declare_props_zmap(zend_class_entry *ce, const firebird_xpb_zmap *xpb_zmap)
     }
 }
 
-void xpb_insert_zmap(zend_class_entry *ce, zval *args, const firebird_xpb_zmap *xpb_zmap, struct IXpbBuilder* xpb, struct IStatus* st)
+void fbp_insert_xpb_from_zmap(zend_class_entry *ce, zval *args, const firebird_xpb_zmap *xpb_zmap, struct IXpbBuilder* xpb, struct IStatus* st)
 {
     zend_string *prop_name = NULL;
     zend_property_info *prop_info = NULL;
@@ -477,7 +477,7 @@ void xpb_insert_zmap(zend_class_entry *ce, zval *args, const firebird_xpb_zmap *
     }
 }
 
-void store_portable_integer(unsigned char *buffer, ISC_UINT64 value, int length)
+void fbp_store_portable_integer(unsigned char *buffer, ISC_UINT64 value, int length)
 {
     for (int i = 0; i < length; i++) {
         buffer[i] = (value >> (i * 8)) & 0xFF;

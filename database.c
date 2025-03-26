@@ -514,7 +514,7 @@ void register_FireBird_Db_Info_ce()
     INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "Db_Info", NULL);
     FireBird_Db_Info_ce = zend_register_internal_class(&tmp_ce);
 
-    declare_props_zmap(FireBird_Db_Info_ce, &fbp_database_info_zmap);
+    fbp_declare_props_from_zmap(FireBird_Db_Info_ce, &fbp_database_info_zmap);
 }
 
 void register_FireBird_Connect_Args_ce()
@@ -524,7 +524,7 @@ void register_FireBird_Connect_Args_ce()
     FireBird_Connect_Args_ce = zend_register_internal_class(&tmp_ce);
 
     DECLARE_PROP_STRING(FireBird_Connect_Args_ce, database, ZEND_ACC_PUBLIC);
-    declare_props_zmap(FireBird_Connect_Args_ce, &fbp_database_connect_zmap);
+    fbp_declare_props_from_zmap(FireBird_Connect_Args_ce, &fbp_database_connect_zmap);
 }
 
 void register_FireBird_Create_Args_ce()
@@ -535,5 +535,5 @@ void register_FireBird_Create_Args_ce()
     FireBird_Create_Args_ce = zend_register_internal_class(&tmp_ce);
 
     DECLARE_PROP_STRING(FireBird_Create_Args_ce, database, ZEND_ACC_PUBLIC);
-    declare_props_zmap(FireBird_Create_Args_ce, &fbp_database_create_zmap);
+    fbp_declare_props_from_zmap(FireBird_Create_Args_ce, &fbp_database_create_zmap);
 }

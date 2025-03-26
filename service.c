@@ -176,7 +176,7 @@ PHP_METHOD(Service, backup)
     IXpbBuilder_insertString(xpb, st, isc_spb_dbname, ZSTR_VAL(dbname));
     IXpbBuilder_insertString(xpb, st, isc_spb_bkp_file, ZSTR_VAL(bkp_file));
 
-    dump_buffer(IXpbBuilder_getBufferLength(xpb, st), IXpbBuilder_getBuffer(xpb, st));
+    fbp_dump_buffer(IXpbBuilder_getBufferLength(xpb, st), IXpbBuilder_getBuffer(xpb, st));
 
     if (isc_service_start(FBG(status), &svc->svc_handle, NULL, IXpbBuilder_getBufferLength(xpb, st), IXpbBuilder_getBuffer(xpb, st))) {
         update_err_props(FBG(status), FireBird_Service_ce, ZEND_THIS);
@@ -214,7 +214,7 @@ PHP_METHOD(Service, restore)
     IXpbBuilder_insertString(xpb, st, isc_spb_bkp_file, ZSTR_VAL(bkp_file));
     IXpbBuilder_insertString(xpb, st, isc_spb_dbname, ZSTR_VAL(dbname));
 
-    dump_buffer(IXpbBuilder_getBufferLength(xpb, st), IXpbBuilder_getBuffer(xpb, st));
+    fbp_dump_buffer(IXpbBuilder_getBufferLength(xpb, st), IXpbBuilder_getBuffer(xpb, st));
 
     if (isc_service_start(FBG(status), &svc->svc_handle, NULL, IXpbBuilder_getBufferLength(xpb, st), IXpbBuilder_getBuffer(xpb, st))) {
         update_err_props(FBG(status), FireBird_Service_ce, ZEND_THIS);
@@ -291,7 +291,7 @@ void register_FireBird_Server_Info_ce()
     INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "Server_Info", NULL);
     FireBird_Server_Info_ce = zend_register_internal_class(&tmp_ce);
 
-    declare_props_zmap(FireBird_Server_Info_ce, &fbp_server_info_zmap);
+    fbp_declare_props_from_zmap(FireBird_Server_Info_ce, &fbp_server_info_zmap);
 
     DECLARE_PROP_OBJ(FireBird_Server_Info_ce, db_info, FireBird\\Server_Db_Info, ZEND_ACC_PUBLIC);
     DECLARE_PROP_ARRAY(FireBird_Server_Info_ce, users, ZEND_ACC_PUBLIC);
@@ -314,7 +314,7 @@ void register_FireBird_Server_User_Info_ce()
     INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "Server_User_Info", NULL);
     FireBird_Server_User_Info_ce = zend_register_internal_class(&tmp_ce);
 
-    declare_props_zmap(FireBird_Server_User_Info_ce, &fbp_user_info_zmap);
+    fbp_declare_props_from_zmap(FireBird_Server_User_Info_ce, &fbp_user_info_zmap);
 }
 
 void register_FireBird_Service_Connect_Args_ce()
@@ -324,5 +324,5 @@ void register_FireBird_Service_Connect_Args_ce()
     FireBird_Service_Connect_Args_ce = zend_register_internal_class(&tmp_ce);
 
     DECLARE_PROP_STRING(FireBird_Service_Connect_Args_ce, service_name, ZEND_ACC_PUBLIC);
-    declare_props_zmap(FireBird_Service_Connect_Args_ce, &fbp_service_connect_zmap);
+    fbp_declare_props_from_zmap(FireBird_Service_Connect_Args_ce, &fbp_service_connect_zmap);
 }

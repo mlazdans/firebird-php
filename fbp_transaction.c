@@ -137,7 +137,7 @@ void fbp_transaction_build_tpb(firebird_tbuilder *builder, char *tpb, unsigned s
         if (builder->snapshot_at_number) {
             *p++ = isc_tpb_at_snapshot_number;
             *p++ = sizeof(builder->snapshot_at_number);
-            store_portable_integer(p, builder->snapshot_at_number, sizeof(builder->snapshot_at_number));
+            fbp_store_portable_integer(p, builder->snapshot_at_number, sizeof(builder->snapshot_at_number));
             p += sizeof(builder->snapshot_at_number);
             FBDEBUG_NOFL("  isolation_mode = isc_tpb_concurrency");
             FBDEBUG_NOFL("                   isc_tpb_at_snapshot_number = %d", builder->snapshot_at_number);
@@ -173,7 +173,7 @@ void fbp_transaction_build_tpb(firebird_tbuilder *builder, char *tpb, unsigned s
         *p++ = isc_tpb_wait;
         *p++ = isc_tpb_lock_timeout;
         *p++ = sizeof(builder->lock_timeout);
-        store_portable_integer(p, builder->lock_timeout, sizeof(builder->lock_timeout));
+        fbp_store_portable_integer(p, builder->lock_timeout, sizeof(builder->lock_timeout));
         p += sizeof(builder->lock_timeout);
         FBDEBUG_NOFL("  isc_tpb_wait");
         FBDEBUG_NOFL("    isc_tpb_lock_timeout = %d", builder->lock_timeout);

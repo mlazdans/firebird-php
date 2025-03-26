@@ -146,7 +146,7 @@ void event_ast_routine(void *__ev, ISC_USHORT length, const ISC_UCHAR *result_bu
     isc_event_counts(counts, length, current_event->event_buffer, result_buffer);
 
     // php_printf("buff: " "%" LL_MASK "d" ", l: %d\n", counts[0], length);
-    // dump_buffer((char *)&counts, sizeof(counts));
+    // fbp_dump_buffer((char *)&counts, sizeof(counts));
 
     if (current_event->state == NEW) {
         current_event->state = ACTIVE;
