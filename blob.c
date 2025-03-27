@@ -229,6 +229,8 @@ PHP_METHOD(Blob, seek)
         RETURN_FALSE;
     }
 
+    _FireBird_Blob_update_props(ZEND_THIS);
+
     RETURN_LONG(new_pos);
 }
 
