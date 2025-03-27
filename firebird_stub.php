@@ -411,31 +411,63 @@ class Service implements IError
 
     // ibase_maintain_db() functions below
 
+    // The shutdown request also requires the type of shutdown to be specified, viz., one of
+    //   isc_spb_prp_force_shutdown
+    //   isc_spb_prp_attachments_shutdown
+    //   isc_spb_prp_transactions_shutdown
+
     /** @return bool */
-    function shutdown_db(string $dbname, int $mode = 0) {}
+    function shutdown_db(string $dbname, int $mode = 0, int $timeout = 0) {}
 
     /** @return bool */
     function db_online(string $dbname, int $mode = 0) {}
 
     /** @return bool */
-    function set_page_buffers(string $dbname, int $buffers = 2048) {}
+    function set_page_buffers(string $dbname, int $buffers) {}
 
-    // isc_spb_prp_page_buffers
-    // isc_spb_prp_sweep_interval
-    // isc_spb_prp_deny_new_attachment
-    // isc_spb_prp_deny_new_transactions
-    // isc_spb_prp_reserve_space
-    // isc_spb_prp_write_mode
-    // isc_spb_prp_access_mode
-    // isc_spb_prp_set_sql_dialect
-    // isc_spb_prp_activate              Activate shadow files
+    /** @return bool */
+    function set_sweep_interval(string $dbname, int $interval) {}
+
+    /** @return bool */
+    function deny_new_attachments(string $dbname) {}
+
+    /** @return bool */
+    function deny_new_transactions(string $dbname) {}
+
+    /** @return bool */
+    function set_write_mode_async(string $dbname) {}
+
+    /** @return bool */
+    function set_write_mode_sync(string $dbname) {}
+
+    /** @return bool */
+    function set_access_mode_readonly(string $dbname) {}
+
+    /** @return bool */
+    function set_access_mode_readwrite(string $dbname) {}
+
+    /** @return bool */
+    function enable_reserve_space(string $database) {}
+
+    /** @return bool */
+    function disable_reserve_space(string $database) {}
+
+    /** @return bool */
+    function set_sql_dialect(string $database, int $dialect) {}
+
     // isc_spb_prp_nolinger
-    // isc_spb_prp_force_shutdown
-    // isc_spb_prp_attachments_shutdown
-    // isc_spb_prp_transactions_shutdown
-    // isc_spb_prp_shutdown_mode
-    // isc_spb_prp_online_mode
+    // isc_spb_prp_activate               Activate shadow files. Legacy stuff
+
     // isc_spb_prp_replica_mode
+    // #define isc_spb_prp_rm_none			0
+    // #define isc_spb_prp_rm_readonly		1
+    // #define isc_spb_prp_rm_readwrite	2
+
+    // Repair / fix
+    // case isc_spb_rpr_commit_trans:
+    // case isc_spb_rpr_rollback_trans:
+    // case isc_spb_rpr_recover_two_phase:
+    // case isc_spb_rpr_par_workers:
 }
 
 /**

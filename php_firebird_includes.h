@@ -249,6 +249,7 @@ ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Service_shutdown_db, 0, 1, _IS_BOOL, 0)
     ZEND_ARG_TYPE_INFO(0, dbname, IS_STRING, 0)
     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, mode, IS_LONG, 0, "0")
+    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, timeout, IS_LONG, 0, "0")
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Service_db_online, 0, 1, _IS_BOOL, 0)
@@ -256,9 +257,23 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Service_db_online, 0, 1
     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, mode, IS_LONG, 0, "0")
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Service_set_page_buffers, 0, 1, _IS_BOOL, 0)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Service_set_page_buffers, 0, 2, _IS_BOOL, 0)
     ZEND_ARG_TYPE_INFO(0, dbname, IS_STRING, 0)
-    ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, buffers, IS_LONG, 0, "2048")
+    ZEND_ARG_TYPE_INFO(0, buffers, IS_LONG, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Service_set_sweep_interval, 0, 2, _IS_BOOL, 0)
+    ZEND_ARG_TYPE_INFO(0, dbname, IS_STRING, 0)
+    ZEND_ARG_TYPE_INFO(0, interval, IS_LONG, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Service_dbname_return_bool, 0, 1, _IS_BOOL, 0)
+    ZEND_ARG_TYPE_INFO(0, dbname, IS_STRING, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Service_set_sql_dialect, 0, 2, _IS_BOOL, 0)
+    ZEND_ARG_TYPE_INFO(0, dbname, IS_STRING, 0)
+    ZEND_ARG_TYPE_INFO(0, dialect, IS_LONG, 0)
 ZEND_END_ARG_INFO()
 
 // Transaction argument types

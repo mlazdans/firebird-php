@@ -32,7 +32,7 @@
 |✅    | ibase_free_query         |                                       |
 |✅    | ibase_free_result        |                                       |
 |🚫   | ibase_gen_id             | Can be easily done in PHP space       |
-|⏳    | ibase_maintain_db        | Implemented: shutdown_db(), db_online() |
+|✅    | ibase_maintain_db        |                                        |
 |✅    | ibase_modify_user        |                                       |
 |✅    | ibase_name_result        |                                       |
 |✅    | ibase_num_fields         |                                       |

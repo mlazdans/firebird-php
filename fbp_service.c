@@ -97,9 +97,6 @@ int fbp_service_get_server_info(firebird_service *svc, zval *Server_Info,
     static char spb[] = { isc_info_svc_timeout, 10, 0, 0, 0 };
     static char action[] = { isc_action_svc_display_user_adm };
 
-    // TODO: isc_action_svc_db_stats   - ibase_db_info()
-    // TODO: isc_action_svc_properties - ibase_maintain_db()
-
     if (isc_service_start(FBG(status), &svc->svc_handle, NULL, sizeof(action), action)) {
         return FAILURE;
     }
@@ -306,25 +303,58 @@ int fbp_service_delete_user(firebird_service *svc, const char *username, ISC_USH
     return SUCCESS;
 }
 
-int _fbp_service_db_maint(firebird_service *svc, char *dbname, size_t dbname_len, ISC_USHORT action, ISC_ULONG arg)
+#define spb_insert_db(dbname, dbname_len) \
+    *p++ = isc_action_svc_properties; \
+    *p++ = isc_spb_dbname; \
+    ISC_UCHAR bytes_num = min(dbname_len, sizeof(buf) - (p - buf) - 2); \
+    fbp_store_portable_integer(p, bytes_num, 2); p += 2; \
+    memcpy(p, dbname, bytes_num); p += bytes_num
+
+int fbp_service_shutdown_db(firebird_service *svc, size_t dbname_len, char *dbname, ISC_UCHAR mode, ISC_ULONG timeout)
 {
     char buf[256] = {0};
     char *p = buf;
 
-    *p++ = isc_action_svc_properties;
-    *p++ = isc_spb_dbname;
+    spb_insert_db(dbname, dbname_len);
+    *p++ = isc_spb_prp_shutdown_db;
+    fbp_store_portable_integer(p, timeout * 10, 4); p += 4;
+    *p++ = isc_spb_prp_shutdown_mode;
+    *p++ = mode;
 
-    ISC_UCHAR bytes_num = min(dbname_len, sizeof(buf) - (p - buf) - 2);
-    fbp_store_portable_integer(p, bytes_num, 2); p += 2;
-    memcpy(p, dbname, bytes_num); p += bytes_num;
-
-    if (action == isc_spb_prp_db_online) {
-        arg |= action;
-        action = isc_spb_options;
+    fbp_dump_buffer(p - buf, buf);
+    if (isc_service_start(FBG(status), &svc->svc_handle, NULL, (ISC_USHORT)(p - buf), buf)) {
+        return FAILURE;
     }
 
-    *p++ = (ISC_UCHAR) action;
+    return SUCCESS;
+}
 
+int fbp_service_db_online(firebird_service *svc, size_t dbname_len, char *dbname, ISC_UCHAR mode)
+{
+    char buf[256] = {0};
+    char *p = buf;
+
+    spb_insert_db(dbname, dbname_len);
+    *p++ = isc_spb_options;
+    fbp_store_portable_integer(p, isc_spb_prp_db_online, 4); p += 4;
+    *p++ = isc_spb_prp_online_mode;
+    *p++ = mode;
+
+    fbp_dump_buffer(p - buf, buf);
+    if (isc_service_start(FBG(status), &svc->svc_handle, NULL, (ISC_USHORT)(p - buf), buf)) {
+        return FAILURE;
+    }
+
+    return SUCCESS;
+}
+
+int _fbp_service_db_maint_with_arg(firebird_service *svc, size_t dbname_len, char *dbname, ISC_UCHAR command, ISC_ULONG arg)
+{
+    char buf[256] = {0};
+    char *p = buf;
+
+    spb_insert_db(dbname, dbname_len);
+    *p++ = command;
     fbp_store_portable_integer(p, arg, 4); p += 4;
 
     fbp_dump_buffer(p - buf, buf);
@@ -335,17 +365,74 @@ int _fbp_service_db_maint(firebird_service *svc, char *dbname, size_t dbname_len
     return SUCCESS;
 }
 
-int fbp_service_shutdown_db(firebird_service *svc, char *dbname, size_t dbname_len, ISC_UCHAR mode)
+int _fbp_service_db_maint_with_tag(firebird_service *svc, size_t dbname_len, char *dbname, ISC_UCHAR command, ISC_UCHAR tag)
 {
-    return _fbp_service_db_maint(svc, dbname, dbname_len, isc_spb_prp_shutdown_db, mode);
+    char buf[256] = {0};
+    char *p = buf;
+
+    spb_insert_db(dbname, dbname_len);
+    *p++ = command;
+    *p++ = tag;
+
+    fbp_dump_buffer(p - buf, buf);
+    if (isc_service_start(FBG(status), &svc->svc_handle, NULL, (ISC_USHORT)(p - buf), buf)) {
+        return FAILURE;
+    }
+
+    return SUCCESS;
 }
 
-int fbp_service_db_online(firebird_service *svc, char *dbname, size_t dbname_len, ISC_UCHAR mode)
+int fbp_service_set_page_buffers(firebird_service *svc, size_t dbname_len, char *dbname, ISC_ULONG buffers)
 {
-    return _fbp_service_db_maint(svc, dbname, dbname_len, isc_spb_prp_db_online, mode);
+    return _fbp_service_db_maint_with_arg(svc, dbname_len, dbname, isc_spb_prp_page_buffers, buffers);
 }
 
-int fbp_service_set_page_buffers(firebird_service *svc, char *dbname, size_t dbname_len, ISC_ULONG buffers)
+int fbp_service_set_sweep_interval(firebird_service *svc, size_t dbname_len, char *dbname, ISC_ULONG interval)
 {
-    return _fbp_service_db_maint(svc, dbname, dbname_len, isc_spb_prp_page_buffers, buffers);
+    return _fbp_service_db_maint_with_arg(svc, dbname_len, dbname, isc_spb_prp_sweep_interval, interval);
+}
+
+int fbp_service_deny_new_attachments(firebird_service *svc, size_t dbname_len, char *dbname)
+{
+    return _fbp_service_db_maint_with_arg(svc, dbname_len, dbname, isc_spb_prp_deny_new_attachments, 0);
+}
+
+int fbp_service_deny_new_transactions(firebird_service *svc, size_t dbname_len, char *dbname)
+{
+    return _fbp_service_db_maint_with_arg(svc, dbname_len, dbname, isc_spb_prp_deny_new_transactions, 0);
+}
+
+int fbp_service_set_write_mode_async(firebird_service *svc, size_t dbname_len, char *dbname)
+{
+    return _fbp_service_db_maint_with_tag(svc, dbname_len, dbname, isc_spb_prp_write_mode, isc_spb_prp_wm_async);
+}
+
+int fbp_service_set_write_mode_sync(firebird_service *svc, size_t dbname_len, char *dbname)
+{
+    return _fbp_service_db_maint_with_tag(svc, dbname_len, dbname, isc_spb_prp_write_mode, isc_spb_prp_wm_sync);
+}
+
+int fbp_service_set_access_mode_readonly(firebird_service *svc, size_t dbname_len, char *dbname)
+{
+    return _fbp_service_db_maint_with_tag(svc, dbname_len, dbname, isc_spb_prp_access_mode, isc_spb_prp_am_readonly);
+}
+
+int fbp_service_set_access_mode_readwrite(firebird_service *svc, size_t dbname_len, char *dbname)
+{
+    return _fbp_service_db_maint_with_tag(svc, dbname_len, dbname, isc_spb_prp_access_mode, isc_spb_prp_am_readwrite);
+}
+
+int fbp_service_enable_reserve_space(firebird_service *svc, size_t dbname_len, char *dbname)
+{
+    return _fbp_service_db_maint_with_tag(svc, dbname_len, dbname, isc_spb_prp_reserve_space, isc_spb_prp_res);
+}
+
+int fbp_service_disable_reserve_space(firebird_service *svc, size_t dbname_len, char *dbname)
+{
+    return _fbp_service_db_maint_with_tag(svc, dbname_len, dbname, isc_spb_prp_reserve_space, isc_spb_prp_res_use_full);
+}
+
+int fbp_service_set_sql_dialect(firebird_service *svc, size_t dbname_len, char *dbname, ISC_ULONG dialect)
+{
+    return _fbp_service_db_maint_with_arg(svc, dbname_len, dbname, isc_spb_prp_set_sql_dialect, dialect);
 }
