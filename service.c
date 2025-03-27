@@ -224,28 +224,21 @@ PHP_METHOD(Service, restore)
     RETURN_TRUE;
 }
 
-void _FireBird_Service_shuton(INTERNAL_FUNCTION_PARAMETERS, int shut)
+void _FireBird_Service_db_maint(INTERNAL_FUNCTION_PARAMETERS, ISC_USHORT action, zend_long default_arg)
 {
     char *dbname;
     size_t dbname_len;
-    zend_long mode = 0;
+    zend_long arg = default_arg;
 
     ZEND_PARSE_PARAMETERS_START(1, 2)
         Z_PARAM_STRING(dbname, dbname_len)
         Z_PARAM_OPTIONAL
-        Z_PARAM_LONG(mode)
+        Z_PARAM_LONG(arg)
     ZEND_PARSE_PARAMETERS_END();
 
     firebird_service *svc = get_firebird_service_from_zval(ZEND_THIS);
 
-    int res;
-    if (shut) {
-        res = fbp_service_shutdown_db(svc, dbname, dbname_len, mode);
-    } else {
-        res = fbp_service_db_online(svc, dbname, dbname_len, mode);
-    }
-
-    if (res) {
+    if (_fbp_service_db_maint(svc, dbname, dbname_len, action, arg)) {
         update_err_props(FBG(status), FireBird_Service_ce, ZEND_THIS);
         RETURN_FALSE;
     }
@@ -255,12 +248,17 @@ void _FireBird_Service_shuton(INTERNAL_FUNCTION_PARAMETERS, int shut)
 
 PHP_METHOD(Service, shutdown_db)
 {
-    _FireBird_Service_shuton(INTERNAL_FUNCTION_PARAM_PASSTHRU, 1);
+    _FireBird_Service_db_maint(INTERNAL_FUNCTION_PARAM_PASSTHRU, isc_spb_prp_shutdown_db, 0);
 }
 
 PHP_METHOD(Service, db_online)
 {
-    _FireBird_Service_shuton(INTERNAL_FUNCTION_PARAM_PASSTHRU, 0);
+    _FireBird_Service_db_maint(INTERNAL_FUNCTION_PARAM_PASSTHRU, isc_spb_prp_db_online, 0);
+}
+
+PHP_METHOD(Service, set_page_buffers)
+{
+    _FireBird_Service_db_maint(INTERNAL_FUNCTION_PARAM_PASSTHRU, isc_spb_prp_page_buffers, 2048);
 }
 
 const zend_function_entry FireBird_Service_methods[] = {
@@ -274,6 +272,7 @@ const zend_function_entry FireBird_Service_methods[] = {
     PHP_ME(Service, restore, arginfo_FireBird_Service_restore, ZEND_ACC_PUBLIC)
     PHP_ME(Service, shutdown_db, arginfo_FireBird_Service_shutdown_db, ZEND_ACC_PUBLIC)
     PHP_ME(Service, db_online, arginfo_FireBird_Service_db_online, ZEND_ACC_PUBLIC)
+    PHP_ME(Service, set_page_buffers, arginfo_FireBird_Service_set_page_buffers, ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
 

@@ -306,7 +306,7 @@ int fbp_service_delete_user(firebird_service *svc, const char *username, ISC_USH
     return SUCCESS;
 }
 
-int _fbp_service_properties(firebird_service *svc, char *dbname, size_t dbname_len, ISC_USHORT action, ISC_ULONG arg)
+int _fbp_service_db_maint(firebird_service *svc, char *dbname, size_t dbname_len, ISC_USHORT action, ISC_ULONG arg)
 {
     char buf[256] = {0};
     char *p = buf;
@@ -333,15 +333,19 @@ int _fbp_service_properties(firebird_service *svc, char *dbname, size_t dbname_l
     }
 
     return SUCCESS;
-
 }
 
 int fbp_service_shutdown_db(firebird_service *svc, char *dbname, size_t dbname_len, ISC_UCHAR mode)
 {
-    return _fbp_service_properties(svc, dbname, dbname_len, isc_spb_prp_shutdown_db, mode);
+    return _fbp_service_db_maint(svc, dbname, dbname_len, isc_spb_prp_shutdown_db, mode);
 }
 
 int fbp_service_db_online(firebird_service *svc, char *dbname, size_t dbname_len, ISC_UCHAR mode)
 {
-    return _fbp_service_properties(svc, dbname, dbname_len, isc_spb_prp_db_online, mode);
+    return _fbp_service_db_maint(svc, dbname, dbname_len, isc_spb_prp_db_online, mode);
+}
+
+int fbp_service_set_page_buffers(firebird_service *svc, char *dbname, size_t dbname_len, ISC_ULONG buffers)
+{
+    return _fbp_service_db_maint(svc, dbname, dbname_len, isc_spb_prp_page_buffers, buffers);
 }

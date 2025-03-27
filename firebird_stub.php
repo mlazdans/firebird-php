@@ -409,11 +409,16 @@ class Service implements IError
     /** @return bool */
     function restore(string $bkp_file, string $dbname, int $options = 0) {}
 
-    /** @return bool */
-    function shutdown_db(string $dbname, $mode = 0) {}
+    // ibase_maintain_db() functions below
 
     /** @return bool */
-    function db_online(string $dbname, $mode = 0) {}
+    function shutdown_db(string $dbname, int $mode = 0) {}
+
+    /** @return bool */
+    function db_online(string $dbname, int $mode = 0) {}
+
+    /** @return bool */
+    function set_page_buffers(string $dbname, int $buffers = 2048) {}
 
     // isc_spb_prp_page_buffers
     // isc_spb_prp_sweep_interval
@@ -423,7 +428,7 @@ class Service implements IError
     // isc_spb_prp_write_mode
     // isc_spb_prp_access_mode
     // isc_spb_prp_set_sql_dialect
-    // isc_spb_prp_activate
+    // isc_spb_prp_activate              Activate shadow files
     // isc_spb_prp_nolinger
     // isc_spb_prp_force_shutdown
     // isc_spb_prp_attachments_shutdown
