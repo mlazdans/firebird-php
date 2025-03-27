@@ -144,41 +144,19 @@ PHP_METHOD(Service, delete_user)
     RETURN_TRUE;
 }
 
-// TODO: class with parameters for both backup and restore instead of options flags?
-// TODO: no options for both backup and restore yet
-// For isc_spb_options
-// firebird\src\utilities\fbsvcmgr\fbsvcmgr.cpp
-// backupOptions, restoreOptions
 PHP_METHOD(Service, backup)
 {
-    firebird_service *svc = get_firebird_service_from_zval(ZEND_THIS);
-    zend_string *dbname, *bkp_file;
-    zend_long options = 0;
+    char *dbname, *bkpname;
+    zend_long dbname_len, bkpname_len;
 
-    ZEND_PARSE_PARAMETERS_START(2, 3)
-        Z_PARAM_STR(dbname)
-        Z_PARAM_STR(bkp_file)
-        Z_PARAM_OPTIONAL
-        Z_PARAM_LONG(options)
+    ZEND_PARSE_PARAMETERS_START(2, 2)
+        Z_PARAM_STRING(dbname, dbname_len)
+        Z_PARAM_STRING(bkpname, bkpname_len)
     ZEND_PARSE_PARAMETERS_END();
 
-    FBDEBUG("Service::backup()");
-    FBDEBUG_NOFL("  dbname: %s", ZSTR_VAL(dbname));
-    FBDEBUG_NOFL("  bkp_file: %s", ZSTR_VAL(bkp_file));
-    FBDEBUG_NOFL("  options: %d", options);
+    firebird_service *svc = get_firebird_service_from_zval(ZEND_THIS);
 
-    struct IMaster* master = fb_get_master_interface();
-    struct IStatus* st = IMaster_getStatus(master);
-    struct IUtil* utl = IMaster_getUtilInterface(master);
-    struct IXpbBuilder* xpb = IUtil_getXpbBuilder(utl, st, IXpbBuilder_SPB_START, NULL, 0);
-
-    IXpbBuilder_insertTag(xpb, st, isc_action_svc_backup);
-    IXpbBuilder_insertString(xpb, st, isc_spb_dbname, ZSTR_VAL(dbname));
-    IXpbBuilder_insertString(xpb, st, isc_spb_bkp_file, ZSTR_VAL(bkp_file));
-
-    fbp_dump_buffer(IXpbBuilder_getBufferLength(xpb, st), IXpbBuilder_getBuffer(xpb, st));
-
-    if (isc_service_start(FBG(status), &svc->svc_handle, NULL, IXpbBuilder_getBufferLength(xpb, st), IXpbBuilder_getBuffer(xpb, st))) {
+    if (fbp_service_backup(svc, dbname_len, dbname, bkpname_len, bkpname)) {
         update_err_props(FBG(status), FireBird_Service_ce, ZEND_THIS);
         RETURN_FALSE;
     }
@@ -186,37 +164,19 @@ PHP_METHOD(Service, backup)
     RETURN_TRUE;
 }
 
-// TODO: code dup with backup
 PHP_METHOD(Service, restore)
 {
-    firebird_service *svc = get_firebird_service_from_zval(ZEND_THIS);
-    zend_string *dbname, *bkp_file;
-    zend_long options = 0;
+    char *dbname, *bkpname;
+    zend_long dbname_len, bkpname_len;
 
-    ZEND_PARSE_PARAMETERS_START(2, 3)
-        Z_PARAM_STR(bkp_file)
-        Z_PARAM_STR(dbname)
-        Z_PARAM_OPTIONAL
-        Z_PARAM_LONG(options)
+    ZEND_PARSE_PARAMETERS_START(2, 2)
+        Z_PARAM_STRING(bkpname, bkpname_len)
+        Z_PARAM_STRING(dbname, dbname_len)
     ZEND_PARSE_PARAMETERS_END();
 
-    FBDEBUG("Service::backup()");
-    FBDEBUG_NOFL("  dbname: %s", ZSTR_VAL(dbname));
-    FBDEBUG_NOFL("  bkp_file: %s", ZSTR_VAL(bkp_file));
-    FBDEBUG_NOFL("  options: %d", options);
+    firebird_service *svc = get_firebird_service_from_zval(ZEND_THIS);
 
-    struct IMaster* master = fb_get_master_interface();
-    struct IStatus* st = IMaster_getStatus(master);
-    struct IUtil* utl = IMaster_getUtilInterface(master);
-    struct IXpbBuilder* xpb = IUtil_getXpbBuilder(utl, st, IXpbBuilder_SPB_START, NULL, 0);
-
-    IXpbBuilder_insertTag(xpb, st, isc_action_svc_restore);
-    IXpbBuilder_insertString(xpb, st, isc_spb_bkp_file, ZSTR_VAL(bkp_file));
-    IXpbBuilder_insertString(xpb, st, isc_spb_dbname, ZSTR_VAL(dbname));
-
-    fbp_dump_buffer(IXpbBuilder_getBufferLength(xpb, st), IXpbBuilder_getBuffer(xpb, st));
-
-    if (isc_service_start(FBG(status), &svc->svc_handle, NULL, IXpbBuilder_getBufferLength(xpb, st), IXpbBuilder_getBuffer(xpb, st))) {
+    if (fbp_service_restore(svc, bkpname_len, bkpname, dbname_len, dbname)) {
         update_err_props(FBG(status), FireBird_Service_ce, ZEND_THIS);
         RETURN_FALSE;
     }

@@ -303,19 +303,21 @@ int fbp_service_delete_user(firebird_service *svc, const char *username, ISC_USH
     return SUCCESS;
 }
 
-#define spb_insert_db(dbname, dbname_len) \
-    *p++ = isc_action_svc_properties; \
-    *p++ = isc_spb_dbname; \
-    ISC_UCHAR bytes_num = min(dbname_len, sizeof(buf) - (p - buf) - 2); \
-    fbp_store_portable_integer(p, bytes_num, 2); p += 2; \
-    memcpy(p, dbname, bytes_num); p += bytes_num
+#define spb_insert_db(dbname_len, dbname) spb_insert_str(isc_spb_dbname, dbname_len, dbname)
+#define spb_insert_str(tag, str_len, str) do {                             \
+        *p++ = tag;                                                        \
+        ISC_UCHAR bytes_count = min(str_len, sizeof(buf) - (p - buf) - 2); \
+        fbp_store_portable_integer(p, bytes_count, 2); p += 2;             \
+        memcpy(p, str, bytes_count); p += bytes_count;                     \
+    } while(0)
 
 int fbp_service_shutdown_db(firebird_service *svc, size_t dbname_len, char *dbname, ISC_UCHAR mode, ISC_ULONG timeout)
 {
     char buf[256] = {0};
     char *p = buf;
 
-    spb_insert_db(dbname, dbname_len);
+    *p++ = isc_action_svc_properties;
+    spb_insert_db(dbname_len, dbname);
     *p++ = isc_spb_prp_shutdown_db;
     fbp_store_portable_integer(p, timeout * 10, 4); p += 4;
     *p++ = isc_spb_prp_shutdown_mode;
@@ -334,7 +336,8 @@ int fbp_service_db_online(firebird_service *svc, size_t dbname_len, char *dbname
     char buf[256] = {0};
     char *p = buf;
 
-    spb_insert_db(dbname, dbname_len);
+    *p++ = isc_action_svc_properties;
+    spb_insert_db(dbname_len, dbname);
     *p++ = isc_spb_options;
     fbp_store_portable_integer(p, isc_spb_prp_db_online, 4); p += 4;
     *p++ = isc_spb_prp_online_mode;
@@ -353,7 +356,8 @@ int _fbp_service_db_maint_with_arg(firebird_service *svc, size_t dbname_len, cha
     char buf[256] = {0};
     char *p = buf;
 
-    spb_insert_db(dbname, dbname_len);
+    *p++ = isc_action_svc_properties;
+    spb_insert_db(dbname_len, dbname);
     *p++ = command;
     fbp_store_portable_integer(p, arg, 4); p += 4;
 
@@ -370,7 +374,8 @@ int _fbp_service_db_maint_with_tag(firebird_service *svc, size_t dbname_len, cha
     char buf[256] = {0};
     char *p = buf;
 
-    spb_insert_db(dbname, dbname_len);
+    *p++ = isc_action_svc_properties;
+    spb_insert_db(dbname_len, dbname);
     *p++ = command;
     *p++ = tag;
 
@@ -435,4 +440,69 @@ int fbp_service_disable_reserve_space(firebird_service *svc, size_t dbname_len, 
 int fbp_service_set_sql_dialect(firebird_service *svc, size_t dbname_len, char *dbname, ISC_ULONG dialect)
 {
     return _fbp_service_db_maint_with_arg(svc, dbname_len, dbname, isc_spb_prp_set_sql_dialect, dialect);
+}
+
+// Backup / restore service is just a wrapper around gbak utility.
+// Some args you can pass as flags/tags:
+//   isc_spb_res_create | isc_spb_res_replace via isc_spb_options for ibase_restore()
+//   isc_spb_verbose for both backup/restore as a tag
+//   isc_spb_bkp_length, isc_spb_res_length as 32-bit
+// Most other seems strings or buffers of some kind.
+// Response is streamed line by line as would gbak.
+// Not sure I want implement this today.
+// #define isc_spb_bkp_file                 5
+// #define isc_spb_bkp_factor               6
+// #define isc_spb_bkp_length               7
+// #define isc_spb_bkp_skip_data            string
+// #define isc_spb_bkp_stat                 15
+// #define isc_spb_bkp_keyholder			 16
+// #define isc_spb_bkp_keyname				 17
+// #define isc_spb_bkp_crypt				 18
+// #define isc_spb_bkp_include_data         string
+// #define isc_spb_bkp_parallel_workers	 21
+// #define isc_spb_bkp_ignore_checksums     0x01
+// #define isc_spb_bkp_ignore_limbo         0x02
+// #define isc_spb_bkp_metadata_only        0x04
+// #define isc_spb_bkp_no_garbage_collect   0x08
+// #define isc_spb_bkp_old_descriptions     0x10
+// #define isc_spb_bkp_non_transportable    0x20
+// #define isc_spb_bkp_convert              0x40
+// #define isc_spb_bkp_expand				 0x80
+// #define isc_spb_bkp_no_triggers			 0x8000
+// #define isc_spb_bkp_zip					 0x010000
+// #define isc_spb_bkp_direct_io			 0x020000
+int fbp_service_backup(firebird_service *svc, size_t dbname_len, char *dbname, size_t bkpname_len, char *bkpname)
+{
+    char buf[256] = {0};
+    char *p = buf;
+
+    *p++ = isc_action_svc_backup;
+    spb_insert_str(isc_spb_dbname, dbname_len, dbname);
+    spb_insert_str(isc_spb_bkp_file, bkpname_len, bkpname);
+
+    fbp_dump_buffer(p - buf, buf);
+
+    if (isc_service_start(FBG(status), &svc->svc_handle, NULL, (ISC_USHORT)(p - buf), buf)) {
+        return FAILURE;
+    }
+
+    return SUCCESS;
+}
+
+int fbp_service_restore(firebird_service *svc, size_t bkpname_len, char *bkpname, size_t dbname_len, char *dbname)
+{
+    char buf[256] = {0};
+    char *p = buf;
+
+    *p++ = isc_action_svc_restore;
+    spb_insert_str(isc_spb_dbname, dbname_len, dbname);
+    spb_insert_str(isc_spb_bkp_file, bkpname_len, bkpname);
+
+    fbp_dump_buffer(p - buf, buf);
+
+    if (isc_service_start(FBG(status), &svc->svc_handle, NULL, (ISC_USHORT)(p - buf), buf)) {
+        return FAILURE;
+    }
+
+    return SUCCESS;
 }

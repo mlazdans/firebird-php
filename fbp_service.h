@@ -38,5 +38,7 @@ int fbp_service_set_access_mode_readwrite(firebird_service *svc, size_t dbname_l
 int fbp_service_enable_reserve_space(firebird_service *svc, size_t dbname_len, char *dbname);
 int fbp_service_disable_reserve_space(firebird_service *svc, size_t dbname_len, char *dbname);
 int fbp_service_set_sql_dialect(firebird_service *svc, size_t dbname_len, char *dbname, ISC_ULONG dialect);
+int fbp_service_backup(firebird_service *svc, size_t dbname_len, char *dbname, size_t bkpname_len, char *bkpname);
+int fbp_service_restore(firebird_service *svc, size_t bkpname_len, char *bkpname, size_t dbname_len, char *dbname);
 
 #endif /* FBP_SERVICE_H */
