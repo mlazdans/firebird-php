@@ -352,6 +352,11 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Blob_open, 0, 0, _IS_BO
     ZEND_ARG_OBJ_INFO(0, id, FireBird\\Blob_id, 0)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_FireBird_Blob_seek, 0, 2, MAY_BE_LONG|MAY_BE_FALSE)
+    ZEND_ARG_TYPE_INFO(0, pos, IS_LONG, 0)
+    ZEND_ARG_TYPE_INFO(0, mode, IS_LONG, 0)
+ZEND_END_ARG_INFO()
+
 // TBuilder argument types
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_FireBird_TBuilder_wait, 0, 0, MAY_BE_STATIC)
     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, lock_timeout, IS_LONG, 0, "0")

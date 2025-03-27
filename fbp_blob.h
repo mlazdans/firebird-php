@@ -38,5 +38,6 @@ int fbp_blob_get(firebird_blob *blob, zval *return_value, size_t max_len);
 int fbp_blob_put(firebird_blob *blob, const char *buf, size_t buf_size);
 int fbp_blob_create(firebird_blob *blob);
 int fbp_blob_open(firebird_blob *blob);
+int fbp_blob_seek(firebird_blob *blob, ISC_LONG pos, ISC_UCHAR mode, ISC_LONG *new_pos);
 
 #endif /* FBP_BLOB_H */

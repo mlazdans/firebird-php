@@ -163,13 +163,18 @@ int fbp_blob_open(firebird_blob *blob)
 
     blob->is_writable = 0;
 
-    // ISC_LONG new_pos;
-    // status_exception::raise(Arg::Gds(isc_random) << "Seek mode must be 0 (START), 1 (CURRENT) or 2 (END)");
-    // isc_seek_blob(status_vector, blob_handle, mode, offset, result);
-    // if (isc_seek_blob(status, &blob->bl_handle, 0, 2, &new_pos)) {
-    //     return FAILURE;
-    // }
-    // FBDEBUG("blob_seek: new_pos=%d", new_pos);
+    return SUCCESS;
+}
+
+int fbp_blob_seek(firebird_blob *blob, ISC_LONG pos, ISC_UCHAR mode, ISC_LONG *new_pos)
+{
+    if (isc_seek_blob(FBG(status), &blob->bl_handle, mode, pos, new_pos)) {
+        return FAILURE;
+    }
+
+    FBDEBUG("blob_seek: new_pos=%d", *new_pos);
+
+    blob->position = *new_pos;
 
     return SUCCESS;
 }

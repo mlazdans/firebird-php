@@ -212,6 +212,26 @@ PHP_METHOD(Blob, create)
     RETVAL_BOOL(SUCCESS == FireBird_Blob_create(ZEND_THIS));
 }
 
+PHP_METHOD(Blob, seek)
+{
+    zend_long pos, mode;
+    ISC_LONG new_pos = 0;
+
+    ZEND_PARSE_PARAMETERS_START(2, 2)
+        Z_PARAM_LONG(pos)
+        Z_PARAM_LONG(mode)
+    ZEND_PARSE_PARAMETERS_END();
+
+    firebird_blob *blob = get_firebird_blob_from_zval(ZEND_THIS);
+
+    if (fbp_blob_seek(blob, pos, mode, &new_pos)) {
+        update_err_props(FBG(status), FireBird_Blob_ce, ZEND_THIS);
+        RETURN_FALSE;
+    }
+
+    RETURN_LONG(new_pos);
+}
+
 const zend_function_entry FireBird_Blob_methods[] = {
     PHP_ME(Blob, __construct, arginfo_FireBird_Blob___construct, ZEND_ACC_PUBLIC | ZEND_ACC_CTOR)
     PHP_ME(Blob, create, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
@@ -220,6 +240,7 @@ const zend_function_entry FireBird_Blob_methods[] = {
     PHP_ME(Blob, cancel, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
     PHP_ME(Blob, get, arginfo_FireBird_Blob_get, ZEND_ACC_PUBLIC)
     PHP_ME(Blob, put, arginfo_FireBird_Blob_put, ZEND_ACC_PUBLIC)
+    PHP_ME(Blob, seek, arginfo_FireBird_Blob_seek, ZEND_ACC_PUBLIC)
     PHP_FE_END
 };
 
