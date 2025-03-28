@@ -166,7 +166,7 @@ int fbp_blob_open(firebird_blob *blob)
     return SUCCESS;
 }
 
-int fbp_blob_seek(firebird_blob *blob, ISC_LONG pos, ISC_UCHAR mode, ISC_LONG *new_pos)
+int fbp_blob_seek(firebird_blob *blob, ISC_LONG pos, firebird_blob_seek_mode mode, ISC_LONG *new_pos)
 {
     if (isc_seek_blob(FBG(status), &blob->bl_handle, mode, pos, new_pos)) {
         return FAILURE;

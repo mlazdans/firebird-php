@@ -64,7 +64,7 @@ PHP_METHOD(Transaction, start) {
     FireBird_Transaction_start(ZEND_THIS, return_value);
 }
 
-static void _FireBird_Transaction_finalize(INTERNAL_FUNCTION_PARAMETERS, int mode)
+static void _FireBird_Transaction_finalize(INTERNAL_FUNCTION_PARAMETERS, firebird_tr_fin_flag mode)
 {
     ZEND_PARSE_PARAMETERS_NONE();
 

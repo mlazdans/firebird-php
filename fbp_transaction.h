@@ -1,11 +1,11 @@
 #ifndef FBP_TRANSACTION_H
 #define FBP_TRANSACTION_H
 
-enum firebird_tr_fin_flag {
+typedef enum {
     FBP_TR_ROLLBACK = 1,
     FBP_TR_COMMIT   = 2,
     FBP_TR_RETAIN   = 4,
-};
+} firebird_tr_fin_flag;
 
 #include <ibase.h>
 #include "php.h"
@@ -46,7 +46,7 @@ fbp_declare_object_accessor(firebird_trans);
 void fbp_transaction_ctor(firebird_trans *tr, firebird_db *db, firebird_tbuilder *builder);
 int fbp_transaction_start(firebird_trans *tr);
 int fbp_transaction_get_info(firebird_trans *tr);
-int fbp_transaction_finalize(firebird_trans *tr, int mode);
+int fbp_transaction_finalize(firebird_trans *tr, firebird_tr_fin_flag mode);
 int fbp_transaction_reconnect(firebird_trans *tr, ISC_ULONG id);
 void fbp_transaction_build_tpb(firebird_tbuilder *builder, char *tpb, unsigned short *tpb_len);
 

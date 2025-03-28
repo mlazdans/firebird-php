@@ -46,10 +46,12 @@
 #include "zend_interfaces.h"
 
 #include "blob.h"
+#include "fbp_blob.h"
 #include "database.h"
 #include "transaction.h"
 #include "statement.h"
 #include "service.h"
+#include "fbp_service.h"
 
 #define CHECK_LINK(link) { if (link==NULL) { php_error_docref(NULL, E_WARNING, "A link to the server could not be established"); RETURN_FALSE; } }
 
@@ -154,6 +156,18 @@ PHP_MINIT_FUNCTION(firebird)
 
     REGISTER_NS_LONG_CONSTANT("FireBird", "FETCH_BLOBS", FBP_FETCH_BLOBS, CONST_PERSISTENT);
     REGISTER_NS_LONG_CONSTANT("FireBird", "FETCH_UNIXTIME", FBP_FETCH_UNIXTIME, CONST_PERSISTENT);
+
+    REGISTER_NS_LONG_CONSTANT("FireBird", "BLOB_TYPE_SEGMENTED", FBP_BLOB_TYPE_SEGMENTED, CONST_PERSISTENT);
+    REGISTER_NS_LONG_CONSTANT("FireBird", "BLOB_TYPE_STREAMED", FBP_BLOB_TYPE_STREAMED, CONST_PERSISTENT);
+
+    REGISTER_NS_LONG_CONSTANT("FireBird", "SM_NORMAL", FBP_SM_NORMAL, CONST_PERSISTENT);
+    REGISTER_NS_LONG_CONSTANT("FireBird", "SM_MULTI", FBP_SM_MULTI, CONST_PERSISTENT);
+    REGISTER_NS_LONG_CONSTANT("FireBird", "SM_SINGLE", FBP_SM_SINGLE, CONST_PERSISTENT);
+    REGISTER_NS_LONG_CONSTANT("FireBird", "SM_FULL", FBP_SM_FULL, CONST_PERSISTENT);
+
+    REGISTER_NS_LONG_CONSTANT("FireBird", "BLOB_SEEK_START", FBP_BLOB_SEEK_START, CONST_PERSISTENT);
+    REGISTER_NS_LONG_CONSTANT("FireBird", "BLOB_SEEK_CURRENT", FBP_BLOB_SEEK_CURRENT, CONST_PERSISTENT);
+    REGISTER_NS_LONG_CONSTANT("FireBird", "BLOB_SEEK_END", FBP_BLOB_SEEK_END, CONST_PERSISTENT);
 
 #ifdef ZEND_SIGNALS
     // firebird replaces some signals at runtime, suppress warnings.

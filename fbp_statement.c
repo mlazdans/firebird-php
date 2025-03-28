@@ -346,7 +346,7 @@ int fbp_update_statement_info(firebird_stmt *stmt)
     return SUCCESS;
 }
 
-int fbp_statement_execute(firebird_stmt *stmt, zval *bind_args, uint32_t num_bind_args, enum firebird_stmt_execute_fn exfn_in)
+int fbp_statement_execute(firebird_stmt *stmt, zval *bind_args, uint32_t num_bind_args, firebird_stmt_execute_fn exfn_in)
 {
     /* has placeholders */
     if (stmt->in_sqlda != NULL && stmt->in_sqlda->sqld > 0) {
@@ -386,7 +386,7 @@ int fbp_statement_execute(firebird_stmt *stmt, zval *bind_args, uint32_t num_bin
         // CREATE DATABASE statement and have db_handle and trans_handle point
         // to handles with a NULL value.
 
-    enum firebird_stmt_execute_fn exfn = exfn_in;
+    firebird_stmt_execute_fn exfn = exfn_in;
 
     if (exfn == 0) {
         switch(stmt->statement_type) {

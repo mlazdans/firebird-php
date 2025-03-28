@@ -9,14 +9,14 @@ const FETCH_UNIXTIME = 2;
 const BLOB_TYPE_SEGMENTED = 0;
 const BLOB_TYPE_STREAMED  = 1;
 
+const BLOB_SEEK_START   = 0;
+const BLOB_SEEK_CURRENT = 1;
+const BLOB_SEEK_END     = 2;
+
 const SM_NORMAL = 0;
 const SM_MULTI  = 1;
 const SM_SINGLE = 2;
 const SM_FULL   = 3;
-
-const SEEK_START   = 0;
-const SEEK_CURRENT = 1;
-const SEEK_END     = 2;
 
 class Server_Info
 {

@@ -311,7 +311,7 @@ int fbp_service_delete_user(firebird_service *svc, const char *username, ISC_USH
         memcpy(p, str, bytes_count); p += bytes_count;                     \
     } while(0)
 
-int fbp_service_shutdown_db(firebird_service *svc, size_t dbname_len, char *dbname, ISC_UCHAR mode, ISC_ULONG timeout)
+int fbp_service_shutdown_db(firebird_service *svc, size_t dbname_len, char *dbname, firebird_shutdown_mode mode, ISC_ULONG timeout)
 {
     char buf[256] = {0};
     char *p = buf;
@@ -331,7 +331,7 @@ int fbp_service_shutdown_db(firebird_service *svc, size_t dbname_len, char *dbna
     return SUCCESS;
 }
 
-int fbp_service_db_online(firebird_service *svc, size_t dbname_len, char *dbname, ISC_UCHAR mode)
+int fbp_service_db_online(firebird_service *svc, size_t dbname_len, char *dbname, firebird_shutdown_mode mode)
 {
     char buf[256] = {0};
     char *p = buf;

@@ -342,7 +342,7 @@ void register_FireBird_Statement_ce()
     FireBird_Statement_object_handlers.free_obj = free_FireBird_Statement;
 }
 
-static int _php_firebird_var_zval(zval *val, void *data, int type, int len, int scale, int flags)
+static int _php_firebird_var_zval(zval *val, void *data, int type, int len, int scale, firebird_fetch_flag flags)
 {
     static ISC_INT64 const scales[] = { 1, 10, 100, 1000,
         10000,
@@ -500,7 +500,7 @@ format_date_time:
     return SUCCESS;
 }
 
-void FireBird_Statement_fetch(zval *Stmt, zval *return_value, int flags, int return_type)
+void FireBird_Statement_fetch(zval *Stmt, zval *return_value, firebird_fetch_flag flags, int return_type)
 {
     zval *result_arg;
     zend_long i;

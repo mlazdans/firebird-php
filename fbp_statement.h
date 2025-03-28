@@ -6,11 +6,11 @@
 
 #include "fbp_transaction.h"
 
-enum firebird_stmt_execute_fn {
+typedef enum {
     FBP_STMT_EXECUTE = 1,
     FBP_STMT_EXECUTE2,
     FBP_STMT_EXECUTE_IMMEDIATE,
-};
+} firebird_stmt_execute_fn;
 
 typedef struct firebird_bind_buf {
     union {
@@ -57,7 +57,7 @@ void fbp_statement_ctor(firebird_stmt *stmt, firebird_trans *tr);
 void fbp_statement_free(firebird_stmt *s);
 int fbp_update_statement_info(firebird_stmt *stmt);
 int fbp_statement_prepare(firebird_stmt *stmt, const ISC_SCHAR *sql);
-int fbp_statement_execute(firebird_stmt *stmt, zval *bind_args, uint32_t num_bind_args, enum firebird_stmt_execute_fn exfn_in);
+int fbp_statement_execute(firebird_stmt *stmt, zval *bind_args, uint32_t num_bind_args, firebird_stmt_execute_fn exfn_in);
 int fbp_statement_bind(firebird_stmt *stmt, XSQLDA *sqlda, zval *b_vars);
 
 #endif /* FBP_STATEMENT_H */

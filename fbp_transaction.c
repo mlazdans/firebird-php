@@ -99,7 +99,7 @@ int fbp_transaction_get_info(firebird_trans *tr)
     return SUCCESS;
 }
 
-int fbp_transaction_finalize(firebird_trans *tr, int mode)
+int fbp_transaction_finalize(firebird_trans *tr, firebird_tr_fin_flag mode)
 {
     ISC_STATUS result;
 
