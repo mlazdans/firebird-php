@@ -357,6 +357,15 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_FireBird_Blob_seek, 0, 2, MAY_BE
     ZEND_ARG_TYPE_INFO(0, mode, IS_LONG, 0)
 ZEND_END_ARG_INFO()
 
+// Blob_Id argument types
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_FireBird_Blob_Id_to_legacy_id, 0, 1, MAY_BE_STRING)
+    ZEND_ARG_OBJ_INFO(0, id, FireBird\\Blob_id, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Blob_Id_from_legacy_id, 0, 1, FireBird\\Blob_Id, MAY_BE_FALSE)
+    ZEND_ARG_TYPE_INFO(0, legacy_id, IS_STRING, 0)
+ZEND_END_ARG_INFO()
+
 // TBuilder argument types
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_FireBird_TBuilder_wait, 0, 0, MAY_BE_STATIC)
     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, lock_timeout, IS_LONG, 0, "0")

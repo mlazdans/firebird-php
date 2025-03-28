@@ -39,5 +39,7 @@ int fbp_blob_put(firebird_blob *blob, const char *buf, size_t buf_size);
 int fbp_blob_create(firebird_blob *blob);
 int fbp_blob_open(firebird_blob *blob);
 int fbp_blob_seek(firebird_blob *blob, ISC_LONG pos, ISC_UCHAR mode, ISC_LONG *new_pos);
+int fbp_blob_id_to_string(ISC_QUAD const qd, size_t buf_len, char *buf);
+int fbp_blob_id_to_quad(size_t id_len, char const *id, ISC_QUAD *qd);
 
 #endif /* FBP_BLOB_H */

@@ -327,11 +327,58 @@ static void FireBird_Blob_Id_free_obj(zend_object *obj)
     zend_object_std_dtor(&blob_id->std);
 }
 
+PHP_METHOD(Blob_Id, __construct)
+{
+}
+
+PHP_METHOD(Blob_Id, to_legacy_id)
+{
+    zval *Blob_Id;
+
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+        Z_PARAM_OBJECT_OF_CLASS(Blob_Id, FireBird_Blob_Id_ce)
+    ZEND_PARSE_PARAMETERS_END();
+
+    char buf[BLOB_ID_LEN+1];
+    firebird_blob_id *blob_id = get_firebird_blob_id_from_zval(Blob_Id);
+
+    int size = fbp_blob_id_to_string(blob_id->bl_id, sizeof(buf), buf);
+
+    RETURN_STRINGL(buf, size);
+}
+
+PHP_METHOD(Blob_Id, from_legacy_id)
+{
+    char *id;
+    size_t id_len;
+
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+        Z_PARAM_STRING(id, id_len)
+    ZEND_PARSE_PARAMETERS_END();
+
+    char buf[BLOB_ID_LEN+1];
+
+    object_init_ex(return_value, FireBird_Blob_Id_ce);
+    firebird_blob_id *blob_id = get_firebird_blob_id_from_zval(return_value);
+
+    if (fbp_blob_id_to_quad(id_len, id, &blob_id->bl_id)) {
+        zval_ptr_dtor(return_value);
+        RETURN_FALSE;
+    }
+}
+
+const zend_function_entry FireBird_Blob_Id_methods[] = {
+    PHP_ME(Blob_Id, __construct, arginfo_none, ZEND_ACC_PRIVATE | ZEND_ACC_CTOR)
+    PHP_ME(Blob_Id, to_legacy_id, arginfo_FireBird_Blob_Id_to_legacy_id, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
+    PHP_ME(Blob_Id, from_legacy_id, arginfo_FireBird_Blob_Id_from_legacy_id, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
+    PHP_FE_END
+};
+
 void register_FireBird_Blob_Id_ce()
 {
     zend_class_entry tmp_ce;
 
-    INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "Blob_Id", NULL);
+    INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "Blob_Id", FireBird_Blob_Id_methods);
     FireBird_Blob_Id_ce = zend_register_internal_class(&tmp_ce);
 
     FireBird_Blob_Id_ce->create_object = FireBird_Blob_Id_create;

@@ -60,12 +60,6 @@
 - transaction over more databases: if (isc_start_transaction(status, &trans1, 2, &db1, 0, NULL, &db2, 0, NULL))
 - add private __construct() to classes that is not constructable from PHP. Or accept appropriate object to construc, for exampl, new Transaction($connection)
 
-## Blob
-
-- seek (for streaming blobs)
-- add type (segmented / streamed) information to blob info
-- blob __toString() return old style blob id
-
 ## Statement
 
 - isc_info_sql_get_plan, isc_info_sql_explain_plan and other information

@@ -6,7 +6,7 @@ const FETCH_BLOBS    = 1;
 const FETCH_UNIXTIME = 2;
 
 const BLOB_TYPE_SEGMENTED = 0;
-const BLOB_STREAMED       = 1;
+const BLOB_TYPE_STREAMED  = 1;
 
 const SM_NORMAL = 0;
 const SM_MULTI  = 1;
@@ -144,6 +144,12 @@ class Var_Info
 class Blob_Id
 {
     private function __construct() {}
+
+    /** @return string */
+    static function to_legacy_id() {}
+
+    /** @return Blob_Id|false */
+    static function from_legacy_id(string $legacy_id) {}
 }
 
 interface IError

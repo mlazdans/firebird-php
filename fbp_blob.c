@@ -178,3 +178,30 @@ int fbp_blob_seek(firebird_blob *blob, ISC_LONG pos, ISC_UCHAR mode, ISC_LONG *n
 
     return SUCCESS;
 }
+
+int fbp_blob_id_to_string(ISC_QUAD const qd, size_t buf_len, char *buf)
+{
+    /* shortcut for most common case */
+    if (sizeof(ISC_QUAD) == sizeof(ISC_UINT64)) {
+        return slprintf(buf, buf_len, "0x%0*" LL_MASK "x", 16, *(ISC_UINT64*)(void *) &qd);
+    } else {
+        ISC_UINT64 res = ((ISC_UINT64) qd.gds_quad_high << 0x20) | qd.gds_quad_low;
+        return slprintf(buf, buf_len, "0x%0*" LL_MASK "x", 16, res);
+    }
+}
+
+int fbp_blob_id_to_quad(size_t id_len, char const *id, ISC_QUAD *qd)
+{
+    /* shortcut for most common case */
+    if (sizeof(ISC_QUAD) == sizeof(ISC_UINT64)) {
+        return sscanf(id, BLOB_ID_MASK, (ISC_UINT64 *) qd) > 0 ? SUCCESS : FAILURE;
+    } else {
+        ISC_UINT64 res;
+        if (sscanf(id, BLOB_ID_MASK, &res) > 0) {
+            qd->gds_quad_high = (ISC_LONG) (res >> 0x20);
+            qd->gds_quad_low = (ISC_LONG) (res & 0xFFFFFFFF);
+            return SUCCESS;
+        }
+        return FAILURE;
+    }
+}
