@@ -56,9 +56,7 @@
 ## General
 
 - Collect opened statements/transactions/blobs/etc and report leaks
-- isc_dsql_execute_immediate w/o prepare
 - transaction over more databases: if (isc_start_transaction(status, &trans1, 2, &db1, 0, NULL, &db2, 0, NULL))
-- add private __construct() to classes that is not constructable from PHP. Or accept appropriate object to construc, for exampl, new Transaction($connection)
 
 ## Statement
 

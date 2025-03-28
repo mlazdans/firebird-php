@@ -1,5 +1,6 @@
 <?php declare(strict_types = 1);
 
+// TODO: add documentation
 namespace FireBird;
 
 const FETCH_BLOBS    = 1;
@@ -235,6 +236,7 @@ class Database implements IError
     /** @return bool */
     function on_event(string $name, callable $f) {}
 
+    // TODO: remove TBuilder. This should be passed on Transaction::start()
     /** @return Transaction */
     function new_transaction(?TBuilder $tb = null) {}
 
@@ -257,6 +259,7 @@ class Transaction implements IError
     protected(set) Database $database;
     protected(set) TBuilder $builder;
 
+    // TODO: move TBuilder to connect
     function __construct(Database $database, ?TBuilder $builder = null) {}
 
     /** @return bool */
