@@ -68,3 +68,5 @@ Expected b->position=5, actual=5
 FireBird\Blob::open(): Argument #1 ($id) must be of type FireBird\Blob_Id, null given
 cannot update old BLOB
 invalid BLOB handle
+Seeked data: Put number: 4
+Seeked data: Put number: 8

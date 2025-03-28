@@ -127,6 +127,20 @@ require_once('functions.inc');
     $b->put("This should not be possible") or print "$b->error_msg\n";
     $b->close() or print_error_and_die("blob close", $b);
     $b->close() or print "$b->error_msg\n";
+
+    $q = query_or_die($t, "SELECT ID, BLOB_1 FROM $table WHERE ID = 5");
+
+    $r = $q->fetch_object() or print_error_and_die("was expecing a row", $q);
+    $b = $t->open_blob($r->BLOB_1) or print_error_and_die("open blob", $t);
+
+    $b->seek(4 * (strlen("Put number: 0") + 1), \FireBird\BLOB_SEEK_START) or print_error_and_die("seek", $b);
+    $data = $b->get(strlen("Put number: 0") + 1);
+    print "Seeked data: $data";
+
+    $b->seek(-2 * (strlen("Put number: 0") + 1), \FireBird\BLOB_SEEK_END) or print_error_and_die("seek", $b);
+    $data = $b->get(strlen("Put number: 0") + 1);
+    print "Seeked data: $data";
+    $b->close() or print_error_and_die("blob close", $b);
 })();
 
 ?>
