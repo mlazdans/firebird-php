@@ -221,8 +221,22 @@ PHP_MSHUTDOWN_FUNCTION(firebird)
     return SUCCESS;
 }
 
+static void _free_events(firebird_event *p, firebird_event *prev)
+{
+    if (p == NULL) {
+        if (prev) {
+            efree(prev);
+        }
+    } else {
+        _free_events(p->next, p);
+        efree(p);
+    }
+}
+
 PHP_RSHUTDOWN_FUNCTION(firebird)
 {
+    _free_events(fb_events.events, fb_events.events ? fb_events.events->next : NULL);
+
     return SUCCESS;
 }
 
