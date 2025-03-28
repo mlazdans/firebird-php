@@ -94,7 +94,7 @@ typedef struct firebird_event {
     zval retval;
     enum firebird_event_state { NEW, ACTIVE, DEAD } state;
 
-    zval instance;
+    // zval instance;
     struct firebird_event *next;
 
     zend_object std;

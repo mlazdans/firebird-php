@@ -8,6 +8,8 @@
 zend_class_entry *FireBird_Event_ce;
 static zend_object_handlers FireBird_Event_object_handlers;
 
+firebird_events fb_events = {0};
+
 PHP_METHOD(Event, __construct)
 {
 }
@@ -83,6 +85,16 @@ static void FireBird_Event_free_obj(zend_object *obj)
 
     firebird_event *event = get_firebird_event_from_obj(obj);
 
+    // zval_ptr_dtor(&event->instance);
+
+    // firebird_event *p = fb_events.events;
+
+    // for (int i = fb_events.count; i >= 0; i++ ){
+    //     firebird_event *event = get_firebird_event_from_zval(p->instance);
+    // }
+    // fb_events.events = event;
+    // fb_events.count++;
+
     zend_object_std_dtor(&event->std);
 }
 
@@ -105,8 +117,6 @@ void register_FireBird_Event_ce()
     FireBird_Event_object_handlers.offset = XtOffsetOf(firebird_event, std);
     FireBird_Event_object_handlers.free_obj = FireBird_Event_free_obj;
 }
-
-firebird_events fb_events = {0};
 
 // TODO: most likely won't work in threaded environment or with multi database connections
 void event_ast_routine(void *__ev, ISC_USHORT length, const ISC_UCHAR *result_buffer)

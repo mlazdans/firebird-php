@@ -271,11 +271,10 @@ PHP_METHOD(Database, on_event)
 
     firebird_db *db = get_firebird_db_from_zval(ZEND_THIS);
 
-    zval ievent;
-    object_init_ex(&ievent, FireBird_Event_ce);
-
-    firebird_event *event = get_firebird_event_from_zval(&ievent);
-    ZVAL_COPY(&event->instance, &ievent);
+    // zval ievent;
+    // object_init_ex(&ievent, FireBird_Event_ce);
+    // firebird_event *event = get_firebird_event_from_zval(&ievent);
+    firebird_event *event = emalloc(sizeof(firebird_event));
 
     // zval *f;
     // zend_fcall_info fci;
@@ -304,12 +303,15 @@ PHP_METHOD(Database, on_event)
 
     if (isc_que_events(FBG(status), event->db_handle, &event->event_id, event->buff_len, event->event_buffer, event_ast_routine, NULL)) {
         update_err_props(FBG(status), FireBird_Database_ce, ZEND_THIS);
-        zval_ptr_dtor(&ievent);
+        // zval_ptr_dtor(&ievent);
         RETURN_FALSE;
     }
 
     fb_events.events = event;
     fb_events.count++;
+
+    // ZVAL_COPY(&event->instance, &ievent);
+    // zval_ptr_dtor(&ievent);
 
     RETURN_TRUE;
 }
