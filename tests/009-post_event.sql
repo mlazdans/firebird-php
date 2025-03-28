@@ -1,0 +1,17 @@
+CREATE OR ALTER PROCEDURE PROC_EVENT
+AS
+DECLARE VARIABLE I INTEGER;
+BEGIN
+    IN AUTONOMOUS TRANSACTION DO BEGIN
+        POST_EVENT 'TEST1';
+        POST_EVENT 'TEST2';
+    END
+    -- I = 100;
+    -- WHILE (i > 0) DO BEGIN
+    --     -- IN AUTONOMOUS TRANSACTION DO BEGIN
+    --         POST_EVENT 'TEST1';
+    --         POST_EVENT 'TEST2';
+    --     -- END
+    --     I = I - 1;
+    -- END
+END
