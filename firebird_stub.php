@@ -215,17 +215,25 @@ class Service_Connect_Args
     var string $password;
 }
 
+class Connector implements IError
+{
+    use Fb_Error;
+
+    /** @return Database|false */
+    function connect(Connect_Args $args) {}
+
+    /** @return Database|false */
+    function create(Create_Args $args) {}
+}
+
 class Database implements IError
 {
     use Fb_Error;
 
+    private function __construct() {
+    }
+
     protected(set) Connect_Args|Create_Args $args;
-
-    /** @return bool */
-    function connect(Connect_Args $args) {}
-
-    /** @return bool */
-    function create(Create_Args $args) {}
 
     /** @return bool */
     function drop() {}
@@ -236,7 +244,6 @@ class Database implements IError
     /** @return bool */
     function on_event(string $name, callable $f) {}
 
-    // TODO: remove TBuilder. This should be passed on Transaction::start()
     /** @return Transaction */
     function new_transaction(?TBuilder $tb = null) {}
 
@@ -259,7 +266,6 @@ class Transaction implements IError
     protected(set) Database $database;
     protected(set) TBuilder $builder;
 
-    // TODO: move TBuilder to connect
     function __construct(Database $database, ?TBuilder $builder = null) {}
 
     /** @return bool */

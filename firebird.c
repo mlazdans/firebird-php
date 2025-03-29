@@ -45,6 +45,7 @@
 #include "SAPI.h"
 #include "zend_interfaces.h"
 
+#include "connector.h"
 #include "blob.h"
 #include "fbp_blob.h"
 #include "database.h"
@@ -178,6 +179,7 @@ PHP_MINIT_FUNCTION(firebird)
     register_FireBird_Create_Args_ce();
     register_FireBird_IError_ce();
     register_FireBird_Error_ce();
+    register_FireBird_Connector_ce();
     register_FireBird_Database_ce();
     register_FireBird_Transaction_ce();
     register_FireBird_Statement_ce();

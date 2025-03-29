@@ -49,8 +49,8 @@ require_once('functions.inc');
     $args->database = $limbo_database_path;
 
     $printer = function() use ($args) {
-        $db = new \FireBird\Database();
-        $db->connect($args)                   or print_error_and_die("2nd connection", $db);
+        $conn = new \FireBird\Connector;
+        $db = $conn->connect($args)                   or print_error_and_die("2nd connection", $conn);
         $t = $db->new_transaction()                 or print_error_and_die("new_transaction", $db);
         $t->start()                                   or print_error_and_die("transaction start", $t);
         $q = $t->query("SELECT BLOB_1 FROM TEST_001") or print_error_and_die("query", $t);
@@ -63,8 +63,8 @@ require_once('functions.inc');
     };
 
     $get_limbo_array = function() use ($args) {
-        $db = new \FireBird\Database();
-        $db->connect($args) or print_error_and_die("limbo connection", $db);
+        $conn = new \FireBird\Connector;
+        $db = $conn->connect($args) or print_error_and_die("limbo connection", $conn);
 
         if(false === ($limbo = $db->get_limbo_transactions(100))) {
             print_error_and_die("get_limbo_transactions", $db);
@@ -77,9 +77,9 @@ require_once('functions.inc');
     $get_limbo_array();
 
     $reconnecter = function(int $tr_id) use ($args) {
-        $db = new \FireBird\Database();
+        $conn = new \FireBird\Connector;
 
-        $db->connect($args)               or print_error_and_die("3rd connection", $db);
+        $db = $conn->connect($args)               or print_error_and_die("3rd connection", $conn);
         $t = $db->reconnect_transaction($tr_id) or print_error_and_die("reconnect_transaction", $db);
         $t->commit()                              or print_error_and_die("commit", $t);
         $db->disconnect()                       or print_error_and_die("disconnect3", $db);
@@ -94,9 +94,9 @@ require_once('functions.inc');
 
     // Test reconnect to a bogus transaction
     (function(int $tr_id) use ($args) {
-        $db = new \FireBird\Database();
+        $conn = new \FireBird\Connector;
 
-        $db->connect($args)               or print_error_and_die("4th connection", $db);
+        $db = $conn->connect($args)               or print_error_and_die("4th connection", $conn);
         if(false === $db->reconnect_transaction($tr_id)) {
             print_error("reconnect_transaction", $db);
         } else {
@@ -106,8 +106,8 @@ require_once('functions.inc');
     })(999);
 
     // Drop
-    $db = new \FireBird\Database();
-    $db->connect($args)  or print_error_and_die("4th connection", $db);
+    $conn = new \FireBird\Connector;
+    $db = $conn->connect($args)  or print_error_and_die("4th connection", $conn);
     $db->drop()          or print_error_and_die("drop", $db);
 
     unlink($share_path);

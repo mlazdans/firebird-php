@@ -188,15 +188,16 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_bool_return_none, 0, 0, 0)
     ZEND_ARG_TYPE_INFO(0, enable, _IS_BOOL, 0)
 ZEND_END_ARG_INFO()
 
-// Database argument types
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Database_connect, 0, 1, _IS_BOOL, 0)
+// Connector argument types
+ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Connector_connect, 0, 1, FireBird\\Database, MAY_BE_FALSE)
     ZEND_ARG_OBJ_INFO(0, args, FireBird\\Connect_Args, 0)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_new_FireBird_Database, 0, 1, _IS_BOOL, 0)
+ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Connector_create, 0, 1, FireBird\\Database, MAY_BE_FALSE)
     ZEND_ARG_OBJ_INFO(0, args, FireBird\\Create_Args, 0)
 ZEND_END_ARG_INFO()
 
+// Database argument types
 ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Database_get_info, 0, 0, FireBird\\Db_Info, MAY_BE_FALSE)
 ZEND_END_ARG_INFO()
 

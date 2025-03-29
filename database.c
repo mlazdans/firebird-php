@@ -17,32 +17,6 @@ zend_class_entry *FireBird_Create_Args_ce;
 
 static zend_object_handlers FireBird_Database_object_handlers;
 
-int FireBird_Database_connect(zval *Db, zval *Connect_Args)
-{
-    firebird_db *db = get_firebird_db_from_zval(Db);
-
-    if (fbp_database_connect(db, Connect_Args)) {
-        update_err_props(FBG(status), FireBird_Database_ce, Db);
-        return FAILURE;
-    }
-
-    OBJ_SET(FireBird_Database_ce, Db, "args", Connect_Args);
-
-    return SUCCESS;
-}
-
-PHP_METHOD(Database, connect)
-{
-    zval *Connect_Args = NULL;
-    firebird_db *db = get_firebird_db_from_zval(ZEND_THIS);
-
-    ZEND_PARSE_PARAMETERS_START(1, 1)
-        Z_PARAM_OBJECT_OF_CLASS(Connect_Args, FireBird_Connect_Args_ce)
-    ZEND_PARSE_PARAMETERS_END();
-
-    RETVAL_BOOL(SUCCESS == FireBird_Database_connect(ZEND_THIS, Connect_Args));
-}
-
 // Flags used by createDatabase() jrd/jrd.cpp
 // ✅ dpb_sweep_interval
 // dpb_length
@@ -73,31 +47,6 @@ PHP_METHOD(Database, connect)
 // dpb_session_tz
 // dpb_set_force_write
 // ✅ dpb_force_write
-
-int FireBird_Database_create(zval *Db, zval *Create_Args)
-{
-    firebird_db *db = get_firebird_db_from_zval(Db);
-
-    if (fbp_database_create(db, Create_Args)) {
-        update_err_props(FBG(status), FireBird_Database_ce, Db);
-        return FAILURE;
-    }
-
-    OBJ_SET(FireBird_Database_ce, Db, "args", Create_Args);
-
-    return SUCCESS;
-}
-
-PHP_METHOD(Database, create)
-{
-    zval *Create_Args = NULL;
-
-    ZEND_PARSE_PARAMETERS_START(1, 1)
-        Z_PARAM_OBJECT_OF_CLASS(Create_Args, FireBird_Create_Args_ce)
-    ZEND_PARSE_PARAMETERS_END();
-
-    RETVAL_BOOL(SUCCESS == FireBird_Database_create(ZEND_THIS, Create_Args));
-}
 
 PHP_METHOD(Database, drop)
 {
@@ -430,9 +379,12 @@ free:
     }
 }
 
+PHP_METHOD(Database, __construct)
+{
+}
+
 const zend_function_entry FireBird_Database_methods[] = {
-    PHP_ME(Database, connect, arginfo_FireBird_Database_connect, ZEND_ACC_PUBLIC)
-    PHP_ME(Database, create, arginfo_new_FireBird_Database, ZEND_ACC_PUBLIC)
+    PHP_ME(Database, __construct, arginfo_none, ZEND_ACC_PRIVATE | ZEND_ACC_CTOR)
     PHP_ME(Database, drop, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
     PHP_ME(Database, get_info, arginfo_FireBird_Database_get_info, ZEND_ACC_PUBLIC)
     PHP_ME(Database, on_event, arginfo_FireBird_Database_on_event, ZEND_ACC_PUBLIC)

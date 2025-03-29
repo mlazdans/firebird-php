@@ -206,7 +206,7 @@ function args_apply_defaults(\FireBird\Create_Args|\FireBird\Connect_Args  $args
 
 function init_tmp_db(string $db_file = "", string $charset = "", bool $drop = true): \FireBird\Database
 {
-    $db = new \FireBird\Database;
+    $conn = new \FireBird\Connector;
 
     if(empty($db_file)){
         $args = new \FireBird\Create_Args;
@@ -216,15 +216,16 @@ function init_tmp_db(string $db_file = "", string $charset = "", bool $drop = tr
         args_apply_defaults($args);
         // overrides
         if($charset)$args->set_db_charset = $charset;
-        if($db->create($args)) {
+        if($db = $conn->create($args)) {
             register_shutdown_function(function() use ($db, $drop) {
                 if($drop && !$db->drop()) {
                     print_error_and_die("drop", $db);
                 }
             });
             return $db;
+        } else {
+            print_error_and_die("create", $conn);
         }
-        print_error_and_die("create", $db);
     } else {
         $args = new \FireBird\Connect_Args;
         $args->database = Config::$host.":$db_file";
@@ -232,15 +233,16 @@ function init_tmp_db(string $db_file = "", string $charset = "", bool $drop = tr
         // overrides
         if($charset)$args->charset = $charset;
 
-        if($db->connect($args)) {
+        if($db = $conn->connect($args)) {
             register_shutdown_function(function() use ($db, $drop) {
                 if($drop && !$db->disconnect()) {
                     print_error_and_die("disconnect", $db);
                 }
             });
             return $db;
+        } else {
+            print_error_and_die("connect", $conn);
         }
-        print_error_and_die("connect", $db);
     }
 }
 
