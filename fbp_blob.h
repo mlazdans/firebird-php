@@ -29,8 +29,8 @@ typedef struct firebird_blob_id {
 } firebird_blob_id;
 
 typedef enum {
-    FBP_BLOB_TYPE_SEGMENTED = 0,
-    FBP_BLOB_TYPE_STREAMED  = 1,
+    FBP_BLOB_TYPE_SEGMENTED = isc_bpb_type_segmented,
+    FBP_BLOB_TYPE_STREAMED  = isc_bpb_type_stream,
 } firebird_blob_type;
 
 typedef enum {

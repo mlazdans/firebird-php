@@ -140,7 +140,10 @@ int fbp_blob_put(firebird_blob *blob, const char *buf, size_t buf_size)
 
 int fbp_blob_create(firebird_blob *blob)
 {
-    char bpb[] = { isc_bpb_version1, isc_bpb_type, 1, isc_bpb_type_stream };
+    char bpb[] = {
+        isc_bpb_version1,
+        isc_bpb_type, 1, isc_bpb_type_stream
+    };
 
     if (isc_create_blob2(FBG(status), blob->db_handle, blob->tr_handle, &blob->bl_handle, &blob->bl_id, sizeof(bpb), bpb) ||
         fbp_blob_get_info(blob)) {
@@ -154,7 +157,10 @@ int fbp_blob_create(firebird_blob *blob)
 
 int fbp_blob_open(firebird_blob *blob)
 {
-    char bpb[] = { isc_bpb_version1, isc_bpb_type, 1, isc_bpb_type_stream };
+    char bpb[] = {
+        isc_bpb_version1,
+        isc_bpb_type, 1, isc_bpb_type_stream
+    };
 
     if (isc_open_blob2(FBG(status), blob->db_handle, blob->tr_handle, &blob->bl_handle, &blob->bl_id, sizeof(bpb), bpb) ||
         fbp_blob_get_info(blob)) {
