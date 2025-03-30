@@ -41,7 +41,6 @@ mkinstalldirs
 modules
 run-tests.php
 tmp-php.ini
-yaml.loT
 
 # General Ignores
 *~
@@ -68,6 +67,7 @@ yaml.loT
 .FBCLockFolder
 core
 *.dep
+*.loT
 
 # Test specific Ignores
 tests/*.diff
