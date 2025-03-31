@@ -1,7 +1,13 @@
 --TEST--
 FireBird: events
 --SKIPIF--
-<?php include("skipif.inc"); ?>
+<?php
+
+require_once('functions.inc');
+include("skipif.inc");
+if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') print "skip Broken on windows\n";
+
+?>
 --FILE--
 <?php declare(strict_types = 1);
 

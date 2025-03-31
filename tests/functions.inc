@@ -4,7 +4,7 @@ namespace FireBirdTests;
 
 require_once(__DIR__."/config.inc");
 
-srand(((int)microtime(true)));
+srand(((int)microtime(true)*1000000));
 
 class Mon_Transaction
 {
@@ -178,6 +178,7 @@ function exec_from_file_ddl(\FireBird\Transaction $t, string $file_name): bool
 
 function gen_random_db_file_name_or_die(): string
 {
+    srand(((int)microtime(true)*1000000));
     $database = Config::$tmp_root."/fbp_test".md5((string)rand());
 
     if(!empty(Config::$host))$database = Config::$host.":$database";
