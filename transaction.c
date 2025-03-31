@@ -340,7 +340,7 @@ static void free_FireBird_Transaction(zend_object *obj)
 {
     firebird_trans *tr = get_firebird_trans_from_obj(obj);
 
-    FBDEBUG("free_FireBird_Transaction: *%p: %zu", tr->tr_handle, tr->tr_handle ? *tr->tr_handle : 0);
+    FBDEBUG("free_FireBird_Transaction: *%p = %zu", tr->tr_handle, tr->tr_handle ? *tr->tr_handle : 0);
 
     // MAYBE: not to close automatically in some strict mode or smth
     if(tr->tr_handle && *tr->tr_handle && !tr->is_prepared_2pc) {

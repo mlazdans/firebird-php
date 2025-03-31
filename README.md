@@ -1,4 +1,38 @@
-# Current progress
+# Firebird modern PHP extension
+
+This project aims to repackage the old [ibase](https://www.php.net/ibase)
+extension into a more modern PHP framework. Internal resource types have been
+removed and replaced with a more modern object-oriented interface. Most of the
+ibase features have now been implemented; however, development is still in
+progress, and the API is not yet stable. Current development environment: PHP
+8.4.4 NTS, Firebird 5.0.2, Debian 12 (64-bit).
+
+# Some examples
+```php
+<?php declare(strict_types = 1);
+
+$args = new \FireBird\Connect_Args;
+$args->database = "localhost/3070:/opt/db/test.fdb";
+$args->user_name = "sysdba";
+$args->password = "masterkey";
+
+$db = (new \FireBird\Connector)->connect($args);
+$t = $db->new_transaction();
+$t->start();
+$q = $t->query("SELECT * FROM TEST_TABLE");
+while ($r = $q->fetch_object(\FireBird\FETCH_BLOBS)) {
+    print_r($r);
+}
+
+```
+
+Check out example with full error checking: [examples/error_checking.php](examples/error_checking.php)
+
+PHP stub file: [firebird_stub.php](firebird_stub.php)
+
+# TODO
+
+## Current progress
 
 |     | Function                  | Notes |
 | --- | ------------------------- |  ---  |
@@ -51,11 +85,10 @@
 |✅    | ibase_trans              |      |
 |❌    | ibase_wait_event         |      |
 
-# TODO
-
 ## General
 
 - Collect opened and not closed statements/transactions/blobs/etc and report
+- Test on Windows and different PHP versions.
 
 ## Statement
 
@@ -70,7 +103,7 @@ IStatement::createBatch, IAttachment::createBatch
 - When handling bulk inserts with RETURNING values.
 - When performing batch deletes/updates efficiently.
 
-## Arrays
+# Arrays
 
 Is it worth even supporting array type? Firebird docs thinks not:
 https://firebirdsql.org/file/documentation/html/en/refdocs/fblangref50/firebird-50-language-reference.html#fblangref50-datatypes-array
