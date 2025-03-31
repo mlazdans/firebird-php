@@ -16,7 +16,6 @@ PHP_METHOD(Event, __construct)
 
 PHP_METHOD(Event, consume)
 {
-    ISC_STATUS_ARRAY status;
     firebird_event *event = fb_events.events;
 
     while (event) {
@@ -47,8 +46,8 @@ PHP_METHOD(Event, consume)
         if (event->posted_count > 0) {
             event->posted_count = 0;
             if (Z_TYPE(event->retval) == IS_TRUE) {
-                if (isc_que_events(status, event->db_handle, &event->event_id, event->buff_len, event->event_buffer, event_ast_routine, NULL)) {
-                    update_err_props(status, FireBird_Event_ce, ZEND_THIS);
+                if (isc_que_events(FBG(status), event->db_handle, &event->event_id, event->buff_len, event->event_buffer, event_ast_routine, NULL)) {
+                    update_err_props(FBG(status), FireBird_Event_ce, ZEND_THIS);
                     RETURN_FALSE;
                 }
             }
@@ -142,7 +141,6 @@ void event_ast_routine(void *__ev, ISC_USHORT length, const ISC_UCHAR *result_bu
         return;
     }
 
-    ISC_STATUS_ARRAY status;
     ISC_ULONG counts[1] = { 0 };
 
     current_event->buff_len = length;
@@ -160,8 +158,8 @@ void event_ast_routine(void *__ev, ISC_USHORT length, const ISC_UCHAR *result_bu
 
     if (current_event->state == NEW) {
         current_event->state = ACTIVE;
-        if (isc_que_events(status, current_event->db_handle, &current_event->event_id, length, current_event->event_buffer, event_ast_routine, NULL)) {
-            fbp_status_error(status);
+        if (isc_que_events(FBG(status), current_event->db_handle, &current_event->event_id, length, current_event->event_buffer, event_ast_routine, NULL)) {
+            fbp_status_error(FBG(status));
         }
     } else if (current_event->state == ACTIVE) {
         current_event->posted_count += counts[0];
