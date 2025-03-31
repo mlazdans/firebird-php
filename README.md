@@ -1,5 +1,7 @@
 # Firebird modern PHP extension
 
+:warning: Development is still in progress, and the API is not yet stable.
+
 This project aims to repackage the old [ibase](https://www.php.net/ibase)
 extension into a more modern PHP framework. Internal resource types have been
 removed and replaced with a more modern object-oriented interface. Most of the
