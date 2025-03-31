@@ -302,6 +302,16 @@ ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Transaction_create_blob, 0, 0, FireBird\\Blob, MAY_BE_FALSE)
 ZEND_END_ARG_INFO()
 
+// Multi transaction argument types
+ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_INFO_EX(arginfo_FireBird_Multi_Transaction_add_db, 0, 1, FireBird\\Transaction, 0)
+    ZEND_ARG_OBJ_INFO(0, database, FireBird\\Database, 0)
+    ZEND_ARG_OBJ_INFO(0, builder, FireBird\\TBuilder, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Multi_Transaction_prepare_2pc, 0, 0, _IS_BOOL, 0)
+    ZEND_ARG_TYPE_INFO(0, description, IS_STRING, 0)
+ZEND_END_ARG_INFO()
+
 // Statement argument types
 ZEND_BEGIN_ARG_INFO_EX(arginfo_FireBird_Statement___construct, 0, 0, 1)
     ZEND_ARG_OBJ_INFO(0, transaction, FireBird\\Transaction, 0)

@@ -20,7 +20,7 @@ static zend_object_handlers object_handlers_FireBird_Transaction;
 void FireBird_Transaction___construct(zval *Tr, zval *Database, zval *Builder)
 {
     OBJ_SET(FireBird_Transaction_ce, Tr, "database", Database);
-    if (Builder) {
+    if (Builder && !ZVAL_IS_NULL(Builder)) {
         OBJ_SET(FireBird_Transaction_ce, Tr, "builder", Builder);
     }
 
@@ -70,7 +70,7 @@ static void _FireBird_Transaction_finalize(INTERNAL_FUNCTION_PARAMETERS, firebir
 
     firebird_trans *tr = get_firebird_trans_from_zval(ZEND_THIS);
 
-    if (fbp_transaction_finalize(tr, mode)) {
+    if (fbp_transaction_finalize(tr->tr_handle, mode)) {
         update_err_props(FBG(status), FireBird_Transaction_ce, ZEND_THIS);
         RETURN_FALSE;
     } else {
@@ -300,7 +300,7 @@ PHP_METHOD(Transaction, prepare_2pc)
 
     firebird_trans *tr = get_firebird_trans_from_zval(ZEND_THIS);
 
-    if (isc_prepare_transaction(FBG(status), &tr->tr_handle)) {
+    if (isc_prepare_transaction(FBG(status), tr->tr_handle)) {
         update_err_props(FBG(status), FireBird_Transaction_ce, ZEND_THIS);
         RETURN_FALSE;
     }
@@ -338,16 +338,14 @@ static zend_object *new_FireBird_Transaction(zend_class_entry *ce)
 
 static void free_FireBird_Transaction(zend_object *obj)
 {
-    FBDEBUG("free_FireBird_Transaction");
-
     firebird_trans *tr = get_firebird_trans_from_obj(obj);
 
+    FBDEBUG("free_FireBird_Transaction: *%p: %zu", tr->tr_handle, tr->tr_handle ? *tr->tr_handle : 0);
+
     // MAYBE: not to close automatically in some strict mode or smth
-    if(tr->tr_handle && !tr->is_prepared_2pc) {
-        if(isc_rollback_transaction(FBG(status), &tr->tr_handle)) {
+    if(tr->tr_handle && *tr->tr_handle && !tr->is_prepared_2pc) {
+        if(isc_rollback_transaction(FBG(status), tr->tr_handle)) {
             fbp_status_error(FBG(status));
-        } else {
-            tr->tr_handle = 0;
         }
     }
 

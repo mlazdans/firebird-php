@@ -56,7 +56,7 @@ void FireBird_Blob___construct(zval *Blob, zval *Transaction)
     firebird_trans *tr = get_firebird_trans_from_zval(Transaction);
     firebird_blob *blob = get_firebird_blob_from_zval(Blob);
 
-    fbp_blob_ctor(blob, tr->db_handle, &tr->tr_handle);
+    fbp_blob_ctor(blob, tr->db_handle, tr->tr_handle);
 
     OBJ_SET(FireBird_Blob_ce, Blob, "transaction", Transaction);
 }
@@ -267,8 +267,6 @@ static void free_FireBird_Blob(zend_object *obj)
     if (blob->bl_handle) {
         if (fbp_blob_close(blob)) {
             fbp_status_error(FBG(status));
-        } else {
-            blob->bl_handle = 0;
         }
     }
 

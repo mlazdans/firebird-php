@@ -52,6 +52,7 @@
 #include "transaction.h"
 #include "statement.h"
 #include "service.h"
+#include "multi_transaction.h"
 #include "fbp_service.h"
 
 #define CHECK_LINK(link) { if (link==NULL) { php_error_docref(NULL, E_WARNING, "A link to the server could not be established"); RETURN_FALSE; } }
@@ -194,6 +195,7 @@ PHP_MINIT_FUNCTION(firebird)
     register_FireBird_Server_Db_Info_ce();
     register_FireBird_Server_User_Info_ce();
     register_FireBird_TBuilder_ce();
+    register_FireBird_Multi_Transaction_ce();
 
     return SUCCESS;
 }

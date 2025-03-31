@@ -417,8 +417,6 @@ static void free_FireBird_Database(zend_object *obj)
     if(db->db_handle) {
         if(isc_detach_database(FBG(status), &db->db_handle)) {
             fbp_status_error(FBG(status));
-        } else {
-            db->db_handle = 0;
         }
     }
 

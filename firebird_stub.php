@@ -230,8 +230,7 @@ class Database implements IError
 {
     use Fb_Error;
 
-    private function __construct() {
-    }
+    private function __construct() {}
 
     protected(set) Connect_Args|Create_Args $args;
 
@@ -255,6 +254,34 @@ class Database implements IError
 
     /** @return int[]|false */
     function get_limbo_transactions(int $max_count) {}
+}
+
+class Multi_Transaction implements IError
+{
+    use Fb_Error;
+
+    function __construct() {}
+
+    /** @return Transaction */
+    function add_db(Database $database, ?TBuilder $builder = null) {}
+
+    /** @return bool */
+    function start() {}
+
+    /** @return bool */
+    function commit() {}
+
+    /** @return bool */
+    function commit_ret() {}
+
+    /** @return bool */
+    function rollback() {}
+
+    /** @return bool */
+    function rollback_ret() {}
+
+    /** @return bool */
+    function prepare_2pc(?string $description = null) {}
 }
 
 // TODO: auto commit/rollback flag?

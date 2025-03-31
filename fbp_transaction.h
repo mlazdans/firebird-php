@@ -29,25 +29,34 @@ typedef struct firebird_tbuilder {
     zend_object std;
 } firebird_tbuilder;
 
-fbp_declare_object_accessor(firebird_tbuilder);
-
 typedef struct firebird_trans {
-    isc_tr_handle tr_handle;
+    // I want to be able to set this pointer to, for example, to tr_handle from
+    // multi transaction, so it could be shared between databases. In standard
+    // transactions this should point to real_tr_handle
+    isc_tr_handle *tr_handle;
     isc_db_handle *db_handle;
     firebird_tbuilder *builder;
     ISC_UINT64 tr_id;
     unsigned short is_prepared_2pc;
+    isc_tr_handle real_tr_handle;
 
     zend_object std;
 } firebird_trans;
 
+typedef struct firebird_teb {
+    isc_db_handle *db_handle;
+    int tpb_len;
+    char *tpb;
+} firebird_teb;
+
+fbp_declare_object_accessor(firebird_tbuilder);
 fbp_declare_object_accessor(firebird_trans);
 
 void fbp_transaction_ctor(firebird_trans *tr, firebird_db *db, firebird_tbuilder *builder);
 int fbp_transaction_start(firebird_trans *tr);
 int fbp_transaction_get_info(firebird_trans *tr);
-int fbp_transaction_finalize(firebird_trans *tr, firebird_tr_fin_flag mode);
+int fbp_transaction_finalize(isc_tr_handle *tr_handle, firebird_tr_fin_flag mode);
 int fbp_transaction_reconnect(firebird_trans *tr, ISC_ULONG id);
-void fbp_transaction_build_tpb(firebird_tbuilder *builder, char *tpb, unsigned short *tpb_len);
+void fbp_transaction_build_tpb(firebird_tbuilder *builder, char *tpb, int *tpb_len);
 
 #endif /* FBP_TRANSACTION_H */

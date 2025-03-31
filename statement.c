@@ -305,8 +305,6 @@ static void free_FireBird_Statement(zend_object *obj)
     if (stmt->stmt_handle) {
         if (isc_dsql_free_statement(FBG(status), &stmt->stmt_handle, DSQL_drop)) {
             fbp_status_error(FBG(status));
-        } else {
-            stmt->stmt_handle = 0;
         }
     }
 

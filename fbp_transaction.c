@@ -10,7 +10,8 @@ fbp_object_accessor(firebird_tbuilder);
 
 void fbp_transaction_ctor(firebird_trans *tr, firebird_db *db, firebird_tbuilder *builder)
 {
-    tr->tr_handle = 0;
+    tr->real_tr_handle = 0;
+    tr->tr_handle = &tr->real_tr_handle;
     tr->tr_id = 0;
     tr->db_handle = &db->db_handle;
     tr->is_prepared_2pc = 0;
@@ -20,18 +21,14 @@ void fbp_transaction_ctor(firebird_trans *tr, firebird_db *db, firebird_tbuilder
 int fbp_transaction_start(firebird_trans *tr)
 {
     char tpb[TPB_MAX_SIZE];
-    unsigned short tpb_len = 0;
+    int tpb_len = 0;
 
     if (tr->builder != NULL) {
         fbp_transaction_build_tpb(tr->builder, tpb, &tpb_len);
         assert(tpb_len <= sizeof(tpb));
     }
 
-    // TODO: isc_start_multiple, isc_prepare_transaction, isc_prepare_transaction2
-    // isc_start_multiple()       - Begins a new transaction against multiple databases.
-    // isc_prepare_transaction()  - Executes the first phase of a two-phase commit against multiple databases.
-    // isc_prepare_transaction2() - Performs the first phase of a two-phase commit for multi-database transactions.
-    if(isc_start_transaction(FBG(status), &tr->tr_handle, 1, tr->db_handle, tpb_len, tpb)) {
+    if(isc_start_transaction(FBG(status), tr->tr_handle, 1, tr->db_handle, tpb_len, tpb)) {
         return FAILURE;
     }
 
@@ -47,7 +44,7 @@ int fbp_transaction_get_info(firebird_trans *tr)
     static char info_req[] = { isc_info_tra_id };
     char info_resp[(sizeof(ISC_INT64) * 2)] = { 0 };
 
-    if (isc_transaction_info(FBG(status), &tr->tr_handle, sizeof(info_req), info_req, sizeof(info_resp), info_resp)) {
+    if (isc_transaction_info(FBG(status), tr->tr_handle, sizeof(info_req), info_req, sizeof(info_resp), info_resp)) {
         return FAILURE;
     }
 
@@ -99,24 +96,24 @@ int fbp_transaction_get_info(firebird_trans *tr)
     return SUCCESS;
 }
 
-int fbp_transaction_finalize(firebird_trans *tr, firebird_tr_fin_flag mode)
+int fbp_transaction_finalize(isc_tr_handle *tr_handle, firebird_tr_fin_flag mode)
 {
     ISC_STATUS result;
 
     if (mode == FBP_TR_COMMIT) {
-        result = isc_commit_transaction(FBG(status), &tr->tr_handle);
+        result = isc_commit_transaction(FBG(status), tr_handle);
     } else if (mode == (FBP_TR_ROLLBACK | FBP_TR_RETAIN)) {
-        result = isc_rollback_retaining(FBG(status), &tr->tr_handle);
+        result = isc_rollback_retaining(FBG(status), tr_handle);
     } else if (mode == (FBP_TR_COMMIT | FBP_TR_RETAIN)) {
-        result = isc_commit_retaining(FBG(status), &tr->tr_handle);
+        result = isc_commit_retaining(FBG(status), tr_handle);
     } else {
-        result = isc_rollback_transaction(FBG(status), &tr->tr_handle);
+        result = isc_rollback_transaction(FBG(status), tr_handle);
     }
 
     return result;
 }
 
-void fbp_transaction_build_tpb(firebird_tbuilder *builder, char *tpb, unsigned short *tpb_len)
+void fbp_transaction_build_tpb(firebird_tbuilder *builder, char *tpb, int *tpb_len)
 {
     char *p = tpb;
 
@@ -186,7 +183,7 @@ void fbp_transaction_build_tpb(firebird_tbuilder *builder, char *tpb, unsigned s
 
 int fbp_transaction_reconnect(firebird_trans *tr, ISC_ULONG id)
 {
-    if (isc_reconnect_transaction(FBG(status), tr->db_handle, &tr->tr_handle, sizeof(id), (const ISC_SCHAR *)&id)) {
+    if (isc_reconnect_transaction(FBG(status), tr->db_handle, tr->tr_handle, sizeof(id), (const ISC_SCHAR *)&id)) {
         return FAILURE;
     }
 

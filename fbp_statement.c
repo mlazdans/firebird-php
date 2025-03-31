@@ -38,7 +38,7 @@ void fbp_statement_ctor(firebird_stmt *stmt, firebird_trans *tr)
 {
     stmt->stmt_handle = 0;
     stmt->db_handle = tr->db_handle;
-    stmt->tr_handle = &tr->tr_handle;
+    stmt->tr_handle = tr->tr_handle;
 }
 
 void fbp_alloc_xsqlda(XSQLDA *sqlda)

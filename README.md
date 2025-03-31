@@ -48,7 +48,7 @@
 |✅    | ibase_service_attach     |      |
 |✅    | ibase_service_detach     |      |
 |✅    | ibase_set_event_handler  | Via event loop |
-|⏳    | ibase_trans              | TODO: multi database transactions |
+|✅    | ibase_trans              |      |
 |❌    | ibase_wait_event         |      |
 
 # TODO

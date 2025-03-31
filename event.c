@@ -61,7 +61,7 @@ PHP_METHOD(Event, consume)
 }
 
 const zend_function_entry FireBird_Event_methods[] = {
-    PHP_ME(Event, __construct, arginfo_none, ZEND_ACC_PRIVATE)
+    PHP_ME(Event, __construct, arginfo_none, ZEND_ACC_PRIVATE | ZEND_ACC_CTOR)
     // PHP_ME(Event, resume, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
     PHP_ME(Event, consume, arginfo_none_return_bool, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
     PHP_FE_END
