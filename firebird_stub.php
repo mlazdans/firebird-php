@@ -1,17 +1,57 @@
 <?php declare(strict_types = 1);
 
-// TODO: add documentation
+/**
+ * This stub  is *NOT* for arginfo generation!
+ */
+
 namespace FireBird;
 
-const FETCH_BLOBS    = 1;
+/**
+ * Option for Statement\fetch functions to return blob fields as strings.
+ * @var int
+ */
+const FETCH_BLOBS = 1;
+
+/**
+ * Option for Statement\fetch functions to return date/time related fields as timestamps.
+ * @var int
+ */
 const FETCH_UNIXTIME = 2;
 
+/**
+ * Option to check if Used Blob->type is segmented.
+ * @see Blob::$type
+ * @var int
+ */
 const BLOB_TYPE_SEGMENTED = 0;
-const BLOB_TYPE_STREAMED  = 1;
 
-const BLOB_SEEK_START   = 0;
+/**
+ * Option to check if Used Blob->type is streamed.
+ * @see Blob::$type
+ * @var int
+ */
+const BLOB_TYPE_STREAMED = 1;
+
+/**
+ * Option to seek blob from start position. Applies only on streamed blob type.
+ * @see Blob::seek()
+ * @var int
+ */
+const BLOB_SEEK_START = 0;
+
+/**
+ * Option to seek blob from current position. Applies only on streamed blob type.
+ * @see Blob::seek()
+ * @var int
+ */
 const BLOB_SEEK_CURRENT = 1;
-const BLOB_SEEK_END     = 2;
+
+/**
+ * Option to seek blob from end position. Applies only on streamed blob type.
+ * @see Blob::seek()
+ * @var int
+ */
+const BLOB_SEEK_END = 2;
 
 const SM_NORMAL = 0;
 const SM_MULTI  = 1;
@@ -146,41 +186,84 @@ class Blob_Id
 {
     private function __construct() {}
 
-    /** @return string */
+    /**
+     * @return string returns blob id in a format used in PHP ibase extension
+     * */
     static function to_legacy_id() {}
 
-    /** @return Blob_Id|false */
+    /**
+     * Converts from string format used in PHP ibase extension to Blob_id
+     *
+     * @return Blob_Id|false returns false if could not parse input
+     * */
     static function from_legacy_id(string $legacy_id) {}
 }
 
 interface IError
 {
-    public string $error_msg { get; }    // Combined multi-line error message from $errors
-    public int $error_code { get; }      // Last error_code from $errors
-    public int $error_code_long { get; } // Last error_code_long from $errors
-
-    public string $error_file { get; }   // PHP file
-    public int $error_lineno { get; }    // PHP file's line number
-
-    /** @var Error[]  */
+    public string $error_msg { get; }
+    public int $error_code { get; }
+    public int $error_code_long { get; }
+    public string $error_file { get; }
+    public int $error_lineno { get; }
     public array $errors { get; }
-
-    public string $sqlstate { get; }     // SQLSTATE codes are standard five-character error codes defined by SQL standards
+    public string $sqlstate { get; }
 }
 
-// There is no internal trait. Used for stub only
+/**
+ * This interface is used throughout most of FireBird classes to keep track all errors.
+ * There is no internal trait. Used for stub only.
+ */
 trait Fb_Error
 {
-    protected(set) string $error_msg;
-    protected(set) int $error_code;
-    protected(set) int $error_code_long;
+    /**
+     * Combined multi-line error message from errors array.
+     * @see $errors
+     */
+    public string $error_msg { get; }
 
-    protected(set) string $error_file;
-    protected(set) int $error_lineno;
+    /**
+     * Most recent error code
+     */
+    public int $error_code { get; }
 
-    protected(set) array $errors;        // array of all Firebird errors
+    /**
+     * Most recent long error code
+     */
+    public int $error_code_long { get; }
 
-    protected(set) string $sqlstate;
+    /**
+     * PHP file where error occurred
+     */
+    public string $error_file { get; }
+
+    /**
+     * PHP line number where error occurred
+     */
+    public int $error_lineno { get; }
+
+    /**
+     * Firebird can report multiple errors and arror codes at the same time.
+     * Array of Error object of all errors in order of appearance
+     *
+     * @var Error[]
+     */
+    public array $errors { get; }
+
+    /**
+     * Stores SQLSTATE code.
+     *
+     * The structure of an SQLSTATE error code is five characters comprising the
+     * SQL error class (2 characters) and the SQL subclass (3 characters).
+     *
+     * Although Firebird tries to use SQLSTATE codes defined in ISO/IEC 9075
+     * (the SQL standard), some are non-standard or derive from older standards
+     * like X/Open SQL for historic reasons.
+     *
+     * @link https://firebirdsql.org/file/documentation/html/en/refdocs/fblangref50/firebird-50-language-reference.html#fblangref50-appx02-sqlstates
+     *
+     */
+    public string $sqlstate { get; }
 }
 
 class Connect_Args
@@ -230,6 +313,9 @@ class Database implements IError
 {
     use Fb_Error;
 
+    /**
+     * Do not instantiate this class directly. Use Connector::connect() or Connector::create() instead.
+     */
     private function __construct() {}
 
     protected(set) Connect_Args|Create_Args $args;
@@ -240,13 +326,41 @@ class Database implements IError
     /** @return Db_Info|false */
     function get_info() {}
 
-    /** @return bool */
+    /**
+     * Installs event handler. Currently, the user of this function must
+     * organize the event loop manually and consume them.
+     *
+     * Events in Firebird can happend multiple times while PHP is processing
+     * other stuff.
+     *
+     * Simplified example event loop:
+     * <code>
+     * <?php
+     * $db->on_event("TEST1", function(int $count) {
+     *     print "Event was posted: $count times\n";
+     * });
+     *
+     * while (true) {
+     *     \FireBird\Event::consume();
+     * }
+     *</code>
+     *
+     * @param callable $f function that accepts single integer argument (posted
+     * event count)
+     * @return bool
+     *
+     * */
     function on_event(string $name, callable $f) {}
 
     /** @return Transaction */
     function new_transaction(?TBuilder $tb = null) {}
 
-    /** @return Transaction|false */
+    /**
+     * Connect to a transaction in limbo.
+     *
+     * @see get_limbo_transactions()
+     * @return Transaction|false
+     * */
     function reconnect_transaction(int $id) {}
 
     /** @return bool */
@@ -262,7 +376,15 @@ class Multi_Transaction implements IError
 
     function __construct() {}
 
-    /** @return Transaction */
+    /**
+     * Adds a database to Multi_Transaction.
+     *
+     * Returns Transaction object you can now query and execute on. Any attempt
+     * to commit/rollback on returned transaction object will result in whole
+     * multi transaction commit/rollback.
+     *
+     * @return Transaction
+     * */
     function add_db(Database $database, ?TBuilder $builder = null) {}
 
     /** @return bool */
@@ -280,7 +402,13 @@ class Multi_Transaction implements IError
     /** @return bool */
     function rollback_ret() {}
 
-    /** @return bool */
+    /**
+     * Prepares multi transaction for two-phase commit.
+     *
+     * Optional description will be available in RDB$TRANSACTIONS table.
+     *
+     * @return bool
+     * */
     function prepare_2pc(?string $description = null) {}
 }
 
@@ -322,7 +450,11 @@ class Transaction implements IError
     /** @return Blob|false */
     function create_blob() {}
 
-    /** @return bool */
+    /**
+     * Prepares transaction for two-phase commit.
+     *
+     * @return bool
+     * */
     function prepare_2pc() {}
 
     /**
@@ -348,13 +480,33 @@ class Statement implements IError
 
     function __construct(Transaction $transaction) {}
 
-    /** @return object|false|null */
+    /**
+     * Fetch row as object.
+     *
+     * Returns an object with the row information, false on error or null if there are no more rows
+     *
+     * @see FETCH_BLOBS, FETCH_UNIXTIME
+     * @return object|false|null
+     * */
     function fetch_object(int $flags = 0) {}
 
-    /** @return array|false|null */
+    /**
+     * Fetch row as associative array.
+     *
+     * Returns an array with the row information, false on error or null if there are no more rows
+     *
+     * @see FETCH_BLOBS, FETCH_UNIXTIME
+     * @return array|false|null
+     * */
     function fetch_array(int $flags = 0) {}
 
-    /** @return array|false|null */
+    /**
+     * Fetch row as indexed array.
+     *
+     * Returns an array with the row information, false on error or null if there are no more rows
+     *
+     * @see FETCH_BLOBS, FETCH_UNIXTIME
+     * @return array|false|null */
     function fetch_row(int $flags = 0) {}
 
     /** @return bool */
@@ -372,13 +524,34 @@ class Statement implements IError
     /** @return bool */
     function free() {}
 
-    /** @return Var_Info|false */
+    /**
+     * Gets information about inbound variable from a statement.
+     *
+     * @see $num_vars_in
+     * @return Var_Info|false
+     * */
     function get_var_info_in(int $num) {}
 
-    /** @return Var_Info|false */
+    /**
+     * Gets information about outbound variable from a statement.
+     *
+     * @see $num_vars_out
+     * @return Var_Info|false
+     * */
     function get_var_info_out(int $num) {}
 
-    /** @return bool */
+    /**
+     * Set a cursor name for a dynamic request.
+     *
+     * To be able to use the WHERE CURRENT OF clause in DSQL, the cursor name
+     * needs to be set on the statement handle before executing the statement.
+     *
+     * SELECT 0 FROM TEST_TABLE WHERE ID < 67 FOR UPDATE;
+     *
+     * UPDATE TEST_TABLE SET FIELD_1 = ? WHERE CURRENT OF my_cursor_name;
+     *
+     * @return bool
+     * */
     function set_name(string $name) {}
 }
 
@@ -458,17 +631,27 @@ class Service implements IError
     /** @return bool */
     function restore(string $bkp_file, string $dbname, int $options = 0) {}
 
-    // ibase_maintain_db() functions below
-
-    // The shutdown request also requires the type of shutdown to be specified, viz., one of
-    //   isc_spb_prp_force_shutdown
-    //   isc_spb_prp_attachments_shutdown
-    //   isc_spb_prp_transactions_shutdown
-
-    /** @return bool */
+    /**
+     * Shuts down the database when:
+     *   There are no connections to the database, or
+     *   At the end of the timeout period you specify
+     *
+     * @param string $dbname path to database (on service machine)
+     * @param int $mode shutdown mode
+     * @see SM_NORMAL, SM_MULTI, SM_SINGLE, SM_FULL
+     * @param int $timeout wait timeout in seconds
+     * @return bool
+     * */
     function shutdown_db(string $dbname, int $mode = 0, int $timeout = 0) {}
 
-    /** @return bool */
+    /**
+     * Bring a shutdown database back online
+     *
+     * @param string $dbname path to database (on service machine)
+     * @param int $mode shutdown mode
+     * @see SM_NORMAL, SM_MULTI, SM_SINGLE, SM_FULL
+     * @return bool
+     * */
     function db_online(string $dbname, int $mode = 0) {}
 
     /** @return bool */

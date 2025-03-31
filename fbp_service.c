@@ -311,6 +311,10 @@ int fbp_service_delete_user(firebird_service *svc, const char *username, ISC_USH
         memcpy(p, str, bytes_count); p += bytes_count;                     \
     } while(0)
 
+// The shutdown request also requires the type of shutdown to be specified, viz., one of
+//   isc_spb_prp_force_shutdown
+//   isc_spb_prp_attachments_shutdown
+//   isc_spb_prp_transactions_shutdown
 int fbp_service_shutdown_db(firebird_service *svc, size_t dbname_len, char *dbname, firebird_shutdown_mode mode, ISC_ULONG timeout)
 {
     char buf[256] = {0};
