@@ -25,10 +25,11 @@ $q = $t->query("SELECT * FROM TEST_TABLE");
 while ($r = $q->fetch_object(\FireBird\FETCH_BLOBS)) {
     print_r($r);
 }
-
 ```
 
-Check out example with full error checking: [examples/error_checking.php](examples/error_checking.php)
+Example with error checking: [examples/error_checking.php](examples/error_checking.php)
+
+Some example code can be fetched from [tests](tests/)
 
 PHP stub file: [firebird_stub.php](firebird_stub.php)
 
