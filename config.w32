@@ -1,17 +1,17 @@
 // vim:ft=javascript
 
-ARG_WITH("interbase", "InterBase support", "no");
+ARG_WITH("firebird", "Include Firebird support. DIR is the Firebird base install directory", "no");
 
-if (PHP_INTERBASE != "no") {
+if (PHP_FIREBIRD != "no") {
     if (
-        CHECK_HEADER_ADD_INCLUDE("ibase.h", "CFLAGS_INTERBASE", PHP_INTERBASE + "\\include") && (
-            CHECK_LIB("fbclient_ms.lib", "interbase", PHP_INTERBASE + "\\lib") ||
-            CHECK_LIB("gds32_ms.lib", "interbase", PHP_INTERBASE + "\\lib")
+        CHECK_HEADER_ADD_INCLUDE("ibase.h", "CFLAGS_FIREBIRD", PHP_FIREBIRD + "\\include") && (
+            CHECK_LIB("fbclient_ms.lib", "firebird", PHP_FIREBIRD + "\\lib") ||
+            CHECK_LIB("gds32_ms.lib", "firebird", PHP_FIREBIRD + "\\lib")
         )
     ) {
-        EXTENSION("interbase", "interbase.c ibase_query.c ibase_service.c ibase_events.c ibase_blobs.c pdo_firebird_utils.cpp", PHP_INTERBASE_SHARED, "/DZEND_ENABLE_STATIC_TSRMLS_CACHE=1");
-        AC_DEFINE('HAVE_FIREBIRD', 1, 'Have interbase library');
+        EXTENSION("firebird", "firebird.c fbp_database.c database.c fbp_transaction.c transaction.c fbp_statement.c statement.c fbp_blob.c blob.c error.c var_info.c event.c fbp_service.c service.c tbuilder.c connector.c multi_transaction.c fbp_multi_transaction.c pdo_firebird_utils.cpp", PHP_FIREBIRD_SHARED, "/DZEND_ENABLE_STATIC_TSRMLS_CACHE=1");
+        AC_DEFINE('HAVE_FIREBIRD', 1, 'Have firebird library');
     } else {
-        WARNING("interbase not enabled; libraries and headers not found");
+        WARNING("firebird not enabled; libraries and headers not found");
     }
 }

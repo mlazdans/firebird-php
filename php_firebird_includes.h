@@ -49,8 +49,8 @@
 #define FBDEBUG(format, ...) if(FBG(debug))php_printf(format " (%s:%d)\n" __VA_OPT__(,) __VA_ARGS__, __FILE__, __LINE__);
 #define FBDEBUG_NOFL(format, ...) if(FBG(debug))php_printf(format "\n" __VA_OPT__(,) __VA_ARGS__);
 #else
-#define FBDEBUG(args...)
-#define FBDEBUG_NOFL(format, ...)
+#define FBDEBUG(...)
+#define FBDEBUG_NOFL(...)
 #endif
 
 #define FIREBIRD_DATE_FMT "%Y-%m-%d"
@@ -71,13 +71,19 @@ typedef struct firebird_xpb_zmap {
     const short count;
 } firebird_xpb_zmap;
 
-#define XPB_ZMAP_INIT(t, n, z) (firebird_xpb_zmap) { \
-    .tags = t,                \
-    .names = n,               \
-    .ztypes = z,              \
-    .count = ARRAY_SIZE(t)    \
-};                            \
-_Static_assert(ARRAY_SIZE(t) == ARRAY_SIZE(n) && ARRAY_SIZE(n) == ARRAY_SIZE(z), "Array sizes do not match");
+#define _XPB_ZMAP_INIT(t, n, z) { \
+    .tags = t,                    \
+    .names = n,                   \
+    .ztypes = z,                  \
+    .count = ARRAY_SIZE(t)        \
+}
+
+#ifndef _MSC_VER
+#define XPB_ZMAP_INIT(t, n, z) _XPB_ZMAP_INIT(t, n, z); \
+_Static_assert(ARRAY_SIZE(t) == ARRAY_SIZE(n) && ARRAY_SIZE(n) == ARRAY_SIZE(z), "Array sizes do not match")
+#else
+#define XPB_ZMAP_INIT(t, n, z) _XPB_ZMAP_INIT(t, n, z)
+#endif
 
 typedef struct firebird_event {
     ISC_LONG event_id;
@@ -443,12 +449,12 @@ void event_ast_routine(void *_ev, ISC_USHORT length, const ISC_UCHAR *result_buf
     strct *get_ ##strct## _from_obj(const zend_object *obj); \
     strct *get_ ##strct## _from_zval(const zval *zv)
 
-#define fbp_object_accessor(strct)                                               \
-    zend_always_inline strct *get_ ##strct## _from_obj(const zend_object *obj) { \
-        return (strct*)((char*)(obj) - XtOffsetOf(strct, std));                  \
-    }                                                                            \
-    zend_always_inline strct *get_ ##strct## _from_zval(const zval *zv) {        \
-        return get_ ##strct## _from_obj(Z_OBJ_P(zv));                            \
+#define fbp_object_accessor(strct)                              \
+    strct *get_ ##strct## _from_obj(const zend_object *obj) {   \
+        return (strct*)((char*)(obj) - XtOffsetOf(strct, std)); \
+    }                                                           \
+    strct *get_ ##strct## _from_zval(const zval *zv) {          \
+        return get_ ##strct## _from_obj(Z_OBJ_P(zv));           \
     }
 
 // fbp_declare_object_accessor(zend_fiber);
@@ -457,9 +463,15 @@ fbp_declare_object_accessor(firebird_event);
 void fbp_error_ex(long level, char *, ...)
     PHP_ATTRIBUTE_FORMAT(printf,2,3);
 
+#ifdef PHP_WIN32
+#define fbp_fatal(msg, ...)   fbp_error_ex(E_ERROR,   msg " (%s:%d)\n", ## __VA_ARGS__, __FILE__, __LINE__)
+#define fbp_warning(msg, ...) fbp_error_ex(E_WARNING, msg " (%s:%d)\n", ## __VA_ARGS__, __FILE__, __LINE__)
+#define fbp_notice(msg, ...)  fbp_error_ex(E_NOTICE,  msg " (%s:%d)\n", ## __VA_ARGS__, __FILE__, __LINE__)
+#else
 #define fbp_fatal(msg, ...)   fbp_error_ex(E_ERROR,   msg " (%s:%d)\n" __VA_OPT__(,) __VA_ARGS__, __FILE__, __LINE__)
 #define fbp_warning(msg, ...) fbp_error_ex(E_WARNING, msg " (%s:%d)\n" __VA_OPT__(,) __VA_ARGS__, __FILE__, __LINE__)
 #define fbp_notice(msg, ...)  fbp_error_ex(E_NOTICE,  msg " (%s:%d)\n" __VA_OPT__(,) __VA_ARGS__, __FILE__, __LINE__)
+#endif
 
 #define fbp_status_error(status) fbp_status_error_ex(status, __FILE__, __LINE__)
 

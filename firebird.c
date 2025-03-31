@@ -27,6 +27,10 @@
 #include "config.h"
 #endif
 
+#ifdef PHP_WIN32
+#include "config.w32.h"
+#endif
+
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
 #endif
