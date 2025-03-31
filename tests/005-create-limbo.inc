@@ -18,7 +18,11 @@ require_once('functions.inc');
         // Create table
         $t = $db->new_transaction()                              or print_error_and_die("new_transaction", $db);
         $t->start()                                                or print_error_and_die("transaction start", $t);
-        $t->query(load_file_or_die(Config::$pwd."/001-table.sql")) or print_error_and_die("create table", $t);
+
+        if(!exec_from_file_ddl($t, "001-table.sql")) {
+            print_error_and_die("create_table", $t);
+        }
+
         $t->commit_ret()                                           or print_error_and_die("commit_ret", $t);
 
         // First insert some data via standard transaction

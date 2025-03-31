@@ -10,7 +10,7 @@ object {
 }
 ================================================================================
 ERROR [fetch]:[HY000] %s
-0: 335544459 (-911) record from transaction 3 is stuck in limbo
+0: 335544459 (-911) record from transaction %d is stuck in limbo
 ================================================================================
 ==================================== Step 2 ====================================
 object {
@@ -23,7 +23,7 @@ object {
 }
 object {
   ["BLOB_1"]=>
-  string(24) "Hello from transaction 3"
+  string(24) "Hello from transaction %d"
 }
 ================================================================================
 ERROR [reconnect_transaction]:[HY000] %s

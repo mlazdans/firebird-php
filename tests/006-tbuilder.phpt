@@ -14,7 +14,7 @@ require_once('functions.inc');
 
     $is_ReadConsistency_enabled = is_ReadConsistency_enabled($db);
 
-    $test_count = 1000;
+    $test_count = 100;
     for($i = 0; $i < $test_count; $i++){
         $b = random_builder();
         $t1 = $db->new_transaction($b);

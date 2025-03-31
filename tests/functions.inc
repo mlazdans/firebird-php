@@ -4,6 +4,8 @@ namespace FireBirdTests;
 
 require_once(__DIR__."/config.inc");
 
+srand(((int)microtime(true)));
+
 class Mon_Transaction
 {
     public ?int $MON_TRANSACTION_ID;
@@ -176,15 +178,7 @@ function exec_from_file_ddl(\FireBird\Transaction $t, string $file_name): bool
 
 function gen_random_db_file_name_or_die(): string
 {
-    $database = tempnam(sys_get_temp_dir(),"php_firebird_test");
-
-    if($database === false) {
-        die("Could not create temporary file: $database");
-    }
-
-    if(!unlink($database)) {
-        die("Could not delete temporary file: $database");
-    }
+    $database = Config::$tmp_root."/fbp_test".md5((string)rand());
 
     if(!empty(Config::$host))$database = Config::$host.":$database";
 

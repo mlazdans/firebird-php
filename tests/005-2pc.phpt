@@ -13,7 +13,7 @@ include("skipif.inc");
 
 $php_ini_path = realpath(__DIR__.DIRECTORY_SEPARATOR.'..');
 
-$cmd = $_ENV['TEST_PHP_EXECUTABLE']." -c '$php_ini_path' -d 'firebird.debug=0' ".__DIR__.DIRECTORY_SEPARATOR."005-create-limbo.inc";
+$cmd = $_SERVER['TEST_PHP_CGI_EXECUTABLE']." -c \"$php_ini_path\" -d \"firebird.debug=0\" \"".__DIR__.DIRECTORY_SEPARATOR."005-create-limbo.inc".'"';
 if((false === exec($cmd, $output, $result)) || $result) {
     "skip Could not execute limbo transaction creating in separate process";
 }
