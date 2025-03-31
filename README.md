@@ -113,4 +113,4 @@ https://firebirdsql.org/file/documentation/html/en/refdocs/fblangref50/firebird-
 
 > Firebird does not offer much in the way of language or tools for working with the contents of arrays, and there are no plans to improve this. This limits the usefulness and accessibility of array types. Therefore, the general advice is: do not use arrays.
 
-Arrays introduce unnecessary complexity. You can't even INSERT / UPDATE array fields using PSQL, just with isc API. If arrays are needed these can be implemented using relation model.
+Arrays introduce unnecessary complexity. You can't even INSERT / UPDATE array fields using DSQL, just with isc API or PSQL. If arrays are needed these can be implemented using relation model.
