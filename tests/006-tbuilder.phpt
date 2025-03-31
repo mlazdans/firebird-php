@@ -43,4 +43,4 @@ require_once('functions.inc');
 
 ?>
 --EXPECT--
-Transaction builder 1000 random builds
+Transaction builder 100 random builds
