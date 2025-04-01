@@ -84,7 +84,7 @@ PHP stub file: [firebird_stub.php](firebird_stub.php)
 |✅    | ibase_server_info        |      |
 |✅    | ibase_service_attach     |      |
 |✅    | ibase_service_detach     |      |
-|✅    | ibase_set_event_handler  | Via event loop |
+|⌛    | ibase_set_event_handler  | Via event loop. Does not work on Windows |
 |✅    | ibase_trans              |      |
 |❌    | ibase_wait_event         |      |
 
