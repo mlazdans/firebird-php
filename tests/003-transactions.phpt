@@ -101,7 +101,7 @@ require_once('functions.inc');
 
 ?>
 --EXPECT--
-object {
+object(stdClass) {
   ["BLOB_1"]=>
   string(23) "This should be inserted"
 }

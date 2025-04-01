@@ -1,34 +1,34 @@
 Insert blob returning ID ------------------------------------------------------
 Query OK
-Row data object {
+Row data object(stdClass) {
   ["ID"]=>
   int(1)
 }
 
 Insert false returning ID -----------------------------------------------------
 Query OK
-Row data object {
+Row data object(stdClass) {
   ["ID"]=>
   int(2)
 }
 
 Insert true returning ID ------------------------------------------------------
 Query OK
-Row data object {
+Row data object(stdClass) {
   ["ID"]=>
   int(3)
 }
 
 Insert true with emojis returning ID ------------------------------------------
 Query OK
-Row data object {
+Row data object(stdClass) {
   ["ID"]=>
   int(4)
 }
 
 Select from table WHERE BOOL_1 = ? (false) ------------------------------------
 Query OK
-Row data object {
+Row data object(stdClass) {
   ["ID"]=>
   int(2)
   ["BLOB_0"]=>
@@ -43,7 +43,7 @@ Row data object {
 
 Select from table WHERE BOOL_1 = false ----------------------------------------
 Query OK
-Row data object {
+Row data object(stdClass) {
   ["ID"]=>
   int(2)
   ["BLOB_0"]=>
@@ -58,7 +58,7 @@ Row data object {
 
 Select from table WHERE BOOL_1 = ? (true) -------------------------------------
 Query OK
-Row data object {
+Row data object(stdClass) {
   ["ID"]=>
   int(1)
   ["BLOB_0"]=>
@@ -70,7 +70,7 @@ Row data object {
   ["VARCHAR_1"]=>
   string(9) "VARCHAR_1"
 }
-Row data object {
+Row data object(stdClass) {
   ["ID"]=>
   int(3)
   ["BLOB_0"]=>
@@ -82,7 +82,7 @@ Row data object {
   ["VARCHAR_1"]=>
   string(9) "VARCHAR_1"
 }
-Row data object {
+Row data object(stdClass) {
   ["ID"]=>
   int(4)
   ["BLOB_0"]=>
@@ -97,7 +97,7 @@ Row data object {
 
 Select from table WHERE BOOL_1 = true -----------------------------------------
 Query OK
-Row data object {
+Row data object(stdClass) {
   ["ID"]=>
   int(1)
   ["BLOB_0"]=>
@@ -109,7 +109,7 @@ Row data object {
   ["VARCHAR_1"]=>
   string(9) "VARCHAR_1"
 }
-Row data object {
+Row data object(stdClass) {
   ["ID"]=>
   int(3)
   ["BLOB_0"]=>
@@ -121,7 +121,7 @@ Row data object {
   ["VARCHAR_1"]=>
   string(9) "VARCHAR_1"
 }
-Row data object {
+Row data object(stdClass) {
   ["ID"]=>
   int(4)
   ["BLOB_0"]=>
@@ -136,15 +136,15 @@ Row data object {
 
 Select ID from procedure which returns ID if BOOL_1 = true --------------------
 Query OK
-Row data object {
+Row data object(stdClass) {
   ["ID"]=>
   int(1)
 }
-Row data object {
+Row data object(stdClass) {
   ["ID"]=>
   int(3)
 }
-Row data object {
+Row data object(stdClass) {
   ["ID"]=>
   int(4)
 }

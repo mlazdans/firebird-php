@@ -1,10 +1,10 @@
 Limbo transaction count: 1, expected count: 1
 ==================================== Step 1 ====================================
-object {
+object(stdClass) {
   ["BLOB_1"]=>
   string(11) "Bogus mogus"
 }
-object {
+object(stdClass) {
   ["BLOB_1"]=>
   string(7) "Foo bar"
 }
@@ -13,15 +13,15 @@ ERROR [fetch]:[HY000] %s
 0: 335544459 (-911) record from transaction 4 is stuck in limbo
 ================================================================================
 ==================================== Step 2 ====================================
-object {
+object(stdClass) {
   ["BLOB_1"]=>
   string(11) "Bogus mogus"
 }
-object {
+object(stdClass) {
   ["BLOB_1"]=>
   string(7) "Foo bar"
 }
-object {
+object(stdClass) {
   ["BLOB_1"]=>
   string(24) "Hello from transaction 4"
 }

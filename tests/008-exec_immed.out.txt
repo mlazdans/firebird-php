@@ -1,4 +1,4 @@
-object {
+object(stdClass) {
   ["BLOB_1"]=>
   string(6) "blobby"
   ["DECFLOAT_16"]=>
@@ -8,7 +8,7 @@ object {
   ["BOOL_1"]=>
   bool(true)
 }
-object {
+object(stdClass) {
   ["BLOB_1"]=>
   NULL
   ["DECFLOAT_16"]=>
@@ -18,7 +18,7 @@ object {
   ["BOOL_1"]=>
   bool(true)
 }
-object {
+object(stdClass) {
   ["BLOB_1"]=>
   NULL
   ["DECFLOAT_16"]=>
@@ -28,7 +28,7 @@ object {
   ["BOOL_1"]=>
   bool(true)
 }
-object {
+object(stdClass) {
   ["BLOB_1"]=>
   NULL
   ["DECFLOAT_16"]=>
@@ -38,7 +38,7 @@ object {
   ["BOOL_1"]=>
   bool(true)
 }
-object {
+object(stdClass) {
   ["BLOB_1"]=>
   NULL
   ["DECFLOAT_16"]=>
@@ -48,7 +48,7 @@ object {
   ["BOOL_1"]=>
   bool(true)
 }
-object {
+object(stdClass) {
   ["BLOB_1"]=>
   NULL
   ["DECFLOAT_16"]=>
@@ -58,7 +58,7 @@ object {
   ["BOOL_1"]=>
   bool(true)
 }
-object {
+object(stdClass) {
   ["BLOB_1"]=>
   NULL
   ["DECFLOAT_16"]=>

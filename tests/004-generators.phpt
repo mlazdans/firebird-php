@@ -37,11 +37,11 @@ require_once('functions.inc');
 
 ?>
 --EXPECT--
-object {
+object(stdClass) {
   ["NEXT_VALUE"]=>
   int(520)
 }
-object {
+object(stdClass) {
   ["NEXT_VALUE"]=>
   int(528)
 }
