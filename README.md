@@ -4,10 +4,12 @@
 
 This project aims to repackage the old [ibase](https://www.php.net/ibase)
 extension into a more modern PHP framework. Internal resource types have been
-removed and replaced with a more modern object-oriented interface. Most of the
-ibase features have now been implemented; however, development is still in
+removed and replaced with a object-oriented interface. Most of the ibase
+extension features have now been ported; however, development is still in
 progress, and the API is not yet stable. Current development environment: PHP
 8.4.4 NTS, Firebird 5.0.2, Debian 12 (64-bit).
+
+Currently supported PHP version 8.4.x
 
 # Some examples
 ```php
