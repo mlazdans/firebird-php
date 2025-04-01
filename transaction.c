@@ -243,6 +243,7 @@ PHP_METHOD(Transaction, execute_immediate)
             var->sqldata = Z_STRVAL_P(b_var);
             var->sqllen	 = Z_STRLEN_P(b_var);
             var->sqltype = SQL_TEXT;
+            var->sqlsubtype = 0;
         }
     }
 
