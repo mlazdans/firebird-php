@@ -42,17 +42,10 @@ if [%pfb_cpp_vers%] == [] (
     exit 1
 )
 
-
 set pfb_build_root=php%pfb_php_vers%\%pfb_cpp_vers%\
 
-@REM copy fbclient.dll for testing
-copy /Y "%PFB_FB64_DIR%\fbclient.dll" "%pfb_build_root%x64\php-src\x64\Release_TS"
-copy /Y "%PFB_FB64_DIR%\fbclient.dll" "%pfb_build_root%x64\php-src\x64\Release"
-copy /Y "%PFB_FB32_DIR%\fbclient.dll" "%pfb_build_root%x86\php-src\Release_TS"
-copy /Y "%PFB_FB32_DIR%\fbclient.dll" "%pfb_build_root%x86\php-src\Release"
-
 (for %%a in (x86 x64) do (
-    check out or pull PHP version of interest
+    @REM check out or pull PHP version of interest
     if exist %pfb_build_root%\%%a\php-src\.git\ (
         @REM call :log "Checking out PHP-%pfb_php_vers% %%a"
         @REM git -C %pfb_build_root%\%%a\php-src pull || goto :error
@@ -68,6 +61,12 @@ copy /Y "%PFB_FB32_DIR%\fbclient.dll" "%pfb_build_root%x86\php-src\Release"
         call phpsdk-%pfb_cpp_vers%-%%a.bat -t php-firebird-sdk-build.bat || goto :error
     ))
 ))
+
+@REM copy fbclient.dll for testing
+copy /Y "%PFB_FB64_DIR%\fbclient.dll" "%pfb_build_root%x64\php-src\x64\Release_TS"
+copy /Y "%PFB_FB64_DIR%\fbclient.dll" "%pfb_build_root%x64\php-src\x64\Release"
+copy /Y "%PFB_FB32_DIR%\fbclient.dll" "%pfb_build_root%x86\php-src\Release_TS"
+copy /Y "%PFB_FB32_DIR%\fbclient.dll" "%pfb_build_root%x86\php-src\Release"
 
 @REM check if FireBird\Connector class exists in newly compiled extension
 set check_code="if(!class_exists('FireBird\\Connector'))exit(1);"
