@@ -165,7 +165,7 @@ function exec_from_file(\FireBird\Transaction $t, string $file_name): bool
 
 function exec_from_file_ddl(\FireBird\Transaction $t, string $file_name): bool
 {
-    if(false === ($s = exec_from_file($t, $file_name))) {
+    if(!exec_from_file($t, $file_name)) {
         print_error_and_die("exec_from_file_ddl", $t);
     }
 
@@ -188,7 +188,8 @@ function gen_random_db_file_name_or_die(): string
     return $database;
 }
 
-function args_apply_defaults(\FireBird\Create_Args|\FireBird\Connect_Args  $args): void {
+function args_apply_defaults(\FireBird\Create_Args|\FireBird\Connect_Args $args): \FireBird\Create_Args|\FireBird\Connect_Args
+{
     if(!empty(Config::$user_name))$args->user_name = Config::$user_name;
     if(!empty(Config::$password))$args->password = Config::$password;
 
@@ -197,6 +198,8 @@ function args_apply_defaults(\FireBird\Create_Args|\FireBird\Connect_Args  $args
     } else {
         if(!empty(Config::$charset))$args->charset = Config::$charset;
     }
+
+    return $args;
 }
 
 function init_tmp_db(string $db_file = "", string $charset = "", bool $drop = true): \FireBird\Database
@@ -247,7 +250,7 @@ function var_bin(mixed $v): void {
     $buff = ob_get_clean();
 
     $buff = replace_binary($buff);
-    $buff = preg_replace(["/object\(stdClass\)#\d+ \(\d+\) \{/m"], ["object {"], $buff);
+    $buff = preg_replace(["/object\((.*)\)#\d+ \(\d+\) \{/m"], ["object($1) {"], $buff);
 
     print $buff;
 }
@@ -544,4 +547,18 @@ function is_ReadConsistency_enabled(\FireBird\Database $db): bool
     $t->rollback() or print_error_and_die("rollback", $t);
 
     return false;
+}
+
+function init_tmp_db_ibase(): \FireBird\Database
+{
+    $db = init_tmp_db();
+    $t = $db->new_transaction();
+    $t->start() or print_error_and_die("trans start", $t);
+    $t->execute_immediate("CREATE TABLE TEST1 (I INTEGER, C VARCHAR(100))") or print_error_and_die("create table", $t);
+    $t->commit_ret() or print_error_and_die("commit_ret", $t);
+    $t->query("INSERT INTO TEST1(I, C) VALUES(1, 'test table not created with isql')") or print_error_and_die("query", $t);
+    $t->commit() or print_error_and_die("commit", $t);
+    // $db->disconnect() or print_error_and_die("disconnect", $db);
+
+    return $db;
 }
