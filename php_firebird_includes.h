@@ -164,19 +164,6 @@ typedef void (*info_func_t)(char*);
     zend_string_release(prop_##name##_name);                                          \
 } while (0)
 
-#define xpb_insert(f, ...) do {                        \
-    IXpbBuilder_insert##f(__VA_ARGS__);                \
-    if (IStatus_getState(st) & IStatus_STATE_ERRORS) { \
-        fbp_status_error(IStatus_getErrors(st));       \
-    }                                                  \
-} while(0)
-
-#define xpb_insert_true(tag) xpb_insert(Int, xpb, st, tag, (char)1)
-#define xpb_insert_false(tag) xpb_insert(Int, xpb, st, tag, (char)0)
-#define xpb_insert_int(tag, value) xpb_insert(Int, xpb, st, tag, value)
-#define xpb_insert_string(tag, value) xpb_insert(String, xpb, st, tag, value)
-#define xpb_insert_tag(tag) xpb_insert(Tag, xpb, st, tag)
-
 // General argument types
 ZEND_BEGIN_ARG_INFO_EX(arginfo_none, 0, 0, 0)
 ZEND_END_ARG_INFO()

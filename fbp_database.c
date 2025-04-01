@@ -121,14 +121,14 @@ int fbp_database_build_dpb(zend_class_entry *ce, zval *Args, const firebird_xpb_
     zval rv, *val, *checkval;
     int i;
 
-    xpb_insert_tag(isc_dpb_version2);
-    xpb_insert_int(isc_dpb_sql_dialect, SQL_DIALECT_CURRENT);
+    IXpbBuilder_insertTag(xpb, st, isc_dpb_version2);
+    IXpbBuilder_insertInt(xpb, st, isc_dpb_sql_dialect, SQL_DIALECT_CURRENT);
 
     fbp_insert_xpb_from_zmap(ce, Args, xpb_zmap, xpb, st);
 
 #if FB_API_VER >= 40
     // Do not handle directly INT128 or DECFLOAT, convert to VARCHAR at server instead
-    xpb_insert_string(isc_dpb_set_bind, "int128 to varchar;decfloat to varchar");
+    IXpbBuilder_insertString(xpb, st, isc_dpb_set_bind, "int128 to varchar;decfloat to varchar");
 #endif
 
     *num_dpb_written = IXpbBuilder_getBufferLength(xpb, st);

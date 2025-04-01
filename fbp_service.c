@@ -57,7 +57,7 @@ int fbp_service_build_dpb(zend_class_entry *ce, zval *Args, const firebird_xpb_z
     struct IUtil* utl = IMaster_getUtilInterface(master);
     struct IXpbBuilder* xpb = IUtil_getXpbBuilder(utl, st, IXpbBuilder_SPB_ATTACH, NULL, 0);
 
-    xpb_insert_tag(isc_spb_version3);
+    IXpbBuilder_insertTag(xpb, st, isc_spb_version3);
     fbp_insert_xpb_from_zmap(ce, Args, xpb_zmap, xpb, st);
 
     *num_dpb_written = IXpbBuilder_getBufferLength(xpb, st);

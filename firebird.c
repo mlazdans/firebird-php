@@ -472,19 +472,19 @@ void fbp_insert_xpb_from_zmap(zend_class_entry *ce, zval *args, const firebird_x
         switch (Z_TYPE_P(val)) {
             case IS_STRING:
                 FBDEBUG("property: %s is string: `%s`", xpb_zmap->names[i], Z_STRVAL_P(val));
-                xpb_insert_string(xpb_zmap->tags[i], Z_STRVAL_P(val));
+                IXpbBuilder_insertString(xpb, st, xpb_zmap->tags[i], Z_STRVAL_P(val));
                 break;
             case IS_LONG:
                 FBDEBUG("property: %s is long: `%u`", xpb_zmap->names[i], Z_LVAL_P(val));
-                xpb_insert_int(xpb_zmap->tags[i], (int)Z_LVAL_P(val));
+                IXpbBuilder_insertInt(xpb, st, xpb_zmap->tags[i], (int)Z_LVAL_P(val));
                 break;
             case IS_TRUE:
                 FBDEBUG("property: %s is true", xpb_zmap->names[i]);
-                xpb_insert_true(xpb_zmap->tags[i]);
+                IXpbBuilder_insertInt(xpb, st, xpb_zmap->tags[i], (char)1);
                 break;
             case IS_FALSE:
                 FBDEBUG("property: %s is false", xpb_zmap->names[i]);
-                xpb_insert_false(xpb_zmap->tags[i]);
+                IXpbBuilder_insertInt(xpb, st, xpb_zmap->tags[i], (char)0);
                 break;
             case IS_NULL:
                 FBDEBUG("property: %s is null", xpb_zmap->names[i]);
