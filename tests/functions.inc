@@ -314,6 +314,7 @@ function execute_immediate_or_error(\FireBird\Transaction $t, string $sql, ...$b
 {
     if(false === ($s = $t->execute_immediate($sql, ...$bind_args))){
         print_error("execute_immediate", $t);
+        print "Query: $sql\n";
     }
     return $s;
 }
