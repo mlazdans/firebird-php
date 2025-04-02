@@ -53,151 +53,25 @@ const BLOB_SEEK_CURRENT = 1;
  */
 const BLOB_SEEK_END = 2;
 
+/**
+ * @see Service::shutdown_db()
+ */
 const SM_NORMAL = 0;
+
+/**
+ * @see Service::shutdown_db()
+ */
 const SM_MULTI  = 1;
+
+/**
+ * @see Service::shutdown_db()
+ */
 const SM_SINGLE = 2;
+
+/**
+ * @see Service::shutdown_db()
+ */
 const SM_FULL   = 3;
-
-class Server_Info
-{
-    public string $server_version;
-    public string $implementation;
-    public string $get_env;
-    public string $get_env_lock;
-    public string $get_env_msg;
-    public string $user_dbpath;
-    public ?Server_Db_Info $db_info;
-
-    /** @var Server_User_Info[] */
-    public array $users;
-}
-
-class Server_Db_Info
-{
-    public int $num_att;
-    public int $num_db;
-
-    /** @var string[] */
-    public array $dbname;
-}
-
-class Server_User_Info
-{
-    public string $username;
-    public string $firstname;
-    public string $middlename;
-    public string $lastname;
-    public string $password;   // Not set, only when create/modify user
-    public bool $admin;
-}
-
-class Error
-{
-    public string $error_msg { get; }
-    public int $error_code { get; }
-    public int $error_code_long { get; }
-}
-
-class Db_Info
-{
-    public int $reads { get; }
-    public int $writes { get; }
-    public int $fetches { get; }
-    public int $marks { get; }
-
-    public int $page_size { get; }
-    public int $num_buffers { get; }
-    public int $current_memory { get; }
-    public int $max_memory { get; }
-
-    public int $allocation { get; }
-    public int $attachment_id { get; }
-    public int $read_seq_count { get; }
-    public int $read_idx_count { get; }
-    public int $insert_count { get; }
-    public int $update_count { get; }
-    public int $delete_count { get; }
-    public int $backout_count { get; }
-    public int $purge_count { get; }
-    public int $expunge_count { get; }
-
-    public array $isc_version { get; }
-    public array $firebird_version { get; }
-    public array $limbo { get; }
-
-    public int $sweep_interval { get; }
-    public int $ods_version { get; }
-    public int $ods_minor_version { get; }
-    public int $no_reserve { get; }
-
-    public int $forced_writes { get; }
-    public int $set_page_buffers { get; }
-    public int $db_sql_dialect { get; }
-    public int $db_read_only { get; }
-    public int $db_size_in_pages { get; }
-
-    public int $oldest_transaction { get; }
-    public int $oldest_active { get; }
-    public int $oldest_snapshot { get; }
-    public int $next_transaction { get; }
-
-    public int $creation_date { get; }
-    public int $db_file_size { get; }
-    public int $pages_used { get; }
-    public int $pages_free { get; }
-
-    public int $ses_idle_timeout_db { get; }
-    public int $ses_idle_timeout_att { get; }
-    public int $ses_idle_timeout_run { get; }
-    public int $conn_flags { get; }
-
-    public string $crypt_key { get; }
-    public int $crypt_state { get; }
-    public int $statement_timeout_db { get; }
-    public int $statement_timeout_att { get; }
-    public int $protocol_version { get; }
-    public string $crypt_plugin { get; }
-    public string $wire_crypt { get; }
-
-    public int $next_attachment { get; }
-    public int $next_statement { get; }
-    public int $db_guid { get; }
-    public int $db_file_id { get; }
-
-    public int $replica_mode { get; }
-    public string $username { get; }
-    public string $sqlrole { get; }
-    public int $parallel_workers { get; }
-}
-
-class Var_Info
-{
-    public string $name { get; }
-    public string $alias { get; }
-    public string $relation { get; }
-    public int $byte_length { get; }
-    public int $type { get; }
-    public int $sub_type { get; }
-    public int $scale { get; }
-    public bool $nullable { get; }
-}
-
-class Blob_Id
-{
-    private function __construct() {}
-
-    /**
-     * @return string returns blob id in a format used in PHP ibase extension
-     * */
-    static function to_legacy_id() {}
-
-    /**
-     * Converts from string format used in PHP ibase extension to Blob_id
-     *
-     * @return Blob_Id|false returns false if could not parse input
-     * */
-    static function from_legacy_id(string $legacy_id) {}
-}
 
 interface IError
 {
@@ -264,38 +138,6 @@ trait Fb_Error
      *
      */
     public string $sqlstate { get; }
-}
-
-class Connect_Args
-{
-    var string $database;
-    var string $user_name;
-    var string $password;
-    var string $role_name;
-    var string $charset;
-    var int $num_buffers;
-    var int $timeout;
-}
-
-class Create_Args
-{
-    var string $database;
-    var string $user_name;
-    var string $password;
-    var string $set_db_charset;
-    var int $sweep_interval;
-    var int $set_page_buffers;
-    var int $page_size;
-    var bool $force_write;
-    var bool $overwrite;
-    var int $timeout;
-}
-
-class Service_Connect_Args
-{
-    var string $service_name;
-    var string $user_name;
-    var string $password;
 }
 
 class Connector implements IError
@@ -759,4 +601,177 @@ class TBuilder
     function isolation_read_committed_read_consistency() {}
 
     function dump_state(): void {}
+}
+
+class Server_Info
+{
+    public string $server_version;
+    public string $implementation;
+    public string $get_env;
+    public string $get_env_lock;
+    public string $get_env_msg;
+    public string $user_dbpath;
+    public ?Server_Db_Info $db_info;
+
+    /** @var Server_User_Info[] */
+    public array $users;
+}
+
+class Server_Db_Info
+{
+    public int $num_att;
+    public int $num_db;
+
+    /** @var string[] */
+    public array $dbname;
+}
+
+class Server_User_Info
+{
+    public string $username;
+    public string $firstname;
+    public string $middlename;
+    public string $lastname;
+    public string $password;   // Not set, only when create/modify user
+    public bool $admin;
+}
+
+class Error
+{
+    public string $error_msg { get; }
+    public int $error_code { get; }
+    public int $error_code_long { get; }
+}
+
+class Db_Info
+{
+    public int $reads { get; }
+    public int $writes { get; }
+    public int $fetches { get; }
+    public int $marks { get; }
+
+    public int $page_size { get; }
+    public int $num_buffers { get; }
+    public int $current_memory { get; }
+    public int $max_memory { get; }
+
+    public int $allocation { get; }
+    public int $attachment_id { get; }
+    public int $read_seq_count { get; }
+    public int $read_idx_count { get; }
+    public int $insert_count { get; }
+    public int $update_count { get; }
+    public int $delete_count { get; }
+    public int $backout_count { get; }
+    public int $purge_count { get; }
+    public int $expunge_count { get; }
+
+    public array $isc_version { get; }
+    public array $firebird_version { get; }
+    public array $limbo { get; }
+
+    public int $sweep_interval { get; }
+    public int $ods_version { get; }
+    public int $ods_minor_version { get; }
+    public int $no_reserve { get; }
+
+    public int $forced_writes { get; }
+    public int $set_page_buffers { get; }
+    public int $db_sql_dialect { get; }
+    public int $db_read_only { get; }
+    public int $db_size_in_pages { get; }
+
+    public int $oldest_transaction { get; }
+    public int $oldest_active { get; }
+    public int $oldest_snapshot { get; }
+    public int $next_transaction { get; }
+
+    public int $creation_date { get; }
+    public int $db_file_size { get; }
+    public int $pages_used { get; }
+    public int $pages_free { get; }
+
+    public int $ses_idle_timeout_db { get; }
+    public int $ses_idle_timeout_att { get; }
+    public int $ses_idle_timeout_run { get; }
+    public int $conn_flags { get; }
+
+    public string $crypt_key { get; }
+    public int $crypt_state { get; }
+    public int $statement_timeout_db { get; }
+    public int $statement_timeout_att { get; }
+    public int $protocol_version { get; }
+    public string $crypt_plugin { get; }
+    public string $wire_crypt { get; }
+
+    public int $next_attachment { get; }
+    public int $next_statement { get; }
+    public int $db_guid { get; }
+    public int $db_file_id { get; }
+
+    public int $replica_mode { get; }
+    public string $username { get; }
+    public string $sqlrole { get; }
+    public int $parallel_workers { get; }
+}
+
+class Var_Info
+{
+    public string $name { get; }
+    public string $alias { get; }
+    public string $relation { get; }
+    public int $byte_length { get; }
+    public int $type { get; }
+    public int $sub_type { get; }
+    public int $scale { get; }
+    public bool $nullable { get; }
+}
+
+class Blob_Id
+{
+    private function __construct() {}
+
+    /**
+     * @return string returns blob id in a format used in PHP ibase extension
+     * */
+    static function to_legacy_id() {}
+
+    /**
+     * Converts from string format used in PHP ibase extension to Blob_id
+     *
+     * @return Blob_Id|false returns false if could not parse input
+     * */
+    static function from_legacy_id(string $legacy_id) {}
+}
+
+class Connect_Args
+{
+    var string $database;
+    var string $user_name;
+    var string $password;
+    var string $role_name;
+    var string $charset;
+    var int $num_buffers;
+    var int $timeout;
+}
+
+class Create_Args
+{
+    var string $database;
+    var string $user_name;
+    var string $password;
+    var string $set_db_charset;
+    var int $sweep_interval;
+    var int $set_page_buffers;
+    var int $page_size;
+    var bool $force_write;
+    var bool $overwrite;
+    var int $timeout;
+}
+
+class Service_Connect_Args
+{
+    var string $service_name;
+    var string $user_name;
+    var string $password;
 }
