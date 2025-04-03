@@ -6,10 +6,11 @@ This project aims to repackage the old [ibase](https://www.php.net/ibase)
 extension into a more modern PHP framework. Internal resource types have been
 removed and replaced with a object-oriented interface. Most of the ibase
 extension features have now been ported; however, development is still in
-progress, and the API is not yet stable. Current development environment: PHP
-8.4.4 NTS, Firebird 5.0.2, Debian 12 (64-bit).
+progress, and the API is not yet stable.
 
-Currently supported PHP version 8.4.x
+Current development environment: PHP 8.4.4 NTS, Firebird 5.0.2, Debian 12 (64-bit).
+
+Currently supported PHP version: 8.4.x
 
 # Some examples
 ```php
@@ -34,6 +35,29 @@ Example with error checking: [examples/error_checking.php](examples/error_checki
 Some example code can be fetched from [tests](tests/)
 
 PHP stub file: [firebird_stub.php](firebird_stub.php)
+
+# Build
+
+## Linux
+```
+phpize
+./configure --with-firebird
+make
+make install
+```
+
+Optionally specify Firebird 5.0 path: --with-firebird=/opt/firebird
+
+## Windows
+
+1. Install PHP SDK: https://github.com/microsoft/php-sdk-binary-tools
+2. Install git, add to PATH
+3. Copy build scripts from win32 to C:\php-sdk\
+4. Adjust php-firebird-config.bat. PFB_SOURCE_DIR should point one level up, e.g. if you clone firebird-php into D:\firebird-php\firebird-php\, then PFB_SOURCE_DIR=D:\firebird-php\
+```
+cd C:\php-sdk\
+php-firebird-build-all.bat
+```
 
 # TODO
 
