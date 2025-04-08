@@ -9,7 +9,7 @@ for /f %%i in ('git -C %PFB_SOURCE_DIR%\firebird-php\ rev-parse --short HEAD') d
 
 @REM sets php-firebird version part in extension file, for example, php_interbase-<<3.0.1-ba8e63b>>-7.3-vc15.dll
 @REM set PFB_VERS=0.1.0-%GIT_HASH%
-set PFB_VERS=0.1.0
+set PFB_VERS=0.1.0a
 
 @REM Directory where all compiled files will be copied
 set PFB_OUTPUT_DIR=D:\firebird-php\releases\
