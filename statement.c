@@ -11,7 +11,7 @@
 #include "ext/spl/spl_exceptions.h"
 
 #include "php_firebird_includes.h"
-#include "pdo_firebird_utils.h"
+#include "firebird_utils.h"
 
 #include "statement.h"
 #include "fbp_statement.h"

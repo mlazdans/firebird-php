@@ -14,8 +14,8 @@
   +----------------------------------------------------------------------+
 */
 
-#ifndef PDO_FIREBIRD_UTILS_H
-#define PDO_FIREBIRD_UTILS_H
+#ifndef FIREBIRD_UTILS_H
+#define FIREBIRD_UTILS_H
 
 #include <ibase.h>
 
@@ -45,4 +45,4 @@ void fb_decode_timestamp_tz(const ISC_TIMESTAMP_TZ* timestampTz,
 }
 #endif
 
-#endif	/* PDO_FIREBIRD_UTILS_H */
+#endif  // FIREBIRD_UTILS_H

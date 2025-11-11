@@ -60,7 +60,7 @@ if test "$PHP_FIREBIRD" != "no"; then
   PHP_REQUIRE_CXX()
   PHP_CXX_COMPILE_STDCXX([11], [mandatory], [PHP_FIREBIRD_STDCXX])
 
-  PHP_FIREBIRD_CXX_SOURCES="pdo_firebird_utils.cpp"
+  PHP_FIREBIRD_CXX_SOURCES="firebird_utils.cpp"
 
   AS_VAR_IF([ext_shared], [no],
     [PHP_ADD_SOURCES([$ext_dir],

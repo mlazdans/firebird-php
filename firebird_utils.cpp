@@ -14,7 +14,7 @@
   +----------------------------------------------------------------------+
 */
 
-#include "pdo_firebird_utils.h"
+#include "firebird_utils.h"
 #include <firebird/Interface.h>
 #include <cstring>
 
