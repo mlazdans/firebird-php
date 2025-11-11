@@ -440,15 +440,15 @@ static int _php_firebird_var_zval(zval *val, void *data, int type, int len, int 
 
             if((type & ~1) == SQL_TIME_TZ){
                 format = INI_STR("firebird.timeformat");
-                fb_decode_time_tz((ISC_TIME_TZ *) data, &hours, &minutes, &seconds, &fractions, sizeof(timeZoneBuffer), timeZoneBuffer);
-                ISC_TIME time = fb_encode_time(hours, minutes, seconds, fractions);
+                fbu_decode_time_tz((ISC_TIME_TZ *) data, &hours, &minutes, &seconds, &fractions, sizeof(timeZoneBuffer), timeZoneBuffer);
+                ISC_TIME time = fbu_encode_time(hours, minutes, seconds, fractions);
                 isc_decode_sql_time(&time, &t);
             } else {
                 format = INI_STR("firebird.timestampformat");
-                fb_decode_timestamp_tz((ISC_TIMESTAMP_TZ *) data, &year, &month, &day, &hours, &minutes, &seconds, &fractions, sizeof(timeZoneBuffer), timeZoneBuffer);
+                fbu_decode_timestamp_tz((ISC_TIMESTAMP_TZ *) data, &year, &month, &day, &hours, &minutes, &seconds, &fractions, sizeof(timeZoneBuffer), timeZoneBuffer);
                 ISC_TIMESTAMP ts;
-                ts.timestamp_date = fb_encode_date(year, month, day);
-                ts.timestamp_time = fb_encode_time(hours, minutes, seconds, fractions);
+                ts.timestamp_date = fbu_encode_date(year, month, day);
+                ts.timestamp_time = fbu_encode_time(hours, minutes, seconds, fractions);
                 isc_decode_timestamp(&ts, &t);
             }
 

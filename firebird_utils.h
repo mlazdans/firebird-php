@@ -23,23 +23,15 @@
 extern "C" {
 #endif
 
-unsigned fb_get_client_version(void);
-
-ISC_TIME fb_encode_time(unsigned hours, unsigned minutes, unsigned seconds, unsigned fractions);
-
-ISC_DATE fb_encode_date(unsigned year, unsigned month, unsigned day);
-
-#if FB_API_VER >= 40
-
-void fb_decode_time_tz(const ISC_TIME_TZ* timeTz, unsigned* hours, unsigned* minutes, unsigned* seconds, unsigned* fractions,
-    unsigned timeZoneBufferLength, char* timeZoneBuffer);
-
-void fb_decode_timestamp_tz(const ISC_TIMESTAMP_TZ* timestampTz,
+unsigned fbu_get_client_version(void);
+ISC_TIME fbu_encode_time(unsigned hours, unsigned minutes, unsigned seconds, unsigned fractions);
+ISC_DATE fbu_encode_date(unsigned year, unsigned month, unsigned day);
+void fbu_decode_time_tz(const ISC_TIME_TZ* timeTz, unsigned* hours, unsigned* minutes,
+    unsigned* seconds, unsigned* fractions, unsigned timeZoneBufferLength, char* timeZoneBuffer);
+void fbu_decode_timestamp_tz(const ISC_TIMESTAMP_TZ* timestampTz,
     unsigned* year, unsigned* month, unsigned* day,
     unsigned* hours, unsigned* minutes, unsigned* seconds, unsigned* fractions,
     unsigned timeZoneBufferLength, char* timeZoneBuffer);
-
-#endif
 
 #ifdef __cplusplus
 }

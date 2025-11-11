@@ -470,13 +470,4 @@ void fbp_error_ex(long level, char *, ...)
         zend_update_property_long(ce, obj, "error_code_long", sizeof("error_code_long") - 1, error_code_long); \
     } while(0)
 
-// C++ experiments
-// #ifdef __cplusplus
-// extern "C" {
-// #endif
-// int fb_connect(zend_class_entry *class_ce, zend_object *obj);
-// #ifdef __cplusplus
-// }
-// #endif
-
 #endif /* PHP_FIREBIRD_INCLUDES_H */
