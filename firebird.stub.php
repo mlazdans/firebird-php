@@ -323,9 +323,10 @@ class Statement
      * @see FETCH_BLOBS, FETCH_UNIXTIME
      * */
     public function fetch_row(int $flags = 0): array|false|null { die; }
-    public function prepare(string $sql): bool { die; }
-    public function execute(mixed ...$bind_args): bool { die; }
-    public function query(string $sql, mixed ...$bind_args): bool { die; }
+    // TODO: temp disable
+    // public function prepare(string $sql): bool { die; }
+    // public function execute(mixed ...$bind_args): bool { die; }
+    // public function query(string $sql, mixed ...$bind_args): bool { die; }
     public function close(): bool { die; }
     public function free(): bool { die; }
 
