@@ -5,16 +5,16 @@
 #include "php_firebird_includes.h"
 #include "zend_fibers.h"
 
-zend_class_entry *FireBird_Event_ce;
+// zend_class_entry *FireBird_Event_ce;
 static zend_object_handlers FireBird_Event_object_handlers;
 
 firebird_events fb_events = {0};
 
-PHP_METHOD(Event, __construct)
+PHP_METHOD(FireBird_Event, __construct)
 {
 }
 
-PHP_METHOD(Event, consume)
+PHP_METHOD(FireBird_Event, consume)
 {
     firebird_event *event = fb_events.events;
 
@@ -59,12 +59,12 @@ PHP_METHOD(Event, consume)
     RETURN_TRUE;
 }
 
-const zend_function_entry FireBird_Event_methods[] = {
-    PHP_ME(Event, __construct, arginfo_none, ZEND_ACC_PRIVATE | ZEND_ACC_CTOR)
-    // PHP_ME(Event, resume, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
-    PHP_ME(Event, consume, arginfo_none_return_bool, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
-    PHP_FE_END
-};
+// const zend_function_entry FireBird_Event_methods[] = {
+//     PHP_ME(Event, __construct, arginfo_none, ZEND_ACC_PRIVATE | ZEND_ACC_CTOR)
+//     // PHP_ME(Event, resume, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
+//     PHP_ME(Event, consume, arginfo_none_return_bool, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
+//     PHP_FE_END
+// };
 
 static zend_object *FireBird_Event_create(zend_class_entry *ce)
 {
@@ -97,25 +97,25 @@ static void FireBird_Event_free_obj(zend_object *obj)
     zend_object_std_dtor(&event->std);
 }
 
-void register_FireBird_Event_ce()
-{
-    zend_class_entry tmp_ce;
-    INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "Event", FireBird_Event_methods);
-    FireBird_Event_ce = zend_register_internal_class(&tmp_ce);
+// void register_FireBird_Event_ce()
+// {
+//     zend_class_entry tmp_ce;
+//     INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "Event", FireBird_Event_methods);
+//     FireBird_Event_ce = zend_register_internal_class(&tmp_ce);
 
-    // DECLARE_PROP_OBJ(FireBird_Event_ce, transaction, FireBird\\Transaction, ZEND_ACC_PROTECTED_SET);
-    DECLARE_ERR_PROPS(FireBird_Event_ce);
+//     // DECLARE_PROP_OBJ(FireBird_Event_ce, transaction, FireBird\\Transaction, ZEND_ACC_PROTECTED_SET);
+//     DECLARE_ERR_PROPS(FireBird_Event_ce);
 
-    zend_class_implements(FireBird_Event_ce, 1, FireBird_IError_ce);
+//     zend_class_implements(FireBird_Event_ce, 1, FireBird_IError_ce);
 
-    FireBird_Event_ce->create_object = FireBird_Event_create;
-    FireBird_Event_ce->default_object_handlers = &FireBird_Event_object_handlers;
+//     FireBird_Event_ce->create_object = FireBird_Event_create;
+//     FireBird_Event_ce->default_object_handlers = &FireBird_Event_object_handlers;
 
-    memcpy(&FireBird_Event_object_handlers, &std_object_handlers, sizeof(zend_object_handlers));
+//     memcpy(&FireBird_Event_object_handlers, &std_object_handlers, sizeof(zend_object_handlers));
 
-    FireBird_Event_object_handlers.offset = XtOffsetOf(firebird_event, std);
-    FireBird_Event_object_handlers.free_obj = FireBird_Event_free_obj;
-}
+//     FireBird_Event_object_handlers.offset = XtOffsetOf(firebird_event, std);
+//     FireBird_Event_object_handlers.free_obj = FireBird_Event_free_obj;
+// }
 
 // TODO: most likely won't work in threaded environment or with multi database connections
 void event_ast_routine(void *__ev, ISC_USHORT length, const ISC_UCHAR *result_buffer)

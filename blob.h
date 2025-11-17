@@ -19,4 +19,7 @@ int FireBird_Blob_put(zval *Blob, const char *buf, size_t buf_size);
 int FireBird_Blob_open(zval *Blob, zval *Blob_Id);
 int FireBird_Blob_create(zval *Blob);
 
+void register_FireBird_Blob_object_handlers();
+void register_FireBird_Blob_Id_object_handlers();
+
 #endif /* BLOB_H */

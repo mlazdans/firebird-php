@@ -30,6 +30,20 @@
 extern zend_module_entry firebird_module_entry;
 #define phpext_firebird_ptr &firebird_module_entry
 
+// TODO: move here
+// ZEND_BEGIN_MODULE_GLOBALS(firebird)
+//     ISC_STATUS_ARRAY status;
+//     bool debug;
+// ZEND_END_MODULE_GLOBALS(firebird)
+
+// ZEND_EXTERN_MODULE_GLOBALS(firebird)
+
+// #define FBG(v) ZEND_MODULE_GLOBALS_ACCESSOR(firebird, v)
+
+// #if defined(ZTS) && defined(COMPILE_DL_FIREBIRD)
+// ZEND_TSRMLS_CACHE_EXTERN()
+// #endif
+
 PHP_MINIT_FUNCTION(firebird);
 PHP_RINIT_FUNCTION(firebird);
 PHP_MSHUTDOWN_FUNCTION(firebird);

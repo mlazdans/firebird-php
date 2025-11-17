@@ -5,6 +5,7 @@
 
 #include "database.h"
 #include "fbp_database.h"
+#include "firebird_utils.h"
 
 firebird_xpb_zmap fbp_database_create_zmap = XPB_ZMAP_INIT(
     ((const char []){
@@ -109,61 +110,69 @@ fbp_object_accessor(firebird_db);
 /**
  * zval* Args intanceof Create_Args|Connect_Args
  */
-int fbp_database_build_dpb(zend_class_entry *ce, zval *Args, const firebird_xpb_zmap *xpb_zmap, const char **dpb_buf, short *num_dpb_written)
+// int fbp_database_build_dpb(zend_class_entry *ce, zval *Args, const firebird_xpb_zmap *xpb_zmap, const char **dpb_buf, short *num_dpb_written)
+// {
+//     struct IMaster* master = fb_get_master_interface();
+//     struct IStatus* st = IMaster_getStatus(master);
+//     struct IUtil* utl = IMaster_getUtilInterface(master);
+//     struct IXpbBuilder* xpb = IUtil_getXpbBuilder(utl, st, IXpbBuilder_DPB, NULL, 0);
+
+//     zend_property_info *prop_info = NULL;
+//     zend_string *prop_name = NULL;
+//     zval rv, *val, *checkval;
+//     int i;
+
+//     IXpbBuilder_insertTag(xpb, st, isc_dpb_version2);
+//     IXpbBuilder_insertInt(xpb, st, isc_dpb_sql_dialect, SQL_DIALECT_CURRENT);
+
+//     fbp_insert_xpb_from_zmap(ce, Args, xpb_zmap, xpb, st);
+
+// #if FB_API_VER >= 40
+//     // Do not handle directly INT128 or DECFLOAT, convert to VARCHAR at server instead
+//     IXpbBuilder_insertString(xpb, st, isc_dpb_set_bind, "int128 to varchar;decfloat to varchar");
+// #endif
+
+//     *num_dpb_written = IXpbBuilder_getBufferLength(xpb, st);
+//     *dpb_buf = IXpbBuilder_getBuffer(xpb, st);
+
+//     // Needed? Not needed?
+//     // IXpbBuilder_dispose(xpb);
+//     // IStatus_dispose(st);
+
+//     return SUCCESS;
+// }
+
+int fbp_database_disconnect(firebird_db *db)
 {
-    struct IMaster* master = fb_get_master_interface();
-    struct IStatus* st = IMaster_getStatus(master);
-    struct IUtil* utl = IMaster_getUtilInterface(master);
-    struct IXpbBuilder* xpb = IUtil_getXpbBuilder(utl, st, IXpbBuilder_DPB, NULL, 0);
-
-    zend_property_info *prop_info = NULL;
-    zend_string *prop_name = NULL;
-    zval rv, *val, *checkval;
-    int i;
-
-    IXpbBuilder_insertTag(xpb, st, isc_dpb_version2);
-    IXpbBuilder_insertInt(xpb, st, isc_dpb_sql_dialect, SQL_DIALECT_CURRENT);
-
-    fbp_insert_xpb_from_zmap(ce, Args, xpb_zmap, xpb, st);
-
-#if FB_API_VER >= 40
-    // Do not handle directly INT128 or DECFLOAT, convert to VARCHAR at server instead
-    IXpbBuilder_insertString(xpb, st, isc_dpb_set_bind, "int128 to varchar;decfloat to varchar");
-#endif
-
-    *num_dpb_written = IXpbBuilder_getBufferLength(xpb, st);
-    *dpb_buf = IXpbBuilder_getBuffer(xpb, st);
-
-    // Needed? Not needed?
-    // IXpbBuilder_dispose(xpb);
-    // IStatus_dispose(st);
-
-    return SUCCESS;
+    return fbu_detach_database(FBG(status), db);
 }
 
-int fbp_database_connect(firebird_db *db, zval *Connect_Args)
-{
-    zval rv, *database;
-    const char *dpb_buffer;
-    short num_dpb_written;
+// int fbp_database_connect(firebird_db *db, zval *Connect_Args)
+// {
+//     return fbu_attach_database(FBG(status), db, Connect_Args, FireBird_Connect_Args_ce);
+//     // zval rv, *database;
+//     // const char *dpb_buffer;
+//     // short num_dpb_written;
 
-    if (FAILURE == fbp_database_build_dpb(FireBird_Connect_Args_ce, Connect_Args, &fbp_database_connect_zmap, &dpb_buffer, &num_dpb_written)) {
-        return FAILURE;
-    }
+//     // if (FAILURE == fbp_database_build_dpb(FireBird_Connect_Args_ce, Connect_Args, &fbp_database_connect_zmap, &dpb_buffer, &num_dpb_written)) {
+//     //     return FAILURE;
+//     // }
 
-    database = OBJ_GET(FireBird_Connect_Args_ce, Connect_Args, "database", &rv);
+//     // database = OBJ_GET(FireBird_Connect_Args_ce, Connect_Args, "database", &rv);
 
-    FBDEBUG("Database::connect: %s", Z_STRVAL_P(database));
-    if (isc_attach_database(FBG(status), (short)Z_STRLEN_P(database), Z_STRVAL_P(database), &db->db_handle, num_dpb_written, dpb_buffer)) {
-        return FAILURE;
-    }
-    FBDEBUG_NOFL("  connected, handle: %d", db->db_handle);
+//     // FBDEBUG("Database::connect: %s", Z_STRVAL_P(database));
+//     // if (isc_attach_database(FBG(status), (short)Z_STRLEN_P(database), Z_STRVAL_P(database), &db->db_handle, num_dpb_written, dpb_buffer)) {
+//     //     return FAILURE;
+//     // }
+//     // FBDEBUG_NOFL("  connected, handle: %d", db->db_handle);
 
-    return SUCCESS;
-}
+//     // return SUCCESS;
+// }
 
 int fbp_database_create(firebird_db *db, zval *Create_Args)
 {
+    TODO("fbp_database_create()");
+#if 0
     zval rv, *database;
     const char *dpb_buffer;
     short num_dpb_written;
@@ -186,11 +195,14 @@ int fbp_database_create(firebird_db *db, zval *Create_Args)
     FBDEBUG("Created, handle: %d", db->db_handle);
 
     return SUCCESS;
+#endif
 }
 
 int fbp_database_get_info(firebird_db *db, zval *Db_Info,
     size_t info_req_size, char *info_req, size_t info_resp_size, char *info_resp, size_t max_limbo_count)
 {
+    TODO("fbp_database_get_info()");
+#if 0
     if (isc_database_info(FBG(status), &db->db_handle, info_req_size, info_req, info_resp_size, info_resp)) {
         return FAILURE;
     }
@@ -362,4 +374,5 @@ int fbp_database_get_info(firebird_db *db, zval *Db_Info,
     zend_update_property(FireBird_Db_Info_ce, Z_OBJ_P(Db_Info), "limbo", sizeof("limbo") - 1, &info_limbo);
 
     return SUCCESS;
+#endif
 }

@@ -5,40 +5,44 @@
 
 #include "fbp_transaction.h"
 
+#include "firebird_utils.h"
+
 fbp_object_accessor(firebird_trans);
 fbp_object_accessor(firebird_tbuilder);
 
 void fbp_transaction_ctor(firebird_trans *tr, firebird_db *db, firebird_tbuilder *builder)
 {
-    tr->real_tr_handle = 0;
-    tr->tr_handle = &tr->real_tr_handle;
+    tr->att = db->att;
+    // tr->real_tr_handle = 0;
+    // tr->tr_handle = &tr->real_tr_handle;
     tr->tr_id = 0;
-    tr->db_handle = &db->db_handle;
-    tr->is_prepared_2pc = 0;
+    // tr->db_handle = &db->db_handle;
+    // tr->is_prepared_2pc = 0;
     tr->builder = builder;
 }
 
-int fbp_transaction_start(firebird_trans *tr)
-{
-    char tpb[TPB_MAX_SIZE];
-    int tpb_len = 0;
+// int fbp_transaction_start(firebird_trans *tr)
+// {
+//     // char tpb[TPB_MAX_SIZE];
+//     // int tpb_len = 0;
 
-    if (tr->builder != NULL) {
-        fbp_transaction_build_tpb(tr->builder, tpb, &tpb_len);
-        assert(tpb_len <= sizeof(tpb));
-    }
+//     // if (tr->builder != NULL) {
+//     //     fbu_transaction_build_tpb(tr->builder, tpb, &tpb_len);
+//     //     assert(tpb_len <= sizeof(tpb));
+//     // }
 
-    if(isc_start_transaction(FBG(status), tr->tr_handle, 1, tr->db_handle, tpb_len, tpb)) {
-        return FAILURE;
-    }
+//     if(fbu_start_transaction(FBG(status), tr)) {
+//         return FAILURE;
+//     }
 
-    if(fbp_transaction_get_info(tr)) {
-        return FAILURE;
-    }
+//     // if(fbp_transaction_get_info(tr)) {
+//     //     return FAILURE;
+//     // }
 
-    return SUCCESS;
-}
+//     return SUCCESS;
+// }
 
+#if 0
 int fbp_transaction_get_info(firebird_trans *tr)
 {
     static char info_req[] = { isc_info_tra_id };
@@ -95,94 +99,97 @@ int fbp_transaction_get_info(firebird_trans *tr)
 
     return SUCCESS;
 }
+#endif
 
-int fbp_transaction_finalize(isc_tr_handle *tr_handle, firebird_tr_fin_flag mode)
-{
-    ISC_STATUS result;
+// int fbp_transaction_finalize(isc_tr_handle *tr_handle, firebird_tr_fin_flag mode)
+// {
+//     ISC_STATUS result;
 
-    if (mode == FBP_TR_COMMIT) {
-        result = isc_commit_transaction(FBG(status), tr_handle);
-    } else if (mode == (FBP_TR_ROLLBACK | FBP_TR_RETAIN)) {
-        result = isc_rollback_retaining(FBG(status), tr_handle);
-    } else if (mode == (FBP_TR_COMMIT | FBP_TR_RETAIN)) {
-        result = isc_commit_retaining(FBG(status), tr_handle);
-    } else {
-        result = isc_rollback_transaction(FBG(status), tr_handle);
-    }
+//     if (mode == FBP_TR_COMMIT) {
+//         result = isc_commit_transaction(FBG(status), tr_handle);
+//     } else if (mode == (FBP_TR_ROLLBACK | FBP_TR_RETAIN)) {
+//         result = isc_rollback_retaining(FBG(status), tr_handle);
+//     } else if (mode == (FBP_TR_COMMIT | FBP_TR_RETAIN)) {
+//         result = isc_commit_retaining(FBG(status), tr_handle);
+//     } else {
+//         result = isc_rollback_transaction(FBG(status), tr_handle);
+//     }
 
-    return result;
-}
+//     return result;
+// }
 
-void fbp_transaction_build_tpb(firebird_tbuilder *builder, char *tpb, int *tpb_len)
-{
-    char *p = tpb;
+// void fbp_transaction_build_tpb(firebird_tbuilder *builder, char *tpb, int *tpb_len)
+// {
+//     char *p = tpb;
 
-    FBDEBUG("Creating transaction start buffer");
+//     FBDEBUG("Creating transaction start buffer");
 
-    *p++ = isc_tpb_version3;
+//     *p++ = isc_tpb_version3;
 
-    *p++ = builder->read_only ? isc_tpb_read : isc_tpb_write;
-    if (builder->ignore_limbo) *p++ = isc_tpb_ignore_limbo;
-    if (builder->auto_commit) *p++ = isc_tpb_autocommit;
-    if (builder->no_auto_undo) *p++ = isc_tpb_no_auto_undo;
+//     *p++ = builder->read_only ? isc_tpb_read : isc_tpb_write;
+//     if (builder->ignore_limbo) *p++ = isc_tpb_ignore_limbo;
+//     if (builder->auto_commit) *p++ = isc_tpb_autocommit;
+//     if (builder->no_auto_undo) *p++ = isc_tpb_no_auto_undo;
 
-    if (builder->isolation_mode == 0) {
-        FBDEBUG_NOFL("  isolation_mode = isc_tpb_consistency");
-        *p++ = isc_tpb_consistency;
-    } else if (builder->isolation_mode == 1) {
-        *p++ = isc_tpb_concurrency;
-        if (builder->snapshot_at_number) {
-            *p++ = isc_tpb_at_snapshot_number;
-            *p++ = sizeof(builder->snapshot_at_number);
-            fbp_store_portable_integer(p, builder->snapshot_at_number, sizeof(builder->snapshot_at_number));
-            p += sizeof(builder->snapshot_at_number);
-            FBDEBUG_NOFL("  isolation_mode = isc_tpb_concurrency");
-            FBDEBUG_NOFL("                   isc_tpb_at_snapshot_number = %d", builder->snapshot_at_number);
-        } else {
-            FBDEBUG_NOFL("  isolation_mode = isc_tpb_concurrency");
-        }
-    } else if (builder->isolation_mode == 2) {
-        *p++ = isc_tpb_read_committed;
-        *p++ = isc_tpb_rec_version;
-        FBDEBUG_NOFL("  isolation_mode = isc_tpb_read_committed");
-        FBDEBUG_NOFL("                   isc_tpb_rec_version");
-    } else if (builder->isolation_mode == 3) {
-        *p++ = isc_tpb_read_committed;
-        *p++ = isc_tpb_no_rec_version;
-        FBDEBUG_NOFL("  isolation_mode = isc_tpb_read_committed");
-        FBDEBUG_NOFL("                   isc_tpb_no_rec_version");
-    } else if (builder->isolation_mode == 4) {
-        *p++ = isc_tpb_read_committed;
-        *p++ = isc_tpb_read_consistency;
-        FBDEBUG_NOFL("  isolation_mode = isc_tpb_read_committed");
-        FBDEBUG_NOFL("                   isc_tpb_read_consistency");
-    } else {
-        fbp_fatal("BUG! unknown transaction isolation_mode: %d", builder->isolation_mode);
-    }
+//     if (builder->isolation_mode == 0) {
+//         FBDEBUG_NOFL("  isolation_mode = isc_tpb_consistency");
+//         *p++ = isc_tpb_consistency;
+//     } else if (builder->isolation_mode == 1) {
+//         *p++ = isc_tpb_concurrency;
+//         if (builder->snapshot_at_number) {
+//             *p++ = isc_tpb_at_snapshot_number;
+//             *p++ = sizeof(builder->snapshot_at_number);
+//             fbp_store_portable_integer(p, builder->snapshot_at_number, sizeof(builder->snapshot_at_number));
+//             p += sizeof(builder->snapshot_at_number);
+//             FBDEBUG_NOFL("  isolation_mode = isc_tpb_concurrency");
+//             FBDEBUG_NOFL("                   isc_tpb_at_snapshot_number = %d", builder->snapshot_at_number);
+//         } else {
+//             FBDEBUG_NOFL("  isolation_mode = isc_tpb_concurrency");
+//         }
+//     } else if (builder->isolation_mode == 2) {
+//         *p++ = isc_tpb_read_committed;
+//         *p++ = isc_tpb_rec_version;
+//         FBDEBUG_NOFL("  isolation_mode = isc_tpb_read_committed");
+//         FBDEBUG_NOFL("                   isc_tpb_rec_version");
+//     } else if (builder->isolation_mode == 3) {
+//         *p++ = isc_tpb_read_committed;
+//         *p++ = isc_tpb_no_rec_version;
+//         FBDEBUG_NOFL("  isolation_mode = isc_tpb_read_committed");
+//         FBDEBUG_NOFL("                   isc_tpb_no_rec_version");
+//     } else if (builder->isolation_mode == 4) {
+//         *p++ = isc_tpb_read_committed;
+//         *p++ = isc_tpb_read_consistency;
+//         FBDEBUG_NOFL("  isolation_mode = isc_tpb_read_committed");
+//         FBDEBUG_NOFL("                   isc_tpb_read_consistency");
+//     } else {
+//         fbp_fatal("BUG! unknown transaction isolation_mode: %d", builder->isolation_mode);
+//     }
 
-    if (builder->lock_timeout == 0) {
-        *p++ = isc_tpb_nowait;
-        FBDEBUG_NOFL("  isc_tpb_nowait");
-    } else if (builder->lock_timeout == -1) {
-        *p++ = isc_tpb_wait;
-        FBDEBUG_NOFL("  isc_tpb_wait");
-    } else if (builder->lock_timeout > 0) {
-        *p++ = isc_tpb_wait;
-        *p++ = isc_tpb_lock_timeout;
-        *p++ = sizeof(builder->lock_timeout);
-        fbp_store_portable_integer(p, builder->lock_timeout, sizeof(builder->lock_timeout));
-        p += sizeof(builder->lock_timeout);
-        FBDEBUG_NOFL("  isc_tpb_wait");
-        FBDEBUG_NOFL("    isc_tpb_lock_timeout = %d", builder->lock_timeout);
-    } else {
-        fbp_fatal("BUG! invalid lock_timeout: %d", builder->lock_timeout);
-    }
+//     if (builder->lock_timeout == 0) {
+//         *p++ = isc_tpb_nowait;
+//         FBDEBUG_NOFL("  isc_tpb_nowait");
+//     } else if (builder->lock_timeout == -1) {
+//         *p++ = isc_tpb_wait;
+//         FBDEBUG_NOFL("  isc_tpb_wait");
+//     } else if (builder->lock_timeout > 0) {
+//         *p++ = isc_tpb_wait;
+//         *p++ = isc_tpb_lock_timeout;
+//         *p++ = sizeof(builder->lock_timeout);
+//         fbp_store_portable_integer(p, builder->lock_timeout, sizeof(builder->lock_timeout));
+//         p += sizeof(builder->lock_timeout);
+//         FBDEBUG_NOFL("  isc_tpb_wait");
+//         FBDEBUG_NOFL("    isc_tpb_lock_timeout = %d", builder->lock_timeout);
+//     } else {
+//         fbp_fatal("BUG! invalid lock_timeout: %d", builder->lock_timeout);
+//     }
 
-    *tpb_len = p - tpb;
-}
+//     *tpb_len = p - tpb;
+// }
 
 int fbp_transaction_reconnect(firebird_trans *tr, ISC_ULONG id)
 {
+    TODO("fbp_transaction_reconnect");
+#if 0
     if (isc_reconnect_transaction(FBG(status), tr->db_handle, tr->tr_handle, sizeof(id), (const ISC_SCHAR *)&id)) {
         return FAILURE;
     }
@@ -192,4 +199,5 @@ int fbp_transaction_reconnect(firebird_trans *tr, ISC_ULONG id)
     }
 
     return SUCCESS;
+#endif
 }

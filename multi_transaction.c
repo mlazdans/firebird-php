@@ -27,7 +27,7 @@ void FireBird_Multi_Transaction___construct(zval *MTr)
     array_init(&mtr->Transactions);
 }
 
-PHP_METHOD(Multi_Transaction, __construct)
+PHP_METHOD(FireBird_Multi_Transaction, __construct)
 {
     ZEND_PARSE_PARAMETERS_NONE();
 
@@ -36,6 +36,8 @@ PHP_METHOD(Multi_Transaction, __construct)
 
 void FireBird_Multi_Transaction_add_db(zval *MTr, zval *Db, zval *Builder, zval *return_value)
 {
+    TODO("FireBird_Multi_Transaction_add_db");
+#if 0
     firebird_multi_trans *mtr = get_firebird_multi_trans_from_zval(MTr);
 
     Z_ADDREF_P(Db);
@@ -59,9 +61,10 @@ void FireBird_Multi_Transaction_add_db(zval *MTr, zval *Db, zval *Builder, zval 
     add_next_index_zval(&mtr->Transactions, &Tr);
 
     RETVAL_OBJ(Z_OBJ(Tr));
+#endif
 }
 
-PHP_METHOD(Multi_Transaction, add_db)
+PHP_METHOD(FireBird_Multi_Transaction, add_db)
 {
     zval *Database, *Builder = NULL;
 
@@ -88,14 +91,16 @@ void FireBird_Multi_Transaction_start(zval *MTr, zval *return_value)
     RETURN_TRUE;
 }
 
-PHP_METHOD(Multi_Transaction, start) {
+PHP_METHOD(FireBird_Multi_Transaction, start) {
     ZEND_PARSE_PARAMETERS_NONE();
 
     FireBird_Multi_Transaction_start(ZEND_THIS, return_value);
 }
 
-static void _FireBird_Multi_Transaction_finalize(INTERNAL_FUNCTION_PARAMETERS, firebird_tr_fin_flag mode)
+static void _FireBird_Multi_Transaction_finalize(INTERNAL_FUNCTION_PARAMETERS, int mode)
 {
+    TODO("_FireBird_Multi_Transaction_finalize");
+#if 0
     ZEND_PARSE_PARAMETERS_NONE();
 
     firebird_multi_trans *mtr = get_firebird_multi_trans_from_zval(ZEND_THIS);
@@ -106,25 +111,26 @@ static void _FireBird_Multi_Transaction_finalize(INTERNAL_FUNCTION_PARAMETERS, f
     } else {
         RETURN_TRUE;
     }
+#endif
 }
 
-PHP_METHOD(Multi_Transaction, commit) {
+PHP_METHOD(FireBird_Multi_Transaction, commit) {
     _FireBird_Multi_Transaction_finalize(INTERNAL_FUNCTION_PARAM_PASSTHRU, FBP_TR_COMMIT);
 }
 
-PHP_METHOD(Multi_Transaction, commit_ret) {
+PHP_METHOD(FireBird_Multi_Transaction, commit_ret) {
     _FireBird_Multi_Transaction_finalize(INTERNAL_FUNCTION_PARAM_PASSTHRU, FBP_TR_COMMIT | FBP_TR_RETAIN);
 }
 
-PHP_METHOD(Multi_Transaction, rollback) {
+PHP_METHOD(FireBird_Multi_Transaction, rollback) {
     _FireBird_Multi_Transaction_finalize(INTERNAL_FUNCTION_PARAM_PASSTHRU, FBP_TR_ROLLBACK);
 }
 
-PHP_METHOD(Multi_Transaction, rollback_ret) {
+PHP_METHOD(FireBird_Multi_Transaction, rollback_ret) {
     _FireBird_Multi_Transaction_finalize(INTERNAL_FUNCTION_PARAM_PASSTHRU, FBP_TR_ROLLBACK | FBP_TR_RETAIN);
 }
 
-PHP_METHOD(Multi_Transaction, prepare_2pc)
+PHP_METHOD(FireBird_Multi_Transaction, prepare_2pc)
 {
     char *description = NULL;
     size_t description_len = 0;
@@ -151,17 +157,17 @@ PHP_METHOD(Multi_Transaction, prepare_2pc)
     RETURN_TRUE;
 }
 
-const zend_function_entry FireBird_Multi_Transaction_methods[] = {
-    PHP_ME(Multi_Transaction, __construct, arginfo_none, ZEND_ACC_PUBLIC | ZEND_ACC_CTOR)
-    PHP_ME(Multi_Transaction, add_db, arginfo_FireBird_Multi_Transaction_add_db, ZEND_ACC_PUBLIC)
-    PHP_ME(Multi_Transaction, start, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
-    PHP_ME(Multi_Transaction, commit, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
-    PHP_ME(Multi_Transaction, commit_ret, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
-    PHP_ME(Multi_Transaction, rollback, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
-    PHP_ME(Multi_Transaction, rollback_ret, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
-    PHP_ME(Multi_Transaction, prepare_2pc, arginfo_FireBird_Multi_Transaction_prepare_2pc, ZEND_ACC_PUBLIC)
-    PHP_FE_END
-};
+// const zend_function_entry FireBird_Multi_Transaction_methods[] = {
+//     PHP_ME(Multi_Transaction, __construct, arginfo_none, ZEND_ACC_PUBLIC | ZEND_ACC_CTOR)
+//     PHP_ME(Multi_Transaction, add_db, arginfo_FireBird_Multi_Transaction_add_db, ZEND_ACC_PUBLIC)
+//     PHP_ME(Multi_Transaction, start, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
+//     PHP_ME(Multi_Transaction, commit, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
+//     PHP_ME(Multi_Transaction, commit_ret, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
+//     PHP_ME(Multi_Transaction, rollback, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
+//     PHP_ME(Multi_Transaction, rollback_ret, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
+//     PHP_ME(Multi_Transaction, prepare_2pc, arginfo_FireBird_Multi_Transaction_prepare_2pc, ZEND_ACC_PUBLIC)
+//     PHP_FE_END
+// };
 
 static zend_object *new__FireBird_Multi_Transaction_(zend_class_entry *ce)
 {
@@ -175,6 +181,8 @@ static zend_object *new__FireBird_Multi_Transaction_(zend_class_entry *ce)
 
 static void free_FireBird_Multi_Transaction(zend_object *obj)
 {
+    TODO("free_FireBird_Multi_Transaction");
+#if 0
     firebird_multi_trans *mtr = get_firebird_multi_trans_from_obj(obj);
 
     FBDEBUG("free_FireBird_Multi_Transaction: %p: %zu", &mtr->tr_handle, mtr->tr_handle);
@@ -199,26 +207,27 @@ static void free_FireBird_Multi_Transaction(zend_object *obj)
     }
 
     zend_object_std_dtor(&mtr->std);
+#endif
 }
 
-void register_FireBird_Multi_Transaction_ce()
-{
-    zend_class_entry tmp_ce;
-    INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "Multi_Transaction", FireBird_Multi_Transaction_methods);
-    FireBird_Multi_Transaction_ce = zend_register_internal_class(&tmp_ce);
+// void register_FireBird_Multi_Transaction_ce()
+// {
+//     zend_class_entry tmp_ce;
+//     INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "Multi_Transaction", FireBird_Multi_Transaction_methods);
+//     FireBird_Multi_Transaction_ce = zend_register_internal_class(&tmp_ce);
 
-    // DECLARE_PROP_OBJ(FireBird_Multi_Transaction_ce, database, FireBird\\Database, ZEND_ACC_PROTECTED_SET);
-    // DECLARE_PROP_OBJ(FireBird_Multi_Transaction_ce, builder, FireBird\\TBuilder, ZEND_ACC_PROTECTED_SET);
-    DECLARE_PROP_LONG(FireBird_Multi_Transaction_ce, id, ZEND_ACC_PROTECTED_SET);
-    DECLARE_ERR_PROPS(FireBird_Multi_Transaction_ce);
+//     // DECLARE_PROP_OBJ(FireBird_Multi_Transaction_ce, database, FireBird\\Database, ZEND_ACC_PROTECTED_SET);
+//     // DECLARE_PROP_OBJ(FireBird_Multi_Transaction_ce, builder, FireBird\\TBuilder, ZEND_ACC_PROTECTED_SET);
+//     DECLARE_PROP_LONG(FireBird_Multi_Transaction_ce, id, ZEND_ACC_PROTECTED_SET);
+//     DECLARE_ERR_PROPS(FireBird_Multi_Transaction_ce);
 
-    zend_class_implements(FireBird_Multi_Transaction_ce, 1, FireBird_IError_ce);
+//     zend_class_implements(FireBird_Multi_Transaction_ce, 1, FireBird_IError_ce);
 
-    FireBird_Multi_Transaction_ce->create_object = new__FireBird_Multi_Transaction_;
-    FireBird_Multi_Transaction_ce->default_object_handlers = &object_handlers__FireBird_Multi_Transaction_;
+//     FireBird_Multi_Transaction_ce->create_object = new__FireBird_Multi_Transaction_;
+//     FireBird_Multi_Transaction_ce->default_object_handlers = &object_handlers__FireBird_Multi_Transaction_;
 
-    memcpy(&object_handlers__FireBird_Multi_Transaction_, &std_object_handlers, sizeof(zend_object_handlers));
+//     memcpy(&object_handlers__FireBird_Multi_Transaction_, &std_object_handlers, sizeof(zend_object_handlers));
 
-    object_handlers__FireBird_Multi_Transaction_.offset = XtOffsetOf(firebird_multi_trans, std);
-    object_handlers__FireBird_Multi_Transaction_.free_obj = free_FireBird_Multi_Transaction;
-}
+//     object_handlers__FireBird_Multi_Transaction_.offset = XtOffsetOf(firebird_multi_trans, std);
+//     object_handlers__FireBird_Multi_Transaction_.free_obj = free_FireBird_Multi_Transaction;
+// }

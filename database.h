@@ -10,11 +10,11 @@ extern zend_class_entry *FireBird_Db_Info_ce;
 extern zend_class_entry *FireBird_Connect_Args_ce;
 extern zend_class_entry *FireBird_Create_Args_ce;
 
-void register_FireBird_Database_ce();
-void register_FireBird_Db_Info_ce();
-void register_FireBird_Connect_Args_ce();
-void register_FireBird_Create_Args_ce();
-
+// void register_FireBird_Database_ce();
+// void register_FireBird_Db_Info_ce();
+// void register_FireBird_Connect_Args_ce();
+// void register_FireBird_Create_Args_ce();
+void register_FireBird_Database_object_handlers();
 void FireBird_Database_reconnect_transaction(zval *Db, zval *return_value, zend_long id);
 
 #endif /* DATABASE_H */

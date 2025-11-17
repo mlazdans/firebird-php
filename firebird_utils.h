@@ -18,6 +18,10 @@
 #define FIREBIRD_UTILS_H
 
 #include <ibase.h>
+#include "database.h"
+#include "fbp_database.h"
+#include "fbp_transaction.h"
+#include "fbp_statement.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,7 +36,16 @@ void fbu_decode_timestamp_tz(const ISC_TIMESTAMP_TZ* timestampTz,
     unsigned* year, unsigned* month, unsigned* day,
     unsigned* hours, unsigned* minutes, unsigned* seconds, unsigned* fractions,
     unsigned timeZoneBufferLength, char* timeZoneBuffer);
-
+int fbu_attach_database(ISC_STATUS* status, firebird_db *db, zval *Connect_Args, zend_class_entry *ce);
+int fbu_detach_database(ISC_STATUS* status, firebird_db *db);
+int fbu_start_transaction(ISC_STATUS* status, firebird_trans *tr);
+int fbu_finalize_transaction(ISC_STATUS* status, firebird_trans *tr, int mode);
+int fbu_prepare_statement(ISC_STATUS* status, firebird_stmt *stmt, const char *sql);
+int fbu_free_statement(ISC_STATUS* status, firebird_stmt *stmt);
+int fbu_execute_statement(ISC_STATUS* status, firebird_stmt *stmt);
+int fbu_open_cursor(ISC_STATUS* status, firebird_stmt *stmt);
+int fbu_fetch(ISC_STATUS* status, firebird_stmt *stmt, int flags, zval *return_value);
+int fbu_statement_bind(ISC_STATUS* status, firebird_stmt *stmt, zval *b_vars, size_t num_bind_args);
 #ifdef __cplusplus
 }
 #endif

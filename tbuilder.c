@@ -7,7 +7,7 @@
 #include "php_firebird_includes.h"
 #include "fbp_transaction.h"
 
-zend_class_entry *FireBird_TBuilder_ce;
+// zend_class_entry *FireBird_TBuilder_ce;
 static zend_object_handlers FireBird_TBuilder_object_handlers;
 
 #define tbuilder_update_flag(name) do {             \
@@ -29,33 +29,33 @@ static zend_object_handlers FireBird_TBuilder_object_handlers;
     builder->snapshot_at_number = 0;                \
     RETVAL_OBJ_COPY(Z_OBJ_P(ZEND_THIS))
 
-PHP_METHOD(TBuilder, __construct)
+PHP_METHOD(FireBird_TBuilder, __construct)
 {
     tbuilder_update_isolation_mode(1);
     builder->lock_timeout = -1;
 }
 
-PHP_METHOD(TBuilder, read_only)
+PHP_METHOD(FireBird_TBuilder, read_only)
 {
     tbuilder_update_flag(read_only);
 }
 
-PHP_METHOD(TBuilder, ignore_limbo)
+PHP_METHOD(FireBird_TBuilder, ignore_limbo)
 {
     tbuilder_update_flag(ignore_limbo);
 }
 
-PHP_METHOD(TBuilder, auto_commit)
+PHP_METHOD(FireBird_TBuilder, auto_commit)
 {
     tbuilder_update_flag(auto_commit);
 }
 
-PHP_METHOD(TBuilder, no_auto_undo)
+PHP_METHOD(FireBird_TBuilder, no_auto_undo)
 {
     tbuilder_update_flag(no_auto_undo);
 }
 
-PHP_METHOD(TBuilder, wait)
+PHP_METHOD(FireBird_TBuilder, wait)
 {
     zend_long lock_timeout = -1;
 
@@ -75,13 +75,13 @@ PHP_METHOD(TBuilder, wait)
     RETVAL_OBJ_COPY(Z_OBJ_P(ZEND_THIS));
 }
 
-PHP_METHOD(TBuilder, isolation_snapshot_table_stability)
+PHP_METHOD(FireBird_TBuilder, isolation_snapshot_table_stability)
 {
     ZEND_PARSE_PARAMETERS_NONE();
     tbuilder_update_isolation_mode(0);
 }
 
-PHP_METHOD(TBuilder, isolation_snapshot)
+PHP_METHOD(FireBird_TBuilder, isolation_snapshot)
 {
     zend_long snapshot_at_number = 0;
     ZEND_PARSE_PARAMETERS_START(0, 1)
@@ -93,25 +93,25 @@ PHP_METHOD(TBuilder, isolation_snapshot)
     builder->snapshot_at_number = snapshot_at_number;
 }
 
-PHP_METHOD(TBuilder, isolation_read_committed_record_version)
+PHP_METHOD(FireBird_TBuilder, isolation_read_committed_record_version)
 {
     ZEND_PARSE_PARAMETERS_NONE();
     tbuilder_update_isolation_mode(2);
 }
 
-PHP_METHOD(TBuilder, isolation_read_committed_no_record_version)
+PHP_METHOD(FireBird_TBuilder, isolation_read_committed_no_record_version)
 {
     ZEND_PARSE_PARAMETERS_NONE();
     tbuilder_update_isolation_mode(3);
 }
 
-PHP_METHOD(TBuilder, isolation_read_committed_read_consistency)
+PHP_METHOD(FireBird_TBuilder, isolation_read_committed_read_consistency)
 {
     ZEND_PARSE_PARAMETERS_NONE();
     tbuilder_update_isolation_mode(4);
 }
 
-PHP_METHOD(TBuilder, dump_state)
+PHP_METHOD(FireBird_TBuilder, dump_state)
 {
     ZEND_PARSE_PARAMETERS_NONE();
     firebird_tbuilder *b = get_firebird_tbuilder_from_zval(ZEND_THIS);
@@ -126,22 +126,22 @@ PHP_METHOD(TBuilder, dump_state)
     php_printf("  snapshot_at_number: %d\n", b->snapshot_at_number);
 }
 
-const zend_function_entry FireBird_TBuilder_methods[] = {
-    PHP_ME(TBuilder, __construct, arginfo_none, ZEND_ACC_PUBLIC | ZEND_ACC_CTOR)
-    PHP_ME(TBuilder, read_only, arginfo_FireBird_TBuilder_flag_return_static, ZEND_ACC_PUBLIC)
-    PHP_ME(TBuilder, ignore_limbo, arginfo_FireBird_TBuilder_flag_return_static, ZEND_ACC_PUBLIC)
-    PHP_ME(TBuilder, auto_commit, arginfo_FireBird_TBuilder_flag_return_static, ZEND_ACC_PUBLIC)
-    PHP_ME(TBuilder, no_auto_undo, arginfo_FireBird_TBuilder_flag_return_static, ZEND_ACC_PUBLIC)
-    PHP_ME(TBuilder, wait, arginfo_FireBird_TBuilder_wait, ZEND_ACC_PUBLIC)
-    PHP_ME(TBuilder, isolation_snapshot_table_stability, arginfo_static, ZEND_ACC_PUBLIC)
-    PHP_ME(TBuilder, isolation_snapshot, arginfo_FireBird_TBuilder_isolation_snapshot, ZEND_ACC_PUBLIC)
-    PHP_ME(TBuilder, isolation_read_committed_record_version, arginfo_static, ZEND_ACC_PUBLIC)
-    PHP_ME(TBuilder, isolation_read_committed_no_record_version, arginfo_static, ZEND_ACC_PUBLIC)
-    PHP_ME(TBuilder, isolation_read_committed_read_consistency, arginfo_static, ZEND_ACC_PUBLIC)
-    PHP_ME(TBuilder, dump_state, arginfo_none, ZEND_ACC_PUBLIC)
+// const zend_function_entry FireBird_TBuilder_methods[] = {
+//     PHP_ME(TBuilder, __construct, arginfo_none, ZEND_ACC_PUBLIC | ZEND_ACC_CTOR)
+//     PHP_ME(TBuilder, read_only, arginfo_FireBird_TBuilder_flag_return_static, ZEND_ACC_PUBLIC)
+//     PHP_ME(TBuilder, ignore_limbo, arginfo_FireBird_TBuilder_flag_return_static, ZEND_ACC_PUBLIC)
+//     PHP_ME(TBuilder, auto_commit, arginfo_FireBird_TBuilder_flag_return_static, ZEND_ACC_PUBLIC)
+//     PHP_ME(TBuilder, no_auto_undo, arginfo_FireBird_TBuilder_flag_return_static, ZEND_ACC_PUBLIC)
+//     PHP_ME(TBuilder, wait, arginfo_FireBird_TBuilder_wait, ZEND_ACC_PUBLIC)
+//     PHP_ME(TBuilder, isolation_snapshot_table_stability, arginfo_static, ZEND_ACC_PUBLIC)
+//     PHP_ME(TBuilder, isolation_snapshot, arginfo_FireBird_TBuilder_isolation_snapshot, ZEND_ACC_PUBLIC)
+//     PHP_ME(TBuilder, isolation_read_committed_record_version, arginfo_static, ZEND_ACC_PUBLIC)
+//     PHP_ME(TBuilder, isolation_read_committed_no_record_version, arginfo_static, ZEND_ACC_PUBLIC)
+//     PHP_ME(TBuilder, isolation_read_committed_read_consistency, arginfo_static, ZEND_ACC_PUBLIC)
+//     PHP_ME(TBuilder, dump_state, arginfo_none, ZEND_ACC_PUBLIC)
 
-    PHP_FE_END
-};
+//     PHP_FE_END
+// };
 
 static zend_object *FireBird_TBuilder_create(zend_class_entry *ce)
 {
@@ -187,18 +187,18 @@ static zval *FireBird_TBuilder_read_property(zend_object *obj, zend_string *name
     return rv;
 }
 
-void register_FireBird_TBuilder_ce()
-{
-    zend_class_entry tmp_ce;
-    INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "TBuilder", FireBird_TBuilder_methods);
-    FireBird_TBuilder_ce = zend_register_internal_class(&tmp_ce);
+// void register_FireBird_TBuilder_ce()
+// {
+//     zend_class_entry tmp_ce;
+//     INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "TBuilder", FireBird_TBuilder_methods);
+//     FireBird_TBuilder_ce = zend_register_internal_class(&tmp_ce);
 
-    FireBird_TBuilder_ce->create_object = FireBird_TBuilder_create;
-    FireBird_TBuilder_ce->default_object_handlers = &FireBird_TBuilder_object_handlers;
+//     FireBird_TBuilder_ce->create_object = FireBird_TBuilder_create;
+//     FireBird_TBuilder_ce->default_object_handlers = &FireBird_TBuilder_object_handlers;
 
-    memcpy(&FireBird_TBuilder_object_handlers, &std_object_handlers, sizeof(zend_object_handlers));
+//     memcpy(&FireBird_TBuilder_object_handlers, &std_object_handlers, sizeof(zend_object_handlers));
 
-    FireBird_TBuilder_object_handlers.offset = XtOffsetOf(firebird_tbuilder, std);
-    FireBird_TBuilder_object_handlers.free_obj = FireBird_TBuilder_free_obj;
-    FireBird_TBuilder_object_handlers.read_property = FireBird_TBuilder_read_property;
-}
+//     FireBird_TBuilder_object_handlers.offset = XtOffsetOf(firebird_tbuilder, std);
+//     FireBird_TBuilder_object_handlers.free_obj = FireBird_TBuilder_free_obj;
+//     FireBird_TBuilder_object_handlers.read_property = FireBird_TBuilder_read_property;
+// }

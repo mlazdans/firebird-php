@@ -23,10 +23,11 @@
    +----------------------------------------------------------------------+
  */
 
-#include <firebird/fb_c_api.h>
+// #include <firebird/fb_c_api.h>
 #include "php.h"
 #include "php_firebird.h"
 #include "php_firebird_includes.h"
+#include "firebird_utils.h"
 
 #include "blob.h"
 #include "fbp_blob.h"
@@ -36,9 +37,12 @@ fbp_object_accessor(firebird_stmt);
 
 void fbp_statement_ctor(firebird_stmt *stmt, firebird_trans *tr)
 {
-    stmt->stmt_handle = 0;
-    stmt->db_handle = tr->db_handle;
-    stmt->tr_handle = tr->tr_handle;
+    stmt->tr = tr;
+    // stmt->stmt_handle = 0;
+    // stmt->db_handle = tr->db_handle;
+    // stmt->tr_handle = tr->tr_handle;
+    // stmt->db_handle = 0;
+    // stmt->tr_handle = 0;
 }
 
 void fbp_alloc_xsqlda(XSQLDA *sqlda)
@@ -90,7 +94,6 @@ void fbp_alloc_xsqlda(XSQLDA *sqlda)
             case SQL_BLOB:
                 var->sqldata = emalloc(sizeof(ISC_QUAD));
                 break;
-#if FB_API_VER >= 40
             // These are converted to VARCHAR via isc_dpb_set_bind tag at connect
             // case SQL_DEC16:
             // case SQL_DEC34:
@@ -101,7 +104,6 @@ void fbp_alloc_xsqlda(XSQLDA *sqlda)
             case SQL_TIME_TZ:
                 var->sqldata = emalloc(sizeof(ISC_TIME_TZ));
                 break;
-#endif
             default:
                 php_error(E_WARNING, "Unhandled sqltype: %d for sqlname %s %s:%d", var->sqltype, var->sqlname, __FILE__, __LINE__);
                 break;
@@ -132,7 +134,8 @@ void fbp_free_xsqlda(XSQLDA *sqlda)
     }
 }
 
-int fbp_statement_bind(firebird_stmt *stmt, XSQLDA *sqlda, zval *b_vars)
+#if 0
+int fbp_statement_bind(firebird_stmt *stmt, zval *b_vars)
 {
     int i, rv = SUCCESS;
 
@@ -296,9 +299,12 @@ int fbp_statement_bind(firebird_stmt *stmt, XSQLDA *sqlda, zval *b_vars)
     } /* for */
     return rv;
 }
+#endif
 
 int fbp_update_statement_info(firebird_stmt *stmt)
 {
+    TODO("fbp_update_statement_info");
+#if 0
     char request_buffer[] = { isc_info_sql_records };
     char info_buffer[64] = { 0 };
 
@@ -344,15 +350,28 @@ int fbp_update_statement_info(firebird_stmt *stmt)
     FBDEBUG_NOFL(" delete_count: %zu", stmt->delete_count);
 
     return SUCCESS;
+#endif
 }
 
 int fbp_statement_execute(firebird_stmt *stmt, zval *bind_args, uint32_t num_bind_args, firebird_stmt_execute_fn exfn_in)
 {
-    /* has placeholders */
-    if (stmt->in_sqlda != NULL && stmt->in_sqlda->sqld > 0) {
-        if (fbp_statement_bind(stmt, stmt->in_sqlda, bind_args)) {
+    TODO("fbp_statement_execute");
+#if 0
+    if (stmt->in_vars_count > 0) {
+        if (fbp_statement_bind(stmt, bind_args)) {
             return FAILURE;
         }
+    }
+
+    fbu_execute_statement(FBG(status), stmt);
+#endif
+
+#if 0
+    /* has placeholders */
+    if (stmt->in_vars_count > 0) {
+        // if (fbp_statement_bind(stmt, stmt->in_sqlda, bind_args)) {
+        //     return FAILURE;
+        // }
     }
 
     // ### isc_dsql_exec_immed2
@@ -448,8 +467,10 @@ int fbp_statement_execute(firebird_stmt *stmt, zval *bind_args, uint32_t num_bin
     fbp_update_statement_info(stmt);
 
     return SUCCESS;
+#endif
 }
 
+#if 0
 int fbp_statement_prepare(firebird_stmt *stmt, const ISC_SCHAR *sql)
 {
     // TODO: configure auto-close, throw or warning
@@ -518,9 +539,12 @@ int fbp_statement_prepare(firebird_stmt *stmt, const ISC_SCHAR *sql)
 
     return SUCCESS;
 }
+#endif
 
 void fbp_statement_free(firebird_stmt *stmt)
 {
+    TODO("fbp_statement_free");
+#if 0
     if (stmt->in_sqlda) {
         efree(stmt->in_sqlda);
     }
@@ -536,4 +560,5 @@ void fbp_statement_free(firebird_stmt *stmt)
     if(stmt->bind_buf) {
         efree(stmt->bind_buf);
     }
+#endif
 }

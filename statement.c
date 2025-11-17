@@ -19,13 +19,9 @@
 #include "blob.h"
 #include "fbp_blob.h"
 
-zend_class_entry *FireBird_Statement_ce;
 static zend_object_handlers FireBird_Statement_object_handlers;
 
 void FireBird_Var_Info_from_var(zval *return_value, XSQLVAR *var);
-
-#define RETURN_ROW       1
-#define RETURN_ARRAY     2
 
 void FireBird_Statement___construct(zval *Stmt, zval *Transaction)
 {
@@ -37,7 +33,7 @@ void FireBird_Statement___construct(zval *Stmt, zval *Transaction)
     OBJ_SET(FireBird_Statement_ce, Stmt, "transaction", Transaction);
 }
 
-PHP_METHOD(Statement, __construct)
+PHP_METHOD(FireBird_Statement, __construct)
 {
     zval *Transaction;
 
@@ -57,30 +53,34 @@ static void _FireBird_Statement_fetch(INTERNAL_FUNCTION_PARAMETERS, int return_t
         Z_PARAM_LONG(flags)
     ZEND_PARSE_PARAMETERS_END();
 
-    FireBird_Statement_fetch(ZEND_THIS, return_value, flags, return_type);
+    // TODO: check flags == BLOB/UNIX, crash otherwise
+
+    FireBird_Statement_fetch(ZEND_THIS, return_value, flags | return_type);
 }
 
-PHP_METHOD(Statement, fetch_row)
+PHP_METHOD(FireBird_Statement, fetch_row)
 {
-    _FireBird_Statement_fetch(INTERNAL_FUNCTION_PARAM_PASSTHRU, RETURN_ROW);
+    _FireBird_Statement_fetch(INTERNAL_FUNCTION_PARAM_PASSTHRU, FBP_FETCH_INDEXED);
 }
 
-PHP_METHOD(Statement, fetch_array)
+PHP_METHOD(FireBird_Statement, fetch_array)
 {
-    _FireBird_Statement_fetch(INTERNAL_FUNCTION_PARAM_PASSTHRU, RETURN_ARRAY);
+    _FireBird_Statement_fetch(INTERNAL_FUNCTION_PARAM_PASSTHRU, FBP_FETCH_HASHED);
 }
 
-PHP_METHOD(Statement, fetch_object)
+PHP_METHOD(FireBird_Statement, fetch_object)
 {
-    _FireBird_Statement_fetch(INTERNAL_FUNCTION_PARAM_PASSTHRU, RETURN_ARRAY);
+    _FireBird_Statement_fetch(INTERNAL_FUNCTION_PARAM_PASSTHRU, FBP_FETCH_HASHED);
 
     if (Z_TYPE_P(return_value) == IS_ARRAY) {
         convert_to_object(return_value);
     }
 }
 
-PHP_METHOD(Statement, close)
+PHP_METHOD(FireBird_Statement, close)
 {
+    TODO("PHP_METHOD(FireBird_Statement, close)");
+#if 0
     ZEND_PARSE_PARAMETERS_NONE();
 
     firebird_stmt *stmt = get_firebird_stmt_from_zval(ZEND_THIS);
@@ -91,10 +91,13 @@ PHP_METHOD(Statement, close)
     }
 
     RETURN_TRUE;
+#endif
 }
 
-PHP_METHOD(Statement, free)
+PHP_METHOD(FireBird_Statement, free)
 {
+    TODO("PHP_METHOD(FireBird_Statement, free)");
+#if 0
     ZEND_PARSE_PARAMETERS_NONE();
 
     firebird_stmt *stmt = get_firebird_stmt_from_zval(ZEND_THIS);
@@ -107,10 +110,13 @@ PHP_METHOD(Statement, free)
     stmt->stmt_handle = 0;
 
     RETURN_TRUE;
+#endif
 }
 
 int FireBird_Statement_execute(zval *Stmt, zval *bind_args, uint32_t num_bind_args)
 {
+    TODO("FireBird_Statement_execute");
+#if 0
     firebird_stmt *stmt = get_firebird_stmt_from_zval(Stmt);
 
     if (!stmt->statement_type) {
@@ -118,9 +124,9 @@ int FireBird_Statement_execute(zval *Stmt, zval *bind_args, uint32_t num_bind_ar
         return FAILURE;
     }
 
-    if (num_bind_args != stmt->in_sqlda->sqld) {
+    if (num_bind_args != stmt->in_vars_count) {
         zend_throw_exception_ex(zend_ce_argument_count_error, 0,
-            "Statement expects %d arguments, %d given", stmt->in_sqlda->sqld, num_bind_args);
+            "Statement expects %d arguments, %d given", stmt->in_vars_count, num_bind_args);
         return FAILURE;
     }
 
@@ -135,9 +141,10 @@ int FireBird_Statement_execute(zval *Stmt, zval *bind_args, uint32_t num_bind_ar
     zend_update_property_long(FireBird_Statement_ce, Z_OBJ_P(Stmt), "affected_count", sizeof("affected_count") - 1, stmt->affected_count);
 
     return SUCCESS;
+#endif
 }
 
-PHP_METHOD(Statement, execute)
+PHP_METHOD(FireBird_Statement, execute)
 {
     zval *bind_args;
     uint32_t num_bind_args;
@@ -154,7 +161,7 @@ int FireBird_Statement_prepare(zval *Stmt, const ISC_SCHAR* sql)
 {
     firebird_stmt *stmt = get_firebird_stmt_from_zval(Stmt);
 
-    if (fbp_statement_prepare(stmt, sql)) {
+    if (fbu_prepare_statement(FBG(status), stmt, sql)) {
         ISC_INT64 error_code_long = update_err_props(FBG(status), FireBird_Statement_ce, Stmt);
 
         // Do we CREATE DATABASE?
@@ -164,18 +171,18 @@ int FireBird_Statement_prepare(zval *Stmt, const ISC_SCHAR* sql)
         return FAILURE;
     }
 
-    zend_update_property_long(FireBird_Statement_ce, Z_OBJ_P(Stmt), "num_vars_in", sizeof("num_vars_in") - 1,
-        stmt->in_sqlda->sqld
+    zend_update_property_long(FireBird_Statement_ce, Z_OBJ_P(Stmt), "in_vars_count", sizeof("in_vars_count") - 1,
+        stmt->in_vars_count
     );
 
-    zend_update_property_long(FireBird_Statement_ce, Z_OBJ_P(Stmt), "num_vars_out", sizeof("num_vars_out") - 1,
-        stmt->out_sqlda->sqld
+    zend_update_property_long(FireBird_Statement_ce, Z_OBJ_P(Stmt), "out_vars_count", sizeof("out_vars_count") - 1,
+        stmt->out_vars_count
     );
 
     return SUCCESS;
 }
 
-PHP_METHOD(Statement, prepare)
+PHP_METHOD(FireBird_Statement, prepare)
 {
     zend_string *sql;
 
@@ -188,18 +195,19 @@ PHP_METHOD(Statement, prepare)
 
 int FireBird_Statement_query(zval *Stmt, const ISC_SCHAR* sql, zval *bind_args, uint32_t num_bind_args)
 {
-    if (FireBird_Statement_prepare(Stmt, sql)) {
-        return FAILURE;
-    }
+    TODO("FireBird_Statement_query");
+    // if (FireBird_Statement_prepare(Stmt, sql)) {
+    //     return FAILURE;
+    // }
 
-    if (FireBird_Statement_execute(Stmt, bind_args, num_bind_args)) {
-        return FAILURE;
-    }
+    // if (FireBird_Statement_execute(Stmt, bind_args, num_bind_args)) {
+    //     return FAILURE;
+    // }
 
-    return SUCCESS;
+    return FAILURE;
 }
 
-PHP_METHOD(Statement, query)
+PHP_METHOD(FireBird_Statement, query)
 {
     zval *bind_args;
     uint32_t num_bind_args;
@@ -214,8 +222,10 @@ PHP_METHOD(Statement, query)
     RETVAL_BOOL(SUCCESS == FireBird_Statement_query(ZEND_THIS, ZSTR_VAL(sql), bind_args, num_bind_args));
 }
 
-PHP_METHOD(Statement, get_var_info_in)
+PHP_METHOD(FireBird_Statement, get_var_info_in)
 {
+    TODO("PHP_METHOD(FireBird_Statement, get_var_info_in)");
+#if 0
     zend_long num;
     firebird_stmt *stmt = get_firebird_stmt_from_zval(ZEND_THIS);
 
@@ -228,10 +238,13 @@ PHP_METHOD(Statement, get_var_info_in)
     }
 
     FireBird_Var_Info_from_var(return_value, stmt->in_sqlda->sqlvar + num);
+#endif
 }
 
-PHP_METHOD(Statement, get_var_info_out)
+PHP_METHOD(FireBird_Statement, get_var_info_out)
 {
+    TODO("PHP_METHOD(FireBird_Statement, get_var_info_out)");
+#if 0
     zend_long num;
     firebird_stmt *stmt = get_firebird_stmt_from_zval(ZEND_THIS);
 
@@ -244,10 +257,13 @@ PHP_METHOD(Statement, get_var_info_out)
     }
 
     FireBird_Var_Info_from_var(return_value, stmt->out_sqlda->sqlvar + num);
+#endif
 }
 
-PHP_METHOD(Statement, set_name)
+PHP_METHOD(FireBird_Statement, set_name)
 {
+    TODO("PHP_METHOD(FireBird_Statement, set_name)");
+#if 0
     firebird_stmt *stmt = get_firebird_stmt_from_zval(ZEND_THIS);
     char *name;
     size_t name_len;
@@ -266,23 +282,8 @@ PHP_METHOD(Statement, set_name)
     zend_update_property_string(FireBird_Statement_ce, Z_OBJ_P(ZEND_THIS), "name", sizeof("name") - 1, name);
 
     RETURN_TRUE;
+#endif
 }
-
-const zend_function_entry FireBird_Statement_methods[] = {
-    PHP_ME(Statement, __construct, arginfo_FireBird_Statement___construct, ZEND_ACC_PUBLIC | ZEND_ACC_CTOR)
-    PHP_ME(Statement, fetch_row, arginfo_FireBird_Statement_fetch_row, ZEND_ACC_PUBLIC)
-    PHP_ME(Statement, fetch_array, arginfo_FireBird_Statement_fetch_row, ZEND_ACC_PUBLIC)
-    PHP_ME(Statement, fetch_object, arginfo_FireBird_Statement_fetch_object, ZEND_ACC_PUBLIC)
-    PHP_ME(Statement, prepare, arginfo_FireBird_Statement_prepare, ZEND_ACC_PUBLIC)
-    PHP_ME(Statement, execute, arginfo_FireBird_Statement_execute, ZEND_ACC_PUBLIC)
-    PHP_ME(Statement, query, arginfo_FireBird_Statement_query, ZEND_ACC_PUBLIC)
-    PHP_ME(Statement, close, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
-    PHP_ME(Statement, free, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
-    PHP_ME(Statement, get_var_info_in, arginfo_FireBird_Statement_get_var_info_in_out, ZEND_ACC_PUBLIC)
-    PHP_ME(Statement, get_var_info_out, arginfo_FireBird_Statement_get_var_info_in_out, ZEND_ACC_PUBLIC)
-    PHP_ME(Statement, set_name, arginfo_FireBird_Statement_set_name, ZEND_ACC_PUBLIC)
-    PHP_FE_END
-};
 
 static zend_object *new_FireBird_Statement(zend_class_entry *ce)
 {
@@ -298,6 +299,14 @@ static zend_object *new_FireBird_Statement(zend_class_entry *ce)
 
 static void free_FireBird_Statement(zend_object *obj)
 {
+    firebird_stmt *stmt = get_firebird_stmt_from_obj(obj);
+    if (fbu_free_statement(FBG(status), stmt)) {
+        fbp_status_error(FBG(status));
+    }
+
+    zend_object_std_dtor(&stmt->std);
+
+#if 0
     FBDEBUG("free_FireBird_Statement");
 
     firebird_stmt *stmt = get_firebird_stmt_from_obj(obj);
@@ -311,26 +320,11 @@ static void free_FireBird_Statement(zend_object *obj)
     fbp_statement_free(stmt);
 
     zend_object_std_dtor(&stmt->std);
+#endif
 }
 
-void register_FireBird_Statement_ce()
+void register_FireBird_Statement_object_handlers()
 {
-    zend_class_entry tmp_ce;
-    INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "Statement", FireBird_Statement_methods);
-    FireBird_Statement_ce = zend_register_internal_class(&tmp_ce);
-
-    DECLARE_PROP_OBJ(FireBird_Statement_ce, transaction, FireBird\\Transaction, ZEND_ACC_PROTECTED_SET);
-    DECLARE_PROP_STRING(FireBird_Statement_ce, name, ZEND_ACC_PROTECTED_SET);
-    DECLARE_PROP_LONG(FireBird_Statement_ce, num_vars_in, ZEND_ACC_PROTECTED_SET);
-    DECLARE_PROP_LONG(FireBird_Statement_ce, num_vars_out, ZEND_ACC_PROTECTED_SET);
-    DECLARE_PROP_LONG(FireBird_Statement_ce, insert_count, ZEND_ACC_PROTECTED_SET);
-    DECLARE_PROP_LONG(FireBird_Statement_ce, update_count, ZEND_ACC_PROTECTED_SET);
-    DECLARE_PROP_LONG(FireBird_Statement_ce, delete_count, ZEND_ACC_PROTECTED_SET);
-    DECLARE_PROP_LONG(FireBird_Statement_ce, affected_count, ZEND_ACC_PROTECTED_SET);
-    DECLARE_ERR_PROPS(FireBird_Statement_ce);
-
-    zend_class_implements(FireBird_Statement_ce, 1, FireBird_IError_ce);
-
     FireBird_Statement_ce->create_object = new_FireBird_Statement;
     FireBird_Statement_ce->default_object_handlers = &FireBird_Statement_object_handlers;
 
@@ -340,7 +334,34 @@ void register_FireBird_Statement_ce()
     FireBird_Statement_object_handlers.free_obj = free_FireBird_Statement;
 }
 
-static int _php_firebird_var_zval(zval *val, void *data, int type, int len, int scale, firebird_fetch_flag flags)
+// void register_FireBird_Statement_ce()
+// {
+//     zend_class_entry tmp_ce;
+//     INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "Statement", FireBird_Statement_methods);
+//     FireBird_Statement_ce = zend_register_internal_class(&tmp_ce);
+
+//     DECLARE_PROP_OBJ(FireBird_Statement_ce, transaction, FireBird\\Transaction, ZEND_ACC_PROTECTED_SET);
+//     DECLARE_PROP_STRING(FireBird_Statement_ce, name, ZEND_ACC_PROTECTED_SET);
+//     DECLARE_PROP_LONG(FireBird_Statement_ce, num_vars_in, ZEND_ACC_PROTECTED_SET);
+//     DECLARE_PROP_LONG(FireBird_Statement_ce, num_vars_out, ZEND_ACC_PROTECTED_SET);
+//     DECLARE_PROP_LONG(FireBird_Statement_ce, insert_count, ZEND_ACC_PROTECTED_SET);
+//     DECLARE_PROP_LONG(FireBird_Statement_ce, update_count, ZEND_ACC_PROTECTED_SET);
+//     DECLARE_PROP_LONG(FireBird_Statement_ce, delete_count, ZEND_ACC_PROTECTED_SET);
+//     DECLARE_PROP_LONG(FireBird_Statement_ce, affected_count, ZEND_ACC_PROTECTED_SET);
+//     DECLARE_ERR_PROPS(FireBird_Statement_ce);
+
+//     zend_class_implements(FireBird_Statement_ce, 1, FireBird_IError_ce);
+
+//     FireBird_Statement_ce->create_object = new_FireBird_Statement;
+//     FireBird_Statement_ce->default_object_handlers = &FireBird_Statement_object_handlers;
+
+//     memcpy(&FireBird_Statement_object_handlers, &std_object_handlers, sizeof(zend_object_handlers));
+
+//     FireBird_Statement_object_handlers.offset = XtOffsetOf(firebird_stmt, std);
+//     FireBird_Statement_object_handlers.free_obj = free_FireBird_Statement;
+// }
+
+static int _php_firebird_var_zval(zval *val, void *data, int type, int len, int scale, int flags)
 {
     static ISC_INT64 const scales[] = { 1, 10, 100, 1000,
         10000,
@@ -498,8 +519,37 @@ format_date_time:
     return SUCCESS;
 }
 
-void FireBird_Statement_fetch(zval *Stmt, zval *return_value, firebird_fetch_flag flags, int return_type)
+void FireBird_Statement_fetch(zval *Stmt, zval *return_value, int flags)
 {
+    firebird_stmt *stmt = get_firebird_stmt_from_zval(Stmt);
+
+    // if (!stmt->has_more_rows) {
+    //     RETURN_NULL();
+    // }
+
+    // if (!stmt->curs) {
+    //     if (fbu_open_cursor(FBG(status), stmt)) {
+    //         update_err_props(FBG(status), FireBird_Transaction_ce, ZEND_THIS);
+    //         RETURN_FALSE;
+    //     }
+    // }
+
+    array_init(return_value);
+
+    int res = fbu_fetch(FBG(status), stmt, flags, return_value);
+
+    if (res) {
+        if (res != 1) {
+            update_err_props(FBG(status), FireBird_Transaction_ce, ZEND_THIS);
+        }
+        zval_ptr_dtor(return_value);
+        ZVAL_FALSE(return_value);
+    }
+
+    // Z_ADDREF_P(return_value);
+
+    // TODO("FireBird_Statement_fetch");
+#if 0
     zval *result_arg;
     zend_long i;
     firebird_stmt *stmt = get_firebird_stmt_from_zval(Stmt);
@@ -531,7 +581,7 @@ void FireBird_Statement_fetch(zval *Stmt, zval *return_value, firebird_fetch_fla
         XSQLVAR *var = &stmt->out_sqlda->sqlvar[i];
         char buf[METADATALENGTH+4], *alias = var->aliasname;
 
-        if (! (return_type & RETURN_ROW)) {
+        if (! (return_type & FBP_RETURN_INDEXED)) {
             int i = 0;
             char const *base = "FIELD"; /* use 'FIELD' if name is empty */
 
@@ -587,17 +637,18 @@ void FireBird_Statement_fetch(zval *Stmt, zval *return_value, firebird_fetch_fla
                     RETURN_FALSE;
             } /* switch */
 
-            if (return_type & RETURN_ROW) {
+            if (return_type & FBP_RETURN_INDEXED) {
                 add_index_zval(return_value, i, &result);
             } else {
                 add_assoc_zval(return_value, alias, &result);
             }
         } else {
-            if (return_type & RETURN_ROW) {
+            if (return_type & FBP_RETURN_INDEXED) {
                 add_index_null(return_value, i);
             } else {
                 add_assoc_null(return_value, alias);
             }
         }
     } /* for field */
+#endif
 }
