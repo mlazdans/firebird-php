@@ -7,16 +7,32 @@
 
 namespace FireBird;
 /**
- * Option for Statement\fetch functions to return blob fields as strings.
+ * fetch to return blob fields as strings
  * @var int
+ * @cvalue FBP_FETCH_BLOB_TEXT
  */
-const FETCH_BLOBS = 1;
+const FETCH_BLOB_TEXT = UNKNOWN;
 
 /**
- * Option for Statement\fetch functions to return date/time related fields as timestamps.
+ * fetch to return date fields as UNIX timestamps
+ * @var int
+ * @cvalue FBP_FETCH_UNIXTIME
+ */
+const FETCH_UNIXTIME = UNKNOWN;
+
+/**
+ * fetch to return date/time fields as PHP DateTime objects
+ * @var int
+ * @cvalue FBP_FETCH_DATE_OBJ
+ */
+const FETCH_DATE_OBJ = UNKNOWN;
+
+/**
+ * fetch to return blob fields as Blob objects
+ * @cvalue FBP_FETCH_BLOB_TEXT
  * @var int
  */
-const FETCH_UNIXTIME = 2;
+const FETCH_FETCH_BLOB_TEXT = UNKNOWN;
 
 /**
  * Option to check if Used Blob->type is segmented.
