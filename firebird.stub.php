@@ -288,8 +288,8 @@ class Statement
 {
     protected Transaction $transaction;
     protected string $name;
-    protected int $num_vars_in;
-    protected int $num_vars_out;
+    protected int $in_vars_count;
+    protected int $out_vars_count;
     protected int $insert_count;
     protected int $update_count;
     protected int $delete_count;
