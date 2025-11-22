@@ -39,7 +39,7 @@ extern "C" {
 #endif
 
 #ifndef METADATALENGTH
-#define METADATALENGTH 68
+#define METADATALENGTH 63*4
 #endif
 
 // #define TPB_MAX_SIZE (32)

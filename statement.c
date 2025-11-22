@@ -347,6 +347,7 @@ void register_FireBird_Statement_object_handlers()
 
 void FireBird_Statement_fetch(zval *self, int flags, zval *return_value)
 {
+    HashTable *ht = NULL;
     firebird_stmt *stmt = get_firebird_stmt_from_zval(self);
 
     FBDEBUG("FireBird_Statement_fetch(%p)", stmt->sptr);
@@ -367,28 +368,27 @@ void FireBird_Statement_fetch(zval *self, int flags, zval *return_value)
 
             if (fbu_statement_fetch_next(stmt)) {
                 RETURN_FALSE;
-            } else {
-                array_init(return_value);
-                if (fbu_statement_output_buffer_to_array(stmt, return_value, flags)) {
-                    zval_ptr_dtor(return_value);
-                    RETURN_FALSE;
-                }
             }
+
+            ht = fbu_statement_output_buffer_to_array(stmt, flags);
         } break;
 
         // Simulate fetch for non-select queries. Just return what's in output buffer
         default: {
             if (!stmt->did_fake_fetch) {
                 stmt->did_fake_fetch = 1;
-                array_init(return_value);
-                if (fbu_statement_output_buffer_to_array(stmt, return_value, flags)) {
-                    zval_ptr_dtor(return_value);
-                    RETURN_FALSE;
-                }
+
+                ht = fbu_statement_output_buffer_to_array(stmt, flags);
             } else {
                 RETURN_FALSE;
             }
         } break;
+    }
+
+    if (ht) {
+        RETURN_ARR(ht);
+    } else {
+        RETURN_FALSE;
     }
 }
 

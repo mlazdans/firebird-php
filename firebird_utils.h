@@ -46,7 +46,7 @@ void fbu_statement_free(firebird_stmt *stmt);
 int fbu_statement_bind(firebird_stmt *stmt, zval *b_vars, unsigned int num_bind_args);
 int fbu_statement_open_cursor(firebird_stmt *stmt);
 int fbu_statement_fetch_next(firebird_stmt *stmt);
-int fbu_statement_output_buffer_to_array(firebird_stmt *stmt, zval *hash, int flags);
+HashTable *fbu_statement_output_buffer_to_array(firebird_stmt *stmt, int flags);
 int fbu_statement_execute(firebird_stmt *stmt);
 int fbu_statement_execute_on_att(firebird_stmt *stmt);
 

@@ -169,8 +169,8 @@ const char* fbu_get_sql_type_name(unsigned type)
 {
     switch (type)
     {
-    case SQL_TEXT:            return "TEXT";
-    case SQL_VARYING:         return "VARYING";
+    case SQL_TEXT:            return "CHAR";
+    case SQL_VARYING:         return "VARCHAR";
     case SQL_SHORT:           return "SHORT";
     case SQL_LONG:            return "LONG";
     case SQL_INT64:           return "BIGINT";
@@ -905,12 +905,16 @@ int fbu_statement_fetch_next(firebird_stmt *stmt)
     });
 }
 
-int fbu_statement_output_buffer_to_array(firebird_stmt *stmt, zval *hash, int flags)
+HashTable *fbu_statement_output_buffer_to_array(firebird_stmt *stmt, int flags)
 {
-    return fbu_call_void([&]() {
-        static_cast<Statement *>(stmt->sptr)->output_buffer_to_array(hash, flags);
+    HashTable *ht = nullptr;
+
+    fbu_call_void([&]() {
+        ht = static_cast<Statement *>(stmt->sptr)->output_buffer_to_array(flags);
         return SUCCESS;
     });
+
+    return ht;
 }
 
 int fbu_statement_execute(firebird_stmt *stmt)

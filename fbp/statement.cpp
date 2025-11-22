@@ -441,24 +441,37 @@ int Statement::fetch_next()
     return fetch_res;
 }
 
-void Statement::output_buffer_to_array(zval *hash, int flags)
+HashTable *Statement::output_buffer_to_array(int flags)
 {
-    // if (!stmt || !stmt->tr || !stmt->tr->tra || !stmt->out_metadata) return FAILURE;
-    zval result;
-    // auto att = db.get_att();
-    // auto tr = tra.get_tra();
+    HashTable *hash;
+    zval *result;
 
-    for (size_t index = 0; index < out_vars_count; index++) {
-        ZVAL_UNDEF(&result);
-        var_zval(&result, index, flags);
-        if (flags & FBP_FETCH_INDEXED) {
-            add_index_zval(hash, index, &result);
-        } else if (flags & FBP_FETCH_HASHED) {
-            add_assoc_zval(hash, output_metadata->getAlias(&st, index), &result);
-        } else {
-            throw Php_Firebird_Exception(zend_ce_error, "BUG: fetch method not set");
-        }
+    if (flags & FBP_FETCH_HASHED) {
+        if (!ht_aliases) alloc_ht_aliases();
+        hash = zend_array_dup(ht_aliases);
+    } else if (flags & FBP_FETCH_INDEXED) {
+        if (!ht_ind) alloc_ht_ind();
+        hash = zend_array_dup(ht_ind);
+    } else {
+        throw Php_Firebird_Exception(zend_ce_error, "BUG: fetch method not set");
     }
+
+    for (unsigned int index = 0; index < out_vars_count; index++) {
+        result = zend_hash_get_current_data(hash);
+        var_zval(result, index, flags);
+        zend_hash_move_forward(hash);
+        // if (flags & FBP_FETCH_INDEXED) {
+        //     add_index_zval(hash, index, &result);
+        // } else if (flags & FBP_FETCH_HASHED) {
+        //     add_assoc_zval(hash, output_metadata->getAlias(&st, index), &result);
+        // } else {
+        //     throw Php_Firebird_Exception(zend_ce_error, "BUG: fetch method not set");
+        // }
+    }
+
+    zend_hash_internal_pointer_reset(hash);
+
+    return hash;
 }
 
 int Statement::var_zval(zval *val, unsigned int index, int flags)
@@ -513,7 +526,7 @@ int Statement::var_zval(zval *val, unsigned int index, int flags)
     switch (type)
     {
         default:
-            fbp_fatal("unhandled type: %d, field:%s", type, output_metadata->getAlias(&st, index));
+            fbp_fatal("unhandled type: %d, field: %s", type, output_metadata->getAlias(&st, index));
 
         case SQL_VARYING:
             len = ((firebird_vary *) data)->vary_length;
@@ -731,7 +744,70 @@ Statement::~Statement() noexcept
         out_buffer = nullptr;
     }
 
+    if (ht_aliases) {
+        zend_array_destroy(ht_aliases);
+        ht_aliases = nullptr;
+    }
+
+    if (ht_ind) {
+        zend_array_destroy(ht_ind);
+        ht_ind = nullptr;
+    }
+
     if (err) fbu_handle_exception2();
+}
+
+void Statement::insert_alias(const char *alias)
+{
+    char buf[METADATALENGTH + 3 + 1]; // _00 + \0
+    zval t2;
+    int i = 0;
+    char const *base = "FIELD"; /* use 'FIELD' if name is empty */
+
+    size_t alias_len = strlen(alias);
+    size_t alias_len_w_suff = alias_len + 3;
+
+    switch (*alias) {
+        void *p;
+
+        default:
+            i = 1;
+            base = alias;
+
+            while ((p = zend_symtable_str_find_ptr(ht_aliases, alias, alias_len)) != NULL) {
+        case '\0':
+                // TODO: i > 99?
+                snprintf(buf, sizeof(buf), "%s_%02d", base, i++);
+                alias = buf;
+                alias_len = alias_len_w_suff;
+            }
+    }
+
+    ZVAL_NULL(&t2);
+    zend_hash_str_add_new(ht_aliases, alias, alias_len, &t2);
+}
+
+void Statement::alloc_ht_aliases()
+{
+    ALLOC_HASHTABLE(ht_aliases);
+    zend_hash_init(ht_aliases, out_vars_count, NULL, ZVAL_PTR_DTOR, 0);
+
+    for (unsigned int index = 0; index < out_vars_count; index++) {
+        insert_alias(output_metadata->getAlias(&st, index));
+    }
+}
+
+void Statement::alloc_ht_ind()
+{
+    ALLOC_HASHTABLE(ht_ind);
+    zend_hash_init(ht_ind, out_vars_count, NULL, ZVAL_PTR_DTOR, 0);
+
+    zval t2;
+    ZVAL_NULL(&t2);
+
+    for (unsigned int index = 0; index < out_vars_count; index++) {
+        zend_hash_index_add(ht_ind, index, &t2);
+    }
 }
 
 // void Statement::execute_on_att(unsigned len_sql, const char *sql)
