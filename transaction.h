@@ -7,7 +7,7 @@
 
 #include <ibase.h>
 #include "php.h"
-#include "fbp_database.h"
+#include "database.h"
 
 typedef struct firebird_tbuilder {
     char read_only, ignore_limbo, auto_commit, no_auto_undo;

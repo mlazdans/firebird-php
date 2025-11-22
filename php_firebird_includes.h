@@ -30,7 +30,6 @@
 extern "C" {
 #endif
 
-// #include <firebird/fb_c_api.h>
 #include <ibase.h>
 
 #define PHP_FIREBIRD_VERSION "0.0.1-alpha"

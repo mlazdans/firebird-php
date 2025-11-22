@@ -31,11 +31,6 @@
 #include "config.w32.h"
 #endif
 
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-
-
 #if HAVE_FIREBIRD
 
 #include <time.h>
@@ -131,16 +126,7 @@ ZEND_INI_MH(OnUpdateDebug)
 
 /* {{{ startup, shutdown and info functions */
 PHP_INI_BEGIN()
-    // PHP_INI_ENTRY_EX("ibase.allow_persistent", "1", PHP_INI_SYSTEM, NULL, zend_ini_boolean_displayer_cb)
-    // PHP_INI_ENTRY_EX("ibase.max_persistent", "-1", PHP_INI_SYSTEM, NULL, display_link_numbers)
-    // PHP_INI_ENTRY_EX("ibase.max_links", "-1", PHP_INI_SYSTEM, NULL, display_link_numbers)
-    // PHP_INI_ENTRY("ibase.default_db", NULL, PHP_INI_SYSTEM, NULL)
-    // PHP_INI_ENTRY("ibase.default_user", NULL, PHP_INI_ALL, NULL)
-    // PHP_INI_ENTRY_EX("ibase.default_password", NULL, PHP_INI_ALL, NULL, php_firebird_password_displayer_cb)
-
-    // ZEND_INI_ENTRY(name, default_value, modifiable, on_modify)
     STD_PHP_INI_ENTRY("firebird.debug", "0", PHP_INI_ALL, OnUpdateDebug, debug, zend_firebird_globals, firebird_globals)
-    PHP_INI_ENTRY("firebird.default_charset", NULL, PHP_INI_ALL, NULL)
     PHP_INI_ENTRY("firebird.timestampformat", FIREBIRD_DATE_FMT " " FIREBIRD_TIME_FMT, PHP_INI_ALL, NULL)
     PHP_INI_ENTRY("firebird.dateformat", FIREBIRD_DATE_FMT, PHP_INI_ALL, NULL)
     PHP_INI_ENTRY("firebird.timeformat", FIREBIRD_TIME_FMT, PHP_INI_ALL, NULL)
@@ -198,7 +184,6 @@ PHP_MINIT_FUNCTION(firebird)
     FireBird_Blob_Id_ce = register_class_FireBird_Blob_Id();
     register_FireBird_Blob_Id_object_handlers();
 
-    // register_FireBird_Statement_ce();
     // register_FireBird_Var_Info_ce();
     // register_FireBird_Db_Info_ce();
     // register_FireBird_Event_ce();

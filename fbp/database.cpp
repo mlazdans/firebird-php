@@ -5,7 +5,7 @@
 
 #include "fbp/base.hpp"
 #include "fbp/database.hpp"
-#include "fbp_database.h"
+#include "database.h"
 
 #include "firebird_utils.h"
 // #include "zend_exceptions.h"

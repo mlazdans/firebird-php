@@ -21,7 +21,6 @@ extern "C" {
 #include "ext/date/php_date.h"
 #include "database.h"
 #include "firebird_utils.h"
-#include "fbp_database.h"
 #include "transaction.h"
 #include "fbp_statement.h"
 #include "statement.h"

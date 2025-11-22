@@ -1,9 +1,4 @@
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-
 #include <ibase.h>
-// #include <firebird/fb_c_api.h>
 
 #include "php.h"
 #include "zend_exceptions.h"
@@ -395,33 +390,6 @@ void register_FireBird_Statement_object_handlers()
     FireBird_Statement_object_handlers.offset = XtOffsetOf(firebird_stmt, std);
     FireBird_Statement_object_handlers.free_obj = FireBird_Statement_free_obj;
 }
-
-// void register_FireBird_Statement_ce()
-// {
-//     zend_class_entry tmp_ce;
-//     INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "Statement", FireBird_Statement_methods);
-//     FireBird_Statement_ce = zend_register_internal_class(&tmp_ce);
-
-//     DECLARE_PROP_OBJ(FireBird_Statement_ce, transaction, FireBird\\Transaction, ZEND_ACC_PROTECTED_SET);
-//     DECLARE_PROP_STRING(FireBird_Statement_ce, name, ZEND_ACC_PROTECTED_SET);
-//     DECLARE_PROP_LONG(FireBird_Statement_ce, num_vars_in, ZEND_ACC_PROTECTED_SET);
-//     DECLARE_PROP_LONG(FireBird_Statement_ce, num_vars_out, ZEND_ACC_PROTECTED_SET);
-//     DECLARE_PROP_LONG(FireBird_Statement_ce, insert_count, ZEND_ACC_PROTECTED_SET);
-//     DECLARE_PROP_LONG(FireBird_Statement_ce, update_count, ZEND_ACC_PROTECTED_SET);
-//     DECLARE_PROP_LONG(FireBird_Statement_ce, delete_count, ZEND_ACC_PROTECTED_SET);
-//     DECLARE_PROP_LONG(FireBird_Statement_ce, affected_count, ZEND_ACC_PROTECTED_SET);
-//     DECLARE_ERR_PROPS(FireBird_Statement_ce);
-
-//     zend_class_implements(FireBird_Statement_ce, 1, FireBird_IError_ce);
-
-//     FireBird_Statement_ce->create_object = new_FireBird_Statement;
-//     FireBird_Statement_ce->default_object_handlers = &FireBird_Statement_object_handlers;
-
-//     memcpy(&FireBird_Statement_object_handlers, &std_object_handlers, sizeof(zend_object_handlers));
-
-//     FireBird_Statement_object_handlers.offset = XtOffsetOf(firebird_stmt, std);
-//     FireBird_Statement_object_handlers.free_obj = free_FireBird_Statement;
-// }
 
 #if 0
 static int _php_firebird_var_zval(zval *val, void *data, int type, int len, int scale, int flags)
