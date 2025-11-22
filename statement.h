@@ -11,6 +11,39 @@
 #define FBP_FETCH_INDEXED   (1<<4)
 #define FBP_FETCH_HASHED    (1<<5)
 
+typedef struct firebird_stmt {
+    void *sptr;
+    firebird_trans *tr;
+
+    // void *in_metadata, *out_metadata;
+    // unsigned char *in_buffer, *out_buffer;
+    // unsigned int in_buffer_size, out_buffer_size;
+
+    // isc_stmt_handle stmt_handle;
+    // isc_db_handle *db_handle;
+    // isc_tr_handle *tr_handle;
+    // XSQLDA *in_sqlda, *out_sqlda;
+    unsigned char statement_type, did_fake_fetch, is_cursor_open, is_exhausted;
+    unsigned short in_array_cnt, out_array_cnt;
+    const char *sql;
+    unsigned int sql_len;
+
+    const ISC_SCHAR *name;
+    ISC_ULONG insert_count, update_count, delete_count, affected_count;
+
+    unsigned int in_vars_count, out_vars_count;
+
+    zend_object std;
+} firebird_stmt;
+
+fbp_declare_object_accessor(firebird_stmt);
+
+typedef struct firebird_vary {
+    unsigned short vary_length;
+    unsigned char vary_string[1];
+} firebird_vary;
+
+int fbp_update_statement_info(firebird_stmt *stmt);
 void FireBird_Statement___construct(zval *self, zval *transaction);
 int FireBird_Statement_prepare(zval *self, zend_string *sql);
 int FireBird_Statement_execute(zval *self, zval *bind_args, uint32_t num_bind_args);

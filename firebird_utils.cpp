@@ -22,7 +22,6 @@ extern "C" {
 #include "database.h"
 #include "firebird_utils.h"
 #include "transaction.h"
-#include "fbp_statement.h"
 #include "statement.h"
 #include "blob.h"
 #include "fbp_blob.h"

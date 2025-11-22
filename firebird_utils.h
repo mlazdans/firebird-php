@@ -9,7 +9,7 @@ extern "C" {
 #include "database.h"
 #include "database.h"
 #include "transaction.h"
-#include "fbp_statement.h"
+#include "statement.h"
 #include "fbp_blob.h"
 
 #define STRNUM_PARSE_OK       0
@@ -17,7 +17,6 @@ extern "C" {
 #define STRNUM_PARSE_OVERFLOW 2
 
 unsigned fbu_get_client_version(void);
-// int fbu_start_transaction(ISC_STATUS* status, const firebird_db *db, const firebird_tbuilder *builder, firebird_trans *tr);
 int fbu_execute_database(ISC_STATUS* status, const firebird_db *db, size_t len_sql, const char *sql, firebird_trans *tr);
 int fbu_blob_open(ISC_STATUS* status, firebird_trans *tr, ISC_QUAD id, firebird_blob *blob);
 int fbu_blob_close(ISC_STATUS* status, firebird_blob *blob);

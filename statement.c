@@ -9,10 +9,11 @@
 #include "firebird_utils.h"
 
 #include "statement.h"
-#include "fbp_statement.h"
 #include "transaction.h"
 #include "blob.h"
 #include "fbp_blob.h"
+
+fbp_object_accessor(firebird_stmt);
 
 static zend_object_handlers FireBird_Statement_object_handlers;
 
@@ -155,16 +156,6 @@ int FireBird_Statement_execute(zval *self, zval *bind_args, uint32_t num_bind_ar
             fbp_fatal("TODO: s->statement_type: %d", stmt->statement_type);
     }
 
-    // if (fbu_statement_bind(FBG(status), s, bind_args, num_bind_args)) {
-    //     update_err_props(FBG(status), FireBird_Transaction_ce, ZEND_THIS);
-    //     return FAILURE;
-    // }
-
-    // if (fbu_execute_statement(FBG(status), s)) {
-    //     update_err_props(FBG(status), FireBird_Transaction_ce, ZEND_THIS);
-    //     return FAILURE;
-    // }
-
     return SUCCESS;
 
 #if 0
@@ -172,17 +163,6 @@ int FireBird_Statement_execute(zval *self, zval *bind_args, uint32_t num_bind_ar
 
     if (!stmt->statement_type) {
         zend_throw_exception_ex(spl_ce_RuntimeException, 0, "Execute with unprepared statement.");
-        return FAILURE;
-    }
-
-    if (num_bind_args != stmt->in_vars_count) {
-        zend_throw_exception_ex(zend_ce_argument_count_error, 0,
-            "Statement expects %d arguments, %d given", stmt->in_vars_count, num_bind_args);
-        return FAILURE;
-    }
-
-    if (fbp_statement_execute(stmt, bind_args, num_bind_args, 0)) {
-        update_err_props(FBG(status), FireBird_Statement_ce, Stmt);
         return FAILURE;
     }
 
@@ -216,35 +196,9 @@ int FireBird_Statement_prepare(zval *self, zend_string *sql)
     firebird_stmt *stmt = get_firebird_stmt_from_zval(self);
     firebird_trans *tr = get_firebird_trans_from_zval(transaction);
 
-    // fbp_dump_buffer(sizeof(firebird_stmt) - sizeof(zend_object), (void *)stmt);
-
     if (fbu_statement_prepare(tr, ZSTR_LEN(sql), ZSTR_VAL(sql), stmt)) {
         return FAILURE;
     }
-
-    // fbp_dump_buffer(sizeof(firebird_stmt) - sizeof(zend_object), (void *)stmt);
-
-    return SUCCESS;
-
-    // if (fbu_prepare_statement(FBG(status), stmt, sql)) {
-    //     ISC_INT64 error_code_long = update_err_props(FBG(status), FireBird_Statement_ce, Stmt);
-
-    //     // Do we CREATE DATABASE?
-    //     if (error_code_long == isc_dsql_crdb_prepare_err) {
-    //         fbp_warning("CREATE DATABASE detected on active connection. Use Database::create() instead.");
-    //     }
-    //     return FAILURE;
-    // }
-
-    // stmt->query = estrdup(sql);
-
-    // zend_update_property_long(FireBird_Statement_ce, Z_OBJ_P(Stmt), "in_vars_count", sizeof("in_vars_count") - 1,
-    //     stmt->in_vars_count
-    // );
-
-    // zend_update_property_long(FireBird_Statement_ce, Z_OBJ_P(Stmt), "out_vars_count", sizeof("out_vars_count") - 1,
-    //     stmt->out_vars_count
-    // );
 
     return SUCCESS;
 }
@@ -391,166 +345,6 @@ void register_FireBird_Statement_object_handlers()
     FireBird_Statement_object_handlers.free_obj = FireBird_Statement_free_obj;
 }
 
-#if 0
-static int _php_firebird_var_zval(zval *val, void *data, int type, int len, int scale, int flags)
-{
-    static ISC_INT64 const scales[] = { 1, 10, 100, 1000,
-        10000,
-        100000,
-        1000000,
-        10000000,
-        100000000,
-        1000000000,
-        LL_LIT(10000000000),
-        LL_LIT(100000000000),
-        LL_LIT(1000000000000),
-        LL_LIT(10000000000000),
-        LL_LIT(100000000000000),
-        LL_LIT(1000000000000000),
-        LL_LIT(10000000000000000),
-        LL_LIT(100000000000000000),
-        LL_LIT(1000000000000000000)
-    };
-
-    switch (type & ~1) {
-        unsigned short l;
-        zend_long n;
-        char string_data[255];
-        struct tm t;
-        char *format;
-
-        case SQL_VARYING:
-            len = ((firebird_vary *) data)->vary_length;
-            data = ((firebird_vary *) data)->vary_string;
-            /* no break */
-        case SQL_TEXT:
-            ZVAL_STRINGL(val, (char*)data, len);
-            break;
-#ifdef SQL_BOOLEAN
-        case SQL_BOOLEAN:
-            ZVAL_BOOL(val, *(FB_BOOLEAN *) data);
-            break;
-#endif
-        case SQL_SHORT:
-            n = *(short *) data;
-            goto _sql_long;
-        case SQL_INT64:
-#if (SIZEOF_ZEND_LONG >= 8)
-            n = *(zend_long *) data;
-            goto _sql_long;
-#else
-            if (scale == 0) {
-                l = slprintf(string_data, sizeof(string_data), "%" LL_MASK "d", *(ISC_INT64 *) data);
-                ZVAL_STRINGL(val,string_data,l);
-            } else {
-                ISC_INT64 n = *(ISC_INT64 *) data, f = scales[-scale];
-
-                if (n >= 0) {
-                    l = slprintf(string_data, sizeof(string_data), "%" LL_MASK "d.%0*" LL_MASK "d", n / f, -scale, n % f);
-                } else if (n <= -f) {
-                    l = slprintf(string_data, sizeof(string_data), "%" LL_MASK "d.%0*" LL_MASK "d", n / f, -scale, -n % f);
-                 } else {
-                    l = slprintf(string_data, sizeof(string_data), "-0.%0*" LL_MASK "d", -scale, -n % f);
-                }
-                ZVAL_STRINGL(val,string_data,l);
-            }
-            break;
-#endif
-        case SQL_LONG:
-            n = *(ISC_LONG *) data;
-        _sql_long:
-            if (scale == 0) {
-                ZVAL_LONG(val,n);
-            } else {
-                zend_long f = (zend_long) scales[-scale];
-
-                if (n >= 0) {
-                    l = slprintf(string_data, sizeof(string_data), ZEND_LONG_FMT ".%0*" ZEND_LONG_FMT_SPEC, n / f, -scale,  n % f);
-                } else if (n <= -f) {
-                    l = slprintf(string_data, sizeof(string_data), ZEND_LONG_FMT ".%0*" ZEND_LONG_FMT_SPEC, n / f, -scale,  -n % f);
-                } else {
-                    l = slprintf(string_data, sizeof(string_data), "-0.%0*" ZEND_LONG_FMT_SPEC, -scale, -n % f);
-                }
-                ZVAL_STRINGL(val, string_data, l);
-            }
-            break;
-        case SQL_FLOAT:
-            ZVAL_DOUBLE(val, *(float *) data);
-            break;
-        case SQL_DOUBLE:
-            ZVAL_DOUBLE(val, *(double *) data);
-            break;
-#if FB_API_VER >= 40
-        // These are converted to VARCHAR via isc_dpb_set_bind tag at connect
-        // case SQL_DEC16:
-        // case SQL_DEC34:
-        // case SQL_INT128:
-        case SQL_TIME_TZ:
-        case SQL_TIMESTAMP_TZ:
-            char timeZoneBuffer[40] = {0};
-            unsigned year, month, day, hours, minutes, seconds, fractions;
-
-            if((type & ~1) == SQL_TIME_TZ){
-                format = INI_STR("firebird.timeformat");
-                fbu_decode_time_tz((ISC_TIME_TZ *) data, &hours, &minutes, &seconds, &fractions, sizeof(timeZoneBuffer), timeZoneBuffer);
-                ISC_TIME time = fbu_encode_time(hours, minutes, seconds, fractions);
-                isc_decode_sql_time(&time, &t);
-            } else {
-                format = INI_STR("firebird.timestampformat");
-                fbu_decode_timestamp_tz((ISC_TIMESTAMP_TZ *) data, &year, &month, &day, &hours, &minutes, &seconds, &fractions, sizeof(timeZoneBuffer), timeZoneBuffer);
-                ISC_TIMESTAMP ts;
-                ts.timestamp_date = fbu_encode_date(year, month, day);
-                ts.timestamp_time = fbu_encode_time(hours, minutes, seconds, fractions);
-                isc_decode_timestamp(&ts, &t);
-            }
-
-            if (flags & FBP_FETCH_UNIXTIME) {
-                ZVAL_LONG(val, mktime(&t));
-            } else {
-                char timeBuf[80] = {0};
-                l = strftime(timeBuf, sizeof(timeBuf), format, &t);
-                if (l == 0) {
-                    return FAILURE;
-                }
-
-                size_t l = sprintf(string_data, "%s %s", timeBuf, timeZoneBuffer);
-                ZVAL_STRINGL(val, string_data, l);
-            }
-            break;
-#endif
-        case SQL_DATE: /* == case SQL_TIMESTAMP: */
-            format = INI_STR("firebird.timestampformat");
-            isc_decode_timestamp((ISC_TIMESTAMP *) data, &t);
-            goto format_date_time;
-        case SQL_TYPE_DATE:
-            format = INI_STR("firebird.dateformat");
-            isc_decode_sql_date((ISC_DATE *) data, &t);
-            goto format_date_time;
-        case SQL_TYPE_TIME:
-            format = INI_STR("firebird.timeformat");
-            isc_decode_sql_time((ISC_TIME *) data, &t);
-
-format_date_time:
-            /*
-              XXX - Might have to remove this later - seems that isc_decode_date()
-               always sets tm_isdst to 0, sometimes incorrectly (InterBase 6 bug?)
-            */
-            t.tm_isdst = -1;
-#if HAVE_STRUCT_TM_TM_ZONE
-            t.tm_zone = tzname[0];
-#endif
-            if (flags & FBP_FETCH_UNIXTIME) {
-                ZVAL_LONG(val, mktime(&t));
-            } else {
-                l = strftime(string_data, sizeof(string_data), format, &t);
-                ZVAL_STRINGL(val, string_data, l);
-                break;
-            }
-    } /* switch (type) */
-    return SUCCESS;
-}
-#endif
-
 void FireBird_Statement_fetch(zval *self, int flags, zval *return_value)
 {
     firebird_stmt *stmt = get_firebird_stmt_from_zval(self);
@@ -596,109 +390,56 @@ void FireBird_Statement_fetch(zval *self, int flags, zval *return_value)
             }
         } break;
     }
+}
 
-
+int fbp_update_statement_info(firebird_stmt *stmt)
+{
+    TODO("fbp_update_statement_info");
 #if 0
-    // Old stufff
-    zval *result_arg;
-    zend_long i;
-    firebird_stmt *stmt = get_firebird_stmt_from_zval(Stmt);
+    char request_buffer[] = { isc_info_sql_records };
+    char info_buffer[64] = { 0 };
 
-    if (stmt->out_sqlda == NULL || !stmt->has_more_rows) {
-        RETURN_NULL();
+    // isc_info_req_select_count - It tracks the number of rows fetched by a running request (not a SELECT statement).
+    stmt->insert_count = 0;
+    stmt->update_count = 0;
+    stmt->delete_count = 0;
+    stmt->affected_count = 0;
+
+    if (isc_dsql_sql_info(FBG(status), &stmt->stmt_handle, sizeof(request_buffer), request_buffer, sizeof(info_buffer), info_buffer)) {
+        return FAILURE;
     }
 
-    // exec_procedure has no cursor
-    if (stmt->statement_type != isc_info_sql_stmt_exec_procedure) {
-        ISC_STATUS result = isc_dsql_fetch(FBG(status), &stmt->stmt_handle, 1, stmt->out_sqlda);
-        if (result) {
-            if (result == 100L) {
-                stmt->has_more_rows = 0;
-                RETURN_NULL();
-            } else {
-                update_err_props(FBG(status), FireBird_Statement_ce, Stmt);
-                RETURN_FALSE;
+    const ISC_UCHAR* p = info_buffer + 3;
+
+    FBDEBUG("Parsing SQL info buffer");
+
+    if (info_buffer[0] == isc_info_sql_records)
+    {
+        while ((*p != isc_info_end) && (p - (const ISC_UCHAR *)&info_buffer < sizeof(info_buffer)))
+        {
+            const ISC_UCHAR count_is = *p++;
+            const ISC_SHORT len = isc_portable_integer(p, 2); p += 2;
+            const ISC_ULONG count = isc_portable_integer(p, len); p += len;
+            switch(count_is) {
+                case isc_info_req_insert_count: stmt->insert_count += count; break;
+                case isc_info_req_update_count: stmt->update_count += count; break;
+                case isc_info_req_delete_count: stmt->delete_count += count; break;
+                case isc_info_req_select_count: continue;
+                default: {
+                    fbp_fatal("BUG: unrecognized isc_dsql_sql_info item: %d with value: %d", count_is, count);
+                } break;
             }
         }
     } else {
-        stmt->has_more_rows = 0;
+        fbp_fatal("Unexpected isc_dsql_sql_info response: %d", info_buffer[0]);
     }
 
-    array_init(return_value);
+    stmt->affected_count = stmt->insert_count + stmt->update_count + stmt->delete_count;
 
-    // TODO: this behaviour should be configurable: add suffix, replace, ignore
-    for (i = 0; i < stmt->out_sqlda->sqld; ++i) {
-        XSQLVAR *var = &stmt->out_sqlda->sqlvar[i];
-        char buf[METADATALENGTH+4], *alias = var->aliasname;
+    FBDEBUG_NOFL(" insert_count: %zu", stmt->insert_count);
+    FBDEBUG_NOFL(" update_count: %zu", stmt->update_count);
+    FBDEBUG_NOFL(" delete_count: %zu", stmt->delete_count);
 
-        if (! (return_type & FBP_RETURN_INDEXED)) {
-            int i = 0;
-            char const *base = "FIELD"; /* use 'FIELD' if name is empty */
-
-            /**
-            * Ensure no two columns have identical names:
-            * keep generating new names until we find one that is unique.
-            */
-            switch (*alias) {
-                void *p;
-
-                default:
-                    i = 1;
-                    base = alias;
-
-                    while ((p = zend_symtable_str_find_ptr(
-                            Z_ARRVAL_P(return_value), alias, strlen(alias))) != NULL) {
-
-                case '\0':
-                        snprintf(alias = buf, sizeof(buf), "%s_%02d", base, i++);
-                    }
-            }
-        }
-
-        if (((var->sqltype & 1) == 0) || *var->sqlind != -1) {
-            zval result;
-
-            switch (var->sqltype & ~1) {
-
-                default:
-                    _php_firebird_var_zval(&result, var->sqldata, var->sqltype, var->sqllen, var->sqlscale, flags);
-                    break;
-                case SQL_BLOB:
-                    if (flags & FBP_FETCH_BLOBS) {
-                        firebird_blob blob = {0};
-
-                        fbp_blob_ctor(&blob, stmt->db_handle, stmt->tr_handle);
-                        blob.bl_id = *(ISC_QUAD *) var->sqldata;
-
-                        if (fbp_blob_open(&blob) || fbp_blob_get(&blob, &result, 0) || fbp_blob_close(&blob)) {
-                            update_err_props(FBG(status), FireBird_Statement_ce, Stmt);
-                            goto _php_firebird_fetch_error;
-                        }
-                    } else {
-                        object_init_ex(&result, FireBird_Blob_Id_ce);
-                        FireBird_Blob_Id___construct(&result, *(ISC_QUAD *) var->sqldata);
-                    }
-                    break;
-                case SQL_ARRAY:
-                    fbp_fatal("ARRAY type is not supported.");
-                    break;
-                _php_firebird_fetch_error:
-                    zval_ptr_dtor_nogc(&result);
-                    RETURN_FALSE;
-            } /* switch */
-
-            if (return_type & FBP_RETURN_INDEXED) {
-                add_index_zval(return_value, i, &result);
-            } else {
-                add_assoc_zval(return_value, alias, &result);
-            }
-        } else {
-            if (return_type & FBP_RETURN_INDEXED) {
-                add_index_null(return_value, i);
-            } else {
-                add_assoc_null(return_value, alias);
-            }
-        }
-    } /* for field */
+    return SUCCESS;
 #endif
 }
