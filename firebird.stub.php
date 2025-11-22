@@ -169,23 +169,32 @@ function set_error_handler(callable $handler): void {}
 //     public string $sqlstate;
 // }
 
-class Connector
-{
-    public function connect(Connect_Args $args): Database|false { die; }
-    public function create(Create_Args $args): Database|false { die; }
-}
-
 class Database
 {
     protected Connect_Args|Create_Args $args;
 
     /**
-     * Do not instantiate this class directly. Use Connector::connect() or Connector::create() instead.
+     * Do not instantiate this class directly. Use Database::connect() or Database::create() instead.
      */
     private function __construct() {}
 
-    public function drop(): bool { die; }
+    static public function connect(Connect_Args $args): Database|false { die; }
+    static public function create(Create_Args $args): Database|false { die; }
+
+    /**
+     * Wrapper around (new Transaction($this))->start(?TBuilder $tb = null);
+     */
+    public function start_transaction(?TBuilder $tb = null): Transaction|false { die; }
+
+    /**
+     * Wrapper around new Transaction($this);
+     */
+    public function new_transaction(): Transaction { die; }
+
     public function get_info(): Db_Info|false { die; }
+    // public function execute(string $sql): bool { die; }
+    public function disconnect(): bool { die; }
+    public function drop(): bool { die; }
 
     /**
      * Installs event handler. Currently, the user of this function must
@@ -211,7 +220,6 @@ class Database
     *
     * */
     public function on_event(string $name, callable $f): bool { die; }
-    public function new_transaction(?TBuilder $tb = null): Transaction { die; }
 
     /**
      * Connect to a transaction in limbo.
@@ -219,8 +227,6 @@ class Database
      * @see get_limbo_transactions()
      * */
     public function reconnect_transaction(int $id): Transaction|false { die; }
-
-    public function disconnect(): bool { die; }
 
     /** @return int[]|false */
     public function get_limbo_transactions(int $max_count): array|false { die; }
@@ -256,13 +262,14 @@ class Multi_Transaction
 // TODO: auto commit/rollback flag?
 class Transaction
 {
-    protected int $id;
-    protected Database $database;
-    protected TBuilder $builder;
+    /** @virtual */
+    public readonly int $id;
+    public readonly Database $database;
 
-    public function __construct(Database $database, ?TBuilder $builder = null) {}
+    public function __construct(Database $database) {}
+    // public function __construct(Database $database, ?TBuilder $builder = null) {}
 
-    public function start(): bool { die; }
+    public function start(?TBuilder $builder = null): bool { die; }
     public function commit(): bool { die; }
     public function commit_ret(): bool { die; }
     public function rollback(): bool { die; }
@@ -273,29 +280,38 @@ class Transaction
     public function create_blob(): Blob|false { die; }
 
     /**
-     * Prepares transaction for two-phase commit.
-     * */
-    public function prepare_2pc(): bool { die; }
+     * Execute w/o prepare step. Will initialize $this in case of SET TRANSACTION
+     */
+    public function execute(string $sql): bool { die; }
 
     /**
-     * To execute a statement that does not return any data a single time, call
-     * execute_immediate() instead of prepare() and execute() or query()
+     * Prepares transaction for two-phase commit.
+     * */
+    // public function prepare_2pc(): bool { die; }
+
+    /**
+     * execute without prepare.
+     *
+     * TODO: create input metadata buffer from bind_args. It's up to user then
+     * to guarantee propper types. Parse output metadata buffer same as fetch.
+     * Could return most 1 row. Statement should check statement type and
+     * process accordingly
      */
-    public function execute_immediate(string $sql, mixed ...$bind_args): bool { die; }
+    // public function execute(string $sql, mixed ...$bind_args): Statement|false { die; }
 }
 
 class Statement
 {
-    protected Transaction $transaction;
-    protected string $name;
-    protected int $in_vars_count;
-    protected int $out_vars_count;
-    protected int $insert_count;
-    protected int $update_count;
-    protected int $delete_count;
-    protected int $affected_count; // insert + update + delete
+    public readonly Transaction $transaction;
+    public readonly string $name;
+    public readonly int $in_vars_count;
+    public readonly int $out_vars_count;
+    public readonly int $insert_count;
+    public readonly int $update_count;
+    public readonly int $delete_count;
+    public readonly int $affected_count; // insert + update + delete
 
-    public function __construct(Transaction $transaction) {}
+    private function __construct() {}
 
     /**
      * Fetch row as object.
@@ -325,10 +341,10 @@ class Statement
     public function fetch_row(int $flags = 0): array|false|null { die; }
     // TODO: temp disable
     // public function prepare(string $sql): bool { die; }
-    // public function execute(mixed ...$bind_args): bool { die; }
+    public function execute(mixed ...$bind_args): bool { die; }
     // public function query(string $sql, mixed ...$bind_args): bool { die; }
-    public function close(): bool { die; }
-    public function free(): bool { die; }
+    // public function close(): bool { die; }
+    public function free(): void { die; }
 
     /**
      * Gets information about inbound variable from a statement.
@@ -360,17 +376,24 @@ class Statement
 
 class Blob
 {
-    public int $num_segments;
-    public int $max_segment;
-    public int $total_length;
-    public int $type;
-    public int $position;
-    public bool $is_writable;
-    public Transaction $transaction;
+    /** @virtual */
+    public readonly int $num_segments;
+    /** @virtual */
+    public readonly int $max_segment;
+    /** @virtual */
+    public readonly int $total_length;
+    /** @virtual */
+    public readonly int $type;
+    /** @virtual */
+    public readonly int $position;
+    /** @virtual */
+    public readonly bool $is_writable;
+    public readonly Transaction $transaction;
 
-    public function __construct(\FireBird\Transaction $tr) {}
-    public function create(): bool { die; }
-    public function open(Blob_Id $id): Blob|false { die; }
+    private function __construct() {}
+    // public function __construct(\FireBird\Transaction $tr) {}
+    // public function create(): bool { die; }
+    // public function open(Blob_Id $id): Blob|false { die; }
     public function close(): bool { die; }
     public function cancel(): bool { die; }
     public function get(int $max_len = 0): string|false { die; }
@@ -449,12 +472,19 @@ class Service
  */
 class TBuilder
 {
+    /** @virtual */
     public readonly bool $is_read_only;
+    /** @virtual */
     public readonly bool $is_ignore_limbo;
+    /** @virtual */
     public readonly bool $is_auto_commit;
+    /** @virtual */
     public readonly bool $is_no_auto_undo;
+    /** @virtual */
     public readonly int $isolation_mode;
+    /** @virtual */
     public readonly int $lock_timeout;
+    /** @virtual */
     public readonly int $snapshot_at_number;
 
     public function read_only(bool $enable = true): TBuilder { die; }

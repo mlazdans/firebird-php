@@ -1,5 +1,5 @@
 #include <ibase.h>
-#include <firebird/fb_c_api.h>
+// #include <firebird/fb_c_api.h>
 
 #include "php.h"
 #include "zend_exceptions.h"
@@ -9,7 +9,6 @@
 #include "database.h"
 #include "transaction.h"
 #include "fbp_multi_transaction.h"
-#include "fbp_transaction.h"
 
 zend_class_entry *FireBird_Multi_Transaction_ce;
 static zend_object_handlers object_handlers__FireBird_Multi_Transaction_;

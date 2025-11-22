@@ -35,16 +35,7 @@
 
 fbp_object_accessor(firebird_stmt);
 
-void fbp_statement_ctor(firebird_stmt *stmt, firebird_trans *tr)
-{
-    stmt->tr = tr;
-    // stmt->stmt_handle = 0;
-    // stmt->db_handle = tr->db_handle;
-    // stmt->tr_handle = tr->tr_handle;
-    // stmt->db_handle = 0;
-    // stmt->tr_handle = 0;
-}
-
+#if 0
 void fbp_alloc_xsqlda(XSQLDA *sqlda)
 {
     int i;
@@ -94,10 +85,6 @@ void fbp_alloc_xsqlda(XSQLDA *sqlda)
             case SQL_BLOB:
                 var->sqldata = emalloc(sizeof(ISC_QUAD));
                 break;
-            // These are converted to VARCHAR via isc_dpb_set_bind tag at connect
-            // case SQL_DEC16:
-            // case SQL_DEC34:
-            // case SQL_INT128:
             case SQL_TIMESTAMP_TZ:
                 var->sqldata = emalloc(sizeof(ISC_TIMESTAMP_TZ));
                 break;
@@ -124,7 +111,7 @@ void fbp_free_xsqlda(XSQLDA *sqlda)
 
     if (sqlda) {
         var = sqlda->sqlvar;
-        for (i = 0; i < min(sqlda->sqld, sqlda->sqln); i++, var++) {
+        for (i = 0; i < MIN(sqlda->sqld, sqlda->sqln); i++, var++) {
             efree(var->sqldata);
             if (var->sqlind) {
                 efree(var->sqlind);
@@ -133,6 +120,7 @@ void fbp_free_xsqlda(XSQLDA *sqlda)
         efree(sqlda);
     }
 }
+#endif
 
 #if 0
 int fbp_statement_bind(firebird_stmt *stmt, zval *b_vars)
@@ -540,25 +528,3 @@ int fbp_statement_prepare(firebird_stmt *stmt, const ISC_SCHAR *sql)
     return SUCCESS;
 }
 #endif
-
-void fbp_statement_free(firebird_stmt *stmt)
-{
-    TODO("fbp_statement_free");
-#if 0
-    if (stmt->in_sqlda) {
-        efree(stmt->in_sqlda);
-    }
-    if (stmt->out_sqlda) {
-        fbp_free_xsqlda(stmt->out_sqlda);
-    }
-    // if (stmt->in_array) {
-    //     efree(stmt->in_array);
-    // }
-    // if (stmt->out_array) {
-    //     efree(stmt->out_array);
-    // }
-    if(stmt->bind_buf) {
-        efree(stmt->bind_buf);
-    }
-#endif
-}

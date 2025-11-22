@@ -4,7 +4,7 @@
 #include <ibase.h>
 #include "php.h"
 
-#include "fbp_transaction.h"
+#include "transaction.h"
 
 typedef enum {
     FBP_STMT_EXECUTE = 1,
@@ -27,26 +27,28 @@ typedef struct firebird_bind_buf {
 } firebird_bind_buf;
 
 typedef struct firebird_stmt {
+    void *sptr;
     firebird_trans *tr;
-    void *stmt;
-    void *curs;
 
-    void *in_metadata, *out_metadata;
-    unsigned char *in_buffer, *out_buffer;
-    size_t in_buffer_len, out_buffer_len;
+    // void *in_metadata, *out_metadata;
+    // unsigned char *in_buffer, *out_buffer;
+    // unsigned int in_buffer_size, out_buffer_size;
 
     // isc_stmt_handle stmt_handle;
     // isc_db_handle *db_handle;
     // isc_tr_handle *tr_handle;
     // XSQLDA *in_sqlda, *out_sqlda;
-    unsigned char statement_type; //, has_more_rows;
+    unsigned char statement_type, did_fake_fetch, is_cursor_open, is_exhausted;
     unsigned short in_array_cnt, out_array_cnt;
     // firebird_bind_buf *bind_buf;
     // unsigned short dialect;
-    const ISC_SCHAR *query;
+    const char *sql;
+    unsigned int sql_len;
+
     const ISC_SCHAR *name;
     ISC_ULONG insert_count, update_count, delete_count, affected_count;
-    ISC_ULONG in_vars_count, out_vars_count;
+
+    unsigned int in_vars_count, out_vars_count;
 
     zend_object std;
 } firebird_stmt;
@@ -58,11 +60,9 @@ typedef struct firebird_vary {
     unsigned char vary_string[1];
 } firebird_vary;
 
-void fbp_alloc_xsqlda(XSQLDA *sqlda);
-void fbp_free_xsqlda(XSQLDA *sqlda);
+// void fbp_alloc_xsqlda(XSQLDA *sqlda);
+// void fbp_free_xsqlda(XSQLDA *sqlda);
 
-void fbp_statement_ctor(firebird_stmt *stmt, firebird_trans *tr);
-void fbp_statement_free(firebird_stmt *s);
 int fbp_update_statement_info(firebird_stmt *stmt);
 // int fbp_statement_prepare(firebird_stmt *stmt, const ISC_SCHAR *sql);
 int fbp_statement_execute(firebird_stmt *stmt, zval *bind_args, uint32_t num_bind_args, firebird_stmt_execute_fn exfn_in);

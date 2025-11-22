@@ -10,13 +10,8 @@ namespace FireBirdTests;
 require_once('functions.inc');
 
 (function(){
-    if(false === ($db = init_tmp_db())) {
-        return;
-    }
-
-    if(false === ($t = $db->new_transaction())) {
-        print_error_and_die("transaction", $db);
-    }
+    $db = init_tmp_db();
+    $t = $db->new_transaction();
 
     $table = "TEST_001";
 
@@ -26,18 +21,19 @@ require_once('functions.inc');
         "COMMIT RETAIN",
         "DELETE FROM $table",
         "COMMIT RETAIN",
-        ["INSERT INTO $table (BLOB_1) VALUES (?)", ["This should be inserted"]],
+        "INSERT INTO $table (BLOB_1) VALUES ('This should be inserted')",
         "SAVEPOINT sp_name",
-        ["INSERT INTO $table (BLOB_1) VALUES (?)", ["This should be deleted"]],
+        "INSERT INTO $table (BLOB_1) VALUES ('This should be deleted')",
         "ROLLBACK TO SAVEPOINT sp_name",
         "COMMIT",
     ];
 
     execute_immediate_bulk_or_die($t, $queries);
-    $t->execute_immediate("SET TRANSACTION") or print_error_and_die("SET TRANSACTION", $t);
+
+    $t->execute("SET TRANSACTION") or print_error_and_die("SET TRANSACTION", $t);
     $q = query_or_die($t, "SELECT BLOB_1 FROM $table");
-    fetch_and_print_or_die($q, \FireBird\FETCH_BLOBS);
-    $t->execute_immediate("COMMIT") or print_error_and_die("COMMIT", $t);
+    fetch_and_print_or_die($q, \FireBird\FETCH_FETCH_BLOB_TEXT);
+    $t->execute("COMMIT") or print_error_and_die("COMMIT", $t);
 
     // $builder = (new \FireBird\TBuilder)->read_only();
     // $t = new \FireBird\Transaction($db, $builder);

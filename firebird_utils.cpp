@@ -4,13 +4,53 @@
   +----------------------------------------------------------------------+
 */
 
-#include <cstring>
-#include <stdexcept>
-#include <sstream>
 #include <firebird/Interface.h>
+#include <execinfo.h>
+#include <iostream>
+#include <cstdlib>
+
+#include "fbp/base.hpp"
+#include "fbp/database.hpp"
+#include "fbp/statement.hpp"
+
+extern "C" {
+#include "ibase.h"
+#include "php.h"
+#include "zend_exceptions.h"
+#include "ext/spl/spl_exceptions.h"
+#include "ext/date/php_date.h"
+#include "database.h"
 #include "firebird_utils.h"
+#include "fbp_database.h"
+#include "transaction.h"
+#include "fbp_statement.h"
+#include "statement.h"
+#include "blob.h"
+#include "fbp_blob.h"
+#include "php_firebird_includes.h"
+}
 
 using namespace Firebird;
+
+// struct TransactionList {
+//     std::vector<Transaction*> trans;
+//     ~TransactionList() {
+//         FBDEBUG("[~TransactionList] %d", trans.size());
+//         ThrowStatusWrapper st(fb_get_master_interface()->getStatus());
+
+//         for (auto &tx : trans) {
+//             FBDEBUG("[*] Closing transaction: %p", tx);
+//             if (tx) {
+//                 FBDEBUG("Rolling back transaction: %p", tx);
+//                 // tx->rollback(&st);
+//                 // tx->release();
+//                 // tx = nullptr;
+//             }
+//         }
+//     }
+// };
+
+static IMaster* fbu_master = fb_get_master_interface();
 
 static void fbu_copy_status(const ISC_STATUS* from, ISC_STATUS* to, size_t maxLength)
 {
@@ -22,16 +62,71 @@ static void fbu_copy_status(const ISC_STATUS* from, ISC_STATUS* to, size_t maxLe
     }
 }
 
-class Php_Firebird_Exception : public std::runtime_error {
-public:
-    zend_class_entry *ce;
-    explicit Php_Firebird_Exception(zend_class_entry *ce, const std::string& msg)
-        : std::runtime_error(msg),
-        ce(ce)
-        {}
-};
+void fbu_handle_exception2()
+{
+    auto eptr = std::current_exception();
+    if (!eptr) return;
 
-static void fbu_handle_exception(Firebird::ThrowStatusWrapper *st, ISC_STATUS* status)
+    try {
+        std::rethrow_exception(eptr);
+    } catch (const FbException& e) {
+        char msg[1024];
+        auto util = fb_get_master_interface()->getUtilInterface();
+        util->formatStatus(msg, sizeof(msg), e.getStatus());
+        fbp_warning("Error: %s\n", msg);
+#if 1
+        void* buffer[50];
+        int nptrs = backtrace(buffer, 50);
+        char** symbols = backtrace_symbols(buffer, nptrs);
+
+        std::cerr << "Stack trace:\n";
+        for (int i = 0; i < nptrs; i++) {
+            std::cerr << symbols[i] << "\n";
+        }
+        free(symbols);
+#endif
+    } catch (const Php_Firebird_Exception& error) {
+        fbp_warning("Catched Php_Firebird_Exception: %s\n", error.what());
+    } catch (...) {
+        fbp_fatal("Unhandled exception");
+    }
+}
+
+void fbu_handle_exception23()
+{
+    try
+    {
+        throw;
+    }
+    catch (const FbException& e)
+    {
+        char msg[1024];
+        auto util = fb_get_master_interface()->getUtilInterface();
+        util->formatStatus(msg, sizeof(msg), e.getStatus());
+        fbp_warning("Error: %s\n", msg);
+#if 1
+        void* buffer[50];
+        int nptrs = backtrace(buffer, 50);
+        char** symbols = backtrace_symbols(buffer, nptrs);
+
+        std::cerr << "Stack trace:\n";
+        for (int i = 0; i < nptrs; i++) {
+            std::cerr << symbols[i] << "\n";
+        }
+        free(symbols);
+#endif
+    }
+    catch (const Php_Firebird_Exception& error)
+    {
+        fbp_warning("Catched Php_Firebird_Exception: %s\n", error.what());
+    }
+    catch (...)
+    {
+        fbp_fatal("Unhandled exception");
+    }
+}
+
+static void fbu_handle_exception(ThrowStatusWrapper *st, ISC_STATUS* status)
 {
     try
     {
@@ -40,17 +135,11 @@ static void fbu_handle_exception(Firebird::ThrowStatusWrapper *st, ISC_STATUS* s
     catch (const FbException& e)
     {
         fbu_copy_status((const ISC_STATUS*)e.getStatus()->getErrors(), status, 20);
-
-        // IMaster* fbu_master = fb_get_master_interface();
-        // IUtil* fb_util = fbu_master->getUtilInterface();
-        // ISC_STATUS* vector = e.getStatus()->getErrors();
-        // const ISC_STATUS* vector = e.getStatus()->getErrors();
-        // vector contains full Firebird status
-        // char msg[1024];
-        // fb_util->formatStatus(msg, sizeof(msg), e.getStatus());
-        // fprintf(stderr, "Error: %s\n", msg);
-
         // fbu_copy_status((const ISC_STATUS*)st->getErrors(), status, 20);
+        // char msg[1024];
+        // auto fb_util = fbu_master->getUtilInterface();
+        // fb_util->formatStatus(msg, sizeof(msg), e.getStatus());
+        // php_printf("Error: %s\n", msg);
     }
     catch (const Php_Firebird_Exception& error)
     {
@@ -62,6 +151,22 @@ static void fbu_handle_exception(Firebird::ThrowStatusWrapper *st, ISC_STATUS* s
     }
 }
 
+template<typename Func>
+int fbu_call_void(Func&& f)
+{
+    ThrowStatusWrapper st(fb_get_master_interface()->getStatus());
+
+    try
+    {
+        return f();
+    }
+    catch (...)
+    {
+        fbu_handle_exception2();
+        return FAILURE;
+    }
+}
+
 const char* fbu_get_sql_type_name(unsigned type)
 {
     switch (type)
@@ -70,7 +175,7 @@ const char* fbu_get_sql_type_name(unsigned type)
     case SQL_VARYING:         return "VARYING";
     case SQL_SHORT:           return "SHORT";
     case SQL_LONG:            return "LONG";
-    case SQL_INT64:           return "INT64";
+    case SQL_INT64:           return "BIGINT";
     case SQL_FLOAT:           return "FLOAT";
     case SQL_DOUBLE:          return "DOUBLE";
     case SQL_DEC16:           return "DECFLOAT(16)";
@@ -90,6 +195,67 @@ const char* fbu_get_sql_type_name(unsigned type)
     case SQL_BOOLEAN:         return "BOOLEAN";
     case SQL_NULL:            return "NULL";
     default:                  return "UNKNOWN";
+    }
+}
+
+void fbu_xpb_insert_object(IXpbBuilder* xpb, zval *obj, zend_class_entry *ce,
+    const firebird_xpb_zmap *xpb_zmap)
+{
+    zend_string *prop_name = NULL;
+    zend_property_info *prop_info = NULL;
+    zval rv, *val, *checkval;
+    int i;
+    ThrowStatusWrapper st(fbu_master->getStatus());
+
+    for (int i = 0; i < xpb_zmap->count; i++) {
+        prop_name = zend_string_init(xpb_zmap->names[i], strlen(xpb_zmap->names[i]), 1);
+
+#ifdef PHP_DEBUG
+        if (!zend_hash_exists(&ce->properties_info, prop_name)) {
+            fbp_fatal("BUG! Property %s does not exist for %s::%s. Verify xpb_zmap",
+                xpb_zmap->names[i], ZSTR_VAL(ce->name), xpb_zmap->names[i]);
+            zend_string_release(prop_name);
+            continue;
+        }
+#endif
+
+        prop_info = zend_get_property_info(ce, prop_name, 0);
+        checkval = OBJ_PROP(Z_OBJ_P(obj), prop_info->offset);
+        if (Z_ISUNDEF_P(checkval)) {
+            FBDEBUG("property: %s is uninitialized", xpb_zmap->names[i]);
+            zend_string_release(prop_name);
+            continue;
+        }
+
+        val = zend_read_property_ex(ce, Z_OBJ_P(obj), prop_name, 0, &rv);
+        zend_string_release(prop_name);
+
+        switch (Z_TYPE_P(val)) {
+            case IS_STRING:
+                FBDEBUG("property: %s is string: `%s`", xpb_zmap->names[i], Z_STRVAL_P(val));
+                // (StatusType* status, unsigned char tag, const char* str)
+                xpb->insertString(&st, xpb_zmap->tags[i], Z_STRVAL_P(val));
+                break;
+            case IS_LONG:
+                FBDEBUG("property: %s is long: `%u`", xpb_zmap->names[i], Z_LVAL_P(val));
+                xpb->insertInt(&st, xpb_zmap->tags[i], (int)Z_LVAL_P(val));
+                break;
+            case IS_TRUE:
+                FBDEBUG("property: %s is true", xpb_zmap->names[i]);
+                xpb->insertInt(&st, xpb_zmap->tags[i], 1);
+                break;
+            case IS_FALSE:
+                FBDEBUG("property: %s is false", xpb_zmap->names[i]);
+                xpb->insertInt(&st, xpb_zmap->tags[i], 0);
+                break;
+            case IS_NULL:
+                FBDEBUG("property: %s is null", xpb_zmap->names[i]);
+                break;
+            default:
+                fbp_fatal("BUG! Unhandled: type %s for property %s::%s",
+                    zend_get_type_by_const(Z_TYPE_P(val)), ZSTR_VAL(ce->name), xpb_zmap->names[i]);
+                break;
+        }
     }
 }
 
@@ -154,28 +320,7 @@ private:
 };
 */
 
-#ifdef __cplusplus
 extern "C" {
-#endif
-
-#include <stdint.h>
-#include "ibase.h"
-
-#include "zend_exceptions.h"
-#include "ext/date/php_date.h"
-
-#include "database.h"
-#include "fbp_database.h"
-#include "fbp_transaction.h"
-#include "fbp_statement.h"
-#include "statement.h"
-#include "fbp_blob.h"
-
-IMaster* fbu_master = fb_get_master_interface();
-
-#define STRNUM_PARSE_OK       0
-#define STRNUM_PARSE_ERROR    1
-#define STRNUM_PARSE_OVERFLOW 2
 
 // Parse NUMERIC() to signed int representation
 int fbu_string_to_numeric(const char *s, const size_t slen, int scale, uint64_t max,
@@ -239,29 +384,31 @@ unsigned fbu_get_client_version(void)
     return util->getClientVersion();
 }
 
-int fbu_attach_database(ISC_STATUS* status, firebird_db *db, zval *Connect_Args, zend_class_entry *ce)
+#if 0
+int fbu_create_database(ISC_STATUS* status, firebird_db *db, zval *Create_Args, zend_class_entry *ce)
 {
     auto util = fbu_master->getUtilInterface();
     auto prov = fbu_master->getDispatcher();
     IXpbBuilder* dpb = NULL;
     ThrowStatusWrapper st(fbu_master->getStatus());
-
-    zval rv;
-    zval *database = OBJ_GET(ce, Connect_Args, "database", &rv);
+    zval rv, *database;
 
     try
     {
-        dpb = util->getXpbBuilder(&st, IXpbBuilder::DPB, NULL, 0);
-        // dpb->insertInt(&status, isc_dpb_page_size, 4 * 1024);
-        dpb->insertString(&st, isc_dpb_user_name, "sysdba");
-        dpb->insertString(&st, isc_dpb_password, "masterkey");
+        // TODO: wtf
+        database = PROP_GET(FireBird_Create_Args_ce, Create_Args, "database");
 
-        db->att = prov->attachDatabase(&st, Z_STRVAL_P(database),
+        if ((Z_TYPE_P(database) != IS_STRING) || !Z_STRLEN_P(database)) {
+            throw Php_Firebird_Exception(zend_ce_value_error, "Database parameter not set");
+            return FAILURE;
+        }
+
+        dpb = util->getXpbBuilder(&st, IXpbBuilder::DPB, NULL, 0);
+        fbu_xpb_insert_object(dpb, Create_Args, ce, &fbp_database_create_zmap);
+
+        db->att = prov->createDatabase(&st, Z_STRVAL_P(database),
             dpb->getBufferLength(&st), dpb->getBuffer(&st));
 
-        // if(fb_get_database_handle(status, &db->db_handle, db->att)){
-        //     return status[1];
-        // }
         return SUCCESS;
     }
     catch (...)
@@ -269,17 +416,41 @@ int fbu_attach_database(ISC_STATUS* status, firebird_db *db, zval *Connect_Args,
         fbu_handle_exception(&st, status);
         return FAILURE;
     }
-}
 
-int fbu_detach_database(ISC_STATUS* status, firebird_db *db)
+    // zval rv;
+    // zval *database = OBJ_GET(ce, Create_Args, "database", &rv);
+
+    // try
+    // {
+    //     dpb = util->getXpbBuilder(&st, IXpbBuilder::DPB, NULL, 0);
+    //     // dpb->insertInt(&status, isc_dpb_page_size, 4 * 1024);
+    //     dpb->insertString(&st, isc_dpb_user_name, "sysdba");
+    //     dpb->insertString(&st, isc_dpb_password, "masterkey");
+
+    //     db->att = prov->attachDatabase(&st, Z_STRVAL_P(database),
+    //         dpb->getBufferLength(&st), dpb->getBuffer(&st));
+
+    //     // if(fb_get_database_handle(status, &db->db_handle, db->att)){
+    //     //     return status[1];
+    //     // }
+    //     return SUCCESS;
+    // }
+    // catch (...)
+    // {
+    //     fbu_handle_exception(&st, status);
+    //     return FAILURE;
+    // }
+}
+#endif
+
+#if 0
+ISC_INT64 fbu_get_transaction_id(ISC_STATUS* status, void *tra)
 {
-    IXpbBuilder* dpb = NULL;
     ThrowStatusWrapper st(fbu_master->getStatus());
 
     try
     {
-        static_cast<IAttachment*>(db->att)->detach(&st);
-        return SUCCESS;
+        return _fbu_get_transaction_id(static_cast<ITransaction *>(tra));
     }
     catch (...)
     {
@@ -287,300 +458,38 @@ int fbu_detach_database(ISC_STATUS* status, firebird_db *db)
         return FAILURE;
     }
 }
+#endif
 
-void fbu_transaction_build_tpb(IXpbBuilder *tpb, firebird_tbuilder *builder)
+#if 0
+int fbu_execute_database(ISC_STATUS* status, const firebird_db *db, size_t len_sql, const char *sql, firebird_trans *tr)
 {
-    // auto util = fbu_master->getUtilInterface();
-    // IXpbBuilder* tpb = NULL;
+    ITransaction *tra = NULL;
+    auto att = static_cast<IAttachment*>(db->att);
     ThrowStatusWrapper st(fbu_master->getStatus());
 
-    FBDEBUG("Creating transaction start buffer");
+    try
+    {
+        auto tra = att->execute(&st, NULL, len_sql, sql, SQL_DIALECT_CURRENT, NULL, NULL, NULL, NULL);
 
-    if (!builder) return;
-
-    // tpb = util->getXpbBuilder(&st, IXpbBuilder::TPB, NULL, 0);
-    // tpb->insertTag(&st, isc_tpb_read_committed);
-    // tpb->insertTag(&st, isc_tpb_no_rec_version);
-    // tpb->insertTag(&st, isc_tpb_wait);
-    // tpb->insertTag(&st, isc_tpb_read);
-    // tra = att->startTransaction(&status, tpb->getBufferLength(&status), tpb->getBuffer(&status));
-
-    // *p++ = isc_tpb_version3;
-
-    tpb->insertTag(&st, builder->read_only ? isc_tpb_read : isc_tpb_write);
-
-    if (builder->ignore_limbo) tpb->insertTag(&st, isc_tpb_ignore_limbo);
-    if (builder->auto_commit) tpb->insertTag(&st, isc_tpb_autocommit);
-    if (builder->no_auto_undo) tpb->insertTag(&st, isc_tpb_no_auto_undo);
-
-    if (builder->isolation_mode == 0) {
-        FBDEBUG_NOFL("  isolation_mode = isc_tpb_consistency");
-        tpb->insertTag(&st, isc_tpb_consistency);
-    } else if (builder->isolation_mode == 1) {
-        tpb->insertTag(&st, isc_tpb_concurrency);
-        if (builder->snapshot_at_number) {
-            tpb->insertInt(&st, isc_tpb_at_snapshot_number, builder->snapshot_at_number);
-            // *p++ = isc_tpb_at_snapshot_number;
-            // *p++ = sizeof(builder->snapshot_at_number);
-            // fbp_store_portable_integer(p, builder->snapshot_at_number, sizeof(builder->snapshot_at_number));
-            // p += sizeof(builder->snapshot_at_number);
-            FBDEBUG_NOFL("  isolation_mode = isc_tpb_concurrency");
-            FBDEBUG_NOFL("                   isc_tpb_at_snapshot_number = %d", builder->snapshot_at_number);
+        if (tra) {
+            auto tr_id = _fbu_get_transaction_id(tra);
+            tr->att = att;
+            tr->tra = tra;
+            tr->tr_id = tr_id;
+            return SUCCESS;
         } else {
-            FBDEBUG_NOFL("  isolation_mode = isc_tpb_concurrency");
-        }
-    } else if (builder->isolation_mode == 2) {
-        tpb->insertTag(&st, isc_tpb_read_committed);
-        tpb->insertTag(&st, isc_tpb_rec_version);
-        FBDEBUG_NOFL("  isolation_mode = isc_tpb_read_committed");
-        FBDEBUG_NOFL("                   isc_tpb_rec_version");
-    } else if (builder->isolation_mode == 3) {
-        tpb->insertTag(&st, isc_tpb_read_committed);
-        tpb->insertTag(&st, isc_tpb_no_rec_version);
-        FBDEBUG_NOFL("  isolation_mode = isc_tpb_read_committed");
-        FBDEBUG_NOFL("                   isc_tpb_no_rec_version");
-    } else if (builder->isolation_mode == 4) {
-        tpb->insertTag(&st, isc_tpb_read_committed);
-        tpb->insertTag(&st, isc_tpb_read_consistency);
-        FBDEBUG_NOFL("  isolation_mode = isc_tpb_read_committed");
-        FBDEBUG_NOFL("                   isc_tpb_read_consistency");
-    } else {
-        fbp_fatal("BUG! unknown transaction isolation_mode: %d", builder->isolation_mode);
-    }
-
-    if (builder->lock_timeout == 0) {
-        tpb->insertTag(&st, isc_tpb_nowait);
-        FBDEBUG_NOFL("  isc_tpb_nowait");
-    } else if (builder->lock_timeout == -1) {
-        tpb->insertTag(&st, isc_tpb_wait);
-        FBDEBUG_NOFL("  isc_tpb_wait");
-    } else if (builder->lock_timeout > 0) {
-        tpb->insertTag(&st, isc_tpb_wait);
-        tpb->insertInt(&st, isc_tpb_lock_timeout, builder->lock_timeout);
-        FBDEBUG_NOFL("  isc_tpb_wait");
-        FBDEBUG_NOFL("    isc_tpb_lock_timeout = %d", builder->lock_timeout);
-    } else {
-        fbp_fatal("BUG! invalid lock_timeout: %d", builder->lock_timeout);
-    }
-}
-
-int fbu_start_transaction(ISC_STATUS* status, firebird_trans *tr)
-{
-    // if (!tr || !tr->att) return FAILURE;
-
-    auto util = fbu_master->getUtilInterface();
-    ThrowStatusWrapper st(fbu_master->getStatus());
-    IXpbBuilder* tpb = util->getXpbBuilder(&st, IXpbBuilder::TPB, NULL, 0);
-
-    try
-    {
-        fbu_transaction_build_tpb(tpb, tr->builder);
-        auto tra = static_cast<IAttachment *>(tr->att)->startTransaction(&st, tpb->getBufferLength(&st), tpb->getBuffer(&st));
-
-        unsigned char req[] = { isc_info_tra_id };
-        unsigned char resp[16];
-        tra->getInfo(&st, sizeof(req), req, sizeof(resp), resp);
-
-        IXpbBuilder* dpb = util->getXpbBuilder(&st, IXpbBuilder::INFO_RESPONSE, resp, sizeof(resp));
-
-        for (dpb->rewind(&st); !dpb->isEof(&st); dpb->moveNext(&st)) {
-            auto tag = dpb->getTag(&st);
-            if (tag == isc_info_tra_id) {
-                tr->tr_id = dpb->getBigInt(&st);
-                break;
-            }
-        }
-
-        tr->tra = tra;
-
-        return SUCCESS;
-    }
-    catch (...)
-    {
-        fbu_handle_exception(&st, status);
-        return FAILURE;
-    }
-}
-
-int fbu_finalize_transaction(ISC_STATUS* status, firebird_trans *tr, int mode)
-{
-    if (!tr) return FAILURE;
-
-    ThrowStatusWrapper st(fbu_master->getStatus());
-    auto tra = static_cast<ITransaction*>(tr->tra);
-
-    try {
-        if (mode == FBP_TR_COMMIT) {
-            tra->commit(&st);
-            tr->tra = tra = NULL;
-        } else if (mode == (FBP_TR_ROLLBACK | FBP_TR_RETAIN)) {
-            tra->rollbackRetaining(&st);
-        } else if (mode == (FBP_TR_COMMIT | FBP_TR_RETAIN)) {
-            tra->commitRetaining(&st);
-        } else {
-            tra->rollback(&st);
-            tr->tra = tra = NULL;
+            if (tra) tra->release();
+            return FAILURE;
         }
     }
     catch (...)
     {
         fbu_handle_exception(&st, status);
-        return FAILURE;
-    }
-
-    return SUCCESS;
-}
-
-int fbu_prepare_statement(ISC_STATUS* status, firebird_stmt *stmt, const char *sql)
-{
-    auto att = static_cast<IAttachment*>(stmt->tr->att);
-    auto tra = static_cast<ITransaction*>(stmt->tr->tra);
-    ThrowStatusWrapper st(fbu_master->getStatus());
-
-    try
-    {
-        auto s = att->prepare(&st, tra, 0, sql, SQL_DIALECT_CURRENT,
-            IStatement::PREPARE_PREFETCH_METADATA
-        );
-
-        auto in_metadata = s->getInputMetadata(&st);
-        auto out_metadata = s->getOutputMetadata(&st);
-
-        stmt->statement_type = s->getType(&st);
-
-        stmt->in_vars_count = in_metadata->getCount(&st);
-        stmt->in_buffer_len = in_metadata->getMessageLength(&st);
-        stmt->in_buffer = (unsigned char *)ecalloc(stmt->in_buffer_len, sizeof(*stmt->in_buffer));
-
-        stmt->out_vars_count = out_metadata->getCount(&st);
-        // TODO: alloc just before fetch
-        stmt->out_buffer_len = out_metadata->getMessageLength(&st);
-        stmt->out_buffer = (unsigned char *)ecalloc(stmt->out_buffer_len, sizeof(*stmt->out_buffer));
-
-        stmt->in_metadata = in_metadata;
-        stmt->out_metadata = out_metadata;
-        stmt->stmt = s;
-
-        // stmt->has_more_rows = stmt->out_vars_count > 0;
-
-        return SUCCESS;
-    }
-    catch (...)
-    {
-        fbu_handle_exception(&st, status);
+        if (tra) tra->release();
         return FAILURE;
     }
 }
-
-int fbu_free_statement(ISC_STATUS* status, firebird_stmt *stmt)
-{
-    php_printf("fbu_free_statement!!\n");
-
-    auto s = static_cast<IStatement*>(stmt->stmt);
-    auto curs = static_cast<IResultSet*>(stmt->curs);
-    auto im = static_cast<IMessageMetadata*>(stmt->in_metadata);
-    auto om = static_cast<IMessageMetadata*>(stmt->out_metadata);
-
-    int rv;
-
-    ThrowStatusWrapper st(fbu_master->getStatus());
-
-    try {
-        if (curs) {
-            curs->close(&st);
-            curs = NULL;
-        }
-
-        if (s) {
-            s->free(&st);
-            s = NULL;
-        }
-        rv = SUCCESS;
-    }
-    catch (...)
-    {
-        fbu_handle_exception(&st, status);
-        rv = FAILURE;
-    }
-
-    if (im) im->release();
-    if (om) om->release();
-    if (curs) curs->release();
-    if (s) s->release();
-
-    if (stmt->in_buffer) {
-        efree(stmt->in_buffer);
-        stmt->in_buffer = NULL;
-    }
-
-    if (stmt->out_buffer) {
-        efree(stmt->out_buffer);
-        stmt->out_buffer = NULL;
-    }
-
-    return rv;
-}
-
-int fbu_execute_statement(ISC_STATUS* status, firebird_stmt *stmt)
-{
-    auto tra = static_cast<ITransaction*>(stmt->tr->tra);
-    auto s = static_cast<IStatement*>(stmt->stmt);
-    auto im = static_cast<IMessageMetadata*>(stmt->in_metadata);
-    auto om = static_cast<IMessageMetadata*>(stmt->out_metadata);
-    ThrowStatusWrapper st(fbu_master->getStatus());
-
-    try
-    {
-        s->execute(&st, tra, im, stmt->in_buffer, om, stmt->out_buffer);
-        // if (stmt->in_vars_count && stmt->out_vars_count) {
-        //     s->execute(&st, tra, im, stmt->in_buffer, om, stmt->out_buffer);
-        // } else if (stmt->in_vars_count) {
-        //     s->execute(&st, tra, im, stmt->in_buffer, NULL, NULL);
-        // } else if (stmt->out_vars_count) {
-        //     s->execute(&st, tra, NULL, NULL, om, stmt->out_buffer);
-        // } else {
-        //     s->execute(&st, tra, NULL, NULL, NULL, NULL);
-        // }
-
-        return SUCCESS;
-    }
-    catch (...)
-    {
-        fbu_handle_exception(&st, status);
-        return FAILURE;
-    }
-}
-
-int fbu_open_cursor(ISC_STATUS* status, firebird_stmt *stmt)
-{
-    auto tra = static_cast<ITransaction*>(stmt->tr->tra);
-    auto s = static_cast<IStatement*>(stmt->stmt);
-    auto im = static_cast<IMessageMetadata*>(stmt->in_metadata);
-    auto om = static_cast<IMessageMetadata*>(stmt->out_metadata);
-    ThrowStatusWrapper st(fbu_master->getStatus());
-
-    try
-    {
-        // s->openCursor(&st, tra, NULL, NULL, NULL, NULL, 0);
-        // openCursor(StatusType* status, ITransaction* transaction, IMessageMetadata* inMetadata, void* inBuffer, IMessageMetadata* outMetadata, unsigned flags)
-        auto curs = s->openCursor(&st, tra, im, stmt->in_buffer, om, 0);
-
-        // curs->addRef();
-        stmt->curs = curs;
-
-        // allocate output buffer
-        // unsigned l = om->getMessageLength(&status);
-        // unsigned char* buffer = new unsigned char[l];
-
-        // s->fet(&st, tra, NULL, NULL, NULL, NULL);
-        return SUCCESS;
-    }
-    catch (...)
-    {
-        fbu_handle_exception(&st, status);
-        return FAILURE;
-    }
-}
+#endif
 
 void fbu_init_date_object(const char *tzbuff, zval *o)
 {
@@ -597,244 +506,72 @@ void fbu_init_date_object(const char *tzbuff, zval *o)
     } else {
         php_date_initialize(Z_PHPDATE_P(o), "", 0, NULL, NULL, 0);
     }
+
     // zend_string *tt = php_format_date(ff, strlen(ff), ((ISC_TIME_TZ *)data)->utc_time, 0);
     // php_date_time_set(&new_object, h, i, s, ms, return_value);
     // php_date_initialize_from_ts_long(date_obj, 0, 0);
 }
 
-static int fbu_var_zval(zval *val, size_t index, IMessageMetadata *om, unsigned char* buffer, int flags)
-{
-    IUtil* util = fbu_master->getUtilInterface();
-    ThrowStatusWrapper st(fbu_master->getStatus());
-
-    static ISC_INT64 const scales[] = { 1, 10, 100, 1000,
-        10000,
-        100000,
-        1000000,
-        10000000,
-        100000000,
-        1000000000,
-        LL_LIT(10000000000),
-        LL_LIT(100000000000),
-        LL_LIT(1000000000000),
-        LL_LIT(10000000000000),
-        LL_LIT(100000000000000),
-        LL_LIT(1000000000000000),
-        LL_LIT(10000000000000000),
-        LL_LIT(100000000000000000),
-        LL_LIT(1000000000000000000)
-    };
-
-    auto type = om->getType(&st, index);
-    auto len = om->getLength(&st, index);
-    auto scale = om->getScale(&st, index);
-    auto data = buffer + om->getOffset(&st, index);
-
-    char str_buf[255];
-    size_t str_len;
-
-    zend_long long_val;
-
-    const char *t_format;
-    unsigned t_year, t_month, t_day, t_hours, t_minutes, t_seconds, t_fractions;
-    char t_zone_buff[40];
-    zval t_dateo;
-    php_date_obj *t_date_obj;
-
-    switch (type)
-    {
-        default:
-            fbp_fatal("unhandled type: %d, field:%s", type, om->getAlias(&st, index));
-
-        case SQL_VARYING:
-            len = ((firebird_vary *) data)->vary_length;
-            data = ((firebird_vary *) data)->vary_string;
-            /* no break */
-        case SQL_TEXT:
-            ZVAL_STRINGL(val, (char*)data, len);
-            break;
-        case SQL_BOOLEAN:
-            ZVAL_BOOL(val, *(FB_BOOLEAN *) data);
-            break;
-        case SQL_SHORT:
-            long_val = *(int16_t*) data;
-            goto _sql_long;
-        case SQL_LONG:
-            long_val = *(int32_t*) data;
-            goto _sql_long;
-        case SQL_INT128:
-            util->getInt128(&st)->toString(&st, (FB_I128 *)data, scale, sizeof(str_buf), str_buf);
-            ZVAL_STRING(val, str_buf);
-            break;
-        case SQL_DEC16:
-            util->getDecFloat16(&st)->toString(&st, (FB_DEC16 *)data, sizeof(str_buf), str_buf);
-            ZVAL_STRING(val, str_buf);
-            break;
-        case SQL_DEC34:
-            util->getDecFloat34(&st)->toString(&st, (FB_DEC34 *)data, sizeof(str_buf), str_buf);
-            ZVAL_STRING(val, str_buf);
-            break;
-        case SQL_TYPE_DATE:
-            t_format = "Y-m-d";
-            util->decodeDate(*(ISC_DATE *)data, &t_year, &t_month, &t_day);
-            t_hours = t_minutes = t_seconds = t_fractions = 0;
-            fbu_init_date_object(NULL, &t_dateo);
-            goto _set_datetime;
-        case SQL_TYPE_TIME:
-            t_format = "H:i:s";
-            util->decodeTime(*(ISC_TIME *)data, &t_hours, &t_minutes, &t_seconds, &t_fractions);
-            t_year = t_month = t_day = 0;
-            fbu_init_date_object(NULL, &t_dateo);
-            goto _set_datetime;
-        case SQL_TIME_TZ:
-            t_format = "H:i:s e";
-            util->decodeTimeTz(&st, (ISC_TIME_TZ *)data, &t_hours, &t_minutes, &t_seconds, &t_fractions,
-                sizeof(t_zone_buff), t_zone_buff);
-            t_year = t_month = t_day = 0;
-            fbu_init_date_object(t_zone_buff, &t_dateo);
-            goto _set_datetime;
-        case SQL_TIMESTAMP_TZ:
-            t_format = "Y-m-d H:i:s e";
-            util->decodeTimeStampTz(&st, (ISC_TIMESTAMP_TZ *)data, &t_year, &t_month, &t_day, &t_hours,
-                &t_minutes, &t_seconds, &t_fractions, sizeof(t_zone_buff), t_zone_buff);
-            fbu_init_date_object(t_zone_buff, &t_dateo);
-            goto _set_datetime;
-        case SQL_TIMESTAMP:
-            {
-                t_format = "Y-m-d H:i:s";
-                ISC_TIMESTAMP *ts = (ISC_TIMESTAMP *) data;
-                util->decodeDate(ts->timestamp_date, &t_year, &t_month, &t_day);
-                util->decodeTime(ts->timestamp_time, &t_hours, &t_minutes, &t_seconds, &t_fractions);
-                fbu_init_date_object(NULL, &t_dateo);
-            }
-
-_set_datetime:
-            t_date_obj = Z_PHPDATE_P(&t_dateo);
-            t_date_obj->time->y = t_year;
-            t_date_obj->time->m = t_month;
-            t_date_obj->time->d = t_day;
-            t_date_obj->time->h = t_hours;
-            t_date_obj->time->i = t_minutes;
-            t_date_obj->time->s = t_seconds;
-            t_date_obj->time->us = t_fractions;
-
-            // efree(date_obj->time->tz_abbr);
-            // efree(date_obj->time);
-
-            if (flags & FBP_FETCH_DATE_OBJ) {
-                ZVAL_COPY(val, &t_dateo);
-            } else {
-                ZVAL_STR(val, php_format_date_obj(t_format, strlen(t_format), t_date_obj));
-            }
-
-            zval_ptr_dtor(&t_dateo);
-            break;
-
-        case SQL_BLOB:
-            // TODO
-            break;
-
 #if 0
-        case SQL_INT64:
-#if (SIZEOF_ZEND_LONG >= 8)
-            n = *(zend_long *) data;
-            goto _sql_long;
-#else
-            if (scale == 0) {
-                l = slprintf(string_data, sizeof(string_data), "%" LL_MASK "d", *(ISC_INT64 *) data);
-                ZVAL_STRINGL(val,string_data,l);
-            } else {
-                ISC_INT64 n = *(ISC_INT64 *) data, f = scales[-scale];
-
-                if (n >= 0) {
-                    l = slprintf(string_data, sizeof(string_data), "%" LL_MASK "d.%0*" LL_MASK "d", n / f, -scale, n % f);
-                } else if (n <= -f) {
-                    l = slprintf(string_data, sizeof(string_data), "%" LL_MASK "d.%0*" LL_MASK "d", n / f, -scale, -n % f);
-                 } else {
-                    l = slprintf(string_data, sizeof(string_data), "-0.%0*" LL_MASK "d", -scale, -n % f);
-                }
-                ZVAL_STRINGL(val,string_data,l);
-            }
-            break;
-#endif
-format_date_time:
-            /*
-              XXX - Might have to remove this later - seems that isc_decode_date()
-               always sets tm_isdst to 0, sometimes incorrectly (InterBase 6 bug?)
-            */
-            t.tm_isdst = -1;
-#if HAVE_STRUCT_TM_TM_ZONE
-            t.tm_zone = tzname[0];
-#endif
-            if ((type != SQL_TYPE_TIME) && (flags & FBP_FETCH_UNIXTIME)) {
-                ZVAL_LONG(val, mktime(&t));
-            } else {
-                l = strftime(string_data, sizeof(string_data), format, &t);
-                // ZVAL_NULL(val);
-                ZVAL_STRINGL(val, string_data, l);
-                break;
-            }
-#endif
-        case SQL_FLOAT:
-            ZVAL_DOUBLE(val, *(float *) data);
-            break;
-        case SQL_DOUBLE:
-            ZVAL_DOUBLE(val, *(double *) data);
-            break;
-        case SQL_INT64:
-            long_val = *(int64_t*) data;
-_sql_long:
-            if (scale == 0) {
-                ZVAL_LONG(val, long_val);
-            } else {
-                zend_long f = (zend_long) scales[-scale];
-
-                if (long_val >= 0) {
-                    str_len = slprintf(str_buf, sizeof(str_buf), ZEND_LONG_FMT ".%0*" ZEND_LONG_FMT_SPEC, long_val / f, -scale,  long_val % f);
-                } else if (long_val <= -f) {
-                    str_len = slprintf(str_buf, sizeof(str_buf), ZEND_LONG_FMT ".%0*" ZEND_LONG_FMT_SPEC, long_val / f, -scale,  -long_val % f);
-                } else {
-                    str_len = slprintf(str_buf, sizeof(str_buf), "-0.%0*" ZEND_LONG_FMT_SPEC, -scale, -long_val % f);
-                }
-                ZVAL_STRINGL(val, str_buf, str_len);
-            }
-            break;
-    } /* switch (type) */
-
-    return SUCCESS;
-}
-
-int fbu_fetch(ISC_STATUS* status, firebird_stmt *stmt, int flags, zval *return_value)
+int fbu_parse_output_buffer(ISC_STATUS* status, firebird_stmt *stmt, int flags, zval *return_value)
 {
-    auto s = static_cast<IStatement*>(stmt->stmt);
+    if (!stmt || !stmt->tr || !stmt->tr->tra || !stmt->out_metadata) return FAILURE;
+
     auto om = static_cast<IMessageMetadata*>(stmt->out_metadata);
-    auto curs = static_cast<IResultSet*>(stmt->curs);
     ThrowStatusWrapper st(fbu_master->getStatus());
+    zval result;
 
     try
     {
-        zval result;
-        auto cols = om->getCount(&st);
+        for (size_t index = 0; index < stmt->out_vars_count; index++) {
+            ZVAL_UNDEF(&result);
+            fbu_var_zval((IAttachment *)stmt->tr->att, (ITransaction *)stmt->tr->tra,
+                om, &result, index, stmt->out_buffer, flags);
 
-        if (curs->isEof(&st)) {
-            return 1;
+            if (flags & FBP_FETCH_INDEXED) {
+                add_index_zval(return_value, index, &result);
+            } else if (flags & FBP_FETCH_HASHED) {
+                add_assoc_zval(return_value, om->getAlias(&st, index), &result);
+            } else {
+                throw Php_Firebird_Exception(zend_ce_error, "BUG: fetch method flag not set");
+            }
         }
+        return SUCCESS;
+    }
+    catch (...)
+    {
+        fbu_handle_exception(&st, status);
+        return FAILURE;
+    }
+}
+#endif
 
+#if 0
+int fbu_fetch_next(ISC_STATUS* status, firebird_stmt *stmt)
+{
+    TODO("fbu_fetch_next");
+    return FAILURE;
+    auto curs = static_cast<IResultSet*>(stmt->curs);
+    ThrowStatusWrapper st(fbu_master->getStatus());
+
+    if (!curs) {
+        php_printf("NO CURSOR!!\n");
+        return FAILURE;
+    }
+
+    try
+    {
         auto fetch_res = curs->fetchNext(&st, stmt->out_buffer);
 
         if (fetch_res == IStatus::RESULT_OK) {
-            for (size_t index = 0; index < cols; index++) {
-                ZVAL_UNDEF(&result);
-                fbu_var_zval(&result, index, om, stmt->out_buffer, flags);
-                if (flags & FBP_FETCH_INDEXED) {
-                    add_index_zval(return_value, index, &result);
-                } else if (flags & FBP_FETCH_HASHED) {
-                    add_assoc_zval(return_value, om->getAlias(&st, index), &result);
-                } else {
-                    throw Php_Firebird_Exception(zend_ce_error, "BUG: fetch method flag not set");
-                }
-            }
             return 0;
+        }
+
+        if (fetch_res == IStatus::RESULT_NO_DATA) {
+            curs->close(&st);
+            curs->release();
+            stmt->curs = curs = NULL;
+            return 1;
         }
 
         return -1;
@@ -845,380 +582,67 @@ int fbu_fetch(ISC_STATUS* status, firebird_stmt *stmt, int flags, zval *return_v
         return -1;
     }
 }
+#endif
 
-int _fbu_statement_bind(firebird_stmt *stmt, zval *b_vars, size_t num_bind_args)
+// int fbu_statement_bind(firebird_stmt *stmt, zval *b_vars, size_t num_bind_args)
+// {
+//     ThrowStatusWrapper st(fbu_master->getStatus());
+
+//     try
+//     {
+//         _fbu_statement_bind(stmt, b_vars, num_bind_args);
+//         return SUCCESS;
+//     }
+//     catch (...)
+//     {
+//         fbu_handle_exception(&st, status);
+//         return FAILURE;
+//     }
+// }
+
+int fbu_blob_open(ISC_STATUS* status, firebird_trans *tr, ISC_QUAD id, firebird_blob *blob)
 {
-    auto util = fbu_master->getUtilInterface();
-    auto s = static_cast<IStatement*>(stmt->stmt);
-    auto im = static_cast<IMessageMetadata*>(stmt->in_metadata);
-    auto curs = static_cast<IResultSet*>(stmt->curs);
-    char tmp_buf[256];
-    struct tm t;
-    const char *tformat;
-    int64_t long_min, long_max;
-    zend_long long_val;
+    TODO("fbu_blob_open");
+    return FAILURE;
+#if 0
+    if (!tr || !tr->att || !tr->tra) return FAILURE;
 
-    ThrowStatusWrapper st(fbu_master->getStatus());
-
-    if (num_bind_args != stmt->in_vars_count) {
-        slprintf(tmp_buf, sizeof(tmp_buf), "Statement expects %d arguments, %d given",
-            stmt->in_vars_count, num_bind_args);
-
-        throw Php_Firebird_Exception(zend_ce_argument_count_error, std::string(tmp_buf));
-    }
-
-    auto buffer = stmt->in_buffer;
-
-    for (size_t i = 0; i < stmt->in_vars_count; ++i) {
-        zval *b_var = &b_vars[i];
-
-        auto sqldata = buffer + im->getOffset(&st, i);
-        auto scale = im->getScale(&st, i);
-
-        // XSQLVAR *var = &sqlda->sqlvar[i];
-        // auto *sqlind = &stmt->bind_buf[i].sqlind;
-
-        auto sqlind = reinterpret_cast<short*>(buffer + im->getNullOffset(&st, i));
-        // short *sqlind = (short*)&buffer[im->getNullOffset(&st, i)];
-
-        if (Z_TYPE_P(b_var) == IS_NULL) {
-            *sqlind = -1;
-            // stmt->bind_buf[i].sqlind = -1;
-            // sqldata = NULL;
-            continue;
-        }
-
-        *sqlind = 0;
-        // stmt->bind_buf[i].sqlind = 0;
-        // sqldata = (unsigned char *)&stmt->bind_buf[i].val;
-
-        auto sqltype = im->getType(&st, i);
-
-        php_printf(
-            "sql type: %s, php type: %s\n"
-            "-----------------------------\n",
-            fbu_get_sql_type_name(sqltype), zend_zval_type_name(b_var));
-
-        // Init
-        long_min = long_max = 0;
-        switch (sqltype)
-        {
-            case SQL_SHORT:
-                long_min = INT16_MIN;
-                long_max = INT16_MAX;
-                break;
-            case SQL_LONG:
-                long_min = INT32_MIN;
-                long_max = INT32_MAX;
-                break;
-            case SQL_INT64:
-                long_min = INT64_MIN;
-                long_max = INT64_MAX;
-                break;
-        }
-
-        // Perform PHP type conversions
-        switch (sqltype)
-        {
-            case SQL_FLOAT:
-            case SQL_DOUBLE:
-                switch (Z_TYPE_P(b_var))
-                {
-                    case IS_DOUBLE: break;
-                    case IS_STRING:
-                    case IS_LONG:
-                        convert_to_double(b_var);
-                        break;
-                    default: goto wrong_z_type;
-                }
-                break;
-
-            case SQL_TYPE_DATE:
-            case SQL_TIMESTAMP:
-            case SQL_TIMESTAMP_TZ:
-                switch (Z_TYPE_P(b_var))
-                {
-                    case IS_STRING: break;
-                    case IS_LONG:
-                        if (!php_gmtime_r(&Z_LVAL_P(b_var), &t)) {
-                            slprintf(tmp_buf, sizeof(tmp_buf), "Argument %d: could not parse timestamp", i);
-                            throw Php_Firebird_Exception(zend_ce_value_error, std::string(tmp_buf));
-                        }
-                        break;
-                    default: goto wrong_z_type;
-                }
-                break;
-
-            case SQL_TYPE_TIME:
-            case SQL_TIME_TZ:
-                if (Z_TYPE_P(b_var) != IS_STRING) goto wrong_z_type;
-                break;
-
-            case SQL_DEC16:
-            case SQL_DEC34:
-            case SQL_INT128:
-                switch (Z_TYPE_P(b_var))
-                {
-                    case IS_STRING: break;
-                    case IS_DOUBLE:
-                    case IS_LONG:
-                        convert_to_string(b_var);
-                        break;
-                    default: goto wrong_z_type;
-                }
-                break;
-
-            case SQL_SHORT:
-            case SQL_LONG:
-            case SQL_INT64:
-                if (!long_min || !long_max) {
-                    throw Php_Firebird_Exception(zend_ce_error, "BUG: unreachable");
-                }
-
-                if (Z_TYPE_P(b_var) == IS_STRING) {
-                    uint64_t res;
-                    int sign, exp;
-
-                    php_printf("type: %s; scale: %d; s: %s\n",
-                        fbu_get_sql_type_name(sqltype), scale, Z_STRVAL_P(b_var)
-                    );
-
-                    int parse_err = fbu_string_to_numeric(Z_STRVAL_P(b_var), Z_STRLEN_P(b_var),
-                        scale, long_max, &sign, &exp, &res);
-
-                    if (parse_err) {
-                        switch (parse_err)
-                        {
-                            case STRNUM_PARSE_OVERFLOW:
-                                slprintf(tmp_buf, sizeof(tmp_buf),
-                                    "Argument %d: %s value %zu out of range [%ld, %ld]",
-                                    i, fbu_get_sql_type_name(sqltype), res, long_min, long_max
-                                );
-                                break;
-                            default:
-                                slprintf(tmp_buf, sizeof(tmp_buf), "Argument %d: string parse error", i);
-                                break;
-                        }
-                        throw Php_Firebird_Exception(zend_ce_value_error, std::string(tmp_buf));
-                    }
-
-                    long_val = static_cast<zend_long>(sign < 0 ? -res : res);
-
-                    php_printf("sign: %d; exp: %d; res: %zu; final val: %ld\n",
-                        sign, exp, res, long_val
-                    );
-                } else if (Z_TYPE_P(b_var) == IS_LONG) {
-                    long_val = Z_LVAL_P(b_var);
-                    if (long_val < long_min || long_val > long_max) {
-                        slprintf(tmp_buf, sizeof(tmp_buf),
-                            "Argument %d: %s value %ld out of range [%d, %d]",
-                            i, fbu_get_sql_type_name(sqltype), long_val, long_min, long_max
-                        );
-                        throw Php_Firebird_Exception(zend_ce_value_error, std::string(tmp_buf));
-                    }
-                } else {
-                    goto wrong_z_type;
-                }
-                break;
-
-            case SQL_BOOLEAN: break;
-
-            default:
-                fbp_fatal("Unhandled type check for sqltype: %s(%d)", fbu_get_sql_type_name(sqltype), sqltype);
-        }
-
-        // Populate metadata buffer
-        switch (sqltype)
-        {
-            case SQL_FLOAT:
-                *reinterpret_cast<float*>(sqldata) = static_cast<float>(Z_DVAL_P(b_var));
-                break;
-            case SQL_DOUBLE:
-                *reinterpret_cast<double*>(sqldata) = static_cast<double>(Z_DVAL_P(b_var));
-                break;
-            case SQL_TYPE_DATE:
-                switch (Z_TYPE_P(b_var))
-                {
-                    case IS_LONG:
-                        isc_encode_sql_date(&t, reinterpret_cast<ISC_DATE*>(sqldata));
-                        break;
-                    case IS_STRING:
-                        tformat = "Y-m-d";
-                        goto parse_datetime;
-                    default:
-                        throw Php_Firebird_Exception(zend_ce_error, "BUG: unreachable");
-                }
-                break;
-            case SQL_TIMESTAMP_TZ:
-                switch (Z_TYPE_P(b_var))
-                {
-                    case IS_LONG:
-                    {
-                        ISC_TIMESTAMP_TZ *ts = reinterpret_cast<ISC_TIMESTAMP_TZ*>(sqldata);
-                        isc_encode_sql_date(&t, &ts->utc_timestamp.timestamp_date);
-                        isc_encode_sql_time(&t, &ts->utc_timestamp.timestamp_time);
-                        ts->time_zone = 0;
-                    } break;
-                    case IS_STRING:
-                        tformat = "Y-m-d H:i:s e";
-                        goto parse_datetime;
-                    default:
-                        throw Php_Firebird_Exception(zend_ce_error, "BUG: unreachable");
-                }
-                break;
-            case SQL_TIMESTAMP:
-                switch (Z_TYPE_P(b_var))
-                {
-                    case IS_LONG:
-                    {
-                        ISC_TIMESTAMP *ts = reinterpret_cast<ISC_TIMESTAMP*>(sqldata);
-                        isc_encode_sql_date(&t, &ts->timestamp_date);
-                        isc_encode_sql_time(&t, &ts->timestamp_time);
-                    } break;
-                    case IS_STRING:
-                        tformat = "Y-m-d H:i:s";
-                        goto parse_datetime;
-                    default:
-                        throw Php_Firebird_Exception(zend_ce_error, "BUG: unreachable");
-                }
-                break;
-            case SQL_TYPE_TIME:
-                tformat = "H:i:s";
-                goto parse_datetime;
-            case SQL_TIME_TZ:
-                tformat = "H:i:s e";
-                goto parse_datetime;
-            case SQL_SHORT:
-                *reinterpret_cast<int16_t*>(sqldata) = static_cast<int16_t>(long_val);
-                break;
-            case SQL_LONG:
-                *reinterpret_cast<int32_t*>(sqldata) = static_cast<int32_t>(long_val);
-                break;
-            case SQL_INT64:
-                *reinterpret_cast<int64_t*>(sqldata) = static_cast<int64_t>(long_val);
-                break;
-            case SQL_INT128:
-                util->getInt128(&st)->fromString(&st, scale, Z_STRVAL_P(b_var), reinterpret_cast<FB_I128*>(sqldata));
-                break;
-            case SQL_DEC16:
-                util->getDecFloat16(&st)->fromString(&st, Z_STRVAL_P(b_var), reinterpret_cast<FB_DEC16*>(sqldata));
-                break;
-            case SQL_DEC34:
-                util->getDecFloat34(&st)->fromString(&st, Z_STRVAL_P(b_var), reinterpret_cast<FB_DEC34*>(sqldata));
-                break;
-
-            case SQL_BLOB:
-                TODO("SQL_BLOB");
-                // ISC_QUAD bl_id;
-                // if (Z_TYPE_P(b_var) == IS_OBJECT && Z_OBJCE_P(b_var) == FireBird_Blob_Id_ce) {
-                //     bl_id = get_firebird_blob_id_from_zval(b_var)->bl_id;
-                // } else if (Z_TYPE_P(b_var) == IS_OBJECT && Z_OBJCE_P(b_var) == FireBird_Blob_ce) {
-                //     bl_id = get_firebird_blob_from_zval(b_var)->bl_id;
-                // } else {
-                //     convert_to_string(b_var);
-
-                //     firebird_blob blob = {0};
-                //     fbp_blob_ctor(&blob, stmt->db_handle, stmt->tr_handle);
-
-                //     if (fbp_blob_create(&blob) ||
-                //         fbp_blob_put(&blob, Z_STRVAL_P(b_var), Z_STRLEN_P(b_var)) ||
-                //         fbp_blob_close(&blob)) {
-                //             return FAILURE;
-                //     }
-
-                //     bl_id = blob.bl_id;
-                // }
-                // stmt->bind_buf[i].val.qval = bl_id;
-                // *reinterpret_cast<ISC_QUAD*>(sqldata) = static_cast<ISC_QUAD>(bl_id);
-                break;
-
-            case SQL_BOOLEAN:
-                if (Z_TYPE_P(b_var) == IS_FALSE) {
-                    *reinterpret_cast<FB_BOOLEAN*>(sqldata) = FB_FALSE;
-                } else if (Z_TYPE_P(b_var) == IS_TRUE) {
-                    *reinterpret_cast<FB_BOOLEAN*>(sqldata) = FB_TRUE;
-                } else {
-                    goto wrong_z_type;
-                }
-                break;
-
-            case SQL_ARRAY:
-                fbp_fatal("ARRAY type is not supported.");
-
-            default:
-                fbp_fatal("Unhandled sqltype: %d", sqltype);
-
-        } /* switch */
-
-        continue;
-
-wrong_z_type: {
-        slprintf(tmp_buf, sizeof(tmp_buf),
-            "Argument %d: type mismatch '%s' to SQL type '%s'", i,
-            zend_get_type_by_const(Z_TYPE_P(b_var)), fbu_get_sql_type_name(sqltype));
-
-        throw Php_Firebird_Exception(zend_ce_type_error, std::string(tmp_buf));
-    }
-
-parse_datetime: {
-        zval dateo;
-        php_date_obj *obj;
-
-        php_date_instantiate(php_date_get_date_ce(), &dateo);
-        obj = Z_PHPDATE_P(&dateo);
-
-        if (!php_date_initialize(obj, Z_STRVAL_P(b_var), Z_STRLEN_P(b_var), tformat, NULL, PHP_DATE_INIT_FORMAT)) {
-            slprintf(tmp_buf, sizeof(tmp_buf),
-                "Argument %d: parse date failed, "
-                "call date_get_last_errors() for more information",
-                i
-            );
-
-            zval_ptr_dtor(&dateo);
-
-            throw Php_Firebird_Exception(zend_ce_type_error, std::string(tmp_buf));
-        }
-
-        if (sqltype == SQL_TIME_TZ) {
-            util->encodeTimeTz(&st, reinterpret_cast<ISC_TIME_TZ*>(sqldata),
-                obj->time->h, obj->time->i, obj->time->s, obj->time->us, obj->time->tz_info->name
-            );
-        } else if (sqltype == SQL_TYPE_TIME) {
-            *reinterpret_cast<ISC_TIME*>(sqldata) = util->encodeTime(
-                obj->time->h, obj->time->i, obj->time->s, obj->time->us
-            );
-        } else if (sqltype == SQL_TYPE_DATE) {
-            *reinterpret_cast<ISC_DATE*>(sqldata) = util->encodeDate(
-                obj->time->y, obj->time->m, obj->time->d
-            );
-        } else if (sqltype == SQL_TIMESTAMP) {
-            ISC_TIMESTAMP *ts = reinterpret_cast<ISC_TIMESTAMP*>(sqldata);
-            ts->timestamp_date = util->encodeDate(obj->time->y, obj->time->m, obj->time->d);
-            ts->timestamp_time = util->encodeTime(obj->time->h, obj->time->i, obj->time->s, obj->time->us);
-        } else if (sqltype == SQL_TIMESTAMP_TZ) {
-            util->encodeTimeStampTz(&st, reinterpret_cast<ISC_TIMESTAMP_TZ*>(sqldata),
-                obj->time->y, obj->time->m, obj->time->d,
-                obj->time->h, obj->time->i, obj->time->s, obj->time->us,
-                obj->time->tz_info->name
-            );
-        } else {
-            throw Php_Firebird_Exception(zend_ce_error, "BUG: unreachable");
-        }
-
-        zval_ptr_dtor(&dateo);
-    }
-    } // for
-
-    return SUCCESS;
-}
-
-int fbu_statement_bind(ISC_STATUS* status, firebird_stmt *stmt, zval *b_vars, size_t num_bind_args)
-{
+    IBlob *blo = NULL;
+    auto att = static_cast<IAttachment*>(tr->att);
+    auto tra = static_cast<ITransaction*>(tr->tra);
     ThrowStatusWrapper st(fbu_master->getStatus());
 
     try
     {
-        _fbu_statement_bind(stmt, b_vars, num_bind_args);
+        blo = att->openBlob(&st, tra, &id, sizeof(BLOB_PARAMS), BLOB_PARAMS);
+        _fbu_blob_set_info(blo, blob);
+        blob->blo = blo;
+        blob->att = att;
+        blob->tra = tra;
+        blob->bl_id = id;
+        return SUCCESS;
+    }
+    catch (...)
+    {
+        fbu_handle_exception(&st, status);
+        if (blo) blo->release();
+        return FAILURE;
+    }
+#endif
+}
+
+int fbu_blob_close(ISC_STATUS* status, firebird_blob *blob)
+{
+    if (!blob || !blob->blo) return FAILURE;
+
+    auto blo = static_cast<IBlob*>(blob->blo);
+    ThrowStatusWrapper st(fbu_master->getStatus());
+
+    try
+    {
+        blo->close(&st);
+        blo->release();
+        blob->blo = blo = NULL;
         return SUCCESS;
     }
     catch (...)
@@ -1228,6 +652,302 @@ int fbu_statement_bind(ISC_STATUS* status, firebird_stmt *stmt, zval *b_vars, si
     }
 }
 
-#ifdef __cplusplus
+int fbu_blob_get_segment(ISC_STATUS* status, firebird_blob *blob, zend_string *buf, unsigned* len)
+{
+    if (!blob || !blob->blo) return FAILURE;
+
+    auto blo = static_cast<IBlob*>(blob->blo);
+    ThrowStatusWrapper st(fbu_master->getStatus());
+
+    try
+    {
+        blo->getSegment(&st, ZSTR_LEN(buf), &ZSTR_VAL(buf), len);
+        ZSTR_VAL(buf)[*len] = '\0';
+        ZSTR_LEN(buf) = *len;
+
+        return SUCCESS;
+    }
+    catch (...)
+    {
+        fbu_handle_exception(&st, status);
+        return FAILURE;
+    }
+}
+
+
+
+
+
+using namespace FBP;
+
+int fbu_database_init(zval *args, firebird_db *db)
+{
+    FBDEBUG("fbu_database_init(db=%p)", db);
+    return fbu_call_void([&]() {
+        db->dbptr = static_cast<void*>(new Database(args));
+        return SUCCESS;
+    });
+}
+
+int fbu_database_connect(firebird_db *db)
+{
+    return fbu_call_void([&]() {
+        return static_cast<Database*>(db->dbptr)->connect();
+    });
+}
+
+int fbu_database_create(firebird_db *db)
+{
+    return fbu_call_void([&]() {
+        return static_cast<Database*>(db->dbptr)->create();
+    });
+}
+
+int fbu_database_disconnect(firebird_db *db)
+{
+    return fbu_call_void([&]() {
+        return static_cast<Database*>(db->dbptr)->disconnect();
+    });
+}
+
+int fbu_database_drop(firebird_db *db)
+{
+    return fbu_call_void([&]() {
+        return static_cast<Database*>(db->dbptr)->drop();
+    });
+}
+
+int fbu_database_free(firebird_db *db)
+{
+    FBDEBUG("~%s(db=%p, att=%p)", __func__, db, db->dbptr);
+    return fbu_call_void([&]() {
+        delete static_cast<Database*>(db->dbptr);
+        db->dbptr = nullptr;
+        return SUCCESS;
+    });
+}
+
+// int fbu_database_start_transaction(firebird_db *db, const firebird_tbuilder *builder, firebird_trans *tr)
+// {
+//     return fbu_call_void([&]() {
+//         auto tra = static_cast<Database *>(db->dbptr)->start_transaction(builder);
+//         tr->db = db;
+//         tr->trptr = tra;
+//         tr->id = tra->query_transaction_id();
+//         return SUCCESS;
+//     });
+// }
+
+#if 0
+int fbu_database_execute(firebird_db *db, unsigned len_sql, const char *sql)
+{
+    return fbu_call_void([&]() {
+        static_cast<Database*>(db->dbptr)->execute(len_sql, sql,
+            nullptr, nullptr, nullptr, nullptr);
+        return SUCCESS;
+    });
 }
 #endif
+
+int fbu_transaction_init(firebird_db *db, firebird_trans *tr)
+{
+    return fbu_call_void([&]() {
+        auto dba = static_cast<Database*>(db->dbptr);
+        Transaction* tra = new Transaction(dba);
+
+        FBDEBUG("fbu_transaction_init(db=%p, db->dbptr=%p, tr->trptr=%p)", db, db->dbptr, tra);
+
+        tr->trptr = tra;
+        tr->db = db;
+        tr->id = 666;
+
+        // Database* dba = static_cast<Database*>(db->dbptr);
+        // FBDEBUG("fbu_transaction_init(db->dbptr=%p, dba=%p)", db->dbptr, dba);
+        // // auto tra = new Transaction(*static_cast<Database*>(db->dbptr));
+
+        // Transaction* tra = new Transaction(dba->get_this());
+
+        // auto dba = static_cast<Database *>(db->dbptr);
+        // Database& dba_ref = *dba;
+        // // auto dba = static_cast<Database *>(db->dbptr);
+        // tr->trptr = static_cast<void*>(tra);
+        // tr->db = db;
+        // tr->id = 0;
+        return SUCCESS;
+    });
+}
+
+int fbu_transaction_start(firebird_trans *tr, const firebird_tbuilder *builder)
+{
+    return fbu_call_void([&]() {
+        auto tra = static_cast<Transaction *>(tr->trptr);
+        tra->start(builder);
+        tr->id = tra->query_transaction_id();
+        return SUCCESS;
+    });
+}
+
+int fbu_transaction_free(firebird_trans *tr)
+{
+    FBDEBUG("~%s(tr->trptr=%p)", __func__, tr->trptr);
+
+    return fbu_call_void([&]() {
+        delete static_cast<Transaction *>(tr->trptr);
+        tr->trptr = nullptr;
+        return SUCCESS;
+    });
+}
+
+int fbu_transaction_finalize(firebird_trans *tr, int mode)
+{
+    return fbu_call_void([&]() {
+        auto tra = static_cast<Transaction *>(tr->trptr);
+
+        if (!tra->get_tra()) return SUCCESS; // Not been started
+
+        if (mode == FBP_TR_COMMIT) {
+            tra->commit();
+        } else if (mode == (FBP_TR_ROLLBACK | FBP_TR_RETAIN)) {
+            tra->rollback_ret();
+        } else if (mode == (FBP_TR_COMMIT | FBP_TR_RETAIN)) {
+            tra->commit_ret();
+        } else {
+            tra->rollback();
+        }
+
+        return SUCCESS;
+    });
+}
+
+int fbu_transaction_execute(firebird_trans *tr, size_t len_sql, const char *sql)
+{
+    return fbu_call_void([&]() {
+        auto tra = static_cast<Transaction *>(tr->trptr);
+
+        auto new_tr = tra->execute(len_sql, sql);
+        FBDEBUG("fbu_transaction_execute(tr->trptr=%p)", tr->trptr);
+
+        // TODO: tra->release()?
+        if (new_tr) {
+            tr->id = tra->query_transaction_id();
+        } else {
+            // ASSUME: Rolledback / commited
+            tr->id = 0;
+        }
+
+        return SUCCESS;
+    });
+}
+
+// Create new prepared statament
+int fbu_statement_prepare(firebird_trans *tr, unsigned len_sql, const char *sql, firebird_stmt *stmt)
+{
+    return fbu_call_void([&]() {
+        auto s = new Statement(static_cast<Transaction *>(tr->trptr));
+
+        FBDEBUG("[new Statement()] %p", s);
+
+        s->prepare(len_sql, sql);
+
+        stmt->sptr = s;
+        stmt->tr = tr;
+
+        stmt->statement_type = s->statement_type;
+        stmt->in_vars_count = s->in_vars_count;
+        stmt->out_vars_count = s->out_vars_count;
+
+        stmt->sql = estrdup(sql);
+        stmt->sql_len = len_sql;
+
+        stmt->is_exhausted = 0;
+        stmt->is_cursor_open = 0;
+
+        return SUCCESS;
+    });
+}
+
+int fbu_statement_bind(firebird_stmt *stmt, zval *b_vars, unsigned int num_bind_args)
+{
+    return fbu_call_void([&]() {
+        static_cast<Statement *>(stmt->sptr)->bind(b_vars, num_bind_args);
+        stmt->is_exhausted = 0;
+        return SUCCESS;
+    });
+}
+
+int fbu_statement_open_cursor(firebird_stmt *stmt)
+{
+    // TODO: check if already open
+    return fbu_call_void([&]() {
+        static_cast<Statement *>(stmt->sptr)->open_cursor();
+        stmt->is_cursor_open = 1;
+        return SUCCESS;
+    });
+}
+
+int fbu_statement_fetch_next(firebird_stmt *stmt)
+{
+    return fbu_call_void([&]() {
+        auto res = static_cast<Statement *>(stmt->sptr)->fetch_next();
+
+        if (res == IStatus::RESULT_OK) {
+            return 0;
+        }
+
+        if (res == IStatus::RESULT_NO_DATA) {
+            // Cursor will be closed by fetch_next()
+            stmt->is_cursor_open = 0;
+            stmt->is_exhausted = 1;
+            return 1;
+        }
+
+        // Should do something here?
+
+        return -1;
+    });
+}
+
+int fbu_statement_output_buffer_to_array(firebird_stmt *stmt, zval *hash, int flags)
+{
+    return fbu_call_void([&]() {
+        static_cast<Statement *>(stmt->sptr)->output_buffer_to_array(hash, flags);
+        return SUCCESS;
+    });
+}
+
+int fbu_statement_execute(firebird_stmt *stmt)
+{
+    return fbu_call_void([&]() {
+        static_cast<Statement *>(stmt->sptr)->execute();
+        return SUCCESS;
+    });
+}
+
+void fbu_statement_free(firebird_stmt *stmt)
+{
+    FBDEBUG("~fbu_statement_free(%p)", stmt->sptr);
+
+    delete static_cast<Statement *>(stmt->sptr);
+
+    stmt->sptr = nullptr;
+    if (stmt->sql) {
+        efree((void *)stmt->sql);
+        stmt->sql = nullptr;
+    }
+}
+
+int fbu_statement_execute_on_att(firebird_stmt *stmt)
+{
+    TODO("fbu_statement_execute_on_att");
+    return FAILURE;
+#if 0
+    return fbu_call_void([&]() {
+        static_cast<Statement *>(stmt->sptr)->execute_on_att(stmt->sql_len, stmt->sql);
+
+        return SUCCESS;
+    });
+#endif
+}
+
+} // extern "C"
+

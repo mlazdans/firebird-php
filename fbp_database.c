@@ -1,4 +1,3 @@
-#include <firebird/fb_c_api.h>
 #include "php.h"
 #include "php_firebird.h"
 #include "php_firebird_includes.h"
@@ -140,33 +139,6 @@ fbp_object_accessor(firebird_db);
 //     // IStatus_dispose(st);
 
 //     return SUCCESS;
-// }
-
-int fbp_database_disconnect(firebird_db *db)
-{
-    return fbu_detach_database(FBG(status), db);
-}
-
-// int fbp_database_connect(firebird_db *db, zval *Connect_Args)
-// {
-//     return fbu_attach_database(FBG(status), db, Connect_Args, FireBird_Connect_Args_ce);
-//     // zval rv, *database;
-//     // const char *dpb_buffer;
-//     // short num_dpb_written;
-
-//     // if (FAILURE == fbp_database_build_dpb(FireBird_Connect_Args_ce, Connect_Args, &fbp_database_connect_zmap, &dpb_buffer, &num_dpb_written)) {
-//     //     return FAILURE;
-//     // }
-
-//     // database = OBJ_GET(FireBird_Connect_Args_ce, Connect_Args, "database", &rv);
-
-//     // FBDEBUG("Database::connect: %s", Z_STRVAL_P(database));
-//     // if (isc_attach_database(FBG(status), (short)Z_STRLEN_P(database), Z_STRVAL_P(database), &db->db_handle, num_dpb_written, dpb_buffer)) {
-//     //     return FAILURE;
-//     // }
-//     // FBDEBUG_NOFL("  connected, handle: %d", db->db_handle);
-
-//     // return SUCCESS;
 // }
 
 int fbp_database_create(firebird_db *db, zval *Create_Args)

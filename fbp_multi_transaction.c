@@ -1,4 +1,4 @@
-#include <firebird/fb_c_api.h>
+// #include <firebird/fb_c_api.h>
 #include "php.h"
 #include "zend.h"
 #include "php_firebird.h"
@@ -6,7 +6,6 @@
 #include "ext/standard/php_var.h"
 
 #include "transaction.h"
-#include "fbp_transaction.h"
 #include "fbp_multi_transaction.h"
 
 fbp_object_accessor(firebird_multi_trans);

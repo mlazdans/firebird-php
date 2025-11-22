@@ -49,7 +49,7 @@ extern "C" {
 #define TRANS_ID_SIZE 8
 #define TRANS_MAX_STACK_COUNT 128
 
-#ifdef FIREBIRD_DEBUG
+#ifdef PHP_DEBUG
 #define FBDEBUG(format, ...) if(FBG(debug))php_printf(format " (%s:%d)\n" __VA_OPT__(,) __VA_ARGS__, __FILE__, __LINE__);
 #define FBDEBUG_NOFL(format, ...) if(FBG(debug))php_printf(format "\n" __VA_OPT__(,) __VA_ARGS__);
 #else
@@ -142,19 +142,16 @@ typedef void (__stdcall *info_func_t)(char*);
 typedef void (*info_func_t)(char*);
 #endif
 
-#ifndef max
-#define max(a,b) ((a)>(b)?(a):(b))
-#endif
-
-#ifndef min
-#define min(a,b) ((a)<(b)?(a):(b))
-#endif
-
-#define OBJ_GET(ce, zobj, prop, rv) \
-    zend_read_property(ce, Z_OBJ_P(zobj), prop, sizeof(prop) - 1, 0, rv)
-
-#define OBJ_SET(ce, zobj, prop, val) zend_update_property(ce, Z_OBJ_P(zobj), prop, sizeof(prop) - 1, val)
-#define OBJ_SET_LONG(ce, zobj, prop, val) zend_update_property_long(ce, Z_OBJ_P(zobj), prop, sizeof(prop) - 1, val)
+// #define THIS_SET(prop, val) \
+//     zend_update_property(Z_OBJCE_P(ZEND_THIS), Z_OBJ_P(ZEND_THIS), prop, sizeof(prop) - 1, val)
+// #define THIS_GET(prop) \
+//     zend_read_property(Z_OBJCE_P(ZEND_THIS), Z_OBJ_P(ZEND_THIS), prop, sizeof(prop) - 1, 0, &rv)
+#define PROP_GET(ce, zval_obj, prop) \
+    zend_read_property(ce, Z_OBJ_P(zval_obj), prop, sizeof(prop) - 1, 0, &rv)
+#define PROP_SET(ce, zval_obj, prop, val) \
+    zend_update_property(ce, Z_OBJ_P(zval_obj), prop, sizeof(prop) - 1, val)
+#define PROP_SET_LONG(ce, zval_obj, prop, val) \
+    zend_update_property_long(ce, Z_OBJ_P(zval_obj), prop, sizeof(prop) - 1, val)
 
 #define DECLARE_PROP_OBJ(class_ce, name, obj_name, visibilty) DECLARE_PROP(class_ce, name, ZEND_TYPE_INIT_CLASS(zend_string_init(#obj_name, sizeof(#obj_name)-1, 1), 0, 0), visibilty)
 #define DECLARE_PROP_LONG(class_ce, name, visibilty) DECLARE_PROP(class_ce, name, ZEND_TYPE_INIT_MASK(MAY_BE_LONG), visibilty)
@@ -191,10 +188,6 @@ ZEND_END_ARG_INFO()
 // // Connector argument types
 // ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Connector_connect, 0, 1, FireBird\\Database, MAY_BE_FALSE)
 //     ZEND_ARG_OBJ_INFO(0, args, FireBird\\Connect_Args, 0)
-// ZEND_END_ARG_INFO()
-
-// ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Connector_create, 0, 1, FireBird\\Database, MAY_BE_FALSE)
-//     ZEND_ARG_OBJ_INFO(0, args, FireBird\\Create_Args, 0)
 // ZEND_END_ARG_INFO()
 
 // // Database argument types
@@ -276,15 +269,6 @@ ZEND_END_ARG_INFO()
 // ZEND_END_ARG_INFO()
 
 // // Transaction argument types
-// ZEND_BEGIN_ARG_INFO_EX(arginfo_FireBird_Transaction___construct, 0, 0, 1)
-//     ZEND_ARG_OBJ_INFO(0, database, FireBird\\Database, 0)
-//     ZEND_ARG_OBJ_INFO(0, builder, FireBird\\TBuilder, 0)
-// ZEND_END_ARG_INFO()
-
-// ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Transaction_prepare, 0, 0, FireBird\\Statement, MAY_BE_FALSE)
-//     ZEND_ARG_TYPE_INFO(0, sql, IS_STRING, 0)
-// ZEND_END_ARG_INFO()
-
 // ZEND_BEGIN_ARG_WITH_TENTATIVE_RETURN_OBJ_TYPE_MASK_EX(arginfo_FireBird_Transaction_query, 0, 1, FireBird\\Statement, MAY_BE_FALSE)
 //     ZEND_ARG_TYPE_INFO(0, sql, IS_STRING, 0)
 //     ZEND_ARG_VARIADIC_INFO(0, bind_args)
@@ -313,24 +297,8 @@ ZEND_END_ARG_INFO()
 // ZEND_END_ARG_INFO()
 
 // // Statement argument types
-// ZEND_BEGIN_ARG_INFO_EX(arginfo_FireBird_Statement___construct, 0, 0, 1)
-//     ZEND_ARG_OBJ_INFO(0, transaction, FireBird\\Transaction, 0)
-// ZEND_END_ARG_INFO()
-
-// ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_FireBird_Statement_fetch_row, 0, 0, MAY_BE_ARRAY|MAY_BE_FALSE|MAY_BE_NULL)
-//     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, flags, IS_LONG, 0, "0")
-// ZEND_END_ARG_INFO()
-
-// ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_FireBird_Statement_fetch_object, 0, 0, MAY_BE_OBJECT|MAY_BE_FALSE|MAY_BE_NULL)
-//     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, flags, IS_LONG, 0, "0")
-// ZEND_END_ARG_INFO()
-
 // ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Statement_prepare, 0, 0, _IS_BOOL, 0)
 //     ZEND_ARG_TYPE_INFO(0, sql, IS_STRING, 0)
-// ZEND_END_ARG_INFO()
-
-// ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Statement_execute, 0, 0, _IS_BOOL, 0)
-//     ZEND_ARG_VARIADIC_INFO(0, bind_args)
 // ZEND_END_ARG_INFO()
 
 // ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Statement_query, 0, 1, _IS_BOOL, 0)
@@ -403,7 +371,6 @@ extern zend_class_entry *FireBird_Database_ce;
 extern zend_class_entry *FireBird_Db_Info_ce;
 extern zend_class_entry *FireBird_Connect_Args_ce;
 extern zend_class_entry *FireBird_Create_Args_ce;
-extern zend_class_entry *FireBird_Connector_ce;
 extern zend_class_entry *FireBird_Statement_ce;
 extern zend_class_entry *FireBird_Blob_ce;
 extern zend_class_entry *FireBird_Blob_Id_ce;
@@ -445,16 +412,19 @@ void fbp_declare_props_from_zmap(zend_class_entry *ce, const firebird_xpb_zmap *
 // void fbp_insert_xpb_from_zmap(zend_class_entry *ce, zval *args, const firebird_xpb_zmap *xpb_zmap, struct IXpbBuilder* xpb, struct IStatus* st);
 void event_ast_routine(void *_ev, ISC_USHORT length, const ISC_UCHAR *result_buffer);
 
-#define fbp_declare_object_accessor(strct)                   \
-    strct *get_ ##strct## _from_obj(const zend_object *obj); \
+#define fbp_declare_object_accessor(strct)                    \
+    strct *get_ ##strct## _from_obj(const zend_object *obj);  \
     strct *get_ ##strct## _from_zval(const zval *zv)
 
-#define fbp_object_accessor(strct)                              \
-    strct *get_ ##strct## _from_obj(const zend_object *obj) {   \
-        return (strct*)((char*)(obj) - XtOffsetOf(strct, std)); \
-    }                                                           \
-    strct *get_ ##strct## _from_zval(const zval *zv) {          \
-        return get_ ##strct## _from_obj(Z_OBJ_P(zv));           \
+#define fbp_object_accessor(strct)                            \
+    strct *get_ ##strct## _from_obj(const zend_object *obj) { \
+        return obj ?                                          \
+            (strct*)((char*)(obj) - XtOffsetOf(strct, std)) : \
+            NULL;                                             \
+    }                                                         \
+    strct *get_ ##strct## _from_zval(const zval *zv) {        \
+        return zv ?                                           \
+            get_ ##strct## _from_obj(Z_OBJ_P(zv)) : NULL;     \
     }
 
 // fbp_declare_object_accessor(zend_fiber);

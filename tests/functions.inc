@@ -31,24 +31,16 @@ function out_table(\FireBird\Transaction $t, string $table_name)
         echo join("\t",$r)."\t\n";
     }
 
-    if($r === false) print_error_and_die("fetch", $res);
-
-    $res->close() or print_error_and_die("close", $res);
+    $res->free();
 
     echo "---\n";
 }
 
-function out_result(\FireBird\Statement $result, string $table_name = "", bool $close = true)
+function out_result(\FireBird\Statement $result, string $table_name = "")
 {
     echo "--- $table_name ---\n";
     while ($r = $result->fetch_row()) {
         echo join("\t",$r)."\t\n";
-    }
-
-    if($r === false) print_error_and_die("fetch", $result);
-
-    if($close) {
-        $result->close() or print_error_and_die("close", $result);
     }
 
     echo "---\n";
@@ -67,9 +59,14 @@ function out_result_trap_error($result, $table_name = "")
 /* M/D/Y H:M:S */
 function rand_datetime()
 {
-    return sprintf("%02d/%02d/%4d %02d:%02d:%02d",
-        rand()%12+1, rand()%28+1, rand()%100+1910,
+    // "%m/%d/%Y %H:%M:%S"
+    return sprintf("%4d-%02d-%02d %02d:%02d:%02d",
+        rand()%100+1910, rand()%12+1, rand()%28+1,
         rand()%24,   rand()%60,  rand()%60);
+
+    // return sprintf("%02d/%02d/%4d %02d:%02d:%02d",
+    //     rand()%12+1, rand()%28+1, rand()%100+1910,
+    //     rand()%24,   rand()%60,  rand()%60);
 }
 
 /* random binary string  */
@@ -112,10 +109,10 @@ function rand_number($len , $prec = -1, $sign = 1)
     if ($sign && (rand() % 3 == 0)) {
         $n = "-" .$n;
     }
-    return $n;
+    return $prec ? $n : (int)$n;
 }
 
-function print_error(string $cat, \FireBird\IError $o): void
+function print_error(string $cat): void
 {
     hl();
     if(isset($o->errors)){
@@ -133,9 +130,9 @@ function print_error(string $cat, \FireBird\IError $o): void
     hl();
 }
 
-function print_error_and_die(string $cat, \FireBird\IError $o): never
+function print_error_and_die(string $cat): never
 {
-    print_error($cat, $o);
+    print_error($cat);
     // debug_print_backtrace();
     // print "===============================================================================\n";
     die;
@@ -158,22 +155,14 @@ function load_file_or_die(string $path): string
     return $data;
 }
 
-function exec_from_file(\FireBird\Transaction $t, string $file_name): bool
+function exec_from_file(\FireBird\Transaction $t, string $file_name)
 {
-    return $t->execute_immediate(load_file_or_die(Config::$pwd."/$file_name"));
+    return $t->query(load_file_or_die(Config::$pwd."/$file_name"));
 }
 
-function exec_from_file_ddl(\FireBird\Transaction $t, string $file_name): bool
+function exec_from_file_ddl(\FireBird\Transaction $t, string $file_name)
 {
-    if(!exec_from_file($t, $file_name)) {
-        print_error_and_die("exec_from_file_ddl", $t);
-    }
-
-    if(!$t->commit_ret()) {
-        print_error_and_die("commit_ret", $t);
-    }
-
-    return true;
+    return exec_from_file($t, $file_name) && $t->commit_ret();
 }
 
 function gen_random_db_file_name_or_die(): string
@@ -204,8 +193,6 @@ function args_apply_defaults(\FireBird\Create_Args|\FireBird\Connect_Args $args)
 
 function init_tmp_db(string $db_file = "", string $charset = "", bool $drop = true): \FireBird\Database
 {
-    $conn = new \FireBird\Connector;
-
     if(empty($db_file)){
         $args = new \FireBird\Create_Args;
         $args->database = gen_random_db_file_name_or_die();
@@ -214,15 +201,13 @@ function init_tmp_db(string $db_file = "", string $charset = "", bool $drop = tr
         args_apply_defaults($args);
         // overrides
         if($charset)$args->set_db_charset = $charset;
-        if($db = $conn->create($args)) {
+        if($db = \FireBird\Database::create($args)) {
             register_shutdown_function(function() use ($db, $drop) {
-                if($drop && !$db->drop()) {
-                    print_error_and_die("drop", $db);
-                }
+                $drop && $db->drop();
             });
             return $db;
         } else {
-            print_error_and_die("create", $conn);
+            die("could not create");
         }
     } else {
         $args = new \FireBird\Connect_Args;
@@ -231,15 +216,13 @@ function init_tmp_db(string $db_file = "", string $charset = "", bool $drop = tr
         // overrides
         if($charset)$args->charset = $charset;
 
-        if($db = $conn->connect($args)) {
+        if($db = \FireBird\Database::connect($args)) {
             register_shutdown_function(function() use ($db, $drop) {
-                if($drop && !$db->disconnect()) {
-                    print_error_and_die("disconnect", $db);
-                }
+                $drop && !$db->disconnect();
             });
             return $db;
         } else {
-            print_error_and_die("connect", $conn);
+            die("could not connect");
         }
     }
 }
@@ -268,7 +251,7 @@ function replace_binary(string $data): string
     return $buff ?? $data;
 }
 
-function run_tests(\FireBird\Transaction $t, array $select_tests): array
+function run_tests(\FireBird\Transaction $t, array $select_tests): array|false
 {
     $results = [];
     foreach($select_tests as $i=>[$test_name, $sql, $bind_args, $fetch_flags]) {
@@ -281,12 +264,9 @@ function run_tests(\FireBird\Transaction $t, array $select_tests): array
                 var_bin($r);
                 $test_results[] = $r;
             }
-
-            if(false === $r) {
-                print_error_and_die("fetch [$i]", $s);
-            }
         } else {
-            print_error_and_die("query [$i]", $t);
+            print "Query FAIL\n";
+            return false;
         }
         print "\n";
 
@@ -309,17 +289,19 @@ function query_or_error(\FireBird\Transaction $t, string $sql, ...$bind_args): \
 {
     if(false === ($s = $t->query($sql, ...$bind_args))){
         print_error("query", $t);
+        print_r(date_get_last_errors());
     }
     return $s;
 }
 
-function execute_immediate_or_error(\FireBird\Transaction $t, string $sql, ...$bind_args): bool
+function execute_immediate_or_error(\FireBird\Transaction $t, string $sql): bool
 {
-    if(false === ($s = $t->execute_immediate($sql, ...$bind_args))){
+    if(false === $t->execute($sql)){
         print_error("execute_immediate", $t);
         print "Query: $sql\n";
+        return false;
     }
-    return $s;
+    return true;
 }
 
 function execute_immediate_or_die(\FireBird\Transaction $t, string $sql, ...$bind_args): bool
@@ -336,6 +318,7 @@ function query_or_die(\FireBird\Transaction $t, string $sql, ...$bind_args): \Fi
     if($s = query_or_error($t, $sql, ...$bind_args)) {
         return $s;
     } else {
+        print_r($sql);
         die;
     }
 }
@@ -401,9 +384,9 @@ function query_bulk_or_die(\FireBird\Transaction $t, array $queries): void
     }
 }
 
-function execute_immediate_bulk_or_die(\FireBird\Transaction $t, array $queries): void
+function execute_immediate_bulk_or_die(\FireBird\Transaction $t, array $queries, bool $verbose = false): void
 {
-    if(!execute_immediate_bulk($t, $queries)){
+    if(!execute_immediate_bulk($t, $queries, $verbose)){
         die;
     }
 }
@@ -413,20 +396,12 @@ function fetch_and_print(\FireBird\Statement $q, int $flags = 0): void
     while($r = $q->fetch_object($flags)) {
         var_bin($r);
     }
-
-    if(false === $r) {
-        print_error("fetch", $q);
-    }
 }
 
 function fetch_and_print_or_die(\FireBird\Statement $q, int $flags = 0): void
 {
     while($r = $q->fetch_object($flags)) {
         var_bin($r);
-    }
-
-    if(false === $r) {
-        print_error_and_die("fetch", $q);
     }
 }
 
@@ -523,7 +498,7 @@ function random_builder(): \FireBird\TBuilder
 function get_isolation_level_or_die(\FireBird\Transaction $t): int
 {
     $q = $t->query('SELECT MON$ISOLATION_MODE FROM MON$TRANSACTIONS WHERE MON$TRANSACTION_ID = CURRENT_TRANSACTION') or print_error_and_die("query", $t);
-    $row = $q->fetch_array() or print_error_and_die("fetch", $q);
+    $row = $q->fetch_array() or print_error_and_die("fetch_array", $q);
 
     return $row['MON$ISOLATION_MODE'];
 }
@@ -536,13 +511,13 @@ function is_ReadConsistency_enabled(\FireBird\Database $db): bool
 {
     // 3
     $t = $db->new_transaction();
-    $t->execute_immediate("SET TRANSACTION ISOLATION LEVEL READ COMMITTED NO RECORD_VERSION") or print_error_and_die("set trans", $t);
+    $t->execute("SET TRANSACTION ISOLATION LEVEL READ COMMITTED NO RECORD_VERSION") or print_error_and_die("set trans", $t);
     if(get_isolation_level_or_die($t) != 3) return true;
     $t->rollback() or print_error_and_die("rollback", $t);
 
     // 2
     $t = $db->new_transaction();
-    $t->execute_immediate("SET TRANSACTION ISOLATION LEVEL READ COMMITTED RECORD_VERSION") or print_error_and_die("set trans", $t);
+    $t->execute("SET TRANSACTION ISOLATION LEVEL READ COMMITTED RECORD_VERSION") or print_error_and_die("set trans", $t);
     if(get_isolation_level_or_die($t) != 2) return true;
     $t->rollback() or print_error_and_die("rollback", $t);
 
@@ -554,7 +529,7 @@ function init_tmp_db_ibase(): \FireBird\Database
     $db = init_tmp_db();
     $t = $db->new_transaction();
     $t->start() or print_error_and_die("trans start", $t);
-    $t->execute_immediate("CREATE TABLE TEST1 (I INTEGER, C VARCHAR(100))") or print_error_and_die("create table", $t);
+    $t->execute("CREATE TABLE TEST1 (I INTEGER, C VARCHAR(100))") or print_error_and_die("create table", $t);
     $t->commit_ret() or print_error_and_die("commit_ret", $t);
     $t->query("INSERT INTO TEST1(I, C) VALUES(1, 'test table not created with isql')") or print_error_and_die("query", $t);
     $t->commit() or print_error_and_die("commit", $t);

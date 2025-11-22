@@ -10,13 +10,8 @@ namespace FireBirdTests;
 require_once('functions.inc');
 
 (function(){
-    if(false === ($conn = init_tmp_db())) {
-        return;
-    }
-
-    if(false === ($t = $conn->new_transaction())) {
-        print_error_and_die("transaction", $conn);
-    }
+    $db = init_tmp_db();
+    $t = $db->new_transaction();
 
     $queries = [
         "SET TRANSACTION",
@@ -29,10 +24,10 @@ require_once('functions.inc');
 
     execute_immediate_bulk_or_die($t, $queries);
 
-    query_and_fetch_and_print_or_die($t, 'SELECT NEXT VALUE FOR GEN_GEN FROM RDB$DATABASE', \FireBird\FETCH_BLOBS);
-    query_and_fetch_and_print_or_die($t, 'SELECT NEXT VALUE FOR GEN_GEN FROM RDB$DATABASE', \FireBird\FETCH_BLOBS);
+    query_and_fetch_and_print_or_die($t, 'SELECT NEXT VALUE FOR GEN_GEN FROM RDB$DATABASE', \FireBird\FETCH_BLOB_TEXT);
+    query_and_fetch_and_print_or_die($t, 'SELECT NEXT VALUE FOR GEN_GEN FROM RDB$DATABASE', \FireBird\FETCH_BLOB_TEXT);
 
-    $t->commit();
+    $t->commit() or print_error_and_die("commit");
 })();
 
 ?>

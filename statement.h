@@ -11,13 +11,11 @@
 #define FBP_FETCH_INDEXED   (1<<4)
 #define FBP_FETCH_HASHED    (1<<5)
 
-extern zend_class_entry *FireBird_Statement_ce;
-extern void register_FireBird_Statement_ce();
+void FireBird_Statement___construct(zval *self, zval *transaction);
+int FireBird_Statement_prepare(zval *self, zend_string *sql);
+int FireBird_Statement_execute(zval *self, zval *bind_args, uint32_t num_bind_args);
+void FireBird_Statement_fetch(zval *self, int flags, zval *return_value);
 
-void FireBird_Statement___construct(zval *Stmt, zval *Transaction);
-int FireBird_Statement_execute(zval *Stmt, zval *bind_args, uint32_t num_bind_args);
-int FireBird_Statement_prepare(zval *Stmt, const ISC_SCHAR* sql);
-void FireBird_Statement_fetch(zval *Stmt, zval *return_value, int flags);
 void register_FireBird_Statement_object_handlers();
 
 #endif /* STATEMENT_H */

@@ -1,25 +1,9 @@
-#include <firebird/fb_c_api.h>
+// #include <firebird/fb_c_api.h>
 #include "php.h"
 #include "php_firebird.h"
 #include "php_firebird_includes.h"
-
-#include "fbp_transaction.h"
-
+#include "transaction.h"
 #include "firebird_utils.h"
-
-fbp_object_accessor(firebird_trans);
-fbp_object_accessor(firebird_tbuilder);
-
-void fbp_transaction_ctor(firebird_trans *tr, firebird_db *db, firebird_tbuilder *builder)
-{
-    tr->att = db->att;
-    // tr->real_tr_handle = 0;
-    // tr->tr_handle = &tr->real_tr_handle;
-    tr->tr_id = 0;
-    // tr->db_handle = &db->db_handle;
-    // tr->is_prepared_2pc = 0;
-    tr->builder = builder;
-}
 
 // int fbp_transaction_start(firebird_trans *tr)
 // {

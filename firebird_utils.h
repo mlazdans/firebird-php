@@ -17,35 +17,56 @@
 #ifndef FIREBIRD_UTILS_H
 #define FIREBIRD_UTILS_H
 
-#include <ibase.h>
-#include "database.h"
-#include "fbp_database.h"
-#include "fbp_transaction.h"
-#include "fbp_statement.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+#include <ibase.h>
+#include "database.h"
+#include "fbp_database.h"
+#include "transaction.h"
+#include "fbp_statement.h"
+#include "fbp_blob.h"
+
+#define STRNUM_PARSE_OK       0
+#define STRNUM_PARSE_ERROR    1
+#define STRNUM_PARSE_OVERFLOW 2
+
 unsigned fbu_get_client_version(void);
-ISC_TIME fbu_encode_time(unsigned hours, unsigned minutes, unsigned seconds, unsigned fractions);
-ISC_DATE fbu_encode_date(unsigned year, unsigned month, unsigned day);
-void fbu_decode_time_tz(const ISC_TIME_TZ* timeTz, unsigned* hours, unsigned* minutes,
-    unsigned* seconds, unsigned* fractions, unsigned timeZoneBufferLength, char* timeZoneBuffer);
-void fbu_decode_timestamp_tz(const ISC_TIMESTAMP_TZ* timestampTz,
-    unsigned* year, unsigned* month, unsigned* day,
-    unsigned* hours, unsigned* minutes, unsigned* seconds, unsigned* fractions,
-    unsigned timeZoneBufferLength, char* timeZoneBuffer);
-int fbu_attach_database(ISC_STATUS* status, firebird_db *db, zval *Connect_Args, zend_class_entry *ce);
-int fbu_detach_database(ISC_STATUS* status, firebird_db *db);
-int fbu_start_transaction(ISC_STATUS* status, firebird_trans *tr);
-int fbu_finalize_transaction(ISC_STATUS* status, firebird_trans *tr, int mode);
-int fbu_prepare_statement(ISC_STATUS* status, firebird_stmt *stmt, const char *sql);
-int fbu_free_statement(ISC_STATUS* status, firebird_stmt *stmt);
-int fbu_execute_statement(ISC_STATUS* status, firebird_stmt *stmt);
-int fbu_open_cursor(ISC_STATUS* status, firebird_stmt *stmt);
-int fbu_fetch(ISC_STATUS* status, firebird_stmt *stmt, int flags, zval *return_value);
-int fbu_statement_bind(ISC_STATUS* status, firebird_stmt *stmt, zval *b_vars, size_t num_bind_args);
+// int fbu_start_transaction(ISC_STATUS* status, const firebird_db *db, const firebird_tbuilder *builder, firebird_trans *tr);
+int fbu_execute_database(ISC_STATUS* status, const firebird_db *db, size_t len_sql, const char *sql, firebird_trans *tr);
+int fbu_blob_open(ISC_STATUS* status, firebird_trans *tr, ISC_QUAD id, firebird_blob *blob);
+int fbu_blob_close(ISC_STATUS* status, firebird_blob *blob);
+int fbu_blob_get_segment(ISC_STATUS* status, firebird_blob *blob, zend_string *buf, unsigned* len);
+
+const char* fbu_get_sql_type_name(unsigned type);
+int fbu_string_to_numeric(const char *s, const size_t slen, int scale, uint64_t max,
+    int *sign, int *exp, uint64_t *res);
+void fbu_init_date_object(const char *tzbuff, zval *o);
+
+int fbu_database_init(zval *args, firebird_db *db);
+int fbu_database_free(firebird_db *db);
+int fbu_database_connect(firebird_db *db);
+int fbu_database_create(firebird_db *db);
+int fbu_database_disconnect(firebird_db *db);
+int fbu_database_drop(firebird_db *db);
+int fbu_database_execute(firebird_db *db, unsigned len_sql, const char *sql);
+
+int fbu_transaction_init(firebird_db *db, firebird_trans *tr);
+int fbu_transaction_free(firebird_trans *tr);
+int fbu_transaction_start(firebird_trans *tr, const firebird_tbuilder *builder);
+int fbu_transaction_execute(firebird_trans *tr, size_t len_sql, const char *sql);
+int fbu_transaction_finalize(firebird_trans *tr, int mode);
+
+int fbu_statement_prepare(firebird_trans *tr, unsigned len_sql, const char *sql, firebird_stmt *stmt);
+void fbu_statement_free(firebird_stmt *stmt);
+int fbu_statement_bind(firebird_stmt *stmt, zval *b_vars, unsigned int num_bind_args);
+int fbu_statement_open_cursor(firebird_stmt *stmt);
+int fbu_statement_fetch_next(firebird_stmt *stmt);
+int fbu_statement_output_buffer_to_array(firebird_stmt *stmt, zval *hash, int flags);
+int fbu_statement_execute(firebird_stmt *stmt);
+int fbu_statement_execute_on_att(firebird_stmt *stmt);
+
 #ifdef __cplusplus
 }
 #endif

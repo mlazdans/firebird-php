@@ -39,7 +39,6 @@
 #if HAVE_FIREBIRD
 
 #include <time.h>
-#include <firebird/fb_c_api.h>
 #include "php.h"
 #include "php_ini.h"
 #include "ext/standard/php_standard.h"
@@ -164,7 +163,6 @@ zend_class_entry *FireBird_Database_ce;
 zend_class_entry *FireBird_Db_Info_ce;
 zend_class_entry *FireBird_Connect_Args_ce;
 zend_class_entry *FireBird_Create_Args_ce;
-zend_class_entry *FireBird_Connector_ce;
 zend_class_entry *FireBird_Statement_ce;
 zend_class_entry *FireBird_Blob_ce;
 zend_class_entry *FireBird_Blob_Id_ce;
@@ -174,28 +172,16 @@ PHP_MINIT_FUNCTION(firebird)
     REGISTER_INI_ENTRIES();
     register_firebird_symbols(module_number);
 
-    // REGISTER_NS_LONG_CONSTANT("FireBird", "FETCH_BLOBS", FBP_FETCH_BLOBS, CONST_PERSISTENT);
-    // REGISTER_NS_LONG_CONSTANT("FireBird", "FETCH_UNIXTIME", FBP_FETCH_UNIXTIME, CONST_PERSISTENT);
-
-    // REGISTER_NS_LONG_CONSTANT("FireBird", "BLOB_TYPE_SEGMENTED", FBP_BLOB_TYPE_SEGMENTED, CONST_PERSISTENT);
-    // REGISTER_NS_LONG_CONSTANT("FireBird", "BLOB_TYPE_STREAMED", FBP_BLOB_TYPE_STREAMED, CONST_PERSISTENT);
-
-    // REGISTER_NS_LONG_CONSTANT("FireBird", "SM_NORMAL", FBP_SM_NORMAL, CONST_PERSISTENT);
-    // REGISTER_NS_LONG_CONSTANT("FireBird", "SM_MULTI", FBP_SM_MULTI, CONST_PERSISTENT);
-    // REGISTER_NS_LONG_CONSTANT("FireBird", "SM_SINGLE", FBP_SM_SINGLE, CONST_PERSISTENT);
-    // REGISTER_NS_LONG_CONSTANT("FireBird", "SM_FULL", FBP_SM_FULL, CONST_PERSISTENT);
-
-    // REGISTER_NS_LONG_CONSTANT("FireBird", "BLOB_SEEK_START", FBP_BLOB_SEEK_START, CONST_PERSISTENT);
-    // REGISTER_NS_LONG_CONSTANT("FireBird", "BLOB_SEEK_CURRENT", FBP_BLOB_SEEK_CURRENT, CONST_PERSISTENT);
-    // REGISTER_NS_LONG_CONSTANT("FireBird", "BLOB_SEEK_END", FBP_BLOB_SEEK_END, CONST_PERSISTENT);
-
 #ifdef ZEND_SIGNALS
     // firebird replaces some signals at runtime, suppress warnings.
     SIGG(check) = 0;
 #endif
     FireBird_Error_ce = register_class_FireBird_Error();
     FireBird_Connect_Args_ce = register_class_FireBird_Connect_Args();
-    FireBird_Connector_ce = register_class_FireBird_Connector();
+    FireBird_Create_Args_ce = register_class_FireBird_Create_Args();
+
+    FireBird_TBuilder_ce = register_class_FireBird_TBuilder();
+    register_FireBird_TBuilder_object_handlers();
 
     FireBird_Database_ce = register_class_FireBird_Database();
     register_FireBird_Database_object_handlers();
@@ -212,10 +198,7 @@ PHP_MINIT_FUNCTION(firebird)
     FireBird_Blob_Id_ce = register_class_FireBird_Blob_Id();
     register_FireBird_Blob_Id_object_handlers();
 
-    // register_FireBird_Create_Args_ce();
     // register_FireBird_Statement_ce();
-    // register_FireBird_Blob_ce();
-    // register_FireBird_Blob_Id_ce();
     // register_FireBird_Var_Info_ce();
     // register_FireBird_Db_Info_ce();
     // register_FireBird_Event_ce();
@@ -224,7 +207,6 @@ PHP_MINIT_FUNCTION(firebird)
     // register_FireBird_Server_Info_ce();
     // register_FireBird_Server_Db_Info_ce();
     // register_FireBird_Server_User_Info_ce();
-    // register_FireBird_TBuilder_ce();
     // register_FireBird_Multi_Transaction_ce();
 
     return SUCCESS;

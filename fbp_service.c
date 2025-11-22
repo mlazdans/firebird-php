@@ -1,4 +1,4 @@
-#include <firebird/fb_c_api.h>
+// #include <firebird/fb_c_api.h>
 #include "php.h"
 #include "php_firebird.h"
 #include "php_firebird_includes.h"
@@ -72,7 +72,7 @@ int fbp_service_connect(firebird_service *svc, zval *Service_Connect_Args)
     const char *dpb_buffer;
     short num_dpb_written;
 
-    service_name = OBJ_GET(FireBird_Service_Connect_Args_ce, Service_Connect_Args, "service_name", &rv);
+    service_name = PROP_GET(FireBird_Service_Connect_Args_ce, Service_Connect_Args, "service_name");
 
     if (fbp_service_build_dpb(FireBird_Service_Connect_Args_ce, Service_Connect_Args,
         &fbp_service_connect_zmap, &dpb_buffer, &num_dpb_written)) {
@@ -291,7 +291,7 @@ int fbp_service_delete_user(firebird_service *svc, const char *username, ISC_USH
     *p++ = isc_action_svc_delete_user;
     *p++ = isc_spb_sec_username;
 
-    ISC_UCHAR bytes_num = min(username_len, sizeof(buf) - (p - buf) - 2);
+    ISC_UCHAR bytes_num = MIN(username_len, sizeof(buf) - (p - buf) - 2);
 
     fbp_store_portable_integer(p, bytes_num, 2); p += 2;
     memcpy(p, username, bytes_num); p += bytes_num;
@@ -306,7 +306,7 @@ int fbp_service_delete_user(firebird_service *svc, const char *username, ISC_USH
 #define spb_insert_db(dbname_len, dbname) spb_insert_str(isc_spb_dbname, dbname_len, dbname)
 #define spb_insert_str(tag, str_len, str) do {                             \
         *p++ = tag;                                                        \
-        ISC_UCHAR bytes_count = min(str_len, sizeof(buf) - (p - buf) - 2); \
+        ISC_UCHAR bytes_count = MIN(str_len, sizeof(buf) - (p - buf) - 2); \
         fbp_store_portable_integer(p, bytes_count, 2); p += 2;             \
         memcpy(p, str, bytes_count); p += bytes_count;                     \
     } while(0)

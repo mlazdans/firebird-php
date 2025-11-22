@@ -1,4 +1,4 @@
-#include <firebird/fb_c_api.h>
+// #include <firebird/fb_c_api.h>
 
 #include "php.h"
 #include "php_firebird.h"
@@ -25,7 +25,7 @@ int FireBird_Service_connect(zval *Service, zval *Service_Connect_Args)
         return FAILURE;
     }
 
-    OBJ_SET(FireBird_Service_ce, Service, "args", Service_Connect_Args);
+    PROP_SET(FireBird_Service_ce, Service, "args", Service_Connect_Args);
 
     return SUCCESS;
 }
