@@ -38,7 +38,8 @@ int fbu_transaction_start(firebird_trans *tr, const firebird_tbuilder *builder);
 int fbu_transaction_execute(firebird_trans *tr, size_t len_sql, const char *sql);
 int fbu_transaction_finalize(firebird_trans *tr, int mode);
 
-int fbu_statement_prepare(firebird_trans *tr, unsigned len_sql, const char *sql, firebird_stmt *stmt);
+int fbu_statement_init(firebird_trans *tr, firebird_stmt *stmt);
+int fbu_statement_prepare(firebird_stmt *stmt, unsigned len_sql, const char *sql);
 void fbu_statement_free(firebird_stmt *stmt);
 int fbu_statement_bind(firebird_stmt *stmt, zval *b_vars, unsigned int num_bind_args);
 int fbu_statement_open_cursor(firebird_stmt *stmt);

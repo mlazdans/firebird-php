@@ -705,24 +705,12 @@ int fbu_transaction_init(firebird_db *db, firebird_trans *tr)
         auto dba = static_cast<Database*>(db->dbptr);
         Transaction* tra = new Transaction(dba);
 
-        FBDEBUG("fbu_transaction_init(db=%p, db->dbptr=%p, tr->trptr=%p)", db, db->dbptr, tra);
+        FBDEBUG("fbu_transaction_init(db=%p, db->dbptr=%p, new Transaction=%p)", db, db->dbptr, tra);
 
         tr->trptr = tra;
         tr->db = db;
         tr->id = 0;
 
-        // Database* dba = static_cast<Database*>(db->dbptr);
-        // FBDEBUG("fbu_transaction_init(db->dbptr=%p, dba=%p)", db->dbptr, dba);
-        // // auto tra = new Transaction(*static_cast<Database*>(db->dbptr));
-
-        // Transaction* tra = new Transaction(dba->get_this());
-
-        // auto dba = static_cast<Database *>(db->dbptr);
-        // Database& dba_ref = *dba;
-        // // auto dba = static_cast<Database *>(db->dbptr);
-        // tr->trptr = static_cast<void*>(tra);
-        // tr->db = db;
-        // tr->id = 0;
         return SUCCESS;
     });
 }
@@ -784,17 +772,26 @@ int fbu_transaction_execute(firebird_trans *tr, size_t len_sql, const char *sql)
     });
 }
 
-// Create new prepared statament
-int fbu_statement_prepare(firebird_trans *tr, unsigned len_sql, const char *sql, firebird_stmt *stmt)
+int fbu_statement_init(firebird_trans *tr, firebird_stmt *stmt)
 {
     return fbu_call_void([&]() {
         auto s = new Statement(static_cast<Transaction *>(tr->trptr));
 
-        FBDEBUG("[new Statement()] %p", s);
-
-        s->prepare(len_sql, sql);
+        FBDEBUG("fbu_statement_init(tr=%p, new Statement=%p)", tr, s);
 
         stmt->sptr = s;
+
+        return SUCCESS;
+    });
+}
+
+
+int fbu_statement_prepare(firebird_stmt *stmt, unsigned len_sql, const char *sql)
+{
+    return fbu_call_void([&]() {
+        auto s = static_cast<Statement *>(stmt->sptr);
+
+        s->prepare(len_sql, sql);
 
         stmt->statement_type = s->statement_type;
         stmt->in_vars_count = s->in_vars_count;

@@ -19,6 +19,12 @@ static zend_object_handlers FireBird_Statement_object_handlers;
 
 void FireBird_Statement___construct(zval *self, zval *transaction)
 {
+
+    firebird_stmt *stmt = get_firebird_stmt_from_zval(self);
+    firebird_trans *tr = get_firebird_trans_from_zval(transaction);
+
+    fbu_statement_init(tr, stmt);
+
     // Increase refcount essentially
     PROP_SET(FireBird_Statement_ce, self, "transaction", transaction);
 }
@@ -166,13 +172,9 @@ PHP_METHOD(FireBird_Statement, execute)
 
 int FireBird_Statement_prepare(zval *self, zend_string *sql)
 {
-    zval rv;
-    zval *transaction = PROP_GET(FireBird_Statement_ce, self, "transaction");
-
     firebird_stmt *stmt = get_firebird_stmt_from_zval(self);
-    firebird_trans *tr = get_firebird_trans_from_zval(transaction);
 
-    if (fbu_statement_prepare(tr, ZSTR_LEN(sql), ZSTR_VAL(sql), stmt)) {
+    if (fbu_statement_prepare(stmt, ZSTR_LEN(sql), ZSTR_VAL(sql))) {
         return FAILURE;
     }
 
