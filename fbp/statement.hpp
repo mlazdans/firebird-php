@@ -39,7 +39,6 @@ public:
     HashTable *output_buffer_to_array(int flags);
     int var_zval(zval *val, unsigned int index, int flags);
     void execute();
-    // void execute_on_att(unsigned len_sql, const char *sql);
 };
 
 }

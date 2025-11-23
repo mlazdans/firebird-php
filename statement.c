@@ -104,10 +104,6 @@ int FireBird_Statement_execute(zval *self, zval *bind_args, uint32_t num_bind_ar
             if (fbu_statement_bind(stmt, bind_args, num_bind_args)) {
                 return FAILURE;
             }
-
-            // if (fbu_open_cursor(FBG(status), s)) {
-            //     return FAILURE;
-            // }
         } break;
 
         case isc_info_sql_stmt_set_generator:
@@ -122,26 +118,13 @@ int FireBird_Statement_execute(zval *self, zval *bind_args, uint32_t num_bind_ar
             if (fbu_statement_execute(stmt)) {
                 return FAILURE;
             }
-
-            // fbp_dump_buffer(s->out_buffer_len, s->out_buffer);
-
-            // fetch data from output buffer, no cursor
         } break;
 
+        case isc_info_sql_stmt_start_trans:
         case isc_info_sql_stmt_commit:
         case isc_info_sql_stmt_ddl: {
             if (fbu_statement_execute(stmt)) {
                 return FAILURE;
-            }
-        } break;
-
-        case isc_info_sql_stmt_start_trans: {
-            if (stmt->tr->trptr) {
-                zend_throw_exception_ex(spl_ce_RuntimeException, 0, "Transaction already started");
-            } else {
-                if (fbu_statement_execute_on_att(stmt)) {
-                    return FAILURE;
-                }
             }
         } break;
 

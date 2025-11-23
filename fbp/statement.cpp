@@ -790,10 +790,4 @@ void Statement::alloc_ht_ind()
     }
 }
 
-// void Statement::execute_on_att(unsigned len_sql, const char *sql)
-// {
-//     // db.get_att()->execute(&st, NULL, len_sql, sql, SQL_DIALECT_CURRENT, im, in_buffer, om, out_buffer);
-//     tra->get_dba()->execute(len_sql, sql, input_metadata, in_buffer, output_metadata, out_buffer);
-// }
-
 } // namespace

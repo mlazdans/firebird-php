@@ -45,7 +45,6 @@ int fbu_statement_open_cursor(firebird_stmt *stmt);
 int fbu_statement_fetch_next(firebird_stmt *stmt);
 HashTable *fbu_statement_output_buffer_to_array(firebird_stmt *stmt, int flags);
 int fbu_statement_execute(firebird_stmt *stmt);
-int fbu_statement_execute_on_att(firebird_stmt *stmt);
 int fbu_statement_close_cursor(firebird_stmt *stmt);
 
 int fbu_blob_init(firebird_trans *tr, firebird_blob *blob);

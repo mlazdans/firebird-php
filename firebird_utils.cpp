@@ -891,19 +891,6 @@ void fbu_statement_free(firebird_stmt *stmt)
     }
 }
 
-int fbu_statement_execute_on_att(firebird_stmt *stmt)
-{
-    TODO("fbu_statement_execute_on_att");
-    return FAILURE;
-#if 0
-    return fbu_call_void([&]() {
-        static_cast<Statement *>(stmt->sptr)->execute_on_att(stmt->sql_len, stmt->sql);
-
-        return SUCCESS;
-    });
-#endif
-}
-
 int fbu_blob_init(firebird_trans *tr, firebird_blob *blob)
 {
     return fbu_call_void([&]() {
