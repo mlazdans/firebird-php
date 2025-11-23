@@ -13,7 +13,6 @@
 #include "blob.h"
 
 fbp_object_accessor(firebird_stmt);
-
 static zend_object_handlers FireBird_Statement_object_handlers;
 
 // void FireBird_Var_Info_from_var(zval *return_value, XSQLVAR *var);

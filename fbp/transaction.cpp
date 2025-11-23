@@ -18,16 +18,6 @@ Transaction::Transaction(Database *dba): dba{dba}
     FBDEBUG("new Transaction(dba=%p)", dba);
 }
 
-ITransaction* Transaction::get_tra()
-{
-    return tra;
-}
-
-IAttachment* Transaction::get_att()
-{
-    return dba->get_att();
-}
-
 void Transaction::start(const firebird_tbuilder *builder)
 {
     // TODO: check if already started
@@ -154,34 +144,54 @@ Transaction::~Transaction()
     if (err) fbu_handle_exception2();
 }
 
-void Transaction::commit()
+int Transaction::commit()
 {
-    tra->commit(&st);
-    tra->release();
-    tra = nullptr;
+    if (tra) {
+        tra->commit(&st);
+        tra->release();
+        tra = nullptr;
+        return SUCCESS;
+    } else {
+        return FAILURE;
+    }
 }
 
-void Transaction::commit_ret()
+int Transaction::commit_ret()
 {
-    tra->commitRetaining(&st);
+    if (tra) {
+        tra->commitRetaining(&st);
+        return SUCCESS;
+    } else {
+        return FAILURE;
+    }
 }
 
-void Transaction::rollback()
+int Transaction::rollback()
 {
-    tra->rollback(&st);
-    tra->release();
-    tra = nullptr;
+    if (tra) {
+        tra->rollback(&st);
+        tra->release();
+        tra = nullptr;
+        return SUCCESS;
+    } else {
+        return FAILURE;
+    }
 }
 
-void Transaction::rollback_ret()
+int Transaction::rollback_ret()
 {
-    tra->rollbackRetaining(&st);
+    if (tra) {
+        tra->rollbackRetaining(&st);
+        return SUCCESS;
+    } else {
+        return FAILURE;
+    }
 }
 
-zend_string* Transaction::get_blob_contents(ISC_QUAD id)
+zend_string* Transaction::get_blob_contents(ISC_QUAD *blob_id)
 {
     auto blob = new Blob(this);
-    blob->open(id);
+    blob->open(blob_id);
     auto ret = blob->get_contents(0);
 
     delete blob;
@@ -221,4 +231,34 @@ ITransaction *Transaction::execute(unsigned len_sql, const char *sql)
     return nullptr;
 }
 
-} // namespace
+IBlob *Transaction::open_blob(ISC_QUAD *blob_id)
+{
+    return dba->open_blob(tra, blob_id);
+}
+
+IBlob *Transaction::create_blob(ISC_QUAD *blob_id)
+{
+    return dba->create_blob(tra, blob_id);
+}
+
+void Transaction::execute_statement(IStatement *statement,
+    IMessageMetadata* input_metadata, void* in_buffer,
+    IMessageMetadata* output_metadata, void* out_buffer)
+{
+    // TODO: release old?
+    tra = statement->execute(&st, tra, input_metadata, in_buffer, output_metadata, out_buffer);
+}
+
+IResultSet *Transaction::open_cursor(IStatement *statement,
+    IMessageMetadata* input_metadata, void* in_buffer,
+    IMessageMetadata* output_metadata)
+{
+    return statement->openCursor(&st, tra, input_metadata, in_buffer, output_metadata, 0);
+}
+
+IStatement* Transaction::prepare(unsigned int len_sql, const char *sql)
+{
+    return dba->prepare(tra, len_sql, sql);
+}
+
+}// namespace

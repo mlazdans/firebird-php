@@ -23,9 +23,7 @@ Statement::Statement(Transaction *tra)
 
 void Statement::prepare(unsigned int len_sql, const char *sql)
 {
-    IStatement *tmp = tra->get_att()->prepare(&st, tra->get_tra(), len_sql, sql, SQL_DIALECT_CURRENT,
-        IStatement::PREPARE_PREFETCH_METADATA
-    );
+    IStatement *tmp = tra->prepare(len_sql, sql);
 
     statement_type = tmp->getType(&st);
 
@@ -415,8 +413,9 @@ parse_datetime: {
 
 void Statement::open_cursor()
 {
+    cursor = tra->open_cursor(statement, input_metadata, in_buffer, output_metadata);
     // TODO: check if curs already opened
-    cursor = statement->openCursor(&st, tra->get_tra(), input_metadata, in_buffer, output_metadata, 0);
+    // cursor = statement->openCursor(&st, tra->get_tra(), input_metadata, in_buffer, output_metadata, 0);
 }
 
 int Statement::close_cursor()
@@ -616,7 +615,7 @@ _set_datetime:
 
         case SQL_BLOB:
             if (flags & FBP_FETCH_BLOB_TEXT) {
-                ZVAL_STR(val, tra->get_blob_contents(*(ISC_QUAD *)data));
+                ZVAL_STR(val, tra->get_blob_contents((ISC_QUAD *)data));
             } else {
                 object_init_ex(val, FireBird_Blob_Id_ce);
                 FireBird_Blob_Id___construct(val, *(ISC_QUAD *)data);
@@ -677,7 +676,7 @@ _sql_long:
 
 void Statement::execute()
 {
-    statement->execute(&st, tra->get_tra(), input_metadata, in_buffer, output_metadata, out_buffer);
+    tra->execute_statement(statement, input_metadata, in_buffer, output_metadata, out_buffer);
 }
 
 Statement::~Statement() noexcept

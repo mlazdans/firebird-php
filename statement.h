@@ -13,16 +13,6 @@
 
 typedef struct firebird_stmt {
     void *sptr;
-    firebird_trans *tr;
-
-    // void *in_metadata, *out_metadata;
-    // unsigned char *in_buffer, *out_buffer;
-    // unsigned int in_buffer_size, out_buffer_size;
-
-    // isc_stmt_handle stmt_handle;
-    // isc_db_handle *db_handle;
-    // isc_tr_handle *tr_handle;
-    // XSQLDA *in_sqlda, *out_sqlda;
     unsigned char statement_type, did_fake_fetch, is_cursor_open, is_exhausted;
     unsigned short in_array_cnt, out_array_cnt;
     const char *sql;

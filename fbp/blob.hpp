@@ -23,7 +23,7 @@ public:
     Blob(Transaction *tra);
     ~Blob() noexcept;
     ISC_QUAD create();
-    void open(ISC_QUAD id);
+    void open(ISC_QUAD *blob_id);
     zend_string *get_contents(ISC_LONG max_len);
     void put_contents(unsigned int buf_size, const char *buf);
     firebird_blob_info *get_info();

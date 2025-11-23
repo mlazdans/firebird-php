@@ -11,9 +11,9 @@
 #include "transaction.h"
 #include "statement.h"
 
-static zend_object_handlers FireBird_Transaction_object_handlers;
 fbp_object_accessor(firebird_trans);
 fbp_object_accessor(firebird_tbuilder);
+static zend_object_handlers FireBird_Transaction_object_handlers;
 
 void FireBird_Transaction___construct(zval *self, zval *database)
 {

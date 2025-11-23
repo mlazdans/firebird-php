@@ -753,19 +753,15 @@ int fbu_transaction_finalize(firebird_trans *tr, int mode)
     return fbu_call_void([&]() {
         auto tra = static_cast<Transaction *>(tr->trptr);
 
-        if (!tra->get_tra()) return SUCCESS; // Not been started
-
         if (mode == FBP_TR_COMMIT) {
-            tra->commit();
+            return tra->commit();
         } else if (mode == (FBP_TR_ROLLBACK | FBP_TR_RETAIN)) {
-            tra->rollback_ret();
+            return tra->rollback_ret();
         } else if (mode == (FBP_TR_COMMIT | FBP_TR_RETAIN)) {
-            tra->commit_ret();
+            return tra->commit_ret();
         } else {
-            tra->rollback();
+            return tra->rollback();
         }
-
-        return SUCCESS;
     });
 }
 
@@ -799,7 +795,6 @@ int fbu_statement_prepare(firebird_trans *tr, unsigned len_sql, const char *sql,
         s->prepare(len_sql, sql);
 
         stmt->sptr = s;
-        stmt->tr = tr;
 
         stmt->statement_type = s->statement_type;
         stmt->in_vars_count = s->in_vars_count;
@@ -935,7 +930,7 @@ int fbu_blob_create(firebird_blob *blob)
 int fbu_blob_open(firebird_blob *blob, firebird_blob_id *blob_id)
 {
     return fbu_call_void([&]() {
-        static_cast<Blob *>(blob->blobptr)->open(blob_id->bl_id);
+        static_cast<Blob *>(blob->blobptr)->open(&blob_id->bl_id);
         return SUCCESS;
     });
 }

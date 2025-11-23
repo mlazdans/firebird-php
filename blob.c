@@ -31,6 +31,8 @@
 #include "blob.h"
 #include "transaction.h"
 
+fbp_object_accessor(firebird_blob);
+fbp_object_accessor(firebird_blob_id);
 static zend_object_handlers FireBird_Blob_object_handlers, FireBird_Blob_Id_object_handlers;
 
 void FireBird_Blob___construct(zval *self, zval *Transaction)

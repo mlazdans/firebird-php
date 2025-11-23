@@ -152,4 +152,30 @@ Database::~Database()
 //     return new Transaction(this);
 // }
 
+IBlob *Database::open_blob(ITransaction *transaction, ISC_QUAD *blob_id)
+{
+    const unsigned char bpb[] = {
+        isc_bpb_version1,
+        isc_bpb_type, 1, isc_bpb_type_stream
+    };
+
+    return att->openBlob(&st, transaction, blob_id, sizeof(bpb), bpb);
+}
+
+IBlob *Database::create_blob(ITransaction *transaction, ISC_QUAD *blob_id)
+{
+    const unsigned char bpb[] = {
+        isc_bpb_version1,
+        isc_bpb_type, 1, isc_bpb_type_stream
+    };
+
+    return att->createBlob(&st, transaction, blob_id, sizeof(bpb), bpb);
+}
+
+IStatement *Database::prepare(ITransaction *transaction, unsigned int len_sql, const char *sql)
+{
+    return att->prepare(&st, transaction, len_sql, sql, SQL_DIALECT_CURRENT,
+        IStatement::PREPARE_PREFETCH_METADATA);
+}
+
 } // namespace

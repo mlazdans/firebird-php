@@ -38,13 +38,7 @@ Blob::~Blob() noexcept
 
 ISC_QUAD Blob::create()
 {
-    const unsigned char bpb[] = {
-        isc_bpb_version1,
-        isc_bpb_type, 1, isc_bpb_type_stream
-    };
-
-    // TODO: check if already open?
-    blob = tra->get_att()->createBlob(&st, tra->get_tra(), &info.id, sizeof(bpb), bpb);
+    blob = tra->create_blob(&info.id);
 
     set_info();
     info.is_writable = 1;
@@ -52,19 +46,13 @@ ISC_QUAD Blob::create()
     return info.id;
 }
 
-void Blob::open(ISC_QUAD blob_id)
+void Blob::open(ISC_QUAD *blob_id)
 {
-    const unsigned char bpb[] = {
-        isc_bpb_version1,
-        isc_bpb_type, 1, isc_bpb_type_stream
-    };
-
-    // TODO: check if already open?
-    blob = tra->get_att()->openBlob(&st, tra->get_tra(), &blob_id, sizeof(bpb), bpb);
+    blob = tra->open_blob(blob_id);
 
     set_info();
 
-    info.id = blob_id;
+    info.id = *blob_id;
     info.is_writable = 0;
 }
 

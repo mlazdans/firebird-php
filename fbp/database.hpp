@@ -37,6 +37,9 @@ public:
     //     IMessageMetadata *om, unsigned char *out_buffer);
     // void register_transaction(std::unique_ptr<Transaction>);
     // Transaction *new_transaction();
+    IBlob *open_blob(ITransaction *transaction, ISC_QUAD *blob_id);
+    IBlob *create_blob(ITransaction *transaction, ISC_QUAD *blob_id);
+    IStatement *prepare(ITransaction *transaction, unsigned int len_sql, const char *sql);
 };
 
 } // namespace

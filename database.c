@@ -7,6 +7,7 @@
 #include "database.h"
 #include "transaction.h"
 
+fbp_object_accessor(firebird_db);
 static zend_object_handlers FireBird_Database_object_handlers;
 
 // Flags used by createDatabase() jrd/jrd.cpp
@@ -137,8 +138,6 @@ firebird_xpb_zmap fbp_database_info_zmap = XPB_ZMAP_INIT(
         MAY_BE_LONG, MAY_BE_STRING, MAY_BE_STRING, MAY_BE_LONG,
     })
 );
-
-fbp_object_accessor(firebird_db);
 
 /**
  * zval* Args intanceof Create_Args|Connect_Args

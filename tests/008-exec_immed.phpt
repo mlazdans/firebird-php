@@ -11,13 +11,12 @@ require_once('functions.inc');
 
 (function(){
     $db = init_tmp_db();
-    $t = $db->new_transaction();
+    $t = $db->start_transaction();
 
     $table = "TEST_001";
     $fields = "BLOB_1, DECFLOAT_16, DECFLOAT_34";
 
     $queries = [
-        "SET TRANSACTION",
         load_file_or_die(Config::$pwd."/001-table.sql"),
         "COMMIT RETAIN",
         ["INSERT INTO $table ($fields) VALUES (?, 0, 0)", ["blobby"]],
@@ -30,11 +29,11 @@ require_once('functions.inc');
         "COMMIT",
     ];
 
-    execute_immediate_bulk_or_die($t, $queries);
+    query_bulk_or_die($t, $queries);
 
     $t->start() or print_error_and_die("tr start", $t);
     $q = query_or_die($t, "SELECT BLOB_1, DECFLOAT_16, DECFLOAT_34, BOOL_1 FROM $table");
-    fetch_and_print_or_die($q, \FireBird\FETCH_BLOBS);
+    fetch_and_print_or_die($q, \FireBird\FETCH_BLOB_TEXT);
 })();
 
 ?>
