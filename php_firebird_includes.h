@@ -314,22 +314,6 @@ ZEND_END_ARG_INFO()
 // ZEND_END_ARG_INFO()
 
 // // Blob argument types
-// ZEND_BEGIN_ARG_INFO_EX(arginfo_FireBird_Blob___construct, 0, 0, 1)
-//     ZEND_ARG_OBJ_INFO(0, transaction, FireBird\\Transaction, 0)
-// ZEND_END_ARG_INFO()
-
-// ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_FireBird_Blob_get, 0, 0, MAY_BE_STRING|MAY_BE_FALSE)
-//     ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, max_len, IS_LONG, 0, "0")
-// ZEND_END_ARG_INFO()
-
-// ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Blob_put, 0, 1, _IS_BOOL, 0)
-//     ZEND_ARG_TYPE_INFO(0, data, IS_STRING, 0)
-// ZEND_END_ARG_INFO()
-
-// ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_Blob_open, 0, 0, _IS_BOOL, 0)
-//     ZEND_ARG_OBJ_INFO(0, id, FireBird\\Blob_id, 0)
-// ZEND_END_ARG_INFO()
-
 // ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_FireBird_Blob_seek, 0, 2, MAY_BE_LONG|MAY_BE_FALSE)
 //     ZEND_ARG_TYPE_INFO(0, pos, IS_LONG, 0)
 //     ZEND_ARG_TYPE_INFO(0, mode, IS_LONG, 0)

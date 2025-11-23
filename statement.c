@@ -11,7 +11,6 @@
 #include "statement.h"
 #include "transaction.h"
 #include "blob.h"
-#include "fbp_blob.h"
 
 fbp_object_accessor(firebird_stmt);
 
@@ -69,21 +68,16 @@ PHP_METHOD(FireBird_Statement, fetch_object)
     }
 }
 
-#if 0
-PHP_METHOD(FireBird_Statement, close)
+PHP_METHOD(FireBird_Statement, close_cursor)
 {
     ZEND_PARSE_PARAMETERS_NONE();
 
-    firebird_stmt *stmt = get_firebird_stmt_from_zval(ZEND_THIS);
-
-    if (isc_dsql_free_statement(FBG(status), &stmt->stmt_handle, DSQL_close)) {
-        update_err_props(FBG(status), FireBird_Statement_ce, ZEND_THIS);
+    if (fbu_statement_close_cursor(get_firebird_stmt_from_zval(ZEND_THIS))) {
         RETURN_FALSE;
     }
 
     RETURN_TRUE;
 }
-#endif
 
 PHP_METHOD(FireBird_Statement, free)
 {

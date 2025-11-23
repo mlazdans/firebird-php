@@ -10,7 +10,6 @@
 #include "database.h"
 #include "transaction.h"
 #include "statement.h"
-#include "fbp_blob.h"
 
 static zend_object_handlers FireBird_Transaction_object_handlers;
 fbp_object_accessor(firebird_trans);
@@ -192,32 +191,33 @@ PHP_METHOD(FireBird_Transaction, open_blob)
     object_init_ex(return_value, FireBird_Blob_ce);
     FireBird_Blob___construct(return_value, ZEND_THIS);
 
-    firebird_trans *tr = get_firebird_trans_from_zval(ZEND_THIS);
-    firebird_blob *blob = get_firebird_blob_from_zval(return_value);
-    firebird_blob_id *blob_id = get_firebird_blob_id_from_zval(Blob_Id);
-
-    if (fbu_blob_open(FBG(status), tr, blob_id->bl_id, blob)) {
-        update_err_props(FBG(status), FireBird_Blob_ce, Blob);
+    if (FireBird_Blob_open(return_value, Blob_Id)) {
         zval_ptr_dtor(return_value);
         RETURN_FALSE;
     }
+
+    // firebird_trans *tr = get_firebird_trans_from_zval(ZEND_THIS);
+    // firebird_blob *blob = get_firebird_blob_from_zval(return_value);
+    // firebird_blob_id *blob_id = get_firebird_blob_id_from_zval(Blob_Id);
+
+    // if (fbu_blob_open(FBG(status), tr, blob_id->bl_id, blob)) {
+    //     update_err_props(FBG(status), FireBird_Blob_ce, Blob);
+    //     zval_ptr_dtor(return_value);
+    //     RETURN_FALSE;
+    // }
 }
 
 PHP_METHOD(FireBird_Transaction, create_blob)
 {
-    TODO("PHP_METHOD(FireBird_Transaction, create_blob)");
-#if 0
     ZEND_PARSE_PARAMETERS_NONE();
 
     object_init_ex(return_value, FireBird_Blob_ce);
     FireBird_Blob___construct(return_value, ZEND_THIS);
 
     if (FireBird_Blob_create(return_value)) {
-        update_err_props(FBG(status), FireBird_Transaction_ce, ZEND_THIS);
         zval_ptr_dtor(return_value);
         RETURN_FALSE;
     }
-#endif
 }
 
 PHP_METHOD(FireBird_Transaction, prepare_2pc)

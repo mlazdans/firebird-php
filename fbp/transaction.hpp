@@ -24,7 +24,7 @@ public:
     Transaction(Database *dba);
     ~Transaction() noexcept;
     ITransaction *get_tra();
-    IAttachment *get_dba();
+    IAttachment *get_att();
     void start(const firebird_tbuilder *builder);
     ISC_INT64 query_transaction_id();
     static void fbu_transaction_build_tpb(IXpbBuilder *tpb, const firebird_tbuilder *builder);
@@ -32,8 +32,8 @@ public:
     void commit_ret();
     void rollback();
     void rollback_ret();
-    zend_string* fetch_blob_data(ISC_QUAD id);
-    int blob_set_info(IBlob *blo, firebird_blob *blob);
+    zend_string *get_blob_contents(ISC_QUAD id);
+    ISC_QUAD create_blob(zend_string *data);
     ITransaction *execute(unsigned len_sql, const char *sql);
 };
 

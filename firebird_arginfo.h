@@ -1,5 +1,5 @@
 /* This is a generated file, edit the .stub.php file instead.
- * Stub hash: 290b2a759626133306021f6bd58b4fb438599f3a */
+ * Stub hash: 689b427e9c9e4f5e740fb05bab40bcf98b6488f5 */
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_set_error_handler, 0, 1, IS_VOID, 0)
 	ZEND_ARG_TYPE_INFO(0, handler, IS_CALLABLE, 0)
@@ -117,6 +117,8 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_FireBird_Statement_execute
 	ZEND_ARG_VARIADIC_TYPE_INFO(0, bind_args, IS_MIXED, 0)
 ZEND_END_ARG_INFO()
 
+#define arginfo_class_FireBird_Statement_close_cursor arginfo_class_FireBird_Database_disconnect
+
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_FireBird_Statement_free, 0, 0, IS_VOID, 0)
 ZEND_END_ARG_INFO()
 
@@ -130,7 +132,15 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_FireBird_Statement_set_nam
 	ZEND_ARG_TYPE_INFO(0, name, IS_STRING, 0)
 ZEND_END_ARG_INFO()
 
-#define arginfo_class_FireBird_Blob___construct arginfo_class_FireBird_Database___construct
+ZEND_BEGIN_ARG_INFO_EX(arginfo_class_FireBird_Blob___construct, 0, 0, 1)
+	ZEND_ARG_OBJ_INFO(0, tr, FireBird\\Transaction, 0)
+ZEND_END_ARG_INFO()
+
+#define arginfo_class_FireBird_Blob_create arginfo_class_FireBird_Database_disconnect
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_FireBird_Blob_open, 0, 1, _IS_BOOL, 0)
+	ZEND_ARG_OBJ_INFO(0, id, FireBird\\Blob_Id, 0)
+ZEND_END_ARG_INFO()
 
 #define arginfo_class_FireBird_Blob_close arginfo_class_FireBird_Database_disconnect
 
@@ -145,7 +155,7 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_FireBird_Blob_put, 0, 1, _
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_class_FireBird_Blob_seek, 0, 2, MAY_BE_LONG|MAY_BE_FALSE)
-	ZEND_ARG_TYPE_INFO(0, pos, IS_LONG, 0)
+	ZEND_ARG_TYPE_INFO(0, offset, IS_LONG, 0)
 	ZEND_ARG_TYPE_INFO(0, mode, IS_LONG, 0)
 ZEND_END_ARG_INFO()
 
@@ -304,11 +314,14 @@ ZEND_METHOD(FireBird_Statement, fetch_object);
 ZEND_METHOD(FireBird_Statement, fetch_array);
 ZEND_METHOD(FireBird_Statement, fetch_row);
 ZEND_METHOD(FireBird_Statement, execute);
+ZEND_METHOD(FireBird_Statement, close_cursor);
 ZEND_METHOD(FireBird_Statement, free);
 ZEND_METHOD(FireBird_Statement, get_var_info_in);
 ZEND_METHOD(FireBird_Statement, get_var_info_out);
 ZEND_METHOD(FireBird_Statement, set_name);
 ZEND_METHOD(FireBird_Blob, __construct);
+ZEND_METHOD(FireBird_Blob, create);
+ZEND_METHOD(FireBird_Blob, open);
 ZEND_METHOD(FireBird_Blob, close);
 ZEND_METHOD(FireBird_Blob, cancel);
 ZEND_METHOD(FireBird_Blob, get);
@@ -405,6 +418,7 @@ static const zend_function_entry class_FireBird_Statement_methods[] = {
 	ZEND_ME(FireBird_Statement, fetch_array, arginfo_class_FireBird_Statement_fetch_array, ZEND_ACC_PUBLIC)
 	ZEND_ME(FireBird_Statement, fetch_row, arginfo_class_FireBird_Statement_fetch_row, ZEND_ACC_PUBLIC)
 	ZEND_ME(FireBird_Statement, execute, arginfo_class_FireBird_Statement_execute, ZEND_ACC_PUBLIC)
+	ZEND_ME(FireBird_Statement, close_cursor, arginfo_class_FireBird_Statement_close_cursor, ZEND_ACC_PUBLIC)
 	ZEND_ME(FireBird_Statement, free, arginfo_class_FireBird_Statement_free, ZEND_ACC_PUBLIC)
 	ZEND_ME(FireBird_Statement, get_var_info_in, arginfo_class_FireBird_Statement_get_var_info_in, ZEND_ACC_PUBLIC)
 	ZEND_ME(FireBird_Statement, get_var_info_out, arginfo_class_FireBird_Statement_get_var_info_out, ZEND_ACC_PUBLIC)
@@ -413,7 +427,9 @@ static const zend_function_entry class_FireBird_Statement_methods[] = {
 };
 
 static const zend_function_entry class_FireBird_Blob_methods[] = {
-	ZEND_ME(FireBird_Blob, __construct, arginfo_class_FireBird_Blob___construct, ZEND_ACC_PRIVATE)
+	ZEND_ME(FireBird_Blob, __construct, arginfo_class_FireBird_Blob___construct, ZEND_ACC_PUBLIC)
+	ZEND_ME(FireBird_Blob, create, arginfo_class_FireBird_Blob_create, ZEND_ACC_PUBLIC)
+	ZEND_ME(FireBird_Blob, open, arginfo_class_FireBird_Blob_open, ZEND_ACC_PUBLIC)
 	ZEND_ME(FireBird_Blob, close, arginfo_class_FireBird_Blob_close, ZEND_ACC_PUBLIC)
 	ZEND_ME(FireBird_Blob, cancel, arginfo_class_FireBird_Blob_cancel, ZEND_ACC_PUBLIC)
 	ZEND_ME(FireBird_Blob, get, arginfo_class_FireBird_Blob_get, ZEND_ACC_PUBLIC)
@@ -481,11 +497,11 @@ static void register_firebird_symbols(int module_number)
 	REGISTER_LONG_CONSTANT("FireBird\\FETCH_UNIXTIME", FBP_FETCH_UNIXTIME, CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("FireBird\\FETCH_DATE_OBJ", FBP_FETCH_DATE_OBJ, CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("FireBird\\FETCH_FETCH_BLOB_TEXT", FBP_FETCH_BLOB_TEXT, CONST_PERSISTENT);
-	REGISTER_LONG_CONSTANT("FireBird\\BLOB_TYPE_SEGMENTED", 0, CONST_PERSISTENT);
-	REGISTER_LONG_CONSTANT("FireBird\\BLOB_TYPE_STREAMED", 1, CONST_PERSISTENT);
-	REGISTER_LONG_CONSTANT("FireBird\\BLOB_SEEK_START", 0, CONST_PERSISTENT);
-	REGISTER_LONG_CONSTANT("FireBird\\BLOB_SEEK_CURRENT", 1, CONST_PERSISTENT);
-	REGISTER_LONG_CONSTANT("FireBird\\BLOB_SEEK_END", 2, CONST_PERSISTENT);
+	REGISTER_LONG_CONSTANT("FireBird\\BLOB_TYPE_SEGMENTED", FBP_BLOB_TYPE_SEGMENTED, CONST_PERSISTENT);
+	REGISTER_LONG_CONSTANT("FireBird\\BLOB_TYPE_STREAMED", FBP_BLOB_TYPE_STREAMED, CONST_PERSISTENT);
+	REGISTER_LONG_CONSTANT("FireBird\\BLOB_SEEK_START", FBP_BLOB_SEEK_START, CONST_PERSISTENT);
+	REGISTER_LONG_CONSTANT("FireBird\\BLOB_SEEK_CURRENT", FBP_BLOB_SEEK_CURRENT, CONST_PERSISTENT);
+	REGISTER_LONG_CONSTANT("FireBird\\BLOB_SEEK_END", FBP_BLOB_SEEK_END, CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("FireBird\\SM_NORMAL", 0, CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("FireBird\\SM_MULTI", 1, CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("FireBird\\SM_SINGLE", 2, CONST_PERSISTENT);

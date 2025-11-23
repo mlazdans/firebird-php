@@ -29,8 +29,8 @@ const FETCH_DATE_OBJ = UNKNOWN;
 
 /**
  * fetch to return blob fields as Blob objects
- * @cvalue FBP_FETCH_BLOB_TEXT
  * @var int
+ * @cvalue FBP_FETCH_BLOB_TEXT
  */
 const FETCH_FETCH_BLOB_TEXT = UNKNOWN;
 
@@ -38,36 +38,41 @@ const FETCH_FETCH_BLOB_TEXT = UNKNOWN;
  * Option to check if Used Blob->type is segmented.
  * @see Blob::$type
  * @var int
+ * @cvalue FBP_BLOB_TYPE_SEGMENTED
  */
-const BLOB_TYPE_SEGMENTED = 0;
+const BLOB_TYPE_SEGMENTED = UNKNOWN;
 
 /**
  * Option to check if Used Blob->type is streamed.
  * @see Blob::$type
  * @var int
+ * @cvalue FBP_BLOB_TYPE_STREAMED
  */
-const BLOB_TYPE_STREAMED = 1;
+const BLOB_TYPE_STREAMED = UNKNOWN;
 
 /**
  * Option to seek blob from start position. Applies only on streamed blob type.
  * @see Blob::seek()
  * @var int
+ * @cvalue FBP_BLOB_SEEK_START
  */
-const BLOB_SEEK_START = 0;
+const BLOB_SEEK_START = UNKNOWN;
 
 /**
  * Option to seek blob from current position. Applies only on streamed blob type.
  * @see Blob::seek()
  * @var int
+ * @cvalue FBP_BLOB_SEEK_CURRENT
  */
-const BLOB_SEEK_CURRENT = 1;
+const BLOB_SEEK_CURRENT = UNKNOWN;
 
 /**
  * Option to seek blob from end position. Applies only on streamed blob type.
  * @see Blob::seek()
  * @var int
+ * @cvalue FBP_BLOB_SEEK_END
  */
-const BLOB_SEEK_END = 2;
+const BLOB_SEEK_END = UNKNOWN;
 
 /**
  * @see Service::shutdown_db()
@@ -267,8 +272,6 @@ class Transaction
     public readonly Database $database;
 
     public function __construct(Database $database) {}
-    // public function __construct(Database $database, ?TBuilder $builder = null) {}
-
     public function start(?TBuilder $builder = null): bool { die; }
     public function commit(): bool { die; }
     public function commit_ret(): bool { die; }
@@ -343,7 +346,7 @@ class Statement
     // public function prepare(string $sql): bool { die; }
     public function execute(mixed ...$bind_args): bool { die; }
     // public function query(string $sql, mixed ...$bind_args): bool { die; }
-    // public function close(): bool { die; }
+    public function close_cursor(): bool { die; }
     public function free(): void { die; }
 
     /**
@@ -390,15 +393,14 @@ class Blob
     public readonly bool $is_writable;
     public readonly Transaction $transaction;
 
-    private function __construct() {}
-    // public function __construct(\FireBird\Transaction $tr) {}
-    // public function create(): bool { die; }
-    // public function open(Blob_Id $id): Blob|false { die; }
+    public function __construct(\FireBird\Transaction $tr) {}
+    public function create(): bool { die; }
+    public function open(Blob_Id $id): bool { die; }
     public function close(): bool { die; }
     public function cancel(): bool { die; }
     public function get(int $max_len = 0): string|false { die; }
     public function put(string $data): bool { die; }
-    public function seek(int $pos, int $mode): int|false { die; }
+    public function seek(int $offset, int $mode): int|false { die; }
 }
 
 class Event

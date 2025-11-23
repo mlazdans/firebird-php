@@ -5,7 +5,6 @@
 #include "fbp/base.hpp"
 #include "fbp/database.hpp"
 #include "fbp/transaction.hpp"
-#include "fbp/statement.hpp"
 
 using namespace Firebird;
 
@@ -35,6 +34,7 @@ public:
     IStatement* get_statement();
     void bind(zval *b_vars, unsigned int num_bind_args);
     void open_cursor();
+    int close_cursor();
     int fetch_next();
     HashTable *output_buffer_to_array(int flags);
     int var_zval(zval *val, unsigned int index, int flags);

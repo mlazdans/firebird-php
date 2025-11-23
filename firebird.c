@@ -44,7 +44,6 @@
 #include "zend_interfaces.h"
 
 #include "blob.h"
-#include "fbp_blob.h"
 #include "database.h"
 #include "transaction.h"
 #include "statement.h"

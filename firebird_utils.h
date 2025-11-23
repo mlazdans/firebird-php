@@ -10,7 +10,7 @@ extern "C" {
 #include "database.h"
 #include "transaction.h"
 #include "statement.h"
-#include "fbp_blob.h"
+#include "blob.h"
 
 #define STRNUM_PARSE_OK       0
 #define STRNUM_PARSE_ERROR    1
@@ -18,9 +18,6 @@ extern "C" {
 
 unsigned fbu_get_client_version(void);
 int fbu_execute_database(ISC_STATUS* status, const firebird_db *db, size_t len_sql, const char *sql, firebird_trans *tr);
-int fbu_blob_open(ISC_STATUS* status, firebird_trans *tr, ISC_QUAD id, firebird_blob *blob);
-int fbu_blob_close(ISC_STATUS* status, firebird_blob *blob);
-int fbu_blob_get_segment(ISC_STATUS* status, firebird_blob *blob, zend_string *buf, unsigned* len);
 
 const char* fbu_get_sql_type_name(unsigned type);
 int fbu_string_to_numeric(const char *s, const size_t slen, int scale, uint64_t max,
@@ -49,6 +46,17 @@ int fbu_statement_fetch_next(firebird_stmt *stmt);
 HashTable *fbu_statement_output_buffer_to_array(firebird_stmt *stmt, int flags);
 int fbu_statement_execute(firebird_stmt *stmt);
 int fbu_statement_execute_on_att(firebird_stmt *stmt);
+int fbu_statement_close_cursor(firebird_stmt *stmt);
+
+int fbu_blob_init(firebird_trans *tr, firebird_blob *blob);
+int fbu_blob_free(firebird_blob *blob);
+int fbu_blob_open(firebird_blob *blob, firebird_blob_id *blob_id);
+int fbu_blob_create(firebird_blob *blob);
+int fbu_blob_close(firebird_blob *blob);
+int fbu_blob_cancel(firebird_blob *blob);
+int fbu_blob_put(firebird_blob *blob, unsigned int buf_size, const char *buf);
+zend_string *fbu_blob_get(firebird_blob *blob, unsigned int max_len);
+int fbu_blob_seek(firebird_blob *blob, int mode, int offset, int *new_offset);
 
 #ifdef __cplusplus
 }

@@ -4,17 +4,14 @@
 
 #include "fbp/base.hpp"
 #include "fbp/database.hpp"
+#include "fbp/blob.hpp"
+
 #include "firebird_utils.h"
 #include "zend_exceptions.h"
 
 using namespace Firebird;
 
 namespace FBP {
-
-static const unsigned char BLOB_PARAMS[] = {
-    isc_bpb_version1,
-    isc_bpb_type, 1, isc_bpb_type_stream
-};
 
 Transaction::Transaction(Database *dba): dba{dba}
 {
@@ -26,7 +23,7 @@ ITransaction* Transaction::get_tra()
     return tra;
 }
 
-IAttachment* Transaction::get_dba()
+IAttachment* Transaction::get_att()
 {
     return dba->get_att();
 }
@@ -181,66 +178,34 @@ void Transaction::rollback_ret()
     tra->rollbackRetaining(&st);
 }
 
-// TODO: move to blob.cpp
-int Transaction::blob_set_info(IBlob *blo, firebird_blob *blob)
+zend_string* Transaction::get_blob_contents(ISC_QUAD id)
 {
-    auto util = master->getUtilInterface();
+    auto blob = new Blob(this);
+    blob->open(id);
+    auto ret = blob->get_contents(0);
 
-    const unsigned char req[] = {
-        isc_info_blob_num_segments,
-        isc_info_blob_max_segment,
-        isc_info_blob_total_length,
-        isc_info_blob_type
-    };
+    delete blob;
 
-    unsigned char resp[32] = {0};
-
-    blo->getInfo(&st, sizeof(req), req, sizeof(resp), resp);
-
-    IXpbBuilder* b = util->getXpbBuilder(&st, IXpbBuilder::INFO_RESPONSE, resp, sizeof(resp));
-
-    for (b->rewind(&st); !b->isEof(&st); b->moveNext(&st)) {
-        unsigned char tag = b->getTag(&st);
-        int val = b->getInt(&st);
-
-        // FBDEBUG_NOFL(" tag: %d, val: %d", tag, val);
-        switch(tag) {
-            case isc_info_blob_num_segments:
-                blob->num_segments = val;
-                break;
-            case isc_info_blob_max_segment:
-                blob->max_segment = val;
-                break;
-            case isc_info_blob_total_length:
-                blob->total_length = val;
-                break;
-            case isc_info_blob_type:
-                blob->type = val;
-                break;
-        }
-    }
-
-    return SUCCESS;
+    return ret;
 }
 
-zend_string* Transaction::fetch_blob_data(ISC_QUAD id)
+ISC_QUAD Transaction::create_blob(zend_string *data)
 {
-    firebird_blob blob;
-    unsigned len = 0;
+    auto blob = new Blob(this);
+    auto id = blob->create();
+    blob->put_contents(ZSTR_LEN(data), ZSTR_VAL(data));
+    blob->close();
 
-    auto blo = dba->get_att()->openBlob(&st, tra, &id, sizeof(BLOB_PARAMS), BLOB_PARAMS);
-    blob_set_info(blo, &blob);
+    delete blob;
 
-    zend_string *buf = zend_string_alloc(blob.total_length, 0);
-    blo->getSegment(&st, ZSTR_LEN(buf), &ZSTR_VAL(buf), &len);
-    ZSTR_VAL(buf)[len] = '\0';
-
-    return buf;
+    return id;
 }
 
 ITransaction *Transaction::execute(unsigned len_sql, const char *sql)
 {
     FBDEBUG("Transaction::execute(dba=%p)", dba);
+
+    // TODO: release old?
     return tra = dba->get_att()->execute(&st, tra, len_sql, sql, SQL_DIALECT_CURRENT, NULL, NULL, NULL, NULL);
 
     // if (tra2) {

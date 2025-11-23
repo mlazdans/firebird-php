@@ -9,6 +9,7 @@ extern "C" {
 #include "firebird_utils.h"
 #include "php_firebird_includes.h"
 #include "statement.h"
+#include "blob.h"
 }
 
 using namespace Firebird;
@@ -22,7 +23,7 @@ Statement::Statement(Transaction *tra)
 
 void Statement::prepare(unsigned int len_sql, const char *sql)
 {
-    IStatement *tmp = tra->get_dba()->prepare(&st, tra->get_tra(), len_sql, sql, SQL_DIALECT_CURRENT,
+    IStatement *tmp = tra->get_att()->prepare(&st, tra->get_tra(), len_sql, sql, SQL_DIALECT_CURRENT,
         IStatement::PREPARE_PREFETCH_METADATA
     );
 
@@ -211,6 +212,7 @@ void Statement::bind(zval *b_vars, unsigned int num_bind_args)
                 break;
 
             case SQL_BOOLEAN: break;
+            case SQL_BLOB: break;
 
             case SQL_TEXT:
             case SQL_VARYING:
@@ -309,28 +311,16 @@ void Statement::bind(zval *b_vars, unsigned int num_bind_args)
                 break;
 
             case SQL_BLOB:
-                TODO("SQL_BLOB");
-                // ISC_QUAD bl_id;
-                // if (Z_TYPE_P(b_var) == IS_OBJECT && Z_OBJCE_P(b_var) == FireBird_Blob_Id_ce) {
-                //     bl_id = get_firebird_blob_id_from_zval(b_var)->bl_id;
-                // } else if (Z_TYPE_P(b_var) == IS_OBJECT && Z_OBJCE_P(b_var) == FireBird_Blob_ce) {
-                //     bl_id = get_firebird_blob_from_zval(b_var)->bl_id;
-                // } else {
-                //     convert_to_string(b_var);
-
-                //     firebird_blob blob = {0};
-                //     fbp_blob_ctor(&blob, stmt->db_handle, stmt->tr_handle);
-
-                //     if (fbp_blob_create(&blob) ||
-                //         fbp_blob_put(&blob, Z_STRVAL_P(b_var), Z_STRLEN_P(b_var)) ||
-                //         fbp_blob_close(&blob)) {
-                //             return FAILURE;
-                //     }
-
-                //     bl_id = blob.bl_id;
-                // }
-                // stmt->bind_buf[i].val.qval = bl_id;
-                // *reinterpret_cast<ISC_QUAD*>(sqldata) = static_cast<ISC_QUAD>(bl_id);
+                ISC_QUAD bl_id;
+                if (Z_TYPE_P(b_var) == IS_OBJECT && Z_OBJCE_P(b_var) == FireBird_Blob_Id_ce) {
+                    bl_id = get_firebird_blob_id_from_zval(b_var)->bl_id;
+                } else if (Z_TYPE_P(b_var) == IS_OBJECT && Z_OBJCE_P(b_var) == FireBird_Blob_ce) {
+                    bl_id = get_firebird_blob_from_zval(b_var)->info->id;
+                } else {
+                    convert_to_string(b_var);
+                    bl_id = tra->create_blob(Z_STR_P(b_var));
+                }
+                *reinterpret_cast<ISC_QUAD*>(sqldata) = static_cast<ISC_QUAD>(bl_id);
                 break;
 
             case SQL_BOOLEAN:
@@ -427,6 +417,18 @@ void Statement::open_cursor()
 {
     // TODO: check if curs already opened
     cursor = statement->openCursor(&st, tra->get_tra(), input_metadata, in_buffer, output_metadata, 0);
+}
+
+int Statement::close_cursor()
+{
+    if (cursor) {
+        cursor->close(&st);
+        cursor->release();
+        cursor = nullptr;
+        return SUCCESS;
+    } else {
+        return FAILURE;
+    }
 }
 
 int Statement::fetch_next()
@@ -613,33 +615,12 @@ _set_datetime:
             break;
 
         case SQL_BLOB:
-            // if (flags & FBP_FETCH_BLOB_TEXT) {
-            {
-                zend_string *buf = tra->fetch_blob_data(*(ISC_QUAD *)data);
-                ZVAL_STR(val, buf);
+            if (flags & FBP_FETCH_BLOB_TEXT) {
+                ZVAL_STR(val, tra->get_blob_contents(*(ISC_QUAD *)data));
+            } else {
+                object_init_ex(val, FireBird_Blob_Id_ce);
+                FireBird_Blob_Id___construct(val, *(ISC_QUAD *)data);
             }
-            // } else {
-            //     TODO("SQL_BLOB: as object");
-            //     object_init_ex(val, FireBird_Blob_Id_ce);
-            //     FireBird_Blob_Id___construct(val, *(ISC_QUAD *)data);
-            // }
-
-            // if (flags & FBP_FETCH_BLOB_TEXT) {
-
-            //     // att->openBlob(&status, tra, &message->b, 0, NULL);
-            //     firebird_blob blob = {0};
-
-            //     fbp_blob_ctor(&blob, stmt->db_handle, stmt->tr_handle);
-            //     blob.bl_id = *(ISC_QUAD *) var->sqldata;
-
-            //     if (fbp_blob_open(&blob) || fbp_blob_get(&blob, &result, 0) || fbp_blob_close(&blob)) {
-            //         update_err_props(FBG(status), FireBird_Statement_ce, Stmt);
-            //         goto _php_firebird_fetch_error;
-            //     }
-            // } else {
-            //     object_init_ex(&result, FireBird_Blob_Id_ce);
-            //     FireBird_Blob_Id___construct(&result, *(ISC_QUAD *) var->sqldata);
-            // }
             break;
 
 #if 0
@@ -816,4 +797,4 @@ void Statement::alloc_ht_ind()
 //     tra->get_dba()->execute(len_sql, sql, input_metadata, in_buffer, output_metadata, out_buffer);
 // }
 
-}
+} // namespace

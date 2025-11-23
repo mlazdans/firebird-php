@@ -12,6 +12,7 @@
 #include "fbp/base.hpp"
 #include "fbp/database.hpp"
 #include "fbp/statement.hpp"
+#include "fbp/blob.hpp"
 
 extern "C" {
 #include "ibase.h"
@@ -24,7 +25,6 @@ extern "C" {
 #include "transaction.h"
 #include "statement.h"
 #include "blob.h"
-#include "fbp_blob.h"
 #include "php_firebird_includes.h"
 }
 
@@ -598,60 +598,11 @@ int fbu_fetch_next(ISC_STATUS* status, firebird_stmt *stmt)
 //     }
 // }
 
-int fbu_blob_open(ISC_STATUS* status, firebird_trans *tr, ISC_QUAD id, firebird_blob *blob)
-{
-    TODO("fbu_blob_open");
-    return FAILURE;
-#if 0
-    if (!tr || !tr->att || !tr->tra) return FAILURE;
-
-    IBlob *blo = NULL;
-    auto att = static_cast<IAttachment*>(tr->att);
-    auto tra = static_cast<ITransaction*>(tr->tra);
-    ThrowStatusWrapper st(fbu_master->getStatus());
-
-    try
-    {
-        blo = att->openBlob(&st, tra, &id, sizeof(BLOB_PARAMS), BLOB_PARAMS);
-        _fbu_blob_set_info(blo, blob);
-        blob->blo = blo;
-        blob->att = att;
-        blob->tra = tra;
-        blob->bl_id = id;
-        return SUCCESS;
-    }
-    catch (...)
-    {
-        fbu_handle_exception(&st, status);
-        if (blo) blo->release();
-        return FAILURE;
-    }
-#endif
-}
-
-int fbu_blob_close(ISC_STATUS* status, firebird_blob *blob)
-{
-    if (!blob || !blob->blo) return FAILURE;
-
-    auto blo = static_cast<IBlob*>(blob->blo);
-    ThrowStatusWrapper st(fbu_master->getStatus());
-
-    try
-    {
-        blo->close(&st);
-        blo->release();
-        blob->blo = blo = NULL;
-        return SUCCESS;
-    }
-    catch (...)
-    {
-        fbu_handle_exception(&st, status);
-        return FAILURE;
-    }
-}
-
 int fbu_blob_get_segment(ISC_STATUS* status, firebird_blob *blob, zend_string *buf, unsigned* len)
 {
+    TODO("fbu_blob_get_segment");
+    return FAILURE;
+#if 0
     if (!blob || !blob->blo) return FAILURE;
 
     auto blo = static_cast<IBlob*>(blob->blo);
@@ -670,6 +621,7 @@ int fbu_blob_get_segment(ISC_STATUS* status, firebird_blob *blob, zend_string *b
         fbu_handle_exception(&st, status);
         return FAILURE;
     }
+#endif
 }
 
 
@@ -757,7 +709,7 @@ int fbu_transaction_init(firebird_db *db, firebird_trans *tr)
 
         tr->trptr = tra;
         tr->db = db;
-        tr->id = 666;
+        tr->id = 0;
 
         // Database* dba = static_cast<Database*>(db->dbptr);
         // FBDEBUG("fbu_transaction_init(db->dbptr=%p, dba=%p)", db->dbptr, dba);
@@ -821,11 +773,10 @@ int fbu_transaction_execute(firebird_trans *tr, size_t len_sql, const char *sql)
 {
     return fbu_call_void([&]() {
         auto tra = static_cast<Transaction *>(tr->trptr);
-
         auto new_tr = tra->execute(len_sql, sql);
-        FBDEBUG("fbu_transaction_execute(tr->trptr=%p)", tr->trptr);
 
-        // TODO: tra->release()?
+        FBDEBUG("fbu_transaction_execute(tr->trptr=%p, new_tr=%p)", tr->trptr, new_tr);
+
         if (new_tr) {
             tr->id = tra->query_transaction_id();
         } else {
@@ -925,6 +876,13 @@ int fbu_statement_execute(firebird_stmt *stmt)
     });
 }
 
+int fbu_statement_close_cursor(firebird_stmt *stmt)
+{
+    return fbu_call_void([&]() {
+        return static_cast<Statement *>(stmt->sptr)->close_cursor();
+    });
+}
+
 void fbu_statement_free(firebird_stmt *stmt)
 {
     FBDEBUG("~fbu_statement_free(%p)", stmt->sptr);
@@ -949,6 +907,89 @@ int fbu_statement_execute_on_att(firebird_stmt *stmt)
         return SUCCESS;
     });
 #endif
+}
+
+int fbu_blob_init(firebird_trans *tr, firebird_blob *blob)
+{
+    return fbu_call_void([&]() {
+        auto blo = new Blob(static_cast<Transaction *>(tr->trptr));
+
+        FBDEBUG("fbu_blob_init(tr=%p, tr->trptr=%p, new Blob=%p)", tr, tr->trptr, blo);
+
+        blob->blobptr = blo;
+        blob->tr = tr;
+        blob->info = blo->get_info();
+
+        return SUCCESS;
+    });
+}
+
+int fbu_blob_create(firebird_blob *blob)
+{
+    return fbu_call_void([&]() {
+        static_cast<Blob *>(blob->blobptr)->create();
+        return SUCCESS;
+    });
+}
+
+int fbu_blob_open(firebird_blob *blob, firebird_blob_id *blob_id)
+{
+    return fbu_call_void([&]() {
+        static_cast<Blob *>(blob->blobptr)->open(blob_id->bl_id);
+        return SUCCESS;
+    });
+}
+
+int fbu_blob_free(firebird_blob *blob)
+{
+    FBDEBUG("~%s(blob=%p, blob->blobptr=%p)", __func__, blob, blob->blobptr);
+    return fbu_call_void([&]() {
+        delete static_cast<Blob*>(blob->blobptr);
+        blob->blobptr = nullptr;
+        return SUCCESS;
+    });
+}
+
+int fbu_blob_put(firebird_blob *blob, unsigned int buf_size, const char *buf)
+{
+    return fbu_call_void([&]() {
+        static_cast<Blob *>(blob->blobptr)->put_contents(buf_size, buf);
+        return SUCCESS;
+    });
+}
+
+int fbu_blob_close(firebird_blob *blob)
+{
+    return fbu_call_void([&]() {
+        static_cast<Blob *>(blob->blobptr)->close();
+        return SUCCESS;
+    });
+}
+
+int fbu_blob_cancel(firebird_blob *blob)
+{
+    return fbu_call_void([&]() {
+        static_cast<Blob *>(blob->blobptr)->cancel();
+        return SUCCESS;
+    });
+}
+
+zend_string *fbu_blob_get(firebird_blob *blob, unsigned int max_len)
+{
+    zend_string *return_value = nullptr;
+    fbu_call_void([&]() {
+        return_value = static_cast<Blob *>(blob->blobptr)->get_contents(max_len);
+        return SUCCESS;
+    });
+    return return_value;
+}
+
+int fbu_blob_seek(firebird_blob *blob, int mode, int offset, int *new_offset)
+{
+    return fbu_call_void([&]() {
+        static_cast<Blob *>(blob->blobptr)->seek(mode, offset, new_offset);
+        return SUCCESS;
+    });
 }
 
 } // extern "C"

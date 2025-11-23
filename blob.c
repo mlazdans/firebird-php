@@ -23,42 +23,24 @@
    +----------------------------------------------------------------------+
  */
 
-#include <firebird/fb_c_api.h>
 #include "php.h"
 #include "php_firebird.h"
 #include "php_firebird_includes.h"
+#include "firebird_utils.h"
 
 #include "blob.h"
-#include "fbp_blob.h"
-
 #include "transaction.h"
-#include "fbp_transaction.h"
 
 static zend_object_handlers FireBird_Blob_object_handlers, FireBird_Blob_Id_object_handlers;
 
-static void _FireBird_Blob_update_props(zval *Blob)
+void FireBird_Blob___construct(zval *self, zval *Transaction)
 {
-    firebird_blob *blob = get_firebird_blob_from_zval(Blob);
-
-    OBJ_SET_LONG(FireBird_Blob_ce, Blob, "num_segments", blob->num_segments);
-    OBJ_SET_LONG(FireBird_Blob_ce, Blob, "max_segment", blob->max_segment);
-    OBJ_SET_LONG(FireBird_Blob_ce, Blob, "total_length", blob->total_length);
-    OBJ_SET_LONG(FireBird_Blob_ce, Blob, "type", blob->type);
-    OBJ_SET_LONG(FireBird_Blob_ce, Blob, "position", blob->position);
-    OBJ_SET_LONG(FireBird_Blob_ce, Blob, "is_writable", blob->is_writable);
-}
-
-void FireBird_Blob___construct(zval *Blob, zval *Transaction)
-{
-    TODO("FireBird_Blob___construct");
-#if 0
     firebird_trans *tr = get_firebird_trans_from_zval(Transaction);
-    firebird_blob *blob = get_firebird_blob_from_zval(Blob);
+    firebird_blob *blob = get_firebird_blob_from_zval(self);
 
-    fbp_blob_ctor(blob, tr->db_handle, tr->tr_handle);
+    fbu_blob_init(tr, blob);
 
-    OBJ_SET(FireBird_Blob_ce, Blob, "transaction", Transaction);
-#endif
+    PROP_SET(FireBird_Blob_ce, self, "transaction", Transaction);
 }
 
 PHP_METHOD(FireBird_Blob, __construct)
@@ -72,12 +54,11 @@ PHP_METHOD(FireBird_Blob, __construct)
     FireBird_Blob___construct(ZEND_THIS, Transaction);
 }
 
-int FireBird_Blob_close(zval *Blob)
+int FireBird_Blob_close(zval *self)
 {
-    firebird_blob *blob = get_firebird_blob_from_zval(Blob);
+    firebird_blob *blob = get_firebird_blob_from_zval(self);
 
-    if (fbp_blob_close(blob)) {
-        update_err_props(FBG(status), FireBird_Blob_ce, Blob);
+    if (fbu_blob_close(blob)) {
         return FAILURE;
     }
 
@@ -89,12 +70,11 @@ PHP_METHOD(FireBird_Blob, close)
     RETVAL_BOOL(SUCCESS == FireBird_Blob_close(ZEND_THIS));
 }
 
-int FireBird_Blob_cancel(zval *Blob)
+int FireBird_Blob_cancel(zval *self)
 {
-    firebird_blob *blob = get_firebird_blob_from_zval(Blob);
+    firebird_blob *blob = get_firebird_blob_from_zval(self);
 
-    if (isc_cancel_blob(FBG(status), &blob->bl_handle)) {
-        update_err_props(FBG(status), FireBird_Blob_ce, Blob);
+    if (fbu_blob_cancel(blob)) {
         return FAILURE;
     }
 
@@ -106,18 +86,17 @@ PHP_METHOD(FireBird_Blob, cancel)
     RETVAL_BOOL(SUCCESS == FireBird_Blob_cancel(ZEND_THIS));
 }
 
-int FireBird_Blob_get(zval *Blob, zval *return_value, size_t max_len)
+int FireBird_Blob_get(zval *self, zval *return_value, size_t max_len)
 {
-    firebird_blob *blob = get_firebird_blob_from_zval(Blob);
+    firebird_blob *blob = get_firebird_blob_from_zval(self);
+    zend_string *data = fbu_blob_get(blob, max_len);
 
-    if (fbp_blob_get(blob, return_value, max_len)) {
-        update_err_props(FBG(status), FireBird_Blob_ce, Blob);
-        return FAILURE;
+    if (data) {
+        ZVAL_STR(return_value, data);
+        return SUCCESS;
     }
 
-    _FireBird_Blob_update_props(Blob);
-
-    return SUCCESS;
+    return FAILURE;
 }
 
 PHP_METHOD(FireBird_Blob, get)
@@ -134,16 +113,13 @@ PHP_METHOD(FireBird_Blob, get)
     }
 }
 
-int FireBird_Blob_put(zval *Blob, const char *buf, size_t buf_size)
+int FireBird_Blob_put(zval *self, const char *buf, unsigned int buf_size)
 {
-    firebird_blob *blob = get_firebird_blob_from_zval(Blob);
+    firebird_blob *blob = get_firebird_blob_from_zval(self);
 
-    if (fbp_blob_put(blob, buf, buf_size)) {
-        update_err_props(FBG(status), FireBird_Blob_ce, Blob);
+    if (fbu_blob_put(blob, buf_size, buf)) {
         return FAILURE;
     }
-
-    _FireBird_Blob_update_props(Blob);
 
     return SUCCESS;
 }
@@ -160,49 +136,40 @@ PHP_METHOD(FireBird_Blob, put)
     RETVAL_BOOL(SUCCESS == FireBird_Blob_put(ZEND_THIS, data, data_len));
 }
 
-int FireBird_Blob_open(zval *Blob, zval *Blob_Id)
+int FireBird_Blob_open(zval *self, zval *Blob_Id)
 {
-    firebird_blob *blob = get_firebird_blob_from_zval(Blob);
-    firebird_blob_id *blob_id = get_firebird_blob_id_from_zval(Blob_Id);
+    firebird_blob *blob = get_firebird_blob_from_zval(self);
+    firebird_blob_id *id = get_firebird_blob_id_from_zval(Blob_Id);
 
-    blob->bl_id = blob_id->bl_id;
-
-    if (fbp_blob_open(blob)) {
-        update_err_props(FBG(status), FireBird_Blob_ce, Blob);
+    if (fbu_blob_open(blob, id)) {
         return FAILURE;
     }
-
-    _FireBird_Blob_update_props(Blob);
 
     return SUCCESS;
 }
 
 PHP_METHOD(FireBird_Blob, open)
 {
-    zval *Blob_Id;
+    zval *blob_id;
 
     ZEND_PARSE_PARAMETERS_START(1, 1)
-        Z_PARAM_OBJECT_OF_CLASS(Blob_Id, FireBird_Blob_Id_ce)
+        Z_PARAM_OBJECT_OF_CLASS(blob_id, FireBird_Blob_Id_ce)
     ZEND_PARSE_PARAMETERS_END();
 
-    if (FireBird_Blob_open(ZEND_THIS, Blob_Id)) {
-        update_err_props(FBG(status), FireBird_Blob_ce, ZEND_THIS);
+    if (FireBird_Blob_open(ZEND_THIS, blob_id)) {
         RETURN_FALSE;
     }
 
     RETURN_TRUE;
 }
 
-int FireBird_Blob_create(zval *Blob)
+int FireBird_Blob_create(zval *self)
 {
-    firebird_blob *blob = get_firebird_blob_from_zval(Blob);
+    firebird_blob *blob = get_firebird_blob_from_zval(self);
 
-    if (fbp_blob_create(blob)) {
-        update_err_props(FBG(status), FireBird_Blob_ce, Blob);
+    if (fbu_blob_create(blob)) {
         return FAILURE;
     }
-
-    _FireBird_Blob_update_props(Blob);
 
     return SUCCESS;
 }
@@ -212,101 +179,60 @@ PHP_METHOD(FireBird_Blob, create)
     RETVAL_BOOL(SUCCESS == FireBird_Blob_create(ZEND_THIS));
 }
 
+int FireBird_Blob_seek(zval *self, int mode, int offset, int *new_offset)
+{
+    firebird_blob *blob = get_firebird_blob_from_zval(self);
+
+    if (fbu_blob_seek(blob, mode, offset, new_offset)) {
+        return FAILURE;
+    }
+
+    return SUCCESS;
+}
+
 PHP_METHOD(FireBird_Blob, seek)
 {
-    zend_long pos, mode;
-    ISC_LONG new_pos = 0;
+    zend_long offset, mode;
+    ISC_LONG new_offset = 0;
 
     ZEND_PARSE_PARAMETERS_START(2, 2)
-        Z_PARAM_LONG(pos)
+        Z_PARAM_LONG(offset)
         Z_PARAM_LONG(mode)
     ZEND_PARSE_PARAMETERS_END();
 
-    firebird_blob *blob = get_firebird_blob_from_zval(ZEND_THIS);
-
-    if (fbp_blob_seek(blob, pos, mode, &new_pos)) {
-        update_err_props(FBG(status), FireBird_Blob_ce, ZEND_THIS);
+    if (FireBird_Blob_seek(ZEND_THIS, mode, offset, &new_offset)) {
         RETURN_FALSE;
     }
 
-    _FireBird_Blob_update_props(ZEND_THIS);
-
-    RETURN_LONG(new_pos);
+    RETURN_LONG(new_offset);
 }
 
-// const zend_function_entry FireBird_Blob_methods[] = {
-//     PHP_ME(Blob, __construct, arginfo_FireBird_Blob___construct, ZEND_ACC_PUBLIC | ZEND_ACC_CTOR)
-//     PHP_ME(Blob, create, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
-//     PHP_ME(Blob, open, arginfo_FireBird_Blob_open, ZEND_ACC_PUBLIC)
-//     PHP_ME(Blob, close, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
-//     PHP_ME(Blob, cancel, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
-//     PHP_ME(Blob, get, arginfo_FireBird_Blob_get, ZEND_ACC_PUBLIC)
-//     PHP_ME(Blob, put, arginfo_FireBird_Blob_put, ZEND_ACC_PUBLIC)
-//     PHP_ME(Blob, seek, arginfo_FireBird_Blob_seek, ZEND_ACC_PUBLIC)
-//     PHP_FE_END
-// };
-
-static zend_object *new_FireBird_Blob(zend_class_entry *ce)
+static zend_object *FireBird_Blob_create_object(zend_class_entry *ce)
 {
-    FBDEBUG("new_FireBird_Blob()");
+    firebird_blob *blob = zend_object_alloc(sizeof(firebird_blob), ce);
 
-    firebird_blob *s = zend_object_alloc(sizeof(firebird_blob), ce);
+    FBDEBUG("%s(blob=%p)", __func__, blob);
 
-    zend_object_std_init(&s->std, ce);
-    object_properties_init(&s->std, ce);
+    zend_object_std_init(&blob->std, ce);
+    object_properties_init(&blob->std, ce);
 
-    return &s->std;
+    return &blob->std;
 }
 
-static void free_FireBird_Blob(zend_object *obj)
+static void FireBird_Blob_free_obj(zend_object *obj)
 {
-    FBDEBUG("free_FireBird_Blob");
-
     firebird_blob *blob = get_firebird_blob_from_obj(obj);
 
-    if (blob->bl_handle) {
-        if (fbp_blob_close(blob)) {
-            fbp_status_error(FBG(status));
-        }
-    }
+    FBDEBUG("~%s(blob=%p)", __func__, blob);
+
+    if (blob->blobptr) fbu_blob_free(blob);
 
     zend_object_std_dtor(&blob->std);
 }
 
-// void register_FireBird_Blob_ce()
-// {
-//     zend_class_entry tmp_ce;
-//     INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "Blob", FireBird_Blob_methods);
-//     FireBird_Blob_ce = zend_register_internal_class(&tmp_ce);
-
-//     DECLARE_ERR_PROPS(FireBird_Blob_ce);
-//     DECLARE_PROP_OBJ(FireBird_Blob_ce, transaction, FireBird\\Transaction, ZEND_ACC_PROTECTED_SET);
-//     DECLARE_PROP_LONG(FireBird_Blob_ce, num_segments, ZEND_ACC_PROTECTED_SET);
-//     DECLARE_PROP_LONG(FireBird_Blob_ce, max_segment, ZEND_ACC_PROTECTED_SET);
-//     DECLARE_PROP_LONG(FireBird_Blob_ce, total_length, ZEND_ACC_PROTECTED_SET);
-//     DECLARE_PROP_LONG(FireBird_Blob_ce, type, ZEND_ACC_PROTECTED_SET);
-//     DECLARE_PROP_LONG(FireBird_Blob_ce, position, ZEND_ACC_PROTECTED_SET);
-//     DECLARE_PROP_BOOL(FireBird_Blob_ce, is_writable, ZEND_ACC_PROTECTED_SET);
-
-//     zend_class_implements(FireBird_Blob_ce, 1, FireBird_IError_ce);
-
-//     FireBird_Blob_ce->create_object = new_FireBird_Blob;
-//     FireBird_Blob_ce->default_object_handlers = &FireBird_Blob_object_handlers;
-
-//     memcpy(&FireBird_Blob_object_handlers, &std_object_handlers, sizeof(zend_object_handlers));
-
-//     FireBird_Blob_object_handlers.offset = XtOffsetOf(firebird_blob, std);
-//     FireBird_Blob_object_handlers.free_obj = free_FireBird_Blob;
-// }
-
-void FireBird_Blob_Id___construct(zval *Blob_Id, ISC_QUAD bl_id)
+static zend_object *FireBird_Blob_Id_create_object(zend_class_entry *ce)
 {
-    fbp_blob_id_ctor(get_firebird_blob_id_from_zval(Blob_Id), bl_id);
-}
-
-static zend_object *FireBird_Blob_Id_create(zend_class_entry *ce)
-{
-    FBDEBUG("FireBird_Blob_Id_create()");
+    FBDEBUG("++ %s", __func__);
 
     firebird_blob_id *s = zend_object_alloc(sizeof(firebird_blob_id), ce);
 
@@ -318,11 +244,18 @@ static zend_object *FireBird_Blob_Id_create(zend_class_entry *ce)
 
 static void FireBird_Blob_Id_free_obj(zend_object *obj)
 {
-    FBDEBUG("FireBird_Blob_Id_free_obj");
-
     firebird_blob_id *blob_id = get_firebird_blob_id_from_obj(obj);
 
+    FBDEBUG("~%s(blob_id=%p)", __func__, blob_id);
+
     zend_object_std_dtor(&blob_id->std);
+}
+
+void FireBird_Blob_Id___construct(zval *self, ISC_QUAD bl_id)
+{
+
+    firebird_blob_id *blob_id = get_firebird_blob_id_from_zval(self);
+    blob_id->bl_id = bl_id;
 }
 
 PHP_METHOD(FireBird_Blob_Id, __construct)
@@ -365,43 +298,56 @@ PHP_METHOD(FireBird_Blob_Id, from_legacy_id)
     }
 }
 
-// const zend_function_entry FireBird_Blob_Id_methods[] = {
-//     PHP_ME(Blob_Id, __construct, arginfo_none, ZEND_ACC_PRIVATE | ZEND_ACC_CTOR)
-//     PHP_ME(Blob_Id, to_legacy_id, arginfo_FireBird_Blob_Id_to_legacy_id, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
-//     PHP_ME(Blob_Id, from_legacy_id, arginfo_FireBird_Blob_Id_from_legacy_id, ZEND_ACC_PUBLIC | ZEND_ACC_STATIC)
-//     PHP_FE_END
-// };
+static zval* FireBird_Blob_read_property(zend_object *obj, zend_string *name, int type,
+    void **cache_slot, zval *rv)
+{
+    firebird_blob *blob = get_firebird_blob_from_obj(obj);
+    firebird_blob_info *info = blob->info;
 
-// void register_FireBird_Blob_Id_ce()
-// {
-//     zend_class_entry tmp_ce;
+    if (zend_string_equals_literal(name, "num_segments")) {
+        ZVAL_LONG(rv, info->num_segments);
+        return rv;
+    }
+    if (zend_string_equals_literal(name, "max_segment")) {
+        ZVAL_LONG(rv, info->max_segment);
+        return rv;
+    }
+    if (zend_string_equals_literal(name, "total_length")) {
+        ZVAL_LONG(rv, info->total_length);
+        return rv;
+    }
+    if (zend_string_equals_literal(name, "type")) {
+        ZVAL_LONG(rv, info->type);
+        return rv;
+    }
+    if (zend_string_equals_literal(name, "position")) {
+        ZVAL_LONG(rv, info->position);
+        return rv;
+    }
+    if (zend_string_equals_literal(name, "is_writable")) {
+        ZVAL_BOOL(rv, info->is_writable);
+        return rv;
+    }
 
-//     INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "Blob_Id", FireBird_Blob_Id_methods);
-//     FireBird_Blob_Id_ce = zend_register_internal_class(&tmp_ce);
+    return zend_std_read_property(obj, name, type, cache_slot, rv);
+}
 
-//     FireBird_Blob_Id_ce->create_object = FireBird_Blob_Id_create;
-//     FireBird_Blob_Id_ce->default_object_handlers = &FireBird_Blob_Id_object_handlers;
-
-//     memcpy(&FireBird_Blob_Id_object_handlers, &std_object_handlers, sizeof(zend_object_handlers));
-
-//     FireBird_Blob_Id_object_handlers.offset = XtOffsetOf(firebird_blob_id, std);
-//     FireBird_Blob_Id_object_handlers.free_obj = FireBird_Blob_Id_free_obj;
-// }
 
 void register_FireBird_Blob_object_handlers()
 {
-    FireBird_Blob_ce->create_object = new_FireBird_Blob;
+    FireBird_Blob_ce->create_object = FireBird_Blob_create_object;
     FireBird_Blob_ce->default_object_handlers = &FireBird_Blob_object_handlers;
 
     memcpy(&FireBird_Blob_object_handlers, &std_object_handlers, sizeof(zend_object_handlers));
 
     FireBird_Blob_object_handlers.offset = XtOffsetOf(firebird_blob, std);
-    FireBird_Blob_object_handlers.free_obj = free_FireBird_Blob;
+    FireBird_Blob_object_handlers.free_obj = FireBird_Blob_free_obj;
+    FireBird_Blob_object_handlers.read_property = FireBird_Blob_read_property;
 }
 
 void register_FireBird_Blob_Id_object_handlers()
 {
-    FireBird_Blob_Id_ce->create_object = FireBird_Blob_Id_create;
+    FireBird_Blob_Id_ce->create_object = FireBird_Blob_Id_create_object;
     FireBird_Blob_Id_ce->default_object_handlers = &FireBird_Blob_Id_object_handlers;
 
     memcpy(&FireBird_Blob_Id_object_handlers, &std_object_handlers, sizeof(zend_object_handlers));
@@ -409,3 +355,92 @@ void register_FireBird_Blob_Id_object_handlers()
     FireBird_Blob_Id_object_handlers.offset = XtOffsetOf(firebird_blob_id, std);
     FireBird_Blob_Id_object_handlers.free_obj = FireBird_Blob_Id_free_obj;
 }
+
+int fbp_blob_id_to_string(ISC_QUAD const qd, size_t buf_len, char *buf)
+{
+    /* shortcut for most common case */
+    if (sizeof(ISC_QUAD) == sizeof(ISC_UINT64)) {
+        return slprintf(buf, buf_len, "0x%0*" LL_MASK "x", 16, *(ISC_UINT64*)(void *) &qd);
+    } else {
+        ISC_UINT64 res = ((ISC_UINT64) qd.gds_quad_high << 0x20) | qd.gds_quad_low;
+        return slprintf(buf, buf_len, "0x%0*" LL_MASK "x", 16, res);
+    }
+}
+
+int fbp_blob_id_to_quad(size_t id_len, char const *id, ISC_QUAD *qd)
+{
+    /* shortcut for most common case */
+    if (sizeof(ISC_QUAD) == sizeof(ISC_UINT64)) {
+        return sscanf(id, BLOB_ID_MASK, (ISC_UINT64 *) qd) > 0 ? SUCCESS : FAILURE;
+    } else {
+        ISC_UINT64 res;
+        if (sscanf(id, BLOB_ID_MASK, &res) > 0) {
+            qd->gds_quad_high = (ISC_LONG) (res >> 0x20);
+            qd->gds_quad_low = (ISC_LONG) (res & 0xFFFFFFFF);
+            return SUCCESS;
+        }
+        return FAILURE;
+    }
+}
+
+#if 0
+// NOTE: chunked get - keep for now!
+int fbp_blob_get(firebird_blob *blob, zval *return_value, size_t max_len)
+{
+    ISC_STATUS stat;
+    zend_string *bl_data;
+    size_t cur_len, remaining_len;
+    unsigned short seg_len;
+
+    remaining_len = blob->total_length - blob->position;
+    FBDEBUG_NOFL("  remaining_len: %d", remaining_len);
+    if (!max_len || max_len > remaining_len) {
+        max_len = remaining_len;
+    }
+
+    bl_data = zend_string_safe_alloc(1, max_len, 0, 0);
+
+    for (cur_len = stat = 0; (stat == 0 || stat == isc_segment) && cur_len < max_len; cur_len += seg_len) {
+
+        unsigned short chunk_size = (max_len-cur_len) > USHRT_MAX ? USHRT_MAX
+            : (unsigned short)(max_len-cur_len);
+
+        stat = isc_get_segment(FBG(status), &blob->bl_handle, &seg_len, chunk_size, &ZSTR_VAL(bl_data)[cur_len]);
+
+        if (FBG(status)[0] == 1 && (stat != 0 && stat != isc_segstr_eof && stat != isc_segment)) {
+            zend_string_free(bl_data);
+            return FAILURE;
+        }
+
+        blob->position += chunk_size;
+    }
+
+    ZSTR_VAL(bl_data)[cur_len] = '\0';
+    ZSTR_LEN(bl_data) = cur_len;
+    RETVAL_NEW_STR(bl_data);
+
+    return SUCCESS;
+}
+#endif
+
+#if 0
+// NOTE: chunked put - keep for now!
+int fbp_blob_put(firebird_blob *blob, const char *buf, size_t buf_size)
+{
+    zend_ulong put_cnt = 0, rem_cnt;
+    unsigned short chunk_size;
+
+    for (rem_cnt = buf_size; rem_cnt > 0; rem_cnt -= chunk_size)  {
+        chunk_size = rem_cnt > USHRT_MAX ? USHRT_MAX : (unsigned short)rem_cnt;
+        if (isc_put_segment(FBG(status), &blob->bl_handle, chunk_size, &buf[put_cnt])) {
+            return FAILURE;
+        }
+        put_cnt += chunk_size;
+    }
+
+    blob->position += put_cnt;
+    blob->total_length += put_cnt;
+
+    return SUCCESS;
+}
+#endif

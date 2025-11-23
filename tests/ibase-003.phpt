@@ -10,13 +10,8 @@ namespace FireBirdTests;
 require_once('functions.inc');
 
 (function(){
-    if(false === ($conn = init_tmp_db(charset: "NONE"))) {
-        return;
-    }
-
-    if(!(($t = $conn->new_transaction()) && $t->start())) {
-        print_error_and_die("transaction", $conn);
-    }
+    $conn = init_tmp_db(charset: "NONE");
+    $t = $conn->start_transaction() or print_error_and_die("transaction");
 
     /* To prevent unwanted roundings set PHP precision to 18 */
     ini_set('precision',"18");
@@ -28,7 +23,7 @@ require_once('functions.inc');
         echo "Precision required: 18\n";
     }
 
-    $q = execute_immediate_or_die($t,
+    $q = $t->query(
         "CREATE table test3 (
             iter                  integer not null,
             v_char                char(1000),
@@ -46,12 +41,13 @@ require_once('functions.inc');
             v_smallint            smallint,
             v_varchar             varchar(10000)
             )"
-    );
+    ) or print_error_and_die("query", $t);
 
     $t->commit_ret() or print_error_and_die("commit_ret", $t);
 
     /* should fail, but gracefully */
-    $t->query("INSERT into test3 (iter) values (?)", null);
+    // Disabled. Now will throw
+    // $t->query("INSERT into test3 (iter) values (?)", null);
 
     /* if timefmt is not supported, suppress error here */
     ini_set('firebird.timestampformat',"%m/%d/%Y %H:%M:%S");
@@ -156,7 +152,7 @@ require_once('functions.inc');
             echo " out: $row->V_VARCHAR\n";
         }
 
-        $sel->close() or print_error_and_die("close", $sel);
+        $sel->close_cursor() or print_error_and_die("close_cursor", $sel);
     } /* for($iter) */
     $sel->free();
 
