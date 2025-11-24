@@ -11,6 +11,15 @@
 #define FBP_FETCH_INDEXED   (1<<4)
 #define FBP_FETCH_HASHED    (1<<5)
 
+typedef struct firebird_field {
+    const char *alias;
+    unsigned int type;
+    unsigned int len;
+    int scale;
+    unsigned int offset;
+    unsigned int null_offset;
+} firebird_field;
+
 typedef struct firebird_stmt_info {
     unsigned char statement_type;
     const char *sql;

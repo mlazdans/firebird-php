@@ -20,6 +20,8 @@ private:
     unsigned char *in_buffer = nullptr, *out_buffer = nullptr;
     HashTable *ht_aliases = nullptr, *ht_ind = nullptr;
     firebird_stmt_info info = {0};
+    std::vector<firebird_field> in_fields;
+    std::vector<firebird_field> out_fields;
 
     void insert_alias(const char *alias);
     void alloc_ht_aliases();

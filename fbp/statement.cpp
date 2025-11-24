@@ -47,6 +47,31 @@ void Statement::prepare(unsigned int len_sql, const char *sql)
     info.sql = estrdup(sql);
     info.sql_len = len_sql;
 
+    in_fields.reserve(info.in_vars_count);
+    out_fields.reserve(info.out_vars_count);
+
+    for (unsigned int index = 0; index < info.in_vars_count; index++) {
+        in_fields[index] = {
+            .alias = input_metadata->getAlias(&st, index),
+            .type = input_metadata->getType(&st, index),
+            .len = input_metadata->getLength(&st, index),
+            .scale = input_metadata->getScale(&st, index),
+            .offset = input_metadata->getOffset(&st, index),
+            .null_offset = input_metadata->getNullOffset(&st, index),
+        };
+    }
+
+    for (unsigned int index = 0; index < info.out_vars_count; index++) {
+        out_fields[index] = {
+            .alias = output_metadata->getAlias(&st, index),
+            .type = output_metadata->getType(&st, index),
+            .len = output_metadata->getLength(&st, index),
+            .scale = output_metadata->getScale(&st, index),
+            .offset = output_metadata->getOffset(&st, index),
+            .null_offset = output_metadata->getNullOffset(&st, index),
+        };
+    }
+
     statement = tmp;
 }
 
@@ -75,23 +100,20 @@ void Statement::bind(zval *b_vars, unsigned int num_bind_args)
     for (size_t i = 0; i < info.in_vars_count; ++i) {
         zval *b_var = &b_vars[i];
 
-        auto sqlind = reinterpret_cast<short*>(in_buffer + input_metadata->getNullOffset(&st, i));
-        // short *sqlind = (short*)&buffer[im->getNullOffset(&st, i)];
+        auto sqlind = reinterpret_cast<short*>(in_buffer + in_fields[i].null_offset);
 
         if (Z_TYPE_P(b_var) == IS_NULL) {
             *sqlind = -1;
             continue;
         }
 
-        auto sqldata = in_buffer + input_metadata->getOffset(&st, i);
-        auto scale = input_metadata->getScale(&st, i);
-        auto len_sqldata = input_metadata->getLength(&st, i);
+        auto sqldata = in_buffer + in_fields[i].offset;
+        auto scale = in_fields[i].scale;
+        auto len_sqldata = in_fields[i].len;
 
         *sqlind = 0;
-        // stmt->bind_buf[i].sqlind = 0;
-        // sqldata = (unsigned char *)&stmt->bind_buf[i].val;
 
-        auto sqltype = input_metadata->getType(&st, i);
+        auto sqltype = in_fields[i].type;
 
         FBDEBUG("sqltype: %s, sql buflen: %d, phptype: %s",
             fbu_get_sql_type_name(sqltype), len_sqldata, zend_zval_type_name(b_var));
@@ -499,20 +521,20 @@ int Statement::var_zval(zval *val, unsigned int index, int flags)
         LL_LIT(1000000000000000000)
     };
 
-    auto nullind = *(int16_t*)(out_buffer + output_metadata->getNullOffset(&st, index));
+    auto nullind = *(int16_t*)(out_buffer + out_fields[index].null_offset);
 
     if (nullind) {
         ZVAL_NULL(val);
         return SUCCESS;
     }
 
-    auto type = output_metadata->getType(&st, index);
-    auto len = output_metadata->getLength(&st, index);
-    auto scale = output_metadata->getScale(&st, index);
-    auto data = out_buffer + output_metadata->getOffset(&st, index);
+    auto type = out_fields[index].type;
+    auto len = out_fields[index].len;
+    auto scale = out_fields[index].scale;
+    auto data = out_buffer + out_fields[index].offset;
 
-    FBDEBUG("   alias=%s, type: %s", output_metadata->getAlias(&st, index),
-        fbu_get_sql_type_name(type));
+    // FBDEBUG("   alias=%s, type: %s", out_fields[index].alias,
+    //     fbu_get_sql_type_name(type));
 
     char str_buf[255];
     size_t str_len;
@@ -528,7 +550,7 @@ int Statement::var_zval(zval *val, unsigned int index, int flags)
     switch (type)
     {
         default:
-            fbp_fatal("unhandled type: %d, field: %s", type, output_metadata->getAlias(&st, index));
+            fbp_fatal("unhandled type: %d, field: %s", type, out_fields[index].alias);
 
         case SQL_VARYING:
             len = ((firebird_vary *) data)->vary_length;
@@ -799,8 +821,6 @@ void Statement::alloc_ht_ind()
 
 void Statement::query_statistics()
 {
-    auto util = master->getUtilInterface();
-
     unsigned char req[] = { isc_info_sql_records };
     unsigned char resp[64] = { 0 };
 
@@ -812,11 +832,10 @@ void Statement::query_statistics()
 
     statement->getInfo(&st, sizeof(req), req, sizeof(resp), resp);
 
-    const ISC_UCHAR* p = resp + 3;
+    const ISC_UCHAR* p = resp;
 
-    if (resp[0] != isc_info_sql_records)
-    {
-        fbp_fatal("Unexpected info response tag: %d", resp[0]);
+    if (resp[0] == isc_info_sql_records) {
+        p += 3; // Skip current + length. Otherwise expect isc_info_end
     }
 
     while ((*p != isc_info_end) && (p - (const ISC_UCHAR *)&resp < sizeof(resp)))
