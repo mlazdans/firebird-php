@@ -100,11 +100,11 @@ int FireBird_Statement_execute(zval *self, zval *bind_args, uint32_t num_bind_ar
         return FAILURE;
     }
 
-    FBDEBUG("FireBird_Statement_execute(%p) statement_type: %d", stmt->sptr, stmt->statement_type);
-    FBDEBUG("   in_var_count: %d, out_vars_count: %d", stmt->in_vars_count, stmt->out_vars_count);
+    FBDEBUG("FireBird_Statement_execute(%p) statement_type: %d", stmt->sptr, stmt->info->statement_type);
+    FBDEBUG("   in_var_count: %d, out_vars_count: %d", stmt->info->in_vars_count, stmt->info->out_vars_count);
 
 
-    switch(stmt->statement_type) {
+    switch(stmt->info->statement_type) {
         case isc_info_sql_stmt_select:
         case isc_info_sql_stmt_select_for_upd: {
             if (fbu_statement_bind(stmt, bind_args, num_bind_args)) {
@@ -135,7 +135,7 @@ int FireBird_Statement_execute(zval *self, zval *bind_args, uint32_t num_bind_ar
         } break;
 
         default:
-            fbp_fatal("TODO: s->statement_type: %d", stmt->statement_type);
+            fbp_fatal("TODO: s->statement_type: %d", stmt->info->statement_type);
     }
 
     return SUCCESS;
@@ -312,6 +312,44 @@ static void FireBird_Statement_free_obj(zend_object *obj)
     zend_object_std_dtor(&stmt->std);
 }
 
+static zval* FireBird_Statement_read_property(zend_object *obj, zend_string *name, int type,
+    void **cache_slot, zval *rv)
+{
+    firebird_stmt *stmt = get_firebird_stmt_from_obj(obj);
+    firebird_stmt_info *info = stmt->info;
+
+    if (zend_string_equals_literal(name, "name")) {
+        ZVAL_STRING(rv, info->name);
+        return rv;
+    }
+    if (zend_string_equals_literal(name, "in_vars_count")) {
+        ZVAL_LONG(rv, info->in_vars_count);
+        return rv;
+    }
+    if (zend_string_equals_literal(name, "out_vars_count")) {
+        ZVAL_LONG(rv, info->out_vars_count);
+        return rv;
+    }
+    if (zend_string_equals_literal(name, "insert_count")) {
+        ZVAL_LONG(rv, info->insert_count);
+        return rv;
+    }
+    if (zend_string_equals_literal(name, "update_count")) {
+        ZVAL_LONG(rv, info->update_count);
+        return rv;
+    }
+    if (zend_string_equals_literal(name, "delete_count")) {
+        ZVAL_LONG(rv, info->delete_count);
+        return rv;
+    }
+    if (zend_string_equals_literal(name, "affected_count")) {
+        ZVAL_LONG(rv, info->affected_count);
+        return rv;
+    }
+
+    return zend_std_read_property(obj, name, type, cache_slot, rv);
+}
+
 void register_FireBird_Statement_object_handlers()
 {
     FireBird_Statement_ce->default_object_handlers = &FireBird_Statement_object_handlers;
@@ -321,6 +359,7 @@ void register_FireBird_Statement_object_handlers()
 
     FireBird_Statement_object_handlers.offset = XtOffsetOf(firebird_stmt, std);
     FireBird_Statement_object_handlers.free_obj = FireBird_Statement_free_obj;
+    FireBird_Statement_object_handlers.read_property = FireBird_Statement_read_property;
 }
 
 void FireBird_Statement_fetch(zval *self, int flags, zval *return_value)
@@ -330,7 +369,7 @@ void FireBird_Statement_fetch(zval *self, int flags, zval *return_value)
 
     FBDEBUG("FireBird_Statement_fetch(%p)", stmt->sptr);
 
-    switch (stmt->statement_type)
+    switch (stmt->info->statement_type)
     {
         case isc_info_sql_stmt_select:
         case isc_info_sql_stmt_select_for_upd: {
@@ -368,56 +407,4 @@ void FireBird_Statement_fetch(zval *self, int flags, zval *return_value)
     } else {
         RETURN_FALSE;
     }
-}
-
-int fbp_update_statement_info(firebird_stmt *stmt)
-{
-    TODO("fbp_update_statement_info");
-#if 0
-    char request_buffer[] = { isc_info_sql_records };
-    char info_buffer[64] = { 0 };
-
-    // isc_info_req_select_count - It tracks the number of rows fetched by a running request (not a SELECT statement).
-    stmt->insert_count = 0;
-    stmt->update_count = 0;
-    stmt->delete_count = 0;
-    stmt->affected_count = 0;
-
-    if (isc_dsql_sql_info(FBG(status), &stmt->stmt_handle, sizeof(request_buffer), request_buffer, sizeof(info_buffer), info_buffer)) {
-        return FAILURE;
-    }
-
-    const ISC_UCHAR* p = info_buffer + 3;
-
-    FBDEBUG("Parsing SQL info buffer");
-
-    if (info_buffer[0] == isc_info_sql_records)
-    {
-        while ((*p != isc_info_end) && (p - (const ISC_UCHAR *)&info_buffer < sizeof(info_buffer)))
-        {
-            const ISC_UCHAR count_is = *p++;
-            const ISC_SHORT len = isc_portable_integer(p, 2); p += 2;
-            const ISC_ULONG count = isc_portable_integer(p, len); p += len;
-            switch(count_is) {
-                case isc_info_req_insert_count: stmt->insert_count += count; break;
-                case isc_info_req_update_count: stmt->update_count += count; break;
-                case isc_info_req_delete_count: stmt->delete_count += count; break;
-                case isc_info_req_select_count: continue;
-                default: {
-                    fbp_fatal("BUG: unrecognized isc_dsql_sql_info item: %d with value: %d", count_is, count);
-                } break;
-            }
-        }
-    } else {
-        fbp_fatal("Unexpected isc_dsql_sql_info response: %d", info_buffer[0]);
-    }
-
-    stmt->affected_count = stmt->insert_count + stmt->update_count + stmt->delete_count;
-
-    FBDEBUG_NOFL(" insert_count: %zu", stmt->insert_count);
-    FBDEBUG_NOFL(" update_count: %zu", stmt->update_count);
-    FBDEBUG_NOFL(" delete_count: %zu", stmt->delete_count);
-
-    return SUCCESS;
-#endif
 }

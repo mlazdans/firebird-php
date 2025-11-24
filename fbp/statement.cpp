@@ -23,20 +23,29 @@ Statement::Statement(Transaction *tra)
 
 void Statement::prepare(unsigned int len_sql, const char *sql)
 {
+    if (statement) {
+        throw Php_Firebird_Exception(zend_ce_error,
+            "BUG: statement already prepared or internal structure corrupted");
+    }
+
     IStatement *tmp = tra->prepare(len_sql, sql);
 
-    statement_type = tmp->getType(&st);
+    info.statement_type = tmp->getType(&st);
 
     input_metadata = tmp->getInputMetadata(&st);
-    in_vars_count = input_metadata->getCount(&st);
+    info.in_vars_count = input_metadata->getCount(&st);
     in_buffer_size = input_metadata->getMessageLength(&st);
     in_buffer = (unsigned char *)calloc(in_buffer_size, sizeof(*in_buffer));
 
     // TODO: alloc just before fetch?
     output_metadata = tmp->getOutputMetadata(&st);
-    out_vars_count = output_metadata->getCount(&st);
+    info.out_vars_count = output_metadata->getCount(&st);
     out_buffer_size = output_metadata->getMessageLength(&st);
     out_buffer = (unsigned char *)calloc(out_buffer_size, sizeof(*out_buffer));
+
+    // TODO: use standart alloc?
+    info.sql = estrdup(sql);
+    info.sql_len = len_sql;
 
     statement = tmp;
 }
@@ -56,14 +65,14 @@ void Statement::bind(zval *b_vars, unsigned int num_bind_args)
     int64_t long_min, long_max;
     zend_long long_val;
 
-    if (num_bind_args != in_vars_count) {
+    if (num_bind_args != info.in_vars_count) {
         slprintf(tmp_buf, sizeof(tmp_buf), "Statement expects %d arguments, %d given",
-            in_vars_count, num_bind_args);
+            info.in_vars_count, num_bind_args);
 
         throw Php_Firebird_Exception(zend_ce_argument_count_error, std::string(tmp_buf));
     }
 
-    for (size_t i = 0; i < in_vars_count; ++i) {
+    for (size_t i = 0; i < info.in_vars_count; ++i) {
         zval *b_var = &b_vars[i];
 
         auto sqlind = reinterpret_cast<short*>(in_buffer + input_metadata->getNullOffset(&st, i));
@@ -413,9 +422,8 @@ parse_datetime: {
 
 void Statement::open_cursor()
 {
-    cursor = tra->open_cursor(statement, input_metadata, in_buffer, output_metadata);
     // TODO: check if curs already opened
-    // cursor = statement->openCursor(&st, tra->get_tra(), input_metadata, in_buffer, output_metadata, 0);
+    cursor = tra->open_cursor(statement, input_metadata, in_buffer, output_metadata);
 }
 
 int Statement::close_cursor()
@@ -457,17 +465,10 @@ HashTable *Statement::output_buffer_to_array(int flags)
         throw Php_Firebird_Exception(zend_ce_error, "BUG: fetch method not set");
     }
 
-    for (unsigned int index = 0; index < out_vars_count; index++) {
+    for (unsigned int index = 0; index < info.out_vars_count; index++) {
         result = zend_hash_get_current_data(hash);
         var_zval(result, index, flags);
         zend_hash_move_forward(hash);
-        // if (flags & FBP_FETCH_INDEXED) {
-        //     add_index_zval(hash, index, &result);
-        // } else if (flags & FBP_FETCH_HASHED) {
-        //     add_assoc_zval(hash, output_metadata->getAlias(&st, index), &result);
-        // } else {
-        //     throw Php_Firebird_Exception(zend_ce_error, "BUG: fetch method not set");
-        // }
     }
 
     zend_hash_internal_pointer_reset(hash);
@@ -677,6 +678,7 @@ _sql_long:
 void Statement::execute()
 {
     tra->execute_statement(statement, input_metadata, in_buffer, output_metadata, out_buffer);
+    query_statistics();
 }
 
 Statement::~Statement() noexcept
@@ -734,6 +736,11 @@ Statement::~Statement() noexcept
         ht_ind = nullptr;
     }
 
+    if (info.sql) {
+        efree((void *)info.sql);
+        info.sql = nullptr;
+    }
+
     if (err) fbu_handle_exception2();
 }
 
@@ -770,9 +777,9 @@ void Statement::insert_alias(const char *alias)
 void Statement::alloc_ht_aliases()
 {
     ALLOC_HASHTABLE(ht_aliases);
-    zend_hash_init(ht_aliases, out_vars_count, NULL, ZVAL_PTR_DTOR, 0);
+    zend_hash_init(ht_aliases, info.out_vars_count, NULL, ZVAL_PTR_DTOR, 0);
 
-    for (unsigned int index = 0; index < out_vars_count; index++) {
+    for (unsigned int index = 0; index < info.out_vars_count; index++) {
         insert_alias(output_metadata->getAlias(&st, index));
     }
 }
@@ -780,14 +787,63 @@ void Statement::alloc_ht_aliases()
 void Statement::alloc_ht_ind()
 {
     ALLOC_HASHTABLE(ht_ind);
-    zend_hash_init(ht_ind, out_vars_count, NULL, ZVAL_PTR_DTOR, 0);
+    zend_hash_init(ht_ind, info.out_vars_count, NULL, ZVAL_PTR_DTOR, 0);
 
     zval t2;
     ZVAL_NULL(&t2);
 
-    for (unsigned int index = 0; index < out_vars_count; index++) {
+    for (unsigned int index = 0; index < info.out_vars_count; index++) {
         zend_hash_index_add(ht_ind, index, &t2);
     }
+}
+
+void Statement::query_statistics()
+{
+    auto util = master->getUtilInterface();
+
+    unsigned char req[] = { isc_info_sql_records };
+    unsigned char resp[64] = { 0 };
+
+    info.insert_count = 0;
+    info.update_count = 0;
+    info.delete_count = 0;
+    info.select_count = 0;
+    info.affected_count = 0;
+
+    statement->getInfo(&st, sizeof(req), req, sizeof(resp), resp);
+
+    const ISC_UCHAR* p = resp + 3;
+
+    if (resp[0] != isc_info_sql_records)
+    {
+        fbp_fatal("Unexpected info response tag: %d", resp[0]);
+    }
+
+    while ((*p != isc_info_end) && (p - (const ISC_UCHAR *)&resp < sizeof(resp)))
+    {
+        const ISC_UCHAR count_is = *p++;
+        const ISC_SHORT len = isc_portable_integer(p, 2); p += 2;
+        const ISC_ULONG count = isc_portable_integer(p, len); p += len;
+        switch(count_is) {
+            case isc_info_req_insert_count: info.insert_count += count; break;
+            case isc_info_req_update_count: info.update_count += count; break;
+            case isc_info_req_delete_count: info.delete_count += count; break;
+            case isc_info_req_select_count: info.select_count += count; break;
+            default:
+                fbp_fatal("BUG: unrecognized isc_dsql_sql_info item: %d with value: %d", count_is, count);
+                break;
+        }
+    }
+
+    FBDEBUG("%s\n  insert_count=%d, update_count=%d, delete_count=%d, select_count=%d",
+        __func__, info.insert_count, info.update_count, info.delete_count, info.select_count);
+
+    info.affected_count = info.insert_count + info.update_count + info.delete_count;
+}
+
+firebird_stmt_info *Statement::get_info()
+{
+    return &info;
 }
 
 } // namespace

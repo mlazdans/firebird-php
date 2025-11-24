@@ -1,5 +1,5 @@
 /* This is a generated file, edit the .stub.php file instead.
- * Stub hash: 689b427e9c9e4f5e740fb05bab40bcf98b6488f5 */
+ * Stub hash: 7ed6156c62965550a86ae73813a53adfcee24b79 */
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_set_error_handler, 0, 1, IS_VOID, 0)
 	ZEND_ARG_TYPE_INFO(0, handler, IS_CALLABLE, 0)
@@ -569,52 +569,52 @@ static zend_class_entry *register_class_FireBird_Statement(void)
 	INIT_NS_CLASS_ENTRY(ce, "FireBird", "Statement", class_FireBird_Statement_methods);
 	class_entry = zend_register_internal_class_with_flags(&ce, NULL, 0);
 
+	zval property_name_default_value;
+	ZVAL_UNDEF(&property_name_default_value);
+	zend_declare_typed_property(class_entry, ZSTR_KNOWN(ZEND_STR_NAME), &property_name_default_value, ZEND_ACC_PUBLIC|ZEND_ACC_READONLY|ZEND_ACC_VIRTUAL, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_STRING));
+
+	zval property_in_vars_count_default_value;
+	ZVAL_UNDEF(&property_in_vars_count_default_value);
+	zend_string *property_in_vars_count_name = zend_string_init("in_vars_count", sizeof("in_vars_count") - 1, true);
+	zend_declare_typed_property(class_entry, property_in_vars_count_name, &property_in_vars_count_default_value, ZEND_ACC_PUBLIC|ZEND_ACC_READONLY|ZEND_ACC_VIRTUAL, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_LONG));
+	zend_string_release_ex(property_in_vars_count_name, true);
+
+	zval property_out_vars_count_default_value;
+	ZVAL_UNDEF(&property_out_vars_count_default_value);
+	zend_string *property_out_vars_count_name = zend_string_init("out_vars_count", sizeof("out_vars_count") - 1, true);
+	zend_declare_typed_property(class_entry, property_out_vars_count_name, &property_out_vars_count_default_value, ZEND_ACC_PUBLIC|ZEND_ACC_READONLY|ZEND_ACC_VIRTUAL, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_LONG));
+	zend_string_release_ex(property_out_vars_count_name, true);
+
+	zval property_insert_count_default_value;
+	ZVAL_UNDEF(&property_insert_count_default_value);
+	zend_string *property_insert_count_name = zend_string_init("insert_count", sizeof("insert_count") - 1, true);
+	zend_declare_typed_property(class_entry, property_insert_count_name, &property_insert_count_default_value, ZEND_ACC_PUBLIC|ZEND_ACC_READONLY|ZEND_ACC_VIRTUAL, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_LONG));
+	zend_string_release_ex(property_insert_count_name, true);
+
+	zval property_update_count_default_value;
+	ZVAL_UNDEF(&property_update_count_default_value);
+	zend_string *property_update_count_name = zend_string_init("update_count", sizeof("update_count") - 1, true);
+	zend_declare_typed_property(class_entry, property_update_count_name, &property_update_count_default_value, ZEND_ACC_PUBLIC|ZEND_ACC_READONLY|ZEND_ACC_VIRTUAL, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_LONG));
+	zend_string_release_ex(property_update_count_name, true);
+
+	zval property_delete_count_default_value;
+	ZVAL_UNDEF(&property_delete_count_default_value);
+	zend_string *property_delete_count_name = zend_string_init("delete_count", sizeof("delete_count") - 1, true);
+	zend_declare_typed_property(class_entry, property_delete_count_name, &property_delete_count_default_value, ZEND_ACC_PUBLIC|ZEND_ACC_READONLY|ZEND_ACC_VIRTUAL, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_LONG));
+	zend_string_release_ex(property_delete_count_name, true);
+
+	zval property_affected_count_default_value;
+	ZVAL_UNDEF(&property_affected_count_default_value);
+	zend_string *property_affected_count_name = zend_string_init("affected_count", sizeof("affected_count") - 1, true);
+	zend_declare_typed_property(class_entry, property_affected_count_name, &property_affected_count_default_value, ZEND_ACC_PUBLIC|ZEND_ACC_READONLY|ZEND_ACC_VIRTUAL, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_LONG));
+	zend_string_release_ex(property_affected_count_name, true);
+
 	zval property_transaction_default_value;
 	ZVAL_UNDEF(&property_transaction_default_value);
 	zend_string *property_transaction_name = zend_string_init("transaction", sizeof("transaction") - 1, true);
 	zend_string *property_transaction_class_FireBird_Transaction = zend_string_init("FireBird\\Transaction", sizeof("FireBird\\Transaction")-1, 1);
 	zend_declare_typed_property(class_entry, property_transaction_name, &property_transaction_default_value, ZEND_ACC_PUBLIC|ZEND_ACC_READONLY, NULL, (zend_type) ZEND_TYPE_INIT_CLASS(property_transaction_class_FireBird_Transaction, 0, 0));
 	zend_string_release_ex(property_transaction_name, true);
-
-	zval property_name_default_value;
-	ZVAL_UNDEF(&property_name_default_value);
-	zend_declare_typed_property(class_entry, ZSTR_KNOWN(ZEND_STR_NAME), &property_name_default_value, ZEND_ACC_PUBLIC|ZEND_ACC_READONLY, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_STRING));
-
-	zval property_in_vars_count_default_value;
-	ZVAL_UNDEF(&property_in_vars_count_default_value);
-	zend_string *property_in_vars_count_name = zend_string_init("in_vars_count", sizeof("in_vars_count") - 1, true);
-	zend_declare_typed_property(class_entry, property_in_vars_count_name, &property_in_vars_count_default_value, ZEND_ACC_PUBLIC|ZEND_ACC_READONLY, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_LONG));
-	zend_string_release_ex(property_in_vars_count_name, true);
-
-	zval property_out_vars_count_default_value;
-	ZVAL_UNDEF(&property_out_vars_count_default_value);
-	zend_string *property_out_vars_count_name = zend_string_init("out_vars_count", sizeof("out_vars_count") - 1, true);
-	zend_declare_typed_property(class_entry, property_out_vars_count_name, &property_out_vars_count_default_value, ZEND_ACC_PUBLIC|ZEND_ACC_READONLY, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_LONG));
-	zend_string_release_ex(property_out_vars_count_name, true);
-
-	zval property_insert_count_default_value;
-	ZVAL_UNDEF(&property_insert_count_default_value);
-	zend_string *property_insert_count_name = zend_string_init("insert_count", sizeof("insert_count") - 1, true);
-	zend_declare_typed_property(class_entry, property_insert_count_name, &property_insert_count_default_value, ZEND_ACC_PUBLIC|ZEND_ACC_READONLY, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_LONG));
-	zend_string_release_ex(property_insert_count_name, true);
-
-	zval property_update_count_default_value;
-	ZVAL_UNDEF(&property_update_count_default_value);
-	zend_string *property_update_count_name = zend_string_init("update_count", sizeof("update_count") - 1, true);
-	zend_declare_typed_property(class_entry, property_update_count_name, &property_update_count_default_value, ZEND_ACC_PUBLIC|ZEND_ACC_READONLY, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_LONG));
-	zend_string_release_ex(property_update_count_name, true);
-
-	zval property_delete_count_default_value;
-	ZVAL_UNDEF(&property_delete_count_default_value);
-	zend_string *property_delete_count_name = zend_string_init("delete_count", sizeof("delete_count") - 1, true);
-	zend_declare_typed_property(class_entry, property_delete_count_name, &property_delete_count_default_value, ZEND_ACC_PUBLIC|ZEND_ACC_READONLY, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_LONG));
-	zend_string_release_ex(property_delete_count_name, true);
-
-	zval property_affected_count_default_value;
-	ZVAL_UNDEF(&property_affected_count_default_value);
-	zend_string *property_affected_count_name = zend_string_init("affected_count", sizeof("affected_count") - 1, true);
-	zend_declare_typed_property(class_entry, property_affected_count_name, &property_affected_count_default_value, ZEND_ACC_PUBLIC|ZEND_ACC_READONLY, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_LONG));
-	zend_string_release_ex(property_affected_count_name, true);
 
 	return class_entry;
 }

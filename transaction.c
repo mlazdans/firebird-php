@@ -43,7 +43,7 @@ int FireBird_Transaction_start(zval *self, zval *builder)
     firebird_trans *tr = get_firebird_trans_from_zval(self);
     firebird_tbuilder *tb = get_firebird_tbuilder_from_zval(builder);
 
-    FBDEBUG("######## FireBird_Transaction_start(tr=%p, tb=%p", tr, tb);
+    FBDEBUG("FireBird_Transaction_start(tr=%p, tb=%p)", tr, tb);
 
     return fbu_transaction_start(tr, tb);
 }
@@ -96,16 +96,6 @@ PHP_METHOD(FireBird_Transaction, rollback) {
 PHP_METHOD(FireBird_Transaction, rollback_ret) {
     FireBird_Transaction_finalize(INTERNAL_FUNCTION_PARAM_PASSTHRU, FBP_TR_ROLLBACK | FBP_TR_RETAIN);
 }
-
-// int FireBird_Transaction_prepare(zval *self, const ISC_SCHAR* sql, zval *return_value)
-// {
-
-//     if (FireBird_Statement_prepare(return_value, sql)) {
-//         return FAILURE;
-//     }
-
-//     return SUCCESS;
-// }
 
 PHP_METHOD(FireBird_Transaction, prepare)
 {

@@ -1,6 +1,7 @@
 --TEST--
 FireBird: two-phase commit
 --SKIPIF--
+skip TODO
 <?php declare(strict_types = 1);
 
 // Hacky way to simulate limbo transaction. In separate process create

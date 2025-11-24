@@ -19,13 +19,13 @@ private:
     IMessageMetadata *input_metadata = nullptr, *output_metadata = nullptr;
     unsigned char *in_buffer = nullptr, *out_buffer = nullptr;
     HashTable *ht_aliases = nullptr, *ht_ind = nullptr;
+    firebird_stmt_info info = {0};
 
     void insert_alias(const char *alias);
     void alloc_ht_aliases();
     void alloc_ht_ind();
+    void query_statistics();
 public:
-    unsigned int statement_type = 0;
-    unsigned int in_vars_count = 0, out_vars_count = 0;
     unsigned int in_buffer_size = 0, out_buffer_size = 0;
 
     Statement(Transaction *tra);
@@ -39,6 +39,7 @@ public:
     HashTable *output_buffer_to_array(int flags);
     int var_zval(zval *val, unsigned int index, int flags);
     void execute();
+    firebird_stmt_info *get_info();
 };
 
 }

@@ -48,6 +48,7 @@ using namespace Firebird;
 //     }
 // };
 
+// TODO: remove
 static IMaster* fbu_master = fb_get_master_interface();
 
 static void fbu_copy_status(const ISC_STATUS* from, ISC_STATUS* to, size_t maxLength)
@@ -780,6 +781,7 @@ int fbu_statement_init(firebird_trans *tr, firebird_stmt *stmt)
         FBDEBUG("fbu_statement_init(tr=%p, new Statement=%p)", tr, s);
 
         stmt->sptr = s;
+        stmt->info = s->get_info();
 
         return SUCCESS;
     });
@@ -789,20 +791,7 @@ int fbu_statement_init(firebird_trans *tr, firebird_stmt *stmt)
 int fbu_statement_prepare(firebird_stmt *stmt, unsigned len_sql, const char *sql)
 {
     return fbu_call_void([&]() {
-        auto s = static_cast<Statement *>(stmt->sptr);
-
-        s->prepare(len_sql, sql);
-
-        stmt->statement_type = s->statement_type;
-        stmt->in_vars_count = s->in_vars_count;
-        stmt->out_vars_count = s->out_vars_count;
-
-        stmt->sql = estrdup(sql);
-        stmt->sql_len = len_sql;
-
-        stmt->is_exhausted = 0;
-        stmt->is_cursor_open = 0;
-
+        static_cast<Statement *>(stmt->sptr)->prepare(len_sql, sql);
         return SUCCESS;
     });
 }
@@ -882,10 +871,6 @@ void fbu_statement_free(firebird_stmt *stmt)
     delete static_cast<Statement *>(stmt->sptr);
 
     stmt->sptr = nullptr;
-    if (stmt->sql) {
-        efree((void *)stmt->sql);
-        stmt->sql = nullptr;
-    }
 }
 
 int fbu_blob_init(firebird_trans *tr, firebird_blob *blob)

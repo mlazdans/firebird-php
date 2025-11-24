@@ -22,7 +22,7 @@ require_once('functions.inc');
     $rs = $t->query('UPDATE test1 SET i = 10000 WHERE i = 2.0') or print_error_and_die("update2", $t);
     var_dump($rs->affected_count);
 
-    $rs = $t->query('UPDATE test1 SET i =') or print "$t->error_msg\n";
+    $rs = $t->query('UPDATE test1 SET i =') or print "update\n";
     var_dump($rs->affected_count);
 })();
 

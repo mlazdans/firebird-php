@@ -305,14 +305,22 @@ class Transaction
 
 class Statement
 {
-    public readonly Transaction $transaction;
+    /** @virtual */
     public readonly string $name;
+    /** @virtual */
     public readonly int $in_vars_count;
+    /** @virtual */
     public readonly int $out_vars_count;
+    /** @virtual */
     public readonly int $insert_count;
+    /** @virtual */
     public readonly int $update_count;
+    /** @virtual */
     public readonly int $delete_count;
+    /** @virtual */
     public readonly int $affected_count; // insert + update + delete
+
+    public readonly Transaction $transaction;
 
     private function __construct() {}
 
