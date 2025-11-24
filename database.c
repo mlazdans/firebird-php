@@ -174,35 +174,6 @@ firebird_xpb_zmap fbp_database_info_zmap = XPB_ZMAP_INIT(
 //     return SUCCESS;
 // }
 
-int fbp_database_create(firebird_db *db, zval *Create_Args)
-{
-    TODO("fbp_database_create()");
-#if 0
-    zval rv, *database;
-    const char *dpb_buffer;
-    short num_dpb_written;
-
-    if (FAILURE == fbp_database_build_dpb(FireBird_Create_Args_ce, Create_Args, &fbp_database_create_zmap, &dpb_buffer, &num_dpb_written)) {
-        return FAILURE;
-    }
-
-    database = OBJ_GET(FireBird_Create_Args_ce, Create_Args, "database", &rv);
-
-    // if ((Z_TYPE_P(database) != IS_STRING) || !Z_STRLEN_P(database)) {
-    //     zend_throw_exception_ex(zend_ce_value_error, 0, "Database parameter not set");
-    //     return FAILURE;
-    // }
-
-    FBDEBUG("database_create: %s", Z_STRVAL_P(database));
-    if (isc_create_database(FBG(status), (short)Z_STRLEN_P(database), Z_STRVAL_P(database), &db->db_handle, num_dpb_written, dpb_buffer, 0)) {
-        return FAILURE;
-    }
-    FBDEBUG("Created, handle: %d", db->db_handle);
-
-    return SUCCESS;
-#endif
-}
-
 int fbp_database_get_info(firebird_db *db, zval *Db_Info,
     size_t info_req_size, char *info_req, size_t info_resp_size, char *info_resp, size_t max_limbo_count)
 {
@@ -428,15 +399,6 @@ PHP_METHOD(FireBird_Database, create)
     }
 
     PROP_SET(FireBird_Database_ce, return_value, "args", Create_Args);
-
-    // object_init_ex(return_value, FireBird_Database_ce);
-    // firebird_db *db = get_firebird_db_from_zval(return_value);
-
-    // if (fbu_create_database(FBG(status), db, Create_Args, FireBird_Create_Args_ce)) {
-    //     update_err_props(FBG(status), FireBird_Connector_ce, Conn);
-    //     zval_ptr_dtor(return_value);
-    //     RETURN_FALSE;
-    // }
 }
 
 PHP_METHOD(FireBird_Database, drop)
@@ -659,27 +621,6 @@ PHP_METHOD(FireBird_Database, on_event)
 #endif
 }
 
-#if 0
-PHP_METHOD(FireBird_Database, execute)
-{
-    zend_string *sql;
-    firebird_db *db = get_firebird_db_from_zval(ZEND_THIS);
-
-    ZEND_PARSE_PARAMETERS_START(1, 1)
-        Z_PARAM_STR(sql)
-    ZEND_PARSE_PARAMETERS_END();
-
-    // object_init_ex(return_value, FireBird_Transaction_ce);
-    // firebird_trans *tr = get_firebird_trans_from_zval(return_value);
-
-    if (fbu_database_execute(db, ZSTR_LEN(sql), ZSTR_VAL(sql))) {
-        RETURN_FALSE;
-    }
-
-    RETURN_TRUE;
-}
-#endif
-
 PHP_METHOD(FireBird_Database, new_transaction)
 {
     ZEND_PARSE_PARAMETERS_NONE();
@@ -706,15 +647,6 @@ PHP_METHOD(FireBird_Database, start_transaction)
         zval_ptr_dtor(return_value);
         RETURN_FALSE;
     }
-
-    // firebird_db *db = get_firebird_db_from_zval(ZEND_THIS);
-    // firebird_tbuilder *builder = get_firebird_tbuilder_from_zval(Builder);
-    // firebird_trans *tr = get_firebird_trans_from_zval(return_value);
-
-    // if (fbu_database_start_transaction(db, builder, tr)) {
-    //     zval_ptr_dtor(return_value);
-    //     RETURN_FALSE;
-    // }
 }
 
 PHP_METHOD(FireBird_Database, disconnect)

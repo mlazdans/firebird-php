@@ -17,7 +17,6 @@ extern "C" {
 #define STRNUM_PARSE_OVERFLOW 2
 
 unsigned fbu_get_client_version(void);
-int fbu_execute_database(ISC_STATUS* status, const firebird_db *db, size_t len_sql, const char *sql, firebird_trans *tr);
 
 const char* fbu_get_sql_type_name(unsigned type);
 int fbu_string_to_numeric(const char *s, const size_t slen, int scale, uint64_t max,
@@ -30,7 +29,6 @@ int fbu_database_connect(firebird_db *db);
 int fbu_database_create(firebird_db *db);
 int fbu_database_disconnect(firebird_db *db);
 int fbu_database_drop(firebird_db *db);
-int fbu_database_execute(firebird_db *db, unsigned len_sql, const char *sql);
 
 int fbu_transaction_init(firebird_db *db, firebird_trans *tr);
 int fbu_transaction_free(firebird_trans *tr);

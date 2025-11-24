@@ -31,13 +31,6 @@ void FireBird_Statement___construct(zval *self, zval *transaction)
 
 PHP_METHOD(FireBird_Statement, __construct)
 {
-    // Private
-    // zval *Transaction;
-    // ZEND_PARSE_PARAMETERS_START(1, 1)
-    //     Z_PARAM_OBJECT_OF_CLASS(Transaction, FireBird_Transaction_ce)
-    // ZEND_PARSE_PARAMETERS_END();
-
-    // FireBird_Statement___construct(ZEND_THIS, Transaction);
 }
 
 static void _FireBird_Statement_fetch(INTERNAL_FUNCTION_PARAMETERS, int return_type)
@@ -139,22 +132,6 @@ int FireBird_Statement_execute(zval *self, zval *bind_args, uint32_t num_bind_ar
     }
 
     return SUCCESS;
-
-#if 0
-    firebird_stmt *stmt = get_firebird_stmt_from_zval(Stmt);
-
-    if (!stmt->statement_type) {
-        zend_throw_exception_ex(spl_ce_RuntimeException, 0, "Execute with unprepared statement.");
-        return FAILURE;
-    }
-
-    zend_update_property_long(FireBird_Statement_ce, Z_OBJ_P(Stmt), "insert_count", sizeof("insert_count") - 1, stmt->insert_count);
-    zend_update_property_long(FireBird_Statement_ce, Z_OBJ_P(Stmt), "update_count", sizeof("update_count") - 1, stmt->update_count);
-    zend_update_property_long(FireBird_Statement_ce, Z_OBJ_P(Stmt), "delete_count", sizeof("delete_count") - 1, stmt->delete_count);
-    zend_update_property_long(FireBird_Statement_ce, Z_OBJ_P(Stmt), "affected_count", sizeof("affected_count") - 1, stmt->affected_count);
-
-    return SUCCESS;
-#endif
 }
 
 PHP_METHOD(FireBird_Statement, execute)
@@ -180,49 +157,6 @@ int FireBird_Statement_prepare(zval *self, zend_string *sql)
 
     return SUCCESS;
 }
-
-PHP_METHOD(FireBird_Statement, prepare)
-{
-    TODO("PHP_METHOD(FireBird_Statement, prepare)");
-#if 0
-    zend_string *sql;
-
-    ZEND_PARSE_PARAMETERS_START(1, 1)
-        Z_PARAM_STR(sql)
-    ZEND_PARSE_PARAMETERS_END();
-
-    RETVAL_BOOL(SUCCESS == FireBird_Statement_prepare(ZEND_THIS, ZSTR_VAL(sql)));
-#endif
-}
-
-int FireBird_Statement_query(zval *Stmt, const ISC_SCHAR* sql, zval *bind_args, uint32_t num_bind_args)
-{
-    TODO("FireBird_Statement_query");
-    // if (FireBird_Statement_prepare(Stmt, sql)) {
-    //     return FAILURE;
-    // }
-
-    // if (FireBird_Statement_execute(Stmt, bind_args, num_bind_args)) {
-    //     return FAILURE;
-    // }
-
-    return FAILURE;
-}
-
-// PHP_METHOD(FireBird_Statement, query)
-// {
-//     zval *bind_args;
-//     uint32_t num_bind_args;
-//     zend_string *sql;
-
-//     ZEND_PARSE_PARAMETERS_START(1, -1)
-//         Z_PARAM_STR(sql)
-//         Z_PARAM_OPTIONAL
-//         Z_PARAM_VARIADIC('+', bind_args, num_bind_args)
-//     ZEND_PARSE_PARAMETERS_END();
-
-//     RETVAL_BOOL(SUCCESS == FireBird_Statement_query(ZEND_THIS, ZSTR_VAL(sql), bind_args, num_bind_args));
-// }
 
 PHP_METHOD(FireBird_Statement, get_var_info_in)
 {

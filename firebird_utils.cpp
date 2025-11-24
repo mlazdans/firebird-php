@@ -30,27 +30,6 @@ extern "C" {
 
 using namespace Firebird;
 
-// struct TransactionList {
-//     std::vector<Transaction*> trans;
-//     ~TransactionList() {
-//         FBDEBUG("[~TransactionList] %d", trans.size());
-//         ThrowStatusWrapper st(fb_get_master_interface()->getStatus());
-
-//         for (auto &tx : trans) {
-//             FBDEBUG("[*] Closing transaction: %p", tx);
-//             if (tx) {
-//                 FBDEBUG("Rolling back transaction: %p", tx);
-//                 // tx->rollback(&st);
-//                 // tx->release();
-//                 // tx = nullptr;
-//             }
-//         }
-//     }
-// };
-
-// TODO: remove
-static IMaster* fbu_master = fb_get_master_interface();
-
 static void fbu_copy_status(const ISC_STATUS* from, ISC_STATUS* to, size_t maxLength)
 {
     for(size_t i=0; i < maxLength; ++i) {
@@ -204,7 +183,7 @@ void fbu_xpb_insert_object(IXpbBuilder* xpb, zval *obj, zend_class_entry *ce,
     zend_property_info *prop_info = NULL;
     zval rv, *val, *checkval;
     int i;
-    ThrowStatusWrapper st(fbu_master->getStatus());
+    ThrowStatusWrapper st(fb_get_master_interface()->getStatus());
 
     for (int i = 0; i < xpb_zmap->count; i++) {
         prop_name = zend_string_init(xpb_zmap->names[i], strlen(xpb_zmap->names[i]), 1);
@@ -379,116 +358,9 @@ int fbu_string_to_numeric(const char *s, const size_t slen, int scale, uint64_t 
 // Returns the client version. 0 bytes are minor version, 1 bytes are major version.
 unsigned fbu_get_client_version(void)
 {
-    IUtil* util = fbu_master->getUtilInterface();
+    IUtil* util = fb_get_master_interface()->getUtilInterface();
     return util->getClientVersion();
 }
-
-#if 0
-int fbu_create_database(ISC_STATUS* status, firebird_db *db, zval *Create_Args, zend_class_entry *ce)
-{
-    auto util = fbu_master->getUtilInterface();
-    auto prov = fbu_master->getDispatcher();
-    IXpbBuilder* dpb = NULL;
-    ThrowStatusWrapper st(fbu_master->getStatus());
-    zval rv, *database;
-
-    try
-    {
-        // TODO: wtf
-        database = PROP_GET(FireBird_Create_Args_ce, Create_Args, "database");
-
-        if ((Z_TYPE_P(database) != IS_STRING) || !Z_STRLEN_P(database)) {
-            throw Php_Firebird_Exception(zend_ce_value_error, "Database parameter not set");
-            return FAILURE;
-        }
-
-        dpb = util->getXpbBuilder(&st, IXpbBuilder::DPB, NULL, 0);
-        fbu_xpb_insert_object(dpb, Create_Args, ce, &fbp_database_create_zmap);
-
-        db->att = prov->createDatabase(&st, Z_STRVAL_P(database),
-            dpb->getBufferLength(&st), dpb->getBuffer(&st));
-
-        return SUCCESS;
-    }
-    catch (...)
-    {
-        fbu_handle_exception(&st, status);
-        return FAILURE;
-    }
-
-    // zval rv;
-    // zval *database = OBJ_GET(ce, Create_Args, "database", &rv);
-
-    // try
-    // {
-    //     dpb = util->getXpbBuilder(&st, IXpbBuilder::DPB, NULL, 0);
-    //     // dpb->insertInt(&status, isc_dpb_page_size, 4 * 1024);
-    //     dpb->insertString(&st, isc_dpb_user_name, "sysdba");
-    //     dpb->insertString(&st, isc_dpb_password, "masterkey");
-
-    //     db->att = prov->attachDatabase(&st, Z_STRVAL_P(database),
-    //         dpb->getBufferLength(&st), dpb->getBuffer(&st));
-
-    //     // if(fb_get_database_handle(status, &db->db_handle, db->att)){
-    //     //     return status[1];
-    //     // }
-    //     return SUCCESS;
-    // }
-    // catch (...)
-    // {
-    //     fbu_handle_exception(&st, status);
-    //     return FAILURE;
-    // }
-}
-#endif
-
-#if 0
-ISC_INT64 fbu_get_transaction_id(ISC_STATUS* status, void *tra)
-{
-    ThrowStatusWrapper st(fbu_master->getStatus());
-
-    try
-    {
-        return _fbu_get_transaction_id(static_cast<ITransaction *>(tra));
-    }
-    catch (...)
-    {
-        fbu_handle_exception(&st, status);
-        return FAILURE;
-    }
-}
-#endif
-
-#if 0
-int fbu_execute_database(ISC_STATUS* status, const firebird_db *db, size_t len_sql, const char *sql, firebird_trans *tr)
-{
-    ITransaction *tra = NULL;
-    auto att = static_cast<IAttachment*>(db->att);
-    ThrowStatusWrapper st(fbu_master->getStatus());
-
-    try
-    {
-        auto tra = att->execute(&st, NULL, len_sql, sql, SQL_DIALECT_CURRENT, NULL, NULL, NULL, NULL);
-
-        if (tra) {
-            auto tr_id = _fbu_get_transaction_id(tra);
-            tr->att = att;
-            tr->tra = tra;
-            tr->tr_id = tr_id;
-            return SUCCESS;
-        } else {
-            if (tra) tra->release();
-            return FAILURE;
-        }
-    }
-    catch (...)
-    {
-        fbu_handle_exception(&st, status);
-        if (tra) tra->release();
-        return FAILURE;
-    }
-}
-#endif
 
 void fbu_init_date_object(const char *tzbuff, zval *o)
 {
@@ -510,122 +382,6 @@ void fbu_init_date_object(const char *tzbuff, zval *o)
     // php_date_time_set(&new_object, h, i, s, ms, return_value);
     // php_date_initialize_from_ts_long(date_obj, 0, 0);
 }
-
-#if 0
-int fbu_parse_output_buffer(ISC_STATUS* status, firebird_stmt *stmt, int flags, zval *return_value)
-{
-    if (!stmt || !stmt->tr || !stmt->tr->tra || !stmt->out_metadata) return FAILURE;
-
-    auto om = static_cast<IMessageMetadata*>(stmt->out_metadata);
-    ThrowStatusWrapper st(fbu_master->getStatus());
-    zval result;
-
-    try
-    {
-        for (size_t index = 0; index < stmt->out_vars_count; index++) {
-            ZVAL_UNDEF(&result);
-            fbu_var_zval((IAttachment *)stmt->tr->att, (ITransaction *)stmt->tr->tra,
-                om, &result, index, stmt->out_buffer, flags);
-
-            if (flags & FBP_FETCH_INDEXED) {
-                add_index_zval(return_value, index, &result);
-            } else if (flags & FBP_FETCH_HASHED) {
-                add_assoc_zval(return_value, om->getAlias(&st, index), &result);
-            } else {
-                throw Php_Firebird_Exception(zend_ce_error, "BUG: fetch method flag not set");
-            }
-        }
-        return SUCCESS;
-    }
-    catch (...)
-    {
-        fbu_handle_exception(&st, status);
-        return FAILURE;
-    }
-}
-#endif
-
-#if 0
-int fbu_fetch_next(ISC_STATUS* status, firebird_stmt *stmt)
-{
-    TODO("fbu_fetch_next");
-    return FAILURE;
-    auto curs = static_cast<IResultSet*>(stmt->curs);
-    ThrowStatusWrapper st(fbu_master->getStatus());
-
-    if (!curs) {
-        php_printf("NO CURSOR!!\n");
-        return FAILURE;
-    }
-
-    try
-    {
-        auto fetch_res = curs->fetchNext(&st, stmt->out_buffer);
-
-        if (fetch_res == IStatus::RESULT_OK) {
-            return 0;
-        }
-
-        if (fetch_res == IStatus::RESULT_NO_DATA) {
-            curs->close(&st);
-            curs->release();
-            stmt->curs = curs = NULL;
-            return 1;
-        }
-
-        return -1;
-    }
-    catch (...)
-    {
-        fbu_handle_exception(&st, status);
-        return -1;
-    }
-}
-#endif
-
-// int fbu_statement_bind(firebird_stmt *stmt, zval *b_vars, size_t num_bind_args)
-// {
-//     ThrowStatusWrapper st(fbu_master->getStatus());
-
-//     try
-//     {
-//         _fbu_statement_bind(stmt, b_vars, num_bind_args);
-//         return SUCCESS;
-//     }
-//     catch (...)
-//     {
-//         fbu_handle_exception(&st, status);
-//         return FAILURE;
-//     }
-// }
-
-int fbu_blob_get_segment(ISC_STATUS* status, firebird_blob *blob, zend_string *buf, unsigned* len)
-{
-    TODO("fbu_blob_get_segment");
-    return FAILURE;
-#if 0
-    if (!blob || !blob->blo) return FAILURE;
-
-    auto blo = static_cast<IBlob*>(blob->blo);
-    ThrowStatusWrapper st(fbu_master->getStatus());
-
-    try
-    {
-        blo->getSegment(&st, ZSTR_LEN(buf), &ZSTR_VAL(buf), len);
-        ZSTR_VAL(buf)[*len] = '\0';
-        ZSTR_LEN(buf) = *len;
-
-        return SUCCESS;
-    }
-    catch (...)
-    {
-        fbu_handle_exception(&st, status);
-        return FAILURE;
-    }
-#endif
-}
-
-
 
 
 
@@ -677,28 +433,6 @@ int fbu_database_free(firebird_db *db)
         return SUCCESS;
     });
 }
-
-// int fbu_database_start_transaction(firebird_db *db, const firebird_tbuilder *builder, firebird_trans *tr)
-// {
-//     return fbu_call_void([&]() {
-//         auto tra = static_cast<Database *>(db->dbptr)->start_transaction(builder);
-//         tr->db = db;
-//         tr->trptr = tra;
-//         tr->id = tra->query_transaction_id();
-//         return SUCCESS;
-//     });
-// }
-
-#if 0
-int fbu_database_execute(firebird_db *db, unsigned len_sql, const char *sql)
-{
-    return fbu_call_void([&]() {
-        static_cast<Database*>(db->dbptr)->execute(len_sql, sql,
-            nullptr, nullptr, nullptr, nullptr);
-        return SUCCESS;
-    });
-}
-#endif
 
 int fbu_transaction_init(firebird_db *db, firebird_trans *tr)
 {

@@ -195,9 +195,7 @@ class Database
      * Wrapper around new Transaction($this);
      */
     public function new_transaction(): Transaction { die; }
-
     public function get_info(): Db_Info|false { die; }
-    // public function execute(string $sql): bool { die; }
     public function disconnect(): bool { die; }
     public function drop(): bool { die; }
 
@@ -350,10 +348,7 @@ class Statement
      * @see FETCH_BLOBS, FETCH_UNIXTIME
      * */
     public function fetch_row(int $flags = 0): array|false|null { die; }
-    // TODO: temp disable
-    // public function prepare(string $sql): bool { die; }
     public function execute(mixed ...$bind_args): bool { die; }
-    // public function query(string $sql, mixed ...$bind_args): bool { die; }
     public function close_cursor(): bool { die; }
     public function free(): void { die; }
 
