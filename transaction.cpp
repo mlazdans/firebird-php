@@ -1,4 +1,5 @@
 #include "firebird_php.hpp"
+#include "firebird_utils.h"
 
 extern "C" {
 
@@ -7,26 +8,25 @@ extern "C" {
 #include "php.h"
 #include "zend_exceptions.h"
 #include "zend_attributes.h"
-#include "firebird_utils.h"
-#include "blob.h"
-#include "database.h"
-#include "transaction.h"
-#include "statement.h"
 
 fbp_object_accessor(firebird_trans);
 fbp_object_accessor(firebird_tbuilder);
 static zend_object_handlers FireBird_Transaction_object_handlers;
 
-void FireBird_Transaction___construct(zval *self, zval *database)
+int FireBird_Transaction___construct(zval *self, zval *database)
 {
     PROP_SET(FireBird_Transaction_ce, self, "database", database);
 
     firebird_trans *tr = get_firebird_trans_from_zval(self);
     firebird_db *db = get_firebird_db_from_zval(database);
 
-    fbu_transaction_init(db, tr);
+    FBDEBUG("FireBird_Transaction___construct (db=%p, tr=%p, dbh=%zu)", db, tr, db->dbh);
 
-    FBDEBUG("FireBird_Transaction___construct finished(db=%p, tr=%p, tr->trptr=%p)", db, tr, tr->trptr);
+    if (fbu_transaction_init(db, tr)) {
+        return FAILURE;
+    }
+
+    return SUCCESS;
 }
 
 PHP_METHOD(FireBird_Transaction, __construct)
@@ -37,7 +37,9 @@ PHP_METHOD(FireBird_Transaction, __construct)
         Z_PARAM_OBJECT_OF_CLASS(database, FireBird_Database_ce)
     ZEND_PARSE_PARAMETERS_END();
 
-    FireBird_Transaction___construct(ZEND_THIS, database);
+    if (FireBird_Transaction___construct(ZEND_THIS, database)) {
+        RETURN_THROWS();
+    }
 }
 
 int FireBird_Transaction_start(zval *self, zval *builder)
@@ -45,7 +47,7 @@ int FireBird_Transaction_start(zval *self, zval *builder)
     firebird_trans *tr = get_firebird_trans_from_zval(self);
     firebird_tbuilder *tb = get_firebird_tbuilder_from_zval(builder);
 
-    FBDEBUG("FireBird_Transaction_start(tr=%p, tb=%p)", tr, tb);
+    FBDEBUG("FireBird_Transaction_start(tr=%p, tr->trh=%lu, tb=%p)", tr, tr->trh, tb);
 
     return fbu_transaction_start(tr, tb);
 }
@@ -62,10 +64,8 @@ PHP_METHOD(FireBird_Transaction, start)
     FBDEBUG("%s(builder=%p)", __func__, builder);
 
     if (FireBird_Transaction_start(ZEND_THIS, builder)) {
-        RETURN_FALSE;
+        RETURN_THROWS();
     }
-
-    RETURN_TRUE;
 }
 
 static void FireBird_Transaction_finalize(INTERNAL_FUNCTION_PARAMETERS, int mode)
@@ -77,9 +77,7 @@ static void FireBird_Transaction_finalize(INTERNAL_FUNCTION_PARAMETERS, int mode
     FBDEBUG("%s(tr=%p, mode=%d)", __func__, tr, mode);
 
     if (fbu_transaction_finalize(tr, mode)) {
-        RETURN_FALSE;
-    } else {
-        RETURN_TRUE;
+        RETURN_THROWS();
     }
 }
 
@@ -108,11 +106,8 @@ PHP_METHOD(FireBird_Transaction, prepare)
     ZEND_PARSE_PARAMETERS_END();
 
     object_init_ex(return_value, FireBird_Statement_ce);
-    FireBird_Statement___construct(return_value, ZEND_THIS);
-
-    if (FireBird_Statement_prepare(return_value, sql)) {
-        zval_ptr_dtor(return_value);
-        RETURN_FALSE;
+    if (FireBird_Statement___construct(return_value, ZEND_THIS) || FireBird_Statement_prepare(return_value, sql)) {
+        RETURN_THROWS();
     }
 }
 
@@ -129,16 +124,12 @@ PHP_METHOD(FireBird_Transaction, query)
     ZEND_PARSE_PARAMETERS_END();
 
     object_init_ex(return_value, FireBird_Statement_ce);
-    FireBird_Statement___construct(return_value, ZEND_THIS);
-
-    if (FireBird_Statement_prepare(return_value, sql)) {
-        zval_ptr_dtor(return_value);
-        RETURN_FALSE;
-    }
-
-    if (FireBird_Statement_execute(return_value, bind_args, num_bind_args)) {
-        zval_ptr_dtor(return_value);
-        RETURN_FALSE;
+    if (
+        FireBird_Statement___construct(return_value, ZEND_THIS) ||
+        FireBird_Statement_prepare(return_value, sql) ||
+        FireBird_Statement_execute(return_value, bind_args, num_bind_args)
+    ) {
+        RETURN_THROWS();
     }
 }
 
@@ -146,7 +137,7 @@ int FireBird_Transaction_execute(zval *self, zend_string *sql)
 {
     firebird_trans *tr = get_firebird_trans_from_zval(self);
 
-    FBDEBUG("%s(tr=%p, tr->trptr=%p)", __func__, tr, tr->trptr);
+    FBDEBUG("%s(tr=%p, trhr=%zu)", __func__, tr, tr->trh);
 
     if (fbu_transaction_execute(tr, ZSTR_LEN(sql), ZSTR_VAL(sql))) {
         return FAILURE;
@@ -166,10 +157,8 @@ PHP_METHOD(FireBird_Transaction, execute)
     ZEND_PARSE_PARAMETERS_END();
 
     if (FireBird_Transaction_execute(ZEND_THIS, sql)) {
-        RETURN_FALSE;
+        RETURN_THROWS();
     }
-
-    RETURN_TRUE;
 }
 
 PHP_METHOD(FireBird_Transaction, open_blob)
@@ -181,22 +170,9 @@ PHP_METHOD(FireBird_Transaction, open_blob)
     ZEND_PARSE_PARAMETERS_END();
 
     object_init_ex(return_value, FireBird_Blob_ce);
-    FireBird_Blob___construct(return_value, ZEND_THIS);
-
-    if (FireBird_Blob_open(return_value, Blob_Id)) {
-        zval_ptr_dtor(return_value);
-        RETURN_FALSE;
+    if (FireBird_Blob___construct(return_value, ZEND_THIS) || FireBird_Blob_open(return_value, Blob_Id)) {
+        RETURN_THROWS();
     }
-
-    // firebird_trans *tr = get_firebird_trans_from_zval(ZEND_THIS);
-    // firebird_blob *blob = get_firebird_blob_from_zval(return_value);
-    // firebird_blob_id *blob_id = get_firebird_blob_id_from_zval(Blob_Id);
-
-    // if (fbu_blob_open(FBG(status), tr, blob_id->bl_id, blob)) {
-    //     update_err_props(FBG(status), FireBird_Blob_ce, Blob);
-    //     zval_ptr_dtor(return_value);
-    //     RETURN_FALSE;
-    // }
 }
 
 PHP_METHOD(FireBird_Transaction, create_blob)
@@ -204,11 +180,8 @@ PHP_METHOD(FireBird_Transaction, create_blob)
     ZEND_PARSE_PARAMETERS_NONE();
 
     object_init_ex(return_value, FireBird_Blob_ce);
-    FireBird_Blob___construct(return_value, ZEND_THIS);
-
-    if (FireBird_Blob_create(return_value)) {
-        zval_ptr_dtor(return_value);
-        RETURN_FALSE;
+    if (FireBird_Blob___construct(return_value, ZEND_THIS) || FireBird_Blob_create(return_value)) {
+        RETURN_THROWS();
     }
 }
 
@@ -235,7 +208,7 @@ static zend_object *FireBird_Transaction_create_object(zend_class_entry *ce)
 {
     firebird_trans *tr = (firebird_trans *)zend_object_alloc(sizeof(firebird_trans), ce);
 
-    FBDEBUG("+%s(tr=%p)", __func__, tr);
+    FBDEBUG("+%s(tr=%p, tr->trh=%lu)", __func__, tr, tr->trh);
 
     zend_object_std_init(&tr->std, ce);
     object_properties_init(&tr->std, ce);
@@ -247,9 +220,11 @@ static void FireBird_Transaction_free_obj(zend_object *obj)
 {
     firebird_trans *tr = get_firebird_trans_from_obj(obj);
 
-    FBDEBUG("~%s(tr=%p, tr->trptr=%p)", __func__, tr, tr->trptr);
+    FBDEBUG("~%s(tr=%p, tr->trh=%zu)", __func__, tr, tr->trh);
 
-    if (tr->trptr) fbu_transaction_free(tr);
+    if (fbu_is_valid_trh(tr)) {
+        fbu_transaction_free(tr);
+    }
 
     zend_object_std_dtor(&tr->std);
 }

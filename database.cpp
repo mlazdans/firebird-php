@@ -1,14 +1,12 @@
 #include "firebird_php.hpp"
+#include "firebird_utils.h"
 
 extern "C" {
 #include "php.h"
 #include "zend_exceptions.h"
 #include "zend_attributes.h"
 #include "php_firebird_includes.h"
-#include "firebird_utils.h"
 #include "ext/spl/spl_exceptions.h"
-#include "database.h"
-#include "transaction.h"
 
 fbp_object_accessor(firebird_db);
 static zend_object_handlers FireBird_Database_object_handlers;
@@ -633,7 +631,10 @@ PHP_METHOD(FireBird_Database, new_transaction)
     ZEND_PARSE_PARAMETERS_NONE();
 
     object_init_ex(return_value, FireBird_Transaction_ce);
-    FireBird_Transaction___construct(return_value, ZEND_THIS);
+
+    if (FireBird_Transaction___construct(return_value, ZEND_THIS)) {
+        RETURN_THROWS();
+    }
 }
 
 PHP_METHOD(FireBird_Database, start_transaction)
@@ -648,11 +649,11 @@ PHP_METHOD(FireBird_Database, start_transaction)
     FBDEBUG("%s(builder=%p)", __func__, builder);
 
     object_init_ex(return_value, FireBird_Transaction_ce);
-    FireBird_Transaction___construct(return_value, ZEND_THIS);
 
-    if (FireBird_Transaction_start(return_value, builder)) {
-        zval_ptr_dtor(return_value);
-        // RETURN_FALSE;
+    if (FireBird_Transaction___construct(return_value, ZEND_THIS) ||
+        FireBird_Transaction_start(return_value, builder)
+    ) {
+        RETURN_THROWS();
     }
 }
 
@@ -667,8 +668,6 @@ PHP_METHOD(FireBird_Database, disconnect)
     if (fbu_database_disconnect(db)) {
         RETURN_THROWS();
     }
-
-    // RETURN_FALSE;
 }
 
 void FireBird_Database_reconnect_transaction(zval *Db, zval *return_value, zend_long id)
@@ -775,9 +774,11 @@ static void FireBird_Database_free_obj(zend_object *obj)
 {
     firebird_db *db = get_firebird_db_from_obj(obj);
 
-    FBDEBUG("~%s(db=%p, db->dbptr=%p)", __func__, db, db->dbptr);
+    FBDEBUG("~%s(db=%p, db->dbh=%lu)", __func__, db, db->dbh);
 
-    fbu_database_free(db);
+    if (fbu_is_valid_dbh(db)) {
+        fbu_database_free(db);
+    }
 
     zend_object_std_dtor(&db->std);
 }

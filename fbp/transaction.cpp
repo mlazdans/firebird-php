@@ -16,9 +16,9 @@ using namespace Firebird;
 
 namespace FBP {
 
-Transaction::Transaction(Database *dba): dba{dba}
+Transaction::Transaction(Database &dba): dba{dba}
 {
-    FBDEBUG("new Transaction(dba=%p)", dba);
+    FBDEBUG("new Transaction(dba=%p)", PTR(dba));
 }
 
 void Transaction::start(const firebird_tbuilder *builder)
@@ -32,9 +32,9 @@ void Transaction::start(const firebird_tbuilder *builder)
         auto util = master->getUtilInterface();
         auto tpb = util->getXpbBuilder(&st, IXpbBuilder::TPB, NULL, 0);
         fbu_transaction_build_tpb(tpb, builder);
-        tra = dba->start_transaction(tpb->getBufferLength(&st), tpb->getBuffer(&st));
+        tra = dba.start_transaction(tpb->getBufferLength(&st), tpb->getBuffer(&st));
     } else {
-        tra = dba->start_transaction(0, NULL);
+        tra = dba.start_transaction(0, NULL);
     }
 }
 
@@ -143,11 +143,12 @@ Transaction::~Transaction()
         tra = nullptr;
     }
 
-    if (err) fbu_handle_exception2();
+    if (err) fbu_handle_exception(__FILE__, __LINE__);
 }
 
 int Transaction::commit()
 {
+    // TODO: checks are needed? should be managed by Database
     if (tra) {
         tra->commit(&st);
         tra->release();
@@ -160,6 +161,7 @@ int Transaction::commit()
 
 int Transaction::commit_ret()
 {
+    // TODO: checks are needed? should be managed by Database
     if (tra) {
         tra->commitRetaining(&st);
         return SUCCESS;
@@ -215,12 +217,12 @@ ISC_QUAD Transaction::create_blob(zend_string *data)
 
 ITransaction *Transaction::execute(unsigned len_sql, const char *sql)
 {
-    FBDEBUG("Transaction::execute(dba=%p)", dba);
+    // FBDEBUG("Transaction::execute(dba=%p)", dba);
 
     // TODO: release old?
-    return tra = dba->execute(tra, len_sql, sql, NULL, NULL, NULL, NULL);
+    return tra = dba.execute(tra, len_sql, sql, NULL, NULL, NULL, NULL);
 
-    // return tra = dba->get_att()->execute(&st, tra, len_sql, sql, SQL_DIALECT_CURRENT, NULL, NULL, NULL, NULL);
+    // return tra = dba.get_att()->execute(&st, tra, len_sql, sql, SQL_DIALECT_CURRENT, NULL, NULL, NULL, NULL);
 
     // if (tra2) {
     //     if (!tra) {
@@ -237,12 +239,12 @@ ITransaction *Transaction::execute(unsigned len_sql, const char *sql)
 
 IBlob *Transaction::open_blob(ISC_QUAD *blob_id)
 {
-    return dba->open_blob(tra, blob_id);
+    return dba.open_blob(tra, blob_id);
 }
 
 IBlob *Transaction::create_blob(ISC_QUAD *blob_id)
 {
-    return dba->create_blob(tra, blob_id);
+    return dba.create_blob(tra, blob_id);
 }
 
 void Transaction::execute_statement(IStatement *statement,
@@ -262,7 +264,37 @@ IResultSet *Transaction::open_cursor(IStatement *statement,
 
 IStatement* Transaction::prepare(unsigned int len_sql, const char *sql)
 {
-    return dba->prepare(tra, len_sql, sql);
+    return dba.prepare(tra, len_sql, sql);
+}
+
+size_t Transaction::new_statement()
+{
+    st_list.emplace_back(new Statement(this));
+    return st_list.size();
+}
+
+std::unique_ptr<Statement> &Transaction::get_statement(size_t sth)
+{
+    if (!sth || sth > st_list.size() || !st_list[sth - 1]) {
+        throw Php_Firebird_Exception(zend_ce_error, "Invalid statement handle");
+    }
+
+    return st_list[sth - 1];
+}
+
+size_t Transaction::new_blob()
+{
+    bl_list.emplace_back(new Blob(this));
+    return bl_list.size();
+}
+
+std::unique_ptr<Blob> &Transaction::get_blob(size_t blh)
+{
+    if (!blh || blh > bl_list.size() || !bl_list[blh - 1]) {
+        throw Php_Firebird_Exception(zend_ce_error, "Invalid blob handle");
+    }
+
+    return bl_list[blh - 1];
 }
 
 }// namespace

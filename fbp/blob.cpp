@@ -34,7 +34,7 @@ Blob::~Blob() noexcept
         blob = nullptr;
     }
 
-    if (err) fbu_handle_exception2();
+    if (err) fbu_handle_exception(__FILE__, __LINE__);
 }
 
 ISC_QUAD Blob::create()
@@ -162,6 +162,11 @@ void Blob::seek(int mode, int offset, int *new_offset)
 {
     *new_offset = blob->seek(&st, mode, offset);
     info.position = *new_offset;
+}
+
+bool Blob::has_blob()
+{
+    return blob != nullptr;
 }
 
 } // namespace

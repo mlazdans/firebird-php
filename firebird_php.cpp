@@ -1,10 +1,9 @@
 #include <vector>
 #include <memory>
 
-#include "utils.hpp"
 #include "firebird_php.hpp"
-
-using namespace FBP;
+#include "fbp/blob.hpp"
+#include "fbp/statement.hpp"
 
 extern "C" {
 
@@ -24,10 +23,6 @@ extern "C" {
 #include "zend_interfaces.h"
 #include "zend_exceptions.h"
 
-#include "blob.h"
-#include "database.h"
-#include "transaction.h"
-#include "statement.h"
 // #include "service.h"
 // #include "multi_transaction.h"
 // #include "fbp_service.h"
@@ -36,9 +31,7 @@ extern "C" {
 
 PHP_RINIT_FUNCTION(firebird)
 {
-    FBG(db_list) = new std::vector<DatabasePtr>();
-
-    php_printf("Hello from PHP_RINIT_FUNCTION. List size = %d\n", FBG(db_list)->size());
+    // FBG(db_list) = new std::vector<std::unique_ptr<Database>>();
 
     return SUCCESS;
 }
@@ -227,6 +220,7 @@ static void _free_events(firebird_event *p, firebird_event *prev)
 PHP_RSHUTDOWN_FUNCTION(firebird)
 {
     // _free_events(fb_events.events, fb_events.events ? fb_events.events->next : NULL);
+    FBG(db_list).clear();
 
     return SUCCESS;
 }

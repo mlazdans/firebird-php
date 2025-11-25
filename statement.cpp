@@ -1,4 +1,6 @@
 #include "firebird_php.hpp"
+#include "fbp/statement.hpp"
+#include "firebird_utils.h"
 
 extern "C" {
 
@@ -8,26 +10,24 @@ extern "C" {
 #include "zend_exceptions.h"
 #include "zend_attributes.h"
 #include "ext/spl/spl_exceptions.h"
-#include "firebird_utils.h"
-#include "statement.h"
-#include "transaction.h"
-#include "blob.h"
 
 fbp_object_accessor(firebird_stmt);
 static zend_object_handlers FireBird_Statement_object_handlers;
 
 // void FireBird_Var_Info_from_var(zval *return_value, XSQLVAR *var);
 
-void FireBird_Statement___construct(zval *self, zval *transaction)
+int FireBird_Statement___construct(zval *self, zval *transaction)
 {
-
     firebird_stmt *stmt = get_firebird_stmt_from_zval(self);
     firebird_trans *tr = get_firebird_trans_from_zval(transaction);
 
-    fbu_statement_init(tr, stmt);
+    if (fbu_statement_init(tr, stmt)) {
+        return FAILURE;
+    }
 
-    // Increase refcount essentially
     PROP_SET(FireBird_Statement_ce, self, "transaction", transaction);
+
+    return SUCCESS;
 }
 
 PHP_METHOD(FireBird_Statement, __construct)
@@ -72,31 +72,30 @@ PHP_METHOD(FireBird_Statement, close_cursor)
     ZEND_PARSE_PARAMETERS_NONE();
 
     if (fbu_statement_close_cursor(get_firebird_stmt_from_zval(ZEND_THIS))) {
-        RETURN_FALSE;
+        RETURN_THROWS();
     }
-
-    RETURN_TRUE;
 }
 
 PHP_METHOD(FireBird_Statement, free)
 {
     ZEND_PARSE_PARAMETERS_NONE();
 
-    fbu_statement_free(get_firebird_stmt_from_zval(ZEND_THIS));
+    if (fbu_statement_free(get_firebird_stmt_from_zval(ZEND_THIS))) {
+        RETURN_THROWS();
+    }
 }
 
 int FireBird_Statement_execute(zval *self, zval *bind_args, uint32_t num_bind_args)
 {
     firebird_stmt *stmt = get_firebird_stmt_from_zval(self);
 
-    if (!stmt->sptr) {
-        zend_throw_exception_ex(spl_ce_RuntimeException, 0, "Attempt execute on freed statement");
-        return FAILURE;
-    }
+    // if (!stmt->sptr) {
+    //     zend_throw_exception_ex(spl_ce_RuntimeException, 0, "Attempt execute on freed statement");
+    //     return FAILURE;
+    // }
 
-    FBDEBUG("FireBird_Statement_execute(%p) statement_type: %d", stmt->sptr, stmt->info->statement_type);
-    FBDEBUG("   in_var_count: %d, out_vars_count: %d", stmt->info->in_vars_count, stmt->info->out_vars_count);
-
+    // FBDEBUG("FireBird_Statement_execute(%p) statement_type: %d", stmt->sptr, stmt->info->statement_type);
+    // FBDEBUG("   in_var_count: %d, out_vars_count: %d", stmt->info->in_vars_count, stmt->info->out_vars_count);
 
     switch(stmt->info->statement_type) {
         case isc_info_sql_stmt_select:
@@ -145,8 +144,9 @@ PHP_METHOD(FireBird_Statement, execute)
         Z_PARAM_VARIADIC('+', bind_args, num_bind_args)
     ZEND_PARSE_PARAMETERS_END();
 
-    // TODO: RETURN_THROWS();
-    RETVAL_BOOL(SUCCESS == FireBird_Statement_execute(ZEND_THIS, bind_args, num_bind_args));
+    if (FireBird_Statement_execute(ZEND_THIS, bind_args, num_bind_args)) {
+        RETURN_THROWS();
+    }
 }
 
 int FireBird_Statement_prepare(zval *self, zend_string *sql)
@@ -239,9 +239,9 @@ static void FireBird_Statement_free_obj(zend_object *obj)
 {
     firebird_stmt *stmt = get_firebird_stmt_from_obj(obj);
 
-    FBDEBUG("~%s(%p)", __func__, stmt->sptr);
+    FBDEBUG("~%s(sth=%zu)", __func__, stmt->sth);
 
-    if (stmt->sptr) {
+    if (fbu_is_valid_sth(stmt)) {
         fbu_statement_free(stmt);
     }
 
@@ -303,7 +303,7 @@ void FireBird_Statement_fetch(zval *self, int flags, zval *return_value)
     HashTable *ht = NULL;
     firebird_stmt *stmt = get_firebird_stmt_from_zval(self);
 
-    FBDEBUG("FireBird_Statement_fetch(%p)", stmt->sptr);
+    FBDEBUG("%s(sth=%zu)", __func__,  stmt->sth);
 
     switch (stmt->info->statement_type)
     {
@@ -313,12 +313,14 @@ void FireBird_Statement_fetch(zval *self, int flags, zval *return_value)
                 RETURN_FALSE;
             }
 
+            // TODO: throws?
             if (!stmt->is_cursor_open) {
                 if (fbu_statement_open_cursor(stmt)) {
                     RETURN_FALSE;
                 }
             }
 
+            // TODO: throws?
             if (fbu_statement_fetch_next(stmt)) {
                 RETURN_FALSE;
             }

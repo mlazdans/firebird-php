@@ -6,8 +6,6 @@
 #include "zend_attributes.h"
 #include "php_firebird_includes.h"
 
-#include "database.h"
-#include "transaction.h"
 #include "fbp_multi_transaction.h"
 
 zend_class_entry *FireBird_Multi_Transaction_ce;

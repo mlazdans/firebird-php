@@ -28,12 +28,12 @@ require_once('functions.inc');
         "COMMIT",
     ];
 
-    execute_immediate_bulk_or_die($t, $queries);
+    execute_immediate_bulk($t, $queries);
 
-    $t->execute("SET TRANSACTION") or print_error_and_die("SET TRANSACTION", $t);
-    $q = query_or_die($t, "SELECT BLOB_1 FROM $table");
-    fetch_and_print_or_die($q, \FireBird\FETCH_FETCH_BLOB_TEXT);
-    $t->execute("COMMIT") or print_error_and_die("COMMIT", $t);
+    $t->execute("SET TRANSACTION");
+    $q = $t->query("SELECT BLOB_1 FROM $table");
+    fetch_and_print($q, \FireBird\FETCH_FETCH_BLOB_TEXT);
+    $t->execute("COMMIT");
 
     // $builder = (new \FireBird\TBuilder)->read_only();
     // $t = new \FireBird\Transaction($db, $builder);

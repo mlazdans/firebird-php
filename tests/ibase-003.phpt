@@ -11,7 +11,7 @@ require_once('functions.inc');
 
 (function(){
     $conn = init_tmp_db(charset: "NONE");
-    $t = $conn->start_transaction() or print_error_and_die("transaction");
+    $t = $conn->start_transaction();
 
     /* To prevent unwanted roundings set PHP precision to 18 */
     ini_set('precision',"18");
@@ -41,9 +41,9 @@ require_once('functions.inc');
             v_smallint            smallint,
             v_varchar             varchar(10000)
             )"
-    ) or print_error_and_die("query", $t);
+    );
 
-    $t->commit_ret() or print_error_and_die("commit_ret", $t);
+    $t->commit_ret();
 
     /* should fail, but gracefully */
     // Disabled. Now will throw
@@ -69,15 +69,13 @@ require_once('functions.inc');
         $v_smallint = ((int)rand_number(5)) % 32767;
         $v_varchar = rand_str(10000);
 
-        query_or_die($t,
-        "INSERT into test3 (iter, v_char,v_date,v_decimal4_2, v_decimal4_0, v_decimal7_2, v_decimal7_0,v_numeric15_15, v_decimal18_3, v_numeric15_0,v_double,v_float,v_integer,v_smallint,v_varchar)
+        $t->query("INSERT into test3 (iter, v_char,v_date,v_decimal4_2, v_decimal4_0, v_decimal7_2, v_decimal7_0,v_numeric15_15, v_decimal18_3, v_numeric15_0,v_double,v_float,v_integer,v_smallint,v_varchar)
         values ($iter, '$v_char','$v_date',$v_decimal4_2, $v_decimal4_0, $v_decimal7_2, $v_decimal7_0,$v_numeric15_15, $v_decimal18_3, $v_numeric15_0,$v_double,$v_float,$v_integer,$v_smallint,'$v_varchar')"
         );
 
-        $sel = query_or_die($t, "SELECT * from test3 where iter = $iter");
+        $sel = $t->query("SELECT * from test3 where iter = $iter");
 
         $row = $sel->fetch_object();
-        if(false === $row) print_error_and_die("fetch_object", $sel);
 
         if(substr($row->V_CHAR,0,strlen($v_char)) != $v_char){
             echo " CHAR fail:\n";
@@ -152,17 +150,17 @@ require_once('functions.inc');
             echo " out: $row->V_VARCHAR\n";
         }
 
-        $sel->close_cursor() or print_error_and_die("close_cursor", $sel);
+        $sel->close_cursor();
     } /* for($iter) */
     $sel->free();
 
     /* check for correct handling of duplicate field names */
-    $q = query_or_die($t, 'SELECT 1 AS id, 2 AS id, 3 AS id, 4 AS id, 5 AS id, 6 AS id, 7 AS id, 8 AS id, 9 AS id,
+    $q = $t->query('SELECT 1 AS id, 2 AS id, 3 AS id, 4 AS id, 5 AS id, 6 AS id, 7 AS id, 8 AS id, 9 AS id,
         10 AS id, 11 AS id, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22 FROM rdb$database');
 
     var_dump($q->fetch_array());
 
-    $t->commit() or print_error_and_die("commit", $conn);
+    $t->commit();
 
     echo "end of test\n";
 })();

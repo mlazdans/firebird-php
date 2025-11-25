@@ -11,15 +11,9 @@ require_once('functions.inc');
 
 (function(){
     $conn = init_tmp_db();
-    $t = $conn->start_transaction() or print_error_and_die("transaction", $conn);
-
-    if(!exec_from_file_ddl($t, "001-table.sql")) {
-        print_error_and_die("create_table", $t);
-    }
-
-    if(!exec_from_file_ddl($t, "002-proc.sql")) {
-        print_error_and_die("create_proc", $t);
-    }
+    $t = $conn->start_transaction();
+    exec_from_file_ddl($t, "001-table.sql");
+    exec_from_file_ddl($t, "002-proc.sql");
 
     $table = "TEST_001";
 
@@ -64,10 +58,7 @@ require_once('functions.inc');
     }
     printf("Did procedure returned IDs with true? %s\n", $proc_ok ? "YES" : "NO");
 
-
-    if(!$t->commit()) {
-        print_error_and_die("commit", $t);
-    }
+    $t->commit();
 })();
 
 ?>

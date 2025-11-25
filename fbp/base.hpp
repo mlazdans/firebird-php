@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <stdexcept>
 #include <firebird/Interface.h>
 
@@ -10,9 +11,9 @@ extern "C" {
 
 using namespace Firebird;
 
+void fbu_handle_exception(const char *file, size_t line);
 void fbu_xpb_insert_object(IXpbBuilder* xpb, zval *obj, zend_class_entry *ce,
     const firebird_xpb_zmap *xpb_zmap);
-void fbu_handle_exception2();
 
 class Php_Firebird_Exception : public std::runtime_error {
 public:
@@ -23,7 +24,23 @@ public:
         {}
 };
 
-namespace FBP {
+namespace FBP
+{
+
+// typedef struct database_h {
+//     size_t dbh;
+// } database_h;
+
+// typedef struct transaction_h {
+//     size_t dbh;
+//     size_t trh;
+// } transaction_h;
+
+// typedef struct statement_h {
+//     size_t dbh;
+//     size_t trh;
+//     size_t sth;
+// } statement_h;
 
 class Base
 {

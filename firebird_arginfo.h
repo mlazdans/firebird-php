@@ -1,5 +1,5 @@
 /* This is a generated file, edit the .stub.php file instead.
- * Stub hash: 6b13e84cb0890679a62137742235d97a86d3666f */
+ * Stub hash: 94ef93b91e6972d8b30a3e50bddbb7665b9c7ae5 */
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_class_FireBird_Database___construct, 0, 0, 0)
 ZEND_END_ARG_INFO()
@@ -44,36 +44,35 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_class_FireBird_Transaction___construct, 0, 0, 1)
 	ZEND_ARG_OBJ_INFO(0, database, FireBird\\Database, 0)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_FireBird_Transaction_start, 0, 0, _IS_BOOL, 0)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_FireBird_Transaction_start, 0, 0, IS_VOID, 0)
 	ZEND_ARG_OBJ_INFO_WITH_DEFAULT_VALUE(0, builder, FireBird\\TBuilder, 1, "null")
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_FireBird_Transaction_commit, 0, 0, _IS_BOOL, 0)
-ZEND_END_ARG_INFO()
+#define arginfo_class_FireBird_Transaction_commit arginfo_class_FireBird_Database_disconnect
 
-#define arginfo_class_FireBird_Transaction_commit_ret arginfo_class_FireBird_Transaction_commit
+#define arginfo_class_FireBird_Transaction_commit_ret arginfo_class_FireBird_Database_disconnect
 
-#define arginfo_class_FireBird_Transaction_rollback arginfo_class_FireBird_Transaction_commit
+#define arginfo_class_FireBird_Transaction_rollback arginfo_class_FireBird_Database_disconnect
 
-#define arginfo_class_FireBird_Transaction_rollback_ret arginfo_class_FireBird_Transaction_commit
+#define arginfo_class_FireBird_Transaction_rollback_ret arginfo_class_FireBird_Database_disconnect
 
-ZEND_BEGIN_ARG_WITH_RETURN_OBJ_TYPE_MASK_EX(arginfo_class_FireBird_Transaction_query, 0, 1, FireBird\\Statement, MAY_BE_FALSE)
+ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_class_FireBird_Transaction_query, 0, 1, FireBird\\Statement, 0)
 	ZEND_ARG_TYPE_INFO(0, sql, IS_STRING, 0)
 	ZEND_ARG_VARIADIC_TYPE_INFO(0, bind_args, IS_MIXED, 0)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_WITH_RETURN_OBJ_TYPE_MASK_EX(arginfo_class_FireBird_Transaction_prepare, 0, 1, FireBird\\Statement, MAY_BE_FALSE)
+ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_class_FireBird_Transaction_prepare, 0, 1, FireBird\\Statement, 0)
 	ZEND_ARG_TYPE_INFO(0, sql, IS_STRING, 0)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_WITH_RETURN_OBJ_TYPE_MASK_EX(arginfo_class_FireBird_Transaction_open_blob, 0, 1, FireBird\\Blob, MAY_BE_FALSE)
+ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_class_FireBird_Transaction_open_blob, 0, 1, FireBird\\Blob, 0)
 	ZEND_ARG_OBJ_INFO(0, id, FireBird\\Blob_Id, 0)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_WITH_RETURN_OBJ_TYPE_MASK_EX(arginfo_class_FireBird_Transaction_create_blob, 0, 0, FireBird\\Blob, MAY_BE_FALSE)
+ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_class_FireBird_Transaction_create_blob, 0, 0, FireBird\\Blob, 0)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_FireBird_Transaction_execute, 0, 1, _IS_BOOL, 0)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_FireBird_Transaction_execute, 0, 1, IS_VOID, 0)
 	ZEND_ARG_TYPE_INFO(0, sql, IS_STRING, 0)
 ZEND_END_ARG_INFO()
 
@@ -89,11 +88,11 @@ ZEND_END_ARG_INFO()
 
 #define arginfo_class_FireBird_Statement_fetch_row arginfo_class_FireBird_Statement_fetch_array
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_FireBird_Statement_execute, 0, 0, _IS_BOOL, 0)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_FireBird_Statement_execute, 0, 0, IS_VOID, 0)
 	ZEND_ARG_VARIADIC_TYPE_INFO(0, bind_args, IS_MIXED, 0)
 ZEND_END_ARG_INFO()
 
-#define arginfo_class_FireBird_Statement_close_cursor arginfo_class_FireBird_Transaction_commit
+#define arginfo_class_FireBird_Statement_close_cursor arginfo_class_FireBird_Database_disconnect
 
 #define arginfo_class_FireBird_Statement_free arginfo_class_FireBird_Database_disconnect
 
@@ -111,21 +110,21 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_class_FireBird_Blob___construct, 0, 0, 1)
 	ZEND_ARG_OBJ_INFO(0, tr, FireBird\\Transaction, 0)
 ZEND_END_ARG_INFO()
 
-#define arginfo_class_FireBird_Blob_create arginfo_class_FireBird_Transaction_commit
+#define arginfo_class_FireBird_Blob_create arginfo_class_FireBird_Database_disconnect
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_FireBird_Blob_open, 0, 1, _IS_BOOL, 0)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_FireBird_Blob_open, 0, 1, IS_VOID, 0)
 	ZEND_ARG_OBJ_INFO(0, id, FireBird\\Blob_Id, 0)
 ZEND_END_ARG_INFO()
 
-#define arginfo_class_FireBird_Blob_close arginfo_class_FireBird_Transaction_commit
+#define arginfo_class_FireBird_Blob_close arginfo_class_FireBird_Database_disconnect
 
-#define arginfo_class_FireBird_Blob_cancel arginfo_class_FireBird_Transaction_commit
+#define arginfo_class_FireBird_Blob_cancel arginfo_class_FireBird_Database_disconnect
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_class_FireBird_Blob_get, 0, 0, MAY_BE_STRING|MAY_BE_FALSE)
 	ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, max_len, IS_LONG, 0, "0")
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_FireBird_Blob_put, 0, 1, _IS_BOOL, 0)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_FireBird_Blob_put, 0, 1, IS_VOID, 0)
 	ZEND_ARG_TYPE_INFO(0, data, IS_STRING, 0)
 ZEND_END_ARG_INFO()
 
@@ -168,7 +167,7 @@ ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_FireBird_Blob_Id_to_legacy_id, 0, 0, IS_STRING, 0)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_WITH_RETURN_OBJ_TYPE_MASK_EX(arginfo_class_FireBird_Blob_Id_from_legacy_id, 0, 1, FireBird\\Blob_Id, MAY_BE_FALSE)
+ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_class_FireBird_Blob_Id_from_legacy_id, 0, 1, FireBird\\Blob_Id, 0)
 	ZEND_ARG_TYPE_INFO(0, legacy_id, IS_STRING, 0)
 ZEND_END_ARG_INFO()
 
@@ -1271,6 +1270,18 @@ static zend_class_entry *register_class_FireBird_Fb_Exception(zend_class_entry *
 	zend_string *property_errors_name = zend_string_init("errors", sizeof("errors") - 1, true);
 	zend_declare_typed_property(class_entry, property_errors_name, &property_errors_default_value, ZEND_ACC_PUBLIC|ZEND_ACC_READONLY, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_ARRAY));
 	zend_string_release_ex(property_errors_name, true);
+
+	zval property_file_ext_default_value;
+	ZVAL_UNDEF(&property_file_ext_default_value);
+	zend_string *property_file_ext_name = zend_string_init("file_ext", sizeof("file_ext") - 1, true);
+	zend_declare_typed_property(class_entry, property_file_ext_name, &property_file_ext_default_value, ZEND_ACC_PUBLIC|ZEND_ACC_READONLY, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_STRING));
+	zend_string_release_ex(property_file_ext_name, true);
+
+	zval property_line_ext_default_value;
+	ZVAL_UNDEF(&property_line_ext_default_value);
+	zend_string *property_line_ext_name = zend_string_init("line_ext", sizeof("line_ext") - 1, true);
+	zend_declare_typed_property(class_entry, property_line_ext_name, &property_line_ext_default_value, ZEND_ACC_PUBLIC|ZEND_ACC_READONLY, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_LONG));
+	zend_string_release_ex(property_line_ext_name, true);
 
 	return class_entry;
 }

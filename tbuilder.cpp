@@ -1,4 +1,5 @@
 #include "firebird_php.hpp"
+#include "fbp/transaction.hpp"
 
 extern "C" {
 #include <ibase.h>
@@ -6,7 +7,6 @@ extern "C" {
 #include "php.h"
 #include "zend_exceptions.h"
 #include "zend_attributes.h"
-#include "transaction.h"
 
 static zend_object_handlers FireBird_TBuilder_object_handlers;
 

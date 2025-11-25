@@ -292,20 +292,20 @@ class Transaction
     public readonly Database $database;
 
     public function __construct(Database $database) {}
-    public function start(?TBuilder $builder = null): bool { die; }
-    public function commit(): bool { die; }
-    public function commit_ret(): bool { die; }
-    public function rollback(): bool { die; }
-    public function rollback_ret(): bool { die; }
-    public function query(string $sql, mixed ...$bind_args): Statement|false { die; }
-    public function prepare(string $sql): Statement|false { die; }
-    public function open_blob(Blob_Id $id): Blob|false { die; }
-    public function create_blob(): Blob|false { die; }
+    public function start(?TBuilder $builder = null): void { die; }
+    public function commit(): void { die; }
+    public function commit_ret(): void { die; }
+    public function rollback(): void { die; }
+    public function rollback_ret(): void { die; }
+    public function query(string $sql, mixed ...$bind_args): Statement { die; }
+    public function prepare(string $sql): Statement { die; }
+    public function open_blob(Blob_Id $id): Blob { die; }
+    public function create_blob(): Blob { die; }
 
     /**
      * Execute w/o prepare step. Will initialize $this in case of SET TRANSACTION
      */
-    public function execute(string $sql): bool { die; }
+    public function execute(string $sql): void { die; }
 
     /**
      * Prepares transaction for two-phase commit.
@@ -370,8 +370,8 @@ class Statement
      * @see FETCH_BLOBS, FETCH_UNIXTIME
      * */
     public function fetch_row(int $flags = 0): array|false|null { die; }
-    public function execute(mixed ...$bind_args): bool { die; }
-    public function close_cursor(): bool { die; }
+    public function execute(mixed ...$bind_args): void { die; }
+    public function close_cursor(): void { die; }
     public function free(): void { die; }
 
     /**
@@ -419,15 +419,14 @@ class Blob
     public readonly Transaction $transaction;
 
     public function __construct(\FireBird\Transaction $tr) {}
-    public function create(): bool { die; }
-    public function open(Blob_Id $id): bool { die; }
-    public function close(): bool { die; }
-    public function cancel(): bool { die; }
+    public function create(): void { die; }
+    public function open(Blob_Id $id): void { die; }
+    public function close(): void { die; }
+    public function cancel(): void { die; }
     public function get(int $max_len = 0): string|false { die; }
-    public function put(string $data): bool { die; }
+    public function put(string $data): void { die; }
     public function seek(int $offset, int $mode): int|false { die; }
 }
-
 
 // TODO: Temp disable
 // class Event
@@ -680,7 +679,7 @@ class Blob_Id
     /**
      * Converts from string format used in PHP ibase extension to Blob_id
      * */
-    public static function from_legacy_id(string $legacy_id): Blob_Id|false { die; }
+    public static function from_legacy_id(string $legacy_id): Blob_Id { die; }
 }
 
 class Connect_Args
@@ -719,4 +718,6 @@ final class Fb_Exception extends \Exception
 {
     public readonly string $sqlstate;
     public readonly array $errors;
+    public readonly string $file_ext;
+    public readonly int $line_ext;
 }

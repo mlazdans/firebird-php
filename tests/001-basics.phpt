@@ -16,7 +16,7 @@ require_once('functions.inc');
 
 (function(){
     $conn = init_tmp_db();
-    $t = $conn->start_transaction() or print_error_and_die("start_transaction");
+    $t = $conn->start_transaction();
 
     exec_from_file_ddl($t, "001-table.sql");
 
@@ -49,7 +49,7 @@ require_once('functions.inc');
         printf("Test3 == Test4 == true? %s\n", results_equal($results[3], $results[4]) ? "YES" : "NO");
     }
 
-    $t->commit() or print_error_and_die("commit");
+    $t->commit();
 })();
 
 ?>

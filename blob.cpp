@@ -1,26 +1,27 @@
 #include "firebird_php.hpp"
+#include "firebird_utils.h"
 
 extern "C" {
 
 #include "php.h"
 // #include "php_firebird_includes.h"
-#include "firebird_utils.h"
-
-#include "blob.h"
-#include "transaction.h"
 
 fbp_object_accessor(firebird_blob);
 fbp_object_accessor(firebird_blob_id);
 static zend_object_handlers FireBird_Blob_object_handlers, FireBird_Blob_Id_object_handlers;
 
-void FireBird_Blob___construct(zval *self, zval *Transaction)
+int FireBird_Blob___construct(zval *self, zval *Transaction)
 {
     firebird_trans *tr = get_firebird_trans_from_zval(Transaction);
     firebird_blob *blob = get_firebird_blob_from_zval(self);
 
-    fbu_blob_init(tr, blob);
+    if (fbu_blob_init(tr, blob)) {
+        return FAILURE;
+    }
 
     PROP_SET(FireBird_Blob_ce, self, "transaction", Transaction);
+
+    return SUCCESS;
 }
 
 PHP_METHOD(FireBird_Blob, __construct)
@@ -31,7 +32,9 @@ PHP_METHOD(FireBird_Blob, __construct)
         Z_PARAM_OBJECT_OF_CLASS(Transaction, FireBird_Transaction_ce)
     ZEND_PARSE_PARAMETERS_END();
 
-    FireBird_Blob___construct(ZEND_THIS, Transaction);
+    if (FireBird_Blob___construct(ZEND_THIS, Transaction)) {
+        RETURN_THROWS();
+    }
 }
 
 int FireBird_Blob_close(zval *self)
@@ -47,7 +50,9 @@ int FireBird_Blob_close(zval *self)
 
 PHP_METHOD(FireBird_Blob, close)
 {
-    RETVAL_BOOL(SUCCESS == FireBird_Blob_close(ZEND_THIS));
+    if (FireBird_Blob_close(ZEND_THIS)) {
+        RETURN_THROWS();
+    }
 }
 
 int FireBird_Blob_cancel(zval *self)
@@ -63,7 +68,9 @@ int FireBird_Blob_cancel(zval *self)
 
 PHP_METHOD(FireBird_Blob, cancel)
 {
-    RETVAL_BOOL(SUCCESS == FireBird_Blob_cancel(ZEND_THIS));
+    if (FireBird_Blob_cancel(ZEND_THIS)) {
+        RETURN_THROWS();
+    }
 }
 
 int FireBird_Blob_get(zval *self, zval *return_value, size_t max_len)
@@ -89,7 +96,7 @@ PHP_METHOD(FireBird_Blob, get)
     ZEND_PARSE_PARAMETERS_END();
 
     if (FireBird_Blob_get(ZEND_THIS, return_value, max_len)) {
-        RETURN_FALSE;
+        RETURN_THROWS();
     }
 }
 
@@ -113,7 +120,9 @@ PHP_METHOD(FireBird_Blob, put)
         Z_PARAM_STRING(data, data_len)
     ZEND_PARSE_PARAMETERS_END();
 
-    RETVAL_BOOL(SUCCESS == FireBird_Blob_put(ZEND_THIS, data, data_len));
+    if (FireBird_Blob_put(ZEND_THIS, data, data_len)) {
+        RETURN_THROWS();
+    }
 }
 
 int FireBird_Blob_open(zval *self, zval *Blob_Id)
@@ -137,10 +146,8 @@ PHP_METHOD(FireBird_Blob, open)
     ZEND_PARSE_PARAMETERS_END();
 
     if (FireBird_Blob_open(ZEND_THIS, blob_id)) {
-        RETURN_FALSE;
+        RETURN_THROWS();
     }
-
-    RETURN_TRUE;
 }
 
 int FireBird_Blob_create(zval *self)
@@ -156,7 +163,9 @@ int FireBird_Blob_create(zval *self)
 
 PHP_METHOD(FireBird_Blob, create)
 {
-    RETVAL_BOOL(SUCCESS == FireBird_Blob_create(ZEND_THIS));
+    if (FireBird_Blob_create(ZEND_THIS)) {
+        RETURN_THROWS();
+    }
 }
 
 int FireBird_Blob_seek(zval *self, int mode, int offset, int *new_offset)
@@ -181,7 +190,7 @@ PHP_METHOD(FireBird_Blob, seek)
     ZEND_PARSE_PARAMETERS_END();
 
     if (FireBird_Blob_seek(ZEND_THIS, mode, offset, &new_offset)) {
-        RETURN_FALSE;
+        RETURN_THROWS();
     }
 
     RETURN_LONG(new_offset);
@@ -205,7 +214,7 @@ static void FireBird_Blob_free_obj(zend_object *obj)
 
     FBDEBUG("~%s(blob=%p)", __func__, blob);
 
-    if (blob->blobptr) fbu_blob_free(blob);
+    fbu_blob_free(blob);
 
     zend_object_std_dtor(&blob->std);
 }
@@ -233,7 +242,6 @@ static void FireBird_Blob_Id_free_obj(zend_object *obj)
 
 void FireBird_Blob_Id___construct(zval *self, ISC_QUAD bl_id)
 {
-
     firebird_blob_id *blob_id = get_firebird_blob_id_from_zval(self);
     blob_id->bl_id = bl_id;
 }
@@ -272,9 +280,9 @@ PHP_METHOD(FireBird_Blob_Id, from_legacy_id)
     object_init_ex(return_value, FireBird_Blob_Id_ce);
     firebird_blob_id *blob_id = get_firebird_blob_id_from_zval(return_value);
 
+    // TODO: this actually does not throw. Add throwing exception.
     if (fbp_blob_id_to_quad(id_len, id, &blob_id->bl_id)) {
-        zval_ptr_dtor(return_value);
-        RETURN_FALSE;
+        RETURN_THROWS();
     }
 }
 

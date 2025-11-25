@@ -22,12 +22,12 @@ require_once('functions.inc');
         "COMMIT RETAIN",
     ];
 
-    execute_immediate_bulk_or_die($t, $queries);
+    execute_immediate_bulk($t, $queries);
 
-    query_and_fetch_and_print_or_die($t, 'SELECT NEXT VALUE FOR GEN_GEN FROM RDB$DATABASE', \FireBird\FETCH_BLOB_TEXT);
-    query_and_fetch_and_print_or_die($t, 'SELECT NEXT VALUE FOR GEN_GEN FROM RDB$DATABASE', \FireBird\FETCH_BLOB_TEXT);
+    query_and_fetch_and_print($t, 'SELECT NEXT VALUE FOR GEN_GEN FROM RDB$DATABASE', \FireBird\FETCH_BLOB_TEXT);
+    query_and_fetch_and_print($t, 'SELECT NEXT VALUE FOR GEN_GEN FROM RDB$DATABASE', \FireBird\FETCH_BLOB_TEXT);
 
-    $t->commit() or print_error_and_die("commit");
+    $t->commit();
 })();
 
 ?>

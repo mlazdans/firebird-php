@@ -9,8 +9,6 @@ extern "C" {
 #include "ext/date/php_date.h"
 #include "firebird_utils.h"
 #include "php_firebird_includes.h"
-#include "statement.h"
-#include "blob.h"
 }
 
 using namespace Firebird;
@@ -769,7 +767,7 @@ Statement::~Statement() noexcept
         info.sql = nullptr;
     }
 
-    if (err) fbu_handle_exception2();
+    if (err) fbu_handle_exception(__FILE__, __LINE__);
 }
 
 void Statement::insert_alias(const char *alias)

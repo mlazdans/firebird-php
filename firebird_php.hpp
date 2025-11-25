@@ -35,7 +35,7 @@ PHP_MINFO_FUNCTION(firebird);
 ZEND_BEGIN_MODULE_GLOBALS(firebird)
     // ISC_STATUS_ARRAY status;
     bool debug;
-    std::vector<DatabasePtr> *db_list;
+    std::vector<std::unique_ptr<Database>> db_list;
     // int has_error_handler;
     zend_fcall_info error_fci;
     zend_fcall_info_cache error_fcc;

@@ -29,11 +29,11 @@ require_once('functions.inc');
         "COMMIT",
     ];
 
-    query_bulk_or_die($t, $queries);
+    query_bulk($t, $queries);
 
-    $t->start() or print_error_and_die("tr start", $t);
-    $q = query_or_die($t, "SELECT BLOB_1, DECFLOAT_16, DECFLOAT_34, BOOL_1 FROM $table");
-    fetch_and_print_or_die($q, \FireBird\FETCH_BLOB_TEXT);
+    $t->start();
+    $q = $t->query("SELECT BLOB_1, DECFLOAT_16, DECFLOAT_34, BOOL_1 FROM $table");
+    fetch_and_print($q, \FireBird\FETCH_BLOB_TEXT);
 })();
 
 ?>

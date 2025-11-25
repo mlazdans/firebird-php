@@ -10,17 +10,11 @@ namespace FireBirdTests;
 require_once('functions.inc');
 
 (function(){
-    if(false === ($db = init_tmp_db())) {
-        return;
-    }
+    $db = init_tmp_db();
+    $t = $db->start_transaction();
 
-    if(false === ($t = $db->new_transaction())) {
-        print_error_and_die("transaction", $db);
-    }
-
-    $t->start() or print_error_and_die("transaction start", $t);
-    $t->execute_immediate(load_file_or_die(Config::$pwd."/001-table.sql")) or print_error_and_die("create_table", $t);
-    $t->commit_ret() or print_error_and_die("commit_ret", $t);
+    $t->execute(load_file_or_die(Config::$pwd."/001-table.sql"));
+    $t->commit_ret();
 
     $table = "TEST_001";
     $queries = [
@@ -29,118 +23,124 @@ require_once('functions.inc');
     ];
 
     $data = "Blob created with \FireBird\Transaction";
-    $b = $t->create_blob() or print_error_and_die("\$t->create_blob", $t);
-    $b->put($data) or print_error_and_die("blob put", $b);
+    $b = $t->create_blob();
+    $b->put($data);
     print "[1] ";
     printf("Expected is_writable=1, actual=%d\n", $b->is_writable);
     printf("Expected b->position=%d, actual=%d\n", strlen($data), $b->position);
     printf("Expected b->total_length=%d, actual=%d\n", strlen($data), $b->total_length);
-    $b->close() or print_error_and_die("blob close", $b);
+    $b->close();
     $queries[] = ["INSERT INTO $table (BLOB_1) VALUES (?)", [$b]];
     print "\n";
 
     $data = "Blob created with \FireBird\Blob";
     $b = new \FireBird\Blob($t);
-    $b = $t->create_blob() or print_error_and_die("\$t->create_blob", $t);
-    $b->put($data) or print_error_and_die("blob put", $b);
+    $b = $t->create_blob();
+    $b->put($data);
     print "[2] ";
     printf("Expected is_writable=1, actual=%d\n", $b->is_writable);
     printf("Expected b->position=%d, actual=%d\n", strlen($data), $b->position);
     printf("Expected b->total_length=%d, actual=%d\n", strlen($data), $b->total_length);
-    $b->close() or print_error_and_die("blob close", $b);
+    $b->close();
     $queries[] = ["INSERT INTO $table (BLOB_1) VALUES (?)", [$b]];
     print "\n";
 
     $l = 0;
-    $b = $t->create_blob() or print_error_and_die("\$t->create_blob", $t);
+    $b = $t->create_blob();
     for($i = 0; $i < 10; $i++) {
         $data = "Put number: $i\n";
-        $b->put($data) or print_error_and_die("blob put", $b);
+        $b->put($data);
         $l += strlen($data);
     }
     print "[3] ";
     printf("Expected is_writable=1, actual=%d\n", $b->is_writable);
     printf("Expected b->position=%d, actual=%d\n", $l, $b->position);
     printf("Expected b->total_length=%d, actual=%d\n", $l, $b->total_length);
-    $b->close() or print_error_and_die("blob close", $b);
+    $b->close();
     $queries[] = ["INSERT INTO $table (BLOB_1) VALUES (?)", [$b]];
     $queries[] = ["INSERT INTO $table (BLOB_1) VALUES (?)", [null]];
     $queries[] = ["INSERT INTO $table (BLOB_1) VALUES (?)", ["Some textual argument"]];
     $queries[] = "INSERT INTO $table (BLOB_1) VALUES ('Some inlined argument')";
     print "\n";
 
-    $b = $t->create_blob() or print_error_and_die("\$t->create_blob", $t);
-    $b->put("Will cancel this one") or print_error_and_die("blob put", $b);
-    $b->cancel() or print_error_and_die("blob cancel", $b);
+    $b = $t->create_blob();
+    $b->put("Will cancel this one");
+    $b->cancel();
 
-    execute_immediate_bulk_or_die($t, $queries);
+    query_bulk($t, $queries);
 
-    $q = query_or_die($t, "SELECT BLOB_1 FROM $table");
-    fetch_and_print_or_die($q, \FireBird\FETCH_BLOBS);
+    $q = $t->query("SELECT BLOB_1 FROM $table");
+    fetch_and_print($q, \FireBird\FETCH_FETCH_BLOB_TEXT);
 
-    $t->commit() or print_error_and_die("commit", $t);
+    $t->commit();
 
     // Fetching
-    $t->start() or print_error_and_die("start", $t);
-    $q = query_or_die($t, "SELECT ID, BLOB_1 FROM $table ORDER BY ID");
+    $t->start();
+    $q = $t->query("SELECT ID, BLOB_1 FROM $table ORDER BY ID");
 
     $data = 'Inlined argument';
-    $r = $q->fetch_object() or print_error_and_die("was expecing a row", $q);
+    $r = $q->fetch_object();
     print "[4] ";
     printf("BLOB_1 instanceof \FireBird\Blob_Id: %d\n", $r->BLOB_1 instanceof \FireBird\Blob_Id);
-    $b = $t->open_blob($r->BLOB_1) or print_error_and_die("open blob", $t);
+    $b = $t->open_blob($r->BLOB_1);
     printf("Expected is_writable=0, actual=%d\n", $b->is_writable);
     printf("Expected b->position=%d, actual=%d\n", 0, $b->position);
     printf("Expected b->total_length=%d, actual=%d\n", strlen($data), $b->total_length);
     print "ID: $r->ID, BLOB_1 = '".$b->get()."'\n";
     printf("Expected b->position=%d, actual=%d\n", strlen($data), $b->position);
-    $b->close() or print_error_and_die("blob close", $b);
+    $b->close();
     print "\n";
 
     $data = 'Binded argument';
     $max_len = 5;
-    $r = $q->fetch_object() or print_error_and_die("was expecing a row", $q);
+    $r = $q->fetch_object();
     print "[5] ";
     printf("BLOB_1 instanceof \FireBird\Blob_Id: %d\n", $r->BLOB_1 instanceof \FireBird\Blob_Id);
     $b = new \FireBird\Blob($t);
-    $b->open($r->BLOB_1) or print_error_and_die("open blob", $b);
+    $b->open($r->BLOB_1);
     printf("Expected is_writable=0, actual=%d\n", $b->is_writable);
     printf("Expected b->position=%d, actual=%d\n", 0, $b->position);
     printf("Expected b->total_length=%d, actual=%d\n", strlen($data), $b->total_length);
     print "ID: $r->ID, BLOB_1 ($max_len bytes) = '".$b->get($max_len)."'\n";
     printf("Expected b->position=%d, actual=%d\n", $max_len, $b->position);
-    $b->close() or print_error_and_die("blob close", $b);
+    $b->close();
 
-    $t->commit() or print_error_and_die("commit", $t);
+    $t->commit();
 
     // Error handling
-    $t->start() or print_error_and_die("start", $t);
+    $t->start();
     try {
         $b->open($GLOBALS['945903845093458768'] ?? null);
     } catch (\TypeError $e) {
         print $e->getMessage()."\n";
     }
 
-    $q = query_or_die($t, "SELECT ID, BLOB_1 FROM $table ORDER BY ID");
-    $r = $q->fetch_object() or print_error_and_die("was expecing a row", $q);
-    $b = $t->open_blob($r->BLOB_1) or print_error_and_die("open blob", $t);
-    $b->put("This should not be possible") or print "$b->error_msg\n";
-    $b->close() or print_error_and_die("blob close", $b);
-    $b->close() or print "$b->error_msg\n";
+    $q = $t->query("SELECT ID, BLOB_1 FROM $table ORDER BY ID");
+    $r = $q->fetch_object();
+    $b = $t->open_blob($r->BLOB_1);
 
-    $q = query_or_die($t, "SELECT ID, BLOB_1 FROM $table WHERE ID = 5");
+    try {
+        $b->put("This should not be possible");
+        print "possible\n";
+    } catch (\Exception $e) {
+        print $e->getMessage()."\n";
+    }
+    $b->close();
+    $b->close();
 
-    $r = $q->fetch_object() or print_error_and_die("was expecing a row", $q);
-    $b = $t->open_blob($r->BLOB_1) or print_error_and_die("open blob", $t);
+    $q = $t->query("SELECT ID, BLOB_1 FROM $table WHERE ID = 5");
 
-    $b->seek(4 * (strlen("Put number: 0") + 1), \FireBird\BLOB_SEEK_START) or print_error_and_die("seek", $b);
+    $r = $q->fetch_object();
+    $b = $t->open_blob($r->BLOB_1);
+
+    $b->seek(4 * (strlen("Put number: 0") + 1), \FireBird\BLOB_SEEK_START);
     $data = $b->get(strlen("Put number: 0") + 1);
     print "Seeked data: $data";
 
-    $b->seek(-2 * (strlen("Put number: 0") + 1), \FireBird\BLOB_SEEK_END) or print_error_and_die("seek", $b);
+    $b->seek(-2 * (strlen("Put number: 0") + 1), \FireBird\BLOB_SEEK_END);
     $data = $b->get(strlen("Put number: 0") + 1);
     print "Seeked data: $data";
-    $b->close() or print_error_and_die("blob close", $b);
+    $b->close();
 })();
 
 ?>

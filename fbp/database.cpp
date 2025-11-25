@@ -3,9 +3,20 @@
 #include <firebird/Interface.h>
 #include <stdint.h>
 
+#include "firebird_php.hpp"
+#include "firebird_utils.h"
+
 #include "fbp/base.hpp"
 #include "fbp/database.hpp"
-#include "firebird_php.hpp"
+#include "fbp/transaction.hpp"
+
+extern "C" {
+// #include "php.h"
+#include "zend_exceptions.h"
+// #include "zend_attributes.h"
+// #include "php_firebird_includes.h"
+// #include "ext/spl/spl_exceptions.h"
+}
 
 using namespace Firebird;
 
@@ -104,7 +115,7 @@ Database::~Database()
         att = nullptr;
     }
 
-    if (err) fbu_handle_exception2();
+    if (err) fbu_handle_exception(__FILE__, __LINE__);
 }
 
 ITransaction *Database::execute(ITransaction *tra, unsigned len_sql, const char *sql,
@@ -143,6 +154,33 @@ IStatement *Database::prepare(ITransaction *transaction, unsigned int len_sql, c
 ITransaction* Database::start_transaction(unsigned int tpb_len, const unsigned char* tpb)
 {
     return att->startTransaction(&st, tpb_len, tpb);
+}
+
+size_t Database::new_transaction()
+{
+    FBDEBUG("Database::new_transaction(this=%p)", PTR(*this));
+    tr_list.emplace_back(new Transaction(*this));
+    return tr_list.size();
+}
+
+std::unique_ptr<Transaction> &Database::get_transaction(size_t trh)
+{
+    FBDEBUG("Database::get_transaction(trh=%lu, tr_list.size=%lu)", trh, tr_list.size());
+    if (!trh || trh > tr_list.size() || !tr_list[trh - 1]) {
+        throw Php_Firebird_Exception(zend_ce_error, "Invalid transaction handle");
+    }
+
+    return tr_list[trh - 1];
+}
+
+std::unique_ptr<Statement> &Database::get_statement(size_t trh, size_t sth)
+{
+    return get_transaction(trh)->get_statement(sth);
+}
+
+std::unique_ptr<Blob> &Database::get_blob(size_t trh, size_t blh)
+{
+    return get_transaction(trh)->get_blob(blh);
 }
 
 } // namespace
