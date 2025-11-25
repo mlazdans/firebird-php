@@ -8,11 +8,13 @@
 #include <execinfo.h>
 #include <iostream>
 #include <cstdlib>
+#include <string>
 
 #include "fbp/base.hpp"
 #include "fbp/database.hpp"
 #include "fbp/statement.hpp"
 #include "fbp/blob.hpp"
+#include "firebird_php.hpp"
 
 extern "C" {
 #include "ibase.h"
@@ -21,7 +23,6 @@ extern "C" {
 #include "ext/spl/spl_exceptions.h"
 #include "ext/date/php_date.h"
 #include "database.h"
-#include "firebird_utils.h"
 #include "transaction.h"
 #include "statement.h"
 #include "blob.h"
@@ -48,11 +49,80 @@ void fbu_handle_exception2()
     try {
         std::rethrow_exception(eptr);
     } catch (const FbException& e) {
-        char msg[1024];
-        auto util = fb_get_master_interface()->getUtilInterface();
-        util->formatStatus(msg, sizeof(msg), e.getStatus());
-        fbp_warning("Error: %s\n", msg);
-#if 1
+        zval ex;
+        zval rv, errors, ferror_item;
+        HashTable *ht_errors;
+
+        object_init_ex(&ex, FireBird_Fb_Exception_ce);
+
+        array_init(&errors);
+        ht_errors = Z_ARRVAL(errors);
+
+        FB_SQLSTATE_STRING sqlstate;
+        char msg[1024] = {0};
+        ISC_LONG msg_len = 0;
+
+        auto status = e.getStatus();
+        unsigned state = status->getState();
+        unsigned states[] = {IStatus::STATE_ERRORS, IStatus::STATE_WARNINGS};
+        const ISC_STATUS* vectors[] = {status->getErrors(), status->getWarnings()};
+        ISC_LONG error_code = 0;
+        ISC_INT64 error_code_long = 0;
+
+        fb_sqlstate(sqlstate, status->getErrors());
+        zend_update_property_stringl(FireBird_Fb_Exception_ce,
+            Z_OBJ(ex), "sqlstate", sizeof("sqlstate") - 1, sqlstate, sizeof(sqlstate));
+
+        std::string error_msg;
+
+        for (int i = 0; i < 2; ++i)
+        {
+            if (state & states[i])
+            {
+                const ISC_STATUS* vector = vectors[i];
+                error_code = isc_sqlcode(&vector[0]);
+                if (error_code != -999) {
+                    error_code_long = isc_portable_integer((const ISC_UCHAR*)(&vector[1]), 4);
+                } else {
+                    error_code_long = 0;
+                }
+
+                zend_update_property_long(FireBird_Fb_Exception_ce,
+                    Z_OBJ(ex), "code", sizeof("code") - 1, error_code_long);
+
+                while((msg_len = fb_interpret(msg, sizeof(msg), &vector)) != 0) {
+                    object_init_ex(&ferror_item, FireBird_Fb_Error_ce);
+                    update_ferr_props(FireBird_Fb_Error_ce, Z_OBJ(ferror_item), msg, msg_len, error_code, error_code_long);
+                    zend_hash_next_index_insert(ht_errors, &ferror_item);
+
+                    if (!error_msg.empty())error_msg += "\n";
+                    error_msg += msg;
+
+                    error_code = isc_sqlcode(&vector[0]);
+                    if (error_code != -999) {
+                        error_code_long = isc_portable_integer((const ISC_UCHAR*)(&vector[1]), 4);
+                    } else {
+                        error_code_long = 0;
+                    }
+                }
+            }
+        }
+
+        zend_update_property_stringl(FireBird_Fb_Exception_ce,
+            Z_OBJ(ex), "message", sizeof("message") - 1, error_msg.c_str(), error_msg.length());
+        zend_update_property(FireBird_Fb_Exception_ce,
+            Z_OBJ(ex), "errors", sizeof("errors") - 1, &errors);
+
+        zval_ptr_dtor(&errors);
+
+        zend_throw_exception_object(&ex);
+
+        // char msg[1024];
+        // auto util = fb_get_master_interface()->getUtilInterface();
+        // util->formatStatus(msg, sizeof(msg), e.getStatus());
+        // zend_throw_exception_ex(NULL, 0, msg);
+        // fbp_warning("Error: %s\n", msg);
+#if 0
         void* buffer[50];
         int nptrs = backtrace(buffer, 50);
         char** symbols = backtrace_symbols(buffer, nptrs);
@@ -387,46 +457,86 @@ void fbu_init_date_object(const char *tzbuff, zval *o)
 
 using namespace FBP;
 
-int fbu_database_init(zval *args, firebird_db *db)
+#define assert_valid_ptr(p) if (!(p)) throw Php_Firebird_Exception(zend_ce_error, "Invalid pointer")
+#define assert_valid_dbptr(db)                          \
+    do {                                                \
+        if (!(db) || !(((db)->dbptr))) {                \
+            throw Php_Firebird_Exception(zend_ce_error, \
+                "Invalid database handle");             \
+        }                                               \
+    } while(0)
+
+#define assert_valid_trptr(tr)                          \
+    do {                                                \
+        if (!(tr) || !(((tr)->trptr))) {                \
+            throw Php_Firebird_Exception(zend_ce_error, \
+                "Invalid transaction handle");          \
+        }                                               \
+    } while(0)
+
+#define assert_valid_sptr(s)                            \
+    do {                                                \
+        if (!(s) || !(((s)->sptr))) {                   \
+            throw Php_Firebird_Exception(zend_ce_error, \
+                "Invalid statement handle");            \
+        }                                               \
+    } while(0)
+
+int fbu_database_init(firebird_db *db)
 {
     FBDEBUG("fbu_database_init(db=%p)", db);
+    assert_valid_ptr(db);
     return fbu_call_void([&]() {
-        db->dbptr = static_cast<void*>(new Database(args));
+        // db_list().emplace_back(new Database());
+        db->dbptr = static_cast<void*>(new Database());
         return SUCCESS;
     });
 }
 
-int fbu_database_connect(firebird_db *db)
+int fbu_database_connect(firebird_db *db, zval *args)
 {
+    assert_valid_dbptr(db);
     return fbu_call_void([&]() {
-        return static_cast<Database*>(db->dbptr)->connect();
+        static_cast<Database*>(db->dbptr)->connect(args);
+        return SUCCESS;
     });
 }
 
-int fbu_database_create(firebird_db *db)
+int fbu_database_create(firebird_db *db, zval *args)
 {
+    assert_valid_dbptr(db);
     return fbu_call_void([&]() {
-        return static_cast<Database*>(db->dbptr)->create();
+        static_cast<Database*>(db->dbptr)->create(args);
+        return SUCCESS;
     });
 }
 
 int fbu_database_disconnect(firebird_db *db)
 {
+    assert_valid_dbptr(db);
     return fbu_call_void([&]() {
-        return static_cast<Database*>(db->dbptr)->disconnect();
+        static_cast<Database*>(db->dbptr)->disconnect();
+        delete static_cast<Database*>(db->dbptr);
+        db->dbptr = nullptr;
+        return SUCCESS;
     });
 }
 
 int fbu_database_drop(firebird_db *db)
 {
+    assert_valid_dbptr(db);
     return fbu_call_void([&]() {
-        return static_cast<Database*>(db->dbptr)->drop();
+        static_cast<Database*>(db->dbptr)->drop();
+        // delete static_cast<Database*>(db->dbptr);
+        // db->dbptr = nullptr;
+        return SUCCESS;
     });
 }
 
 int fbu_database_free(firebird_db *db)
 {
     FBDEBUG("~%s(db=%p, att=%p)", __func__, db, db->dbptr);
+    assert_valid_dbptr(db);
     return fbu_call_void([&]() {
         delete static_cast<Database*>(db->dbptr);
         db->dbptr = nullptr;
@@ -436,6 +546,9 @@ int fbu_database_free(firebird_db *db)
 
 int fbu_transaction_init(firebird_db *db, firebird_trans *tr)
 {
+    assert_valid_dbptr(db);
+    assert_valid_ptr(tr);
+
     return fbu_call_void([&]() {
         auto dba = static_cast<Database*>(db->dbptr);
         Transaction* tra = new Transaction(dba);
@@ -443,7 +556,6 @@ int fbu_transaction_init(firebird_db *db, firebird_trans *tr)
         FBDEBUG("fbu_transaction_init(db=%p, db->dbptr=%p, new Transaction=%p)", db, db->dbptr, tra);
 
         tr->trptr = tra;
-        tr->db = db;
         tr->id = 0;
 
         return SUCCESS;
@@ -452,6 +564,7 @@ int fbu_transaction_init(firebird_db *db, firebird_trans *tr)
 
 int fbu_transaction_start(firebird_trans *tr, const firebird_tbuilder *builder)
 {
+    assert_valid_trptr(tr);
     return fbu_call_void([&]() {
         auto tra = static_cast<Transaction *>(tr->trptr);
         tra->start(builder);
@@ -463,6 +576,7 @@ int fbu_transaction_start(firebird_trans *tr, const firebird_tbuilder *builder)
 int fbu_transaction_free(firebird_trans *tr)
 {
     FBDEBUG("~%s(tr->trptr=%p)", __func__, tr->trptr);
+    assert_valid_trptr(tr);
 
     return fbu_call_void([&]() {
         delete static_cast<Transaction *>(tr->trptr);
@@ -473,6 +587,7 @@ int fbu_transaction_free(firebird_trans *tr)
 
 int fbu_transaction_finalize(firebird_trans *tr, int mode)
 {
+    assert_valid_trptr(tr);
     return fbu_call_void([&]() {
         auto tra = static_cast<Transaction *>(tr->trptr);
 
@@ -490,6 +605,7 @@ int fbu_transaction_finalize(firebird_trans *tr, int mode)
 
 int fbu_transaction_execute(firebird_trans *tr, size_t len_sql, const char *sql)
 {
+    assert_valid_trptr(tr);
     return fbu_call_void([&]() {
         auto tra = static_cast<Transaction *>(tr->trptr);
         auto new_tr = tra->execute(len_sql, sql);
@@ -509,6 +625,8 @@ int fbu_transaction_execute(firebird_trans *tr, size_t len_sql, const char *sql)
 
 int fbu_statement_init(firebird_trans *tr, firebird_stmt *stmt)
 {
+    assert_valid_ptr(stmt);
+    assert_valid_trptr(tr);
     return fbu_call_void([&]() {
         auto s = new Statement(static_cast<Transaction *>(tr->trptr));
 
@@ -524,6 +642,7 @@ int fbu_statement_init(firebird_trans *tr, firebird_stmt *stmt)
 
 int fbu_statement_prepare(firebird_stmt *stmt, unsigned len_sql, const char *sql)
 {
+    assert_valid_sptr(stmt);
     return fbu_call_void([&]() {
         static_cast<Statement *>(stmt->sptr)->prepare(len_sql, sql);
         return SUCCESS;
@@ -532,6 +651,7 @@ int fbu_statement_prepare(firebird_stmt *stmt, unsigned len_sql, const char *sql
 
 int fbu_statement_bind(firebird_stmt *stmt, zval *b_vars, unsigned int num_bind_args)
 {
+    assert_valid_sptr(stmt);
     return fbu_call_void([&]() {
         static_cast<Statement *>(stmt->sptr)->bind(b_vars, num_bind_args);
         stmt->is_exhausted = 0;
@@ -541,6 +661,7 @@ int fbu_statement_bind(firebird_stmt *stmt, zval *b_vars, unsigned int num_bind_
 
 int fbu_statement_open_cursor(firebird_stmt *stmt)
 {
+    assert_valid_sptr(stmt);
     // TODO: check if already open
     return fbu_call_void([&]() {
         static_cast<Statement *>(stmt->sptr)->open_cursor();
@@ -551,6 +672,7 @@ int fbu_statement_open_cursor(firebird_stmt *stmt)
 
 int fbu_statement_fetch_next(firebird_stmt *stmt)
 {
+    assert_valid_sptr(stmt);
     return fbu_call_void([&]() {
         auto res = static_cast<Statement *>(stmt->sptr)->fetch_next();
 
@@ -573,6 +695,8 @@ int fbu_statement_fetch_next(firebird_stmt *stmt)
 
 HashTable *fbu_statement_output_buffer_to_array(firebird_stmt *stmt, int flags)
 {
+    assert_valid_sptr(stmt);
+
     HashTable *ht = nullptr;
 
     fbu_call_void([&]() {
@@ -585,6 +709,7 @@ HashTable *fbu_statement_output_buffer_to_array(firebird_stmt *stmt, int flags)
 
 int fbu_statement_execute(firebird_stmt *stmt)
 {
+    assert_valid_sptr(stmt);
     return fbu_call_void([&]() {
         static_cast<Statement *>(stmt->sptr)->execute();
         return SUCCESS;
@@ -593,6 +718,7 @@ int fbu_statement_execute(firebird_stmt *stmt)
 
 int fbu_statement_close_cursor(firebird_stmt *stmt)
 {
+    assert_valid_sptr(stmt);
     return fbu_call_void([&]() {
         return static_cast<Statement *>(stmt->sptr)->close_cursor();
     });
@@ -601,6 +727,7 @@ int fbu_statement_close_cursor(firebird_stmt *stmt)
 void fbu_statement_free(firebird_stmt *stmt)
 {
     FBDEBUG("~fbu_statement_free(%p)", stmt->sptr);
+    assert_valid_sptr(stmt);
 
     delete static_cast<Statement *>(stmt->sptr);
 

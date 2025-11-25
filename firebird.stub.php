@@ -99,8 +99,7 @@ const SM_SINGLE = 2;
 const SM_FULL   = 3;
 
 // function get_errors(): array { die; }
-
-function set_error_handler(callable $handler): void {}
+// function set_error_handler(callable $handler): void {}
 
 // abstract class Error_Handler
 // {
@@ -179,25 +178,47 @@ class Database
     protected Connect_Args|Create_Args $args;
 
     /**
-     * Do not instantiate this class directly. Use Database::connect() or Database::create() instead.
+     * Do not instantiate this class directly. Use Database::connect() or
+     * Database::create() instead.
      */
     private function __construct() {}
 
-    static public function connect(Connect_Args $args): Database|false { die; }
-    static public function create(Create_Args $args): Database|false { die; }
+    /**
+     * @throws Fb_Exception
+     */
+    static public function connect(Connect_Args $args): Database { die; }
+
+    /**
+     * @throws Fb_Exception
+     */
+    static public function create(Create_Args $args): Database { die; }
 
     /**
      * Wrapper around (new Transaction($this))->start(?TBuilder $tb = null);
+     * @throws Fb_Exception
      */
-    public function start_transaction(?TBuilder $tb = null): Transaction|false { die; }
+    public function start_transaction(?TBuilder $tb = null): Transaction { die; }
 
     /**
      * Wrapper around new Transaction($this);
+     * @throws Fb_Exception
      */
     public function new_transaction(): Transaction { die; }
-    public function get_info(): Db_Info|false { die; }
-    public function disconnect(): bool { die; }
-    public function drop(): bool { die; }
+
+    /**
+     * @throws Fb_Exception
+     */
+    public function get_info(): Db_Info { die; }
+
+    /**
+     * @throws Fb_Exception
+     */
+    public function disconnect(): void { die; }
+
+    /**
+     * @throws Fb_Exception
+     */
+    public function drop(): void { die; }
 
     /**
      * Installs event handler. Currently, the user of this function must
@@ -235,32 +256,33 @@ class Database
     public function get_limbo_transactions(int $max_count): array|false { die; }
 }
 
-class Multi_Transaction
-{
-    public function __construct() {}
+// TODO: Temp disable
+// class Multi_Transaction
+// {
+//     public function __construct() {}
 
-    /**
-     * Adds a database to Multi_Transaction.
-     *
-     * Returns Transaction object you can now query and execute on. Any attempt
-     * to commit/rollback on returned transaction object will result in whole
-     * multi transaction commit/rollback.
-     *
-     * */
-    public function add_db(Database $database, ?TBuilder $builder = null): Transaction { die; }
+//     /**
+//      * Adds a database to Multi_Transaction.
+//      *
+//      * Returns Transaction object you can now query and execute on. Any attempt
+//      * to commit/rollback on returned transaction object will result in whole
+//      * multi transaction commit/rollback.
+//      *
+//      * */
+//     public function add_db(Database $database, ?TBuilder $builder = null): Transaction { die; }
 
-    public function start(): bool { die; }
-    public function commit(): bool { die; }
-    public function commit_ret(): bool { die; }
-    public function rollback(): bool { die; }
-    public function rollback_ret(): bool { die; }
+//     public function start(): bool { die; }
+//     public function commit(): bool { die; }
+//     public function commit_ret(): bool { die; }
+//     public function rollback(): bool { die; }
+//     public function rollback_ret(): bool { die; }
 
-    /**
-     * Prepares multi transaction for two-phase commit.
-     * Optional description will be available in RDB$TRANSACTIONS table.
-     * */
-    public function prepare_2pc(?string $description = null): bool { die; }
-}
+//     /**
+//      * Prepares multi transaction for two-phase commit.
+//      * Optional description will be available in RDB$TRANSACTIONS table.
+//      * */
+//     public function prepare_2pc(?string $description = null): bool { die; }
+// }
 
 // TODO: auto commit/rollback flag?
 class Transaction
@@ -406,71 +428,74 @@ class Blob
     public function seek(int $offset, int $mode): int|false { die; }
 }
 
-class Event
-{
-    private function __construct() {}
-    public static function consume(): bool { die; }
-}
 
-class Service
-{
-    protected Service_Connect_Args $args;
+// TODO: Temp disable
+// class Event
+// {
+//     private function __construct() {}
+//     public static function consume(): bool { die; }
+// }
 
-    public function connect(Service_Connect_Args $args): bool { die; }
-    public function disconnect(): bool { die; }
-    public function get_server_info(): Server_Info|false { die; }
-    public function add_user(Server_User_Info $user_info): bool { die; }
-    public function modify_user(Server_User_Info $user_info): bool { die; }
-    public function delete_user(string $username): bool { die; }
-    public function backup(string $dbname, string $bkp_file, int $options = 0): bool { die; }
-    public function restore(string $bkp_file, string $dbname, int $options = 0): bool { die; }
+// TODO: Temp disable
+// class Service
+// {
+//     protected Service_Connect_Args $args;
 
-    /**
-     * Shuts down the database when:
-     *   There are no connections to the database, or
-     *   At the end of the timeout period you specify
-     *
-     * @param string $dbname path to database (on service machine)
-     * @param int $mode shutdown mode
-     * @see SM_NORMAL, SM_MULTI, SM_SINGLE, SM_FULL
-     * @param int $timeout wait timeout in seconds
-     * */
-    public function shutdown_db(string $dbname, int $mode = 0, int $timeout = 0): bool { die; }
+//     public function connect(Service_Connect_Args $args): bool { die; }
+//     public function disconnect(): bool { die; }
+//     public function get_server_info(): Server_Info|false { die; }
+//     public function add_user(Server_User_Info $user_info): bool { die; }
+//     public function modify_user(Server_User_Info $user_info): bool { die; }
+//     public function delete_user(string $username): bool { die; }
+//     public function backup(string $dbname, string $bkp_file, int $options = 0): bool { die; }
+//     public function restore(string $bkp_file, string $dbname, int $options = 0): bool { die; }
 
-    /**
-     * Bring a shutdown database back online
-     *
-     * @param string $dbname path to database (on service machine)
-     * @param int $mode shutdown mode
-     * @see SM_NORMAL, SM_MULTI, SM_SINGLE, SM_FULL
-     * */
-    public function db_online(string $dbname, int $mode = 0): bool { die; }
-    public function set_page_buffers(string $dbname, int $buffers): bool { die; }
-    public function set_sweep_interval(string $dbname, int $interval): bool { die; }
-    public function deny_new_attachments(string $dbname): bool { die; }
-    public function deny_new_transactions(string $dbname): bool { die; }
-    public function set_write_mode_async(string $dbname): bool { die; }
-    public function set_write_mode_sync(string $dbname): bool { die; }
-    public function set_access_mode_readonly(string $dbname): bool { die; }
-    public function set_access_mode_readwrite(string $dbname): bool { die; }
-    public function enable_reserve_space(string $database): bool { die; }
-    public function disable_reserve_space(string $database): bool { die; }
-    public function set_sql_dialect(string $database, int $dialect): bool { die; }
+//     /**
+//      * Shuts down the database when:
+//      *   There are no connections to the database, or
+//      *   At the end of the timeout period you specify
+//      *
+//      * @param string $dbname path to database (on service machine)
+//      * @param int $mode shutdown mode
+//      * @see SM_NORMAL, SM_MULTI, SM_SINGLE, SM_FULL
+//      * @param int $timeout wait timeout in seconds
+//      * */
+//     public function shutdown_db(string $dbname, int $mode = 0, int $timeout = 0): bool { die; }
 
-    // isc_spb_prp_nolinger
-    // isc_spb_prp_activate               Activate shadow files. Legacy stuff
+//     /**
+//      * Bring a shutdown database back online
+//      *
+//      * @param string $dbname path to database (on service machine)
+//      * @param int $mode shutdown mode
+//      * @see SM_NORMAL, SM_MULTI, SM_SINGLE, SM_FULL
+//      * */
+//     public function db_online(string $dbname, int $mode = 0): bool { die; }
+//     public function set_page_buffers(string $dbname, int $buffers): bool { die; }
+//     public function set_sweep_interval(string $dbname, int $interval): bool { die; }
+//     public function deny_new_attachments(string $dbname): bool { die; }
+//     public function deny_new_transactions(string $dbname): bool { die; }
+//     public function set_write_mode_async(string $dbname): bool { die; }
+//     public function set_write_mode_sync(string $dbname): bool { die; }
+//     public function set_access_mode_readonly(string $dbname): bool { die; }
+//     public function set_access_mode_readwrite(string $dbname): bool { die; }
+//     public function enable_reserve_space(string $database): bool { die; }
+//     public function disable_reserve_space(string $database): bool { die; }
+//     public function set_sql_dialect(string $database, int $dialect): bool { die; }
 
-    // isc_spb_prp_replica_mode
-    // #define isc_spb_prp_rm_none			0
-    // #define isc_spb_prp_rm_readonly		1
-    // #define isc_spb_prp_rm_readwrite	2
+//     // isc_spb_prp_nolinger
+//     // isc_spb_prp_activate               Activate shadow files. Legacy stuff
 
-    // Repair / fix
-    // case isc_spb_rpr_commit_trans:
-    // case isc_spb_rpr_rollback_trans:
-    // case isc_spb_rpr_recover_two_phase:
-    // case isc_spb_rpr_par_workers:
-}
+//     // isc_spb_prp_replica_mode
+//     // #define isc_spb_prp_rm_none			0
+//     // #define isc_spb_prp_rm_readonly		1
+//     // #define isc_spb_prp_rm_readwrite	2
+
+//     // Repair / fix
+//     // case isc_spb_rpr_commit_trans:
+//     // case isc_spb_rpr_rollback_trans:
+//     // case isc_spb_rpr_recover_two_phase:
+//     // case isc_spb_rpr_par_workers:
+// }
 
 /**
  * Transaction builder
@@ -552,7 +577,7 @@ class Server_User_Info
     public bool $admin;
 }
 
-class Error
+class Fb_Error
 {
     public readonly string $error_msg;
     public readonly int $error_code;
@@ -688,4 +713,10 @@ class Service_Connect_Args
     public string $service_name;
     public string $user_name;
     public string $password;
+}
+
+final class Fb_Exception extends \Exception
+{
+    public readonly string $sqlstate;
+    public readonly array $errors;
 }

@@ -1,31 +1,9 @@
-/*
-   +----------------------------------------------------------------------+
-   | PHP Version 7, 8                                                     |
-   +----------------------------------------------------------------------+
-   | Copyright (c) The PHP Group                                          |
-   +----------------------------------------------------------------------+
-   | This source file is subject to version 3.01 of the PHP license,      |
-   | that is bundled with this package in the file LICENSE, and is        |
-   | available through the world-wide-web at the following url:           |
-   | http://www.php.net/license/3_01.txt                                  |
-   | If you did not receive a copy of the PHP license and are unable to   |
-   | obtain it through the world-wide-web, please send a note to          |
-   | license@php.net so we can mail you a copy immediately.               |
-   +----------------------------------------------------------------------+
-   | Authors: Jouni Ahto <jouni.ahto@exdec.fi>                            |
-   |          Andrew Avdeev <andy@simgts.mv.ru>                           |
-   |          Ard Biesheuvel <a.k.biesheuvel@its.tudelft.nl>              |
-   |          Martin Koeditz <martin.koeditz@it-syn.de>                   |
-   |          others                                                      |
-   +----------------------------------------------------------------------+
-   | You'll find history on Github                                        |
-   | https://github.com/FirebirdSQL/php-firebird/commits/master           |
-   +----------------------------------------------------------------------+
- */
+#include "firebird_php.hpp"
+
+extern "C" {
 
 #include "php.h"
-#include "php_firebird.h"
-#include "php_firebird_includes.h"
+// #include "php_firebird_includes.h"
 #include "firebird_utils.h"
 
 #include "blob.h"
@@ -211,7 +189,7 @@ PHP_METHOD(FireBird_Blob, seek)
 
 static zend_object *FireBird_Blob_create_object(zend_class_entry *ce)
 {
-    firebird_blob *blob = zend_object_alloc(sizeof(firebird_blob), ce);
+    firebird_blob *blob = (firebird_blob *)zend_object_alloc(sizeof(firebird_blob), ce);
 
     FBDEBUG("%s(blob=%p)", __func__, blob);
 
@@ -236,7 +214,7 @@ static zend_object *FireBird_Blob_Id_create_object(zend_class_entry *ce)
 {
     FBDEBUG("++ %s", __func__);
 
-    firebird_blob_id *s = zend_object_alloc(sizeof(firebird_blob_id), ce);
+    firebird_blob_id *s = (firebird_blob_id *)zend_object_alloc(sizeof(firebird_blob_id), ce);
 
     zend_object_std_init(&s->std, ce);
     object_properties_init(&s->std, ce);
@@ -446,3 +424,5 @@ int fbp_blob_put(firebird_blob *blob, const char *buf, size_t buf_size)
     return SUCCESS;
 }
 #endif
+
+}

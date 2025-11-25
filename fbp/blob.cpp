@@ -3,6 +3,7 @@
 #include "fbp/base.hpp"
 #include "fbp/database.hpp"
 #include "fbp/blob.hpp"
+#include "firebird_php.hpp"
 
 using namespace Firebird;
 

@@ -2,8 +2,11 @@
 
 #include <stdexcept>
 #include <firebird/Interface.h>
+
+extern "C" {
 #include "php.h"
 #include "php_firebird_includes.h"
+}
 
 using namespace Firebird;
 

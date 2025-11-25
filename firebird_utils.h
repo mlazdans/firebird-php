@@ -23,10 +23,10 @@ int fbu_string_to_numeric(const char *s, const size_t slen, int scale, uint64_t 
     int *sign, int *exp, uint64_t *res);
 void fbu_init_date_object(const char *tzbuff, zval *o);
 
-int fbu_database_init(zval *args, firebird_db *db);
+int fbu_database_init(firebird_db *db);
 int fbu_database_free(firebird_db *db);
-int fbu_database_connect(firebird_db *db);
-int fbu_database_create(firebird_db *db);
+int fbu_database_connect(firebird_db *db, zval *args);
+int fbu_database_create(firebird_db *db, zval *args);
 int fbu_database_disconnect(firebird_db *db);
 int fbu_database_drop(firebird_db *db);
 

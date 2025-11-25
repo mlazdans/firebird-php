@@ -6,8 +6,10 @@
 
 #include "fbp/base.hpp"
 #include "fbp/database.hpp"
+extern "C" {
 #include "firebird_utils.h"
 #include "zend_exceptions.h"
+}
 
 using namespace Firebird;
 

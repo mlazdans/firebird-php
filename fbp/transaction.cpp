@@ -5,9 +5,12 @@
 #include "fbp/base.hpp"
 #include "fbp/database.hpp"
 #include "fbp/blob.hpp"
+#include "firebird_php.hpp"
 
+extern "C" {
 #include "firebird_utils.h"
 #include "zend_exceptions.h"
+}
 
 using namespace Firebird;
 
@@ -29,10 +32,9 @@ void Transaction::start(const firebird_tbuilder *builder)
         auto util = master->getUtilInterface();
         auto tpb = util->getXpbBuilder(&st, IXpbBuilder::TPB, NULL, 0);
         fbu_transaction_build_tpb(tpb, builder);
-        // fbp_dump_buffer(tpb->getBufferLength(&st), tpb->getBuffer(&st));
-        tra = dba->get_att()->startTransaction(&st, tpb->getBufferLength(&st), tpb->getBuffer(&st));
+        tra = dba->start_transaction(tpb->getBufferLength(&st), tpb->getBuffer(&st));
     } else {
-        tra = dba->get_att()->startTransaction(&st, 0, NULL);
+        tra = dba->start_transaction(0, NULL);
     }
 }
 
@@ -216,7 +218,9 @@ ITransaction *Transaction::execute(unsigned len_sql, const char *sql)
     FBDEBUG("Transaction::execute(dba=%p)", dba);
 
     // TODO: release old?
-    return tra = dba->get_att()->execute(&st, tra, len_sql, sql, SQL_DIALECT_CURRENT, NULL, NULL, NULL, NULL);
+    return tra = dba->execute(tra, len_sql, sql, NULL, NULL, NULL, NULL);
+
+    // return tra = dba->get_att()->execute(&st, tra, len_sql, sql, SQL_DIALECT_CURRENT, NULL, NULL, NULL, NULL);
 
     // if (tra2) {
     //     if (!tra) {

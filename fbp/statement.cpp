@@ -3,6 +3,7 @@
 #include "fbp/base.hpp"
 #include "fbp/database.hpp"
 #include "fbp/statement.hpp"
+#include "firebird_php.hpp"
 
 extern "C" {
 #include "ext/date/php_date.h"
@@ -26,6 +27,11 @@ void Statement::prepare(unsigned int len_sql, const char *sql)
     if (statement) {
         throw Php_Firebird_Exception(zend_ce_error,
             "BUG: statement already prepared or internal structure corrupted");
+    }
+
+    if (!tra) {
+        throw Php_Firebird_Exception(zend_ce_error,
+            "Invalid transaction handle");
     }
 
     IStatement *tmp = tra->prepare(len_sql, sql);

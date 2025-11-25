@@ -1,13 +1,14 @@
+#include "firebird_php.hpp"
+
+extern "C" {
+
 #include <ibase.h>
 
 #include "php.h"
 #include "zend_exceptions.h"
 #include "zend_attributes.h"
 #include "ext/spl/spl_exceptions.h"
-
-#include "php_firebird_includes.h"
 #include "firebird_utils.h"
-
 #include "statement.h"
 #include "transaction.h"
 #include "blob.h"
@@ -144,6 +145,7 @@ PHP_METHOD(FireBird_Statement, execute)
         Z_PARAM_VARIADIC('+', bind_args, num_bind_args)
     ZEND_PARSE_PARAMETERS_END();
 
+    // TODO: RETURN_THROWS();
     RETVAL_BOOL(SUCCESS == FireBird_Statement_execute(ZEND_THIS, bind_args, num_bind_args));
 }
 
@@ -223,7 +225,7 @@ PHP_METHOD(FireBird_Statement, set_name)
 
 static zend_object *FireBird_Statement_create_object(zend_class_entry *ce)
 {
-    firebird_stmt *s = zend_object_alloc(sizeof(firebird_stmt), ce);
+    firebird_stmt *s = (firebird_stmt *)zend_object_alloc(sizeof(firebird_stmt), ce);
 
     FBDEBUG("+%s(stmt=%p)", __func__, s);
 
@@ -341,4 +343,6 @@ void FireBird_Statement_fetch(zval *self, int flags, zval *return_value)
     } else {
         RETURN_FALSE;
     }
+}
+
 }

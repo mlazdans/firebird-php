@@ -1,27 +1,12 @@
-/*
-   +----------------------------------------------------------------------+
-   | PHP Version 7, 8                                                     |
-   +----------------------------------------------------------------------+
-   | Copyright (c) The PHP Group                                          |
-   +----------------------------------------------------------------------+
-   | This source file is subject to version 3.01 of the PHP license,      |
-   | that is bundled with this package in the file LICENSE, and is        |
-   | available through the world-wide-web at the following url:           |
-   | http://www.php.net/license/3_01.txt                                  |
-   | If you did not receive a copy of the PHP license and are unable to   |
-   | obtain it through the world-wide-web, please send a note to          |
-   | license@php.net so we can mail you a copy immediately.               |
-   +----------------------------------------------------------------------+
-   | Authors: Jouni Ahto <jouni.ahto@exdec.fi>                            |
-   |          Andrew Avdeev <andy@simgts.mv.ru>                           |
-   |          Ard Biesheuvel <a.k.biesheuvel@its.tudelft.nl>              |
-   |          Martin Koeditz <martin.koeditz@it-syn.de>                   |
-   |          others                                                      |
-   +----------------------------------------------------------------------+
-   | You'll find history on Github                                        |
-   | https://github.com/FirebirdSQL/php-firebird/commits/master           |
-   +----------------------------------------------------------------------+
- */
+#include <vector>
+#include <memory>
+
+#include "utils.hpp"
+#include "firebird_php.hpp"
+
+using namespace FBP;
+
+extern "C" {
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -31,29 +16,32 @@
 #include "config.w32.h"
 #endif
 
-#if HAVE_FIREBIRD
-
-#include <time.h>
 #include "php.h"
 #include "php_ini.h"
 #include "ext/standard/php_standard.h"
-// #include "ext/standard/md5.h"
-#include "php_firebird.h"
 #include "php_firebird_includes.h"
 #include "SAPI.h"
 #include "zend_interfaces.h"
+#include "zend_exceptions.h"
 
 #include "blob.h"
 #include "database.h"
 #include "transaction.h"
 #include "statement.h"
-#include "service.h"
-#include "multi_transaction.h"
-#include "fbp_service.h"
+// #include "service.h"
+// #include "multi_transaction.h"
+// #include "fbp_service.h"
 
 #include "firebird_arginfo.h"
 
-#define CHECK_LINK(link) { if (link==NULL) { php_error_docref(NULL, E_WARNING, "A link to the server could not be established"); RETURN_FALSE; } }
+PHP_RINIT_FUNCTION(firebird)
+{
+    FBG(db_list) = new std::vector<DatabasePtr>();
+
+    php_printf("Hello from PHP_RINIT_FUNCTION. List size = %d\n", FBG(db_list)->size());
+
+    return SUCCESS;
+}
 
 ZEND_DECLARE_MODULE_GLOBALS(firebird)
 static PHP_GINIT_FUNCTION(firebird);
@@ -65,10 +53,10 @@ static PHP_GINIT_FUNCTION(firebird);
 zend_module_entry firebird_module_entry = {
     STANDARD_MODULE_HEADER,
     "firebird",
-    ext_functions,
+    NULL, // ext_functions,
     PHP_MINIT(firebird),
     PHP_MSHUTDOWN(firebird),
-    NULL, // RINIT
+    PHP_RINIT(firebird),
     PHP_RSHUTDOWN(firebird),
     PHP_MINFO(firebird),
     PHP_FIREBIRD_VERSION,
@@ -139,7 +127,7 @@ static PHP_GINIT_FUNCTION(firebird)
     ZEND_SECURE_ZERO(firebird_globals, sizeof(*firebird_globals));
 }
 
-zend_class_entry *FireBird_Error_ce;
+zend_class_entry *FireBird_Fb_Error_ce;
 zend_class_entry *FireBird_Var_Info_ce;
 zend_class_entry *FireBird_Event_ce;
 zend_class_entry *FireBird_TBuilder_ce;
@@ -151,6 +139,7 @@ zend_class_entry *FireBird_Create_Args_ce;
 zend_class_entry *FireBird_Statement_ce;
 zend_class_entry *FireBird_Blob_ce;
 zend_class_entry *FireBird_Blob_Id_ce;
+zend_class_entry *FireBird_Fb_Exception_ce;
 
 PHP_MINIT_FUNCTION(firebird)
 {
@@ -161,7 +150,7 @@ PHP_MINIT_FUNCTION(firebird)
     // firebird replaces some signals at runtime, suppress warnings.
     SIGG(check) = 0;
 #endif
-    FireBird_Error_ce = register_class_FireBird_Error();
+    FireBird_Fb_Error_ce = register_class_FireBird_Fb_Error();
     FireBird_Connect_Args_ce = register_class_FireBird_Connect_Args();
     FireBird_Create_Args_ce = register_class_FireBird_Create_Args();
 
@@ -182,6 +171,8 @@ PHP_MINIT_FUNCTION(firebird)
 
     FireBird_Blob_Id_ce = register_class_FireBird_Blob_Id();
     register_FireBird_Blob_Id_object_handlers();
+
+    FireBird_Fb_Exception_ce = register_class_FireBird_Fb_Exception(zend_ce_exception);
 
     // register_FireBird_Var_Info_ce();
     // register_FireBird_Db_Info_ce();
@@ -212,7 +203,7 @@ PHP_MSHUTDOWN_FUNCTION(firebird)
      * be unloaded automatically when the process exits.
      */
     zend_module_entry *firebird_entry;
-    if ((firebird_entry = zend_hash_str_find_ptr(&module_registry, firebird_module_entry.name,
+    if ((firebird_entry = (zend_module_entry *)zend_hash_str_find_ptr(&module_registry, firebird_module_entry.name,
             strlen(firebird_module_entry.name))) != NULL) {
         firebird_entry->handle = 0;
     }
@@ -235,7 +226,7 @@ static void _free_events(firebird_event *p, firebird_event *prev)
 
 PHP_RSHUTDOWN_FUNCTION(firebird)
 {
-    _free_events(fb_events.events, fb_events.events ? fb_events.events->next : NULL);
+    // _free_events(fb_events.events, fb_events.events ? fb_events.events->next : NULL);
 
     return SUCCESS;
 }
@@ -254,11 +245,7 @@ PHP_MINFO_FUNCTION(firebird)
 
     php_info_print_table_row(2, "Interbase extension version", PHP_FIREBIRD_VERSION);
 
-#ifdef FB_API_VER
     snprintf( (s = tmp), sizeof(tmp), "Firebird API version %d", FB_API_VER);
-#elif (SQLDA_CURRENT_VERSION > 1)
-    s =  "Interbase 7.0 and up";
-#endif
     php_info_print_table_row(2, "Compile-time Client Library Version", s);
 
 #if defined(__GNUC__) || defined(PHP_WIN32)
@@ -268,8 +255,7 @@ PHP_MINFO_FUNCTION(firebird)
         info_func = (info_func_t)dlsym(RTLD_DEFAULT, "isc_get_client_version");
 #else
         HMODULE l = GetModuleHandle("fbclient");
-
-        if (!l && !(l = GetModuleHandle("gds32"))) {
+        if (!l) {
             break;
         }
         info_func = (info_func_t)GetProcAddress(l, "isc_get_client_version");
@@ -286,6 +272,7 @@ PHP_MINFO_FUNCTION(firebird)
 
 }
 
+#if 0
 PHP_FUNCTION(FireBird_set_error_handler)
 {
     // zval *handler;
@@ -307,6 +294,7 @@ PHP_FUNCTION(FireBird_set_error_handler)
     //     Z_PARAM_OBJECT_OF_CLASS(Builder, FireBird_TBuilder_ce)
     // ZEND_PARSE_PARAMETERS_END();
 }
+#endif
 
 void fbp_dump_buffer(int len, const unsigned char *buffer)
 {
@@ -454,14 +442,15 @@ ISC_INT64 fbp_call_error_handler(ISC_STATUS_ARRAY status, const char *file_name,
             UPD_CODES();
         }
 
-        if(FBG(has_error_handler)){
-            object_init_ex(&ferror_o, FireBird_Error_ce);
-            update_ferr_props(FireBird_Error_ce, Z_OBJ(ferror_o), s, s_len, error_code, error_code_long);
-            zend_hash_next_index_insert(ht_errors, &ferror_o);
-        } else {
-            fbp_error_ex(E_WARNING, "%s (%s:%d)\n", s, file_name, line_num);
-            // fbp_warning("%s", s);
-        }
+        // if(FBG(has_error_handler)){
+        //     object_init_ex(&ferror_o, FireBird_Error_ce);
+        //     update_ferr_props(FireBird_Error_ce, Z_OBJ(ferror_o), s, s_len, error_code, error_code_long);
+        //     zend_hash_next_index_insert(ht_errors, &ferror_o);
+        // } else {
+        //     fbp_error_ex(E_WARNING, "%s (%s:%d)\n", s, file_name, line_num);
+        //     // fbp_warning("%s", s);
+        // }
+        fbp_error_ex(E_WARNING, "%s (%s:%d)\n", s, file_name, line_num);
 
         errors_count++;
 
@@ -607,4 +596,4 @@ void fbp_store_portable_integer(unsigned char *buffer, ISC_UINT64 value, int len
 // fbp_object_accessor(zend_fiber);
 fbp_object_accessor(firebird_event);
 
-#endif /* HAVE_FIREBIRD */
+}

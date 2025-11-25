@@ -1,11 +1,13 @@
+#include "firebird_php.hpp"
+
+extern "C" {
+
 #include <ibase.h>
 
 #include "php.h"
 #include "zend_exceptions.h"
 #include "zend_attributes.h"
-#include "php_firebird_includes.h"
 #include "firebird_utils.h"
-
 #include "blob.h"
 #include "database.h"
 #include "transaction.h"
@@ -231,7 +233,7 @@ PHP_METHOD(FireBird_Transaction, prepare_2pc)
 
 static zend_object *FireBird_Transaction_create_object(zend_class_entry *ce)
 {
-    firebird_trans *tr = zend_object_alloc(sizeof(firebird_trans), ce);
+    firebird_trans *tr = (firebird_trans *)zend_object_alloc(sizeof(firebird_trans), ce);
 
     FBDEBUG("+%s(tr=%p)", __func__, tr);
 
@@ -339,6 +341,7 @@ int fbp_transaction_get_info(firebird_trans *tr)
 int fbp_transaction_reconnect(firebird_trans *tr, ISC_ULONG id)
 {
     TODO("fbp_transaction_reconnect");
+    return FAILURE;
 #if 0
     if (isc_reconnect_transaction(FBG(status), tr->db_handle, tr->tr_handle, sizeof(id), (const ISC_SCHAR *)&id)) {
         return FAILURE;
@@ -350,4 +353,6 @@ int fbp_transaction_reconnect(firebird_trans *tr, ISC_ULONG id)
 
     return SUCCESS;
 #endif
+}
+
 }

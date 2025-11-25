@@ -5,22 +5,14 @@
 
 #include "fbp/base.hpp"
 #include "fbp/database.hpp"
-#include "database.h"
-
-#include "firebird_utils.h"
-// #include "zend_exceptions.h"
+#include "firebird_php.hpp"
 
 using namespace Firebird;
 
 namespace FBP {
 
-Database::Database(zval *args) : args(args)
+Database::Database()
 {
-}
-
-IAttachment* Database::get_att() {
-    FBDEBUG("Database::get_att(): %p", att);
-    return att;
 }
 
 // int prepare(firebird_trans *tr, unsigned len_sql, const unsigned char *sql, firebird_stmt *stmt)
@@ -34,15 +26,7 @@ IAttachment* Database::get_att() {
 
 // }
 
-// Transaction* Database::start_transaction(const firebird_tbuilder *builder)
-// {
-//     auto tr = new Transaction(*this);
-//     tr->start(builder);
-//     // trans_list.emplace_back(tr);
-//     return tr;
-// }
-
-int Database::connect()
+void Database::connect(zval *args)
 {
     auto util = master->getUtilInterface();
     auto prov = master->getDispatcher();
@@ -64,11 +48,9 @@ int Database::connect()
 
     att = prov->attachDatabase(&st, Z_STRVAL_P(database),
         dpb->getBufferLength(&st), dpb->getBuffer(&st));
-
-    return SUCCESS;
 }
 
-int Database::create()
+void Database::create(zval *args)
 {
     auto util = master->getUtilInterface();
     auto prov = master->getDispatcher();
@@ -86,30 +68,20 @@ int Database::create()
 
     att = prov->createDatabase(&st, Z_STRVAL_P(database),
         dpb->getBufferLength(&st), dpb->getBuffer(&st));
-
-    return SUCCESS;
 }
 
-int Database::disconnect()
+void Database::disconnect()
 {
-    if (att) {
-        att->detach(&st);
-        att->release();
-        att = nullptr;
-
-        return SUCCESS;
-    } else {
-        return 1;
-    }
+    att->detach(&st);
+    att->release();
+    att = nullptr;
 }
 
-int Database::drop()
+void Database::drop()
 {
     att->dropDatabase(&st);
     att->release();
     att = nullptr;
-
-    return SUCCESS;
 }
 
 Database::~Database()
@@ -135,22 +107,12 @@ Database::~Database()
     if (err) fbu_handle_exception2();
 }
 
-// void Database::execute(unsigned len_sql, const char *sql,
-//         IMessageMetadata* im, unsigned char *in_buffer,
-//         IMessageMetadata* om, unsigned char *out_buffer)
-// {
-//     internal_tra = get_att()->execute(&st, internal_tra, len_sql, sql, SQL_DIALECT_CURRENT, im, in_buffer, om, out_buffer);
-// }
-
-// void Database::register_transaction(Transaction &tra)
-// {
-//     trans_list.emplace_back(tra);
-// }
-
-// Transaction* Database::new_transaction()
-// {
-//     return new Transaction(this);
-// }
+ITransaction *Database::execute(ITransaction *tra, unsigned len_sql, const char *sql,
+    IMessageMetadata* im, unsigned char *in_buffer,
+    IMessageMetadata* om, unsigned char *out_buffer)
+{
+    return att->execute(&st, tra, len_sql, sql, SQL_DIALECT_CURRENT, im, in_buffer, om, out_buffer);
+}
 
 IBlob *Database::open_blob(ITransaction *transaction, ISC_QUAD *blob_id)
 {
@@ -176,6 +138,11 @@ IStatement *Database::prepare(ITransaction *transaction, unsigned int len_sql, c
 {
     return att->prepare(&st, transaction, len_sql, sql, SQL_DIALECT_CURRENT,
         IStatement::PREPARE_PREFETCH_METADATA);
+}
+
+ITransaction* Database::start_transaction(unsigned int tpb_len, const unsigned char* tpb)
+{
+    return att->startTransaction(&st, tpb_len, tpb);
 }
 
 } // namespace

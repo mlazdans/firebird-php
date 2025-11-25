@@ -1,9 +1,11 @@
+#include "firebird_php.hpp"
+
+extern "C" {
 #include <ibase.h>
 
 #include "php.h"
 #include "zend_exceptions.h"
 #include "zend_attributes.h"
-#include "php_firebird_includes.h"
 #include "transaction.h"
 
 static zend_object_handlers FireBird_TBuilder_object_handlers;
@@ -126,7 +128,7 @@ PHP_METHOD(FireBird_TBuilder, dump_state)
 
 static zend_object *FireBird_TBuilder_create_object(zend_class_entry *ce)
 {
-    firebird_tbuilder *builder = zend_object_alloc(sizeof(firebird_tbuilder), ce);
+    firebird_tbuilder *builder = (firebird_tbuilder *)zend_object_alloc(sizeof(firebird_tbuilder), ce);
 
     FBDEBUG("+%s(builder=%p)", __func__, builder);
 
@@ -180,4 +182,6 @@ void register_FireBird_TBuilder_object_handlers()
     FireBird_TBuilder_object_handlers.offset = XtOffsetOf(firebird_tbuilder, std);
     FireBird_TBuilder_object_handlers.free_obj = FireBird_TBuilder_free_obj;
     FireBird_TBuilder_object_handlers.read_property = FireBird_TBuilder_read_property;
+}
+
 }
