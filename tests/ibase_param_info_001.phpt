@@ -11,8 +11,8 @@ require_once('functions.inc');
 
 (function(){
     $t = init_tmp_db_ibase()->new_transaction();
-    $t->start() or print_error_and_die("tr start", $t);
-    $rs = $t->prepare('SELECT * FROM test1 WHERE 1 = ? AND 2 = ?') or print_error_and_die("prepare", $t);
+    $t->start();
+    $rs = $t->prepare('SELECT * FROM test1 WHERE 1 = ? AND 2 = ?');
 
     var_bin($rs->get_var_info_in(1));
     print "---\n";

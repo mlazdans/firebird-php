@@ -18,7 +18,7 @@ namespace FBP {
 
 Transaction::Transaction(Database &dba): dba{dba}
 {
-    FBDEBUG("new Transaction(dba=%p)", PTR(dba));
+    FBDEBUG("new Transaction(dba=%p)=%p", PTR(dba), PTR(*this));
 }
 
 void Transaction::start(const firebird_tbuilder *builder)
@@ -32,9 +32,9 @@ void Transaction::start(const firebird_tbuilder *builder)
         auto util = master->getUtilInterface();
         auto tpb = util->getXpbBuilder(&st, IXpbBuilder::TPB, NULL, 0);
         fbu_transaction_build_tpb(tpb, builder);
-        tra = dba.start_transaction(tpb->getBufferLength(&st), tpb->getBuffer(&st));
+        tra = dba.get()->startTransaction(&st, tpb->getBufferLength(&st), tpb->getBuffer(&st));
     } else {
-        tra = dba.start_transaction(0, NULL);
+        tra = dba.get()->startTransaction(&st, 0, NULL);
     }
 }
 
@@ -146,55 +146,63 @@ Transaction::~Transaction()
     if (err) fbu_handle_exception(__FILE__, __LINE__);
 }
 
-int Transaction::commit()
+void Transaction::commit()
 {
     // TODO: checks are needed? should be managed by Database
-    if (tra) {
-        tra->commit(&st);
-        tra->release();
-        tra = nullptr;
-        return SUCCESS;
-    } else {
-        return FAILURE;
-    }
+    get()->commit(&st);
+    tra = nullptr;
+    // if (tra) {
+    //     tra->commit(&st);
+    //     tra->release();
+    //     tra = nullptr;
+    //     return SUCCESS;
+    // } else {
+    //     return FAILURE;
+    // }
 }
 
-int Transaction::commit_ret()
+void Transaction::commit_ret()
 {
+    get()->commitRetaining(&st);
+
     // TODO: checks are needed? should be managed by Database
-    if (tra) {
-        tra->commitRetaining(&st);
-        return SUCCESS;
-    } else {
-        return FAILURE;
-    }
+    // if (tra) {
+    //     tra->commitRetaining(&st);
+    //     return SUCCESS;
+    // } else {
+    //     return FAILURE;
+    // }
 }
 
-int Transaction::rollback()
+void Transaction::rollback()
 {
-    if (tra) {
-        tra->rollback(&st);
-        tra->release();
-        tra = nullptr;
-        return SUCCESS;
-    } else {
-        return FAILURE;
-    }
+    get()->rollback(&st);
+    tra = nullptr;
+
+    // if (tra) {
+    //     tra->rollback(&st);
+    //     tra->release();
+    //     tra = nullptr;
+    //     return SUCCESS;
+    // } else {
+    //     return FAILURE;
+    // }
 }
 
-int Transaction::rollback_ret()
+void Transaction::rollback_ret()
 {
-    if (tra) {
-        tra->rollbackRetaining(&st);
-        return SUCCESS;
-    } else {
-        return FAILURE;
-    }
+    get()->rollbackRetaining(&st);
+    // if (tra) {
+    //     tra->rollbackRetaining(&st);
+    //     return SUCCESS;
+    // } else {
+    //     return FAILURE;
+    // }
 }
 
 zend_string* Transaction::get_blob_contents(ISC_QUAD *blob_id)
 {
-    auto blob = new Blob(this);
+    auto blob = new Blob(*this);
     blob->open(blob_id);
     auto ret = blob->get_contents(0);
 
@@ -203,9 +211,9 @@ zend_string* Transaction::get_blob_contents(ISC_QUAD *blob_id)
     return ret;
 }
 
-ISC_QUAD Transaction::create_blob(zend_string *data)
+ISC_QUAD Transaction::create_blob_from_string(zend_string *data)
 {
-    auto blob = new Blob(this);
+    auto blob = new Blob(*this);
     auto id = blob->create();
     blob->put_contents(ZSTR_LEN(data), ZSTR_VAL(data));
     blob->close();
@@ -220,7 +228,8 @@ ITransaction *Transaction::execute(unsigned len_sql, const char *sql)
     // FBDEBUG("Transaction::execute(dba=%p)", dba);
 
     // TODO: release old?
-    return tra = dba.execute(tra, len_sql, sql, NULL, NULL, NULL, NULL);
+    // return tra = dba.execute(tra, len_sql, sql, NULL, NULL, NULL, NULL);
+    return tra = dba.get()->execute(&st, tra, len_sql, sql, SQL_DIALECT_CURRENT, NULL, NULL, NULL, NULL);
 
     // return tra = dba.get_att()->execute(&st, tra, len_sql, sql, SQL_DIALECT_CURRENT, NULL, NULL, NULL, NULL);
 
@@ -239,12 +248,22 @@ ITransaction *Transaction::execute(unsigned len_sql, const char *sql)
 
 IBlob *Transaction::open_blob(ISC_QUAD *blob_id)
 {
-    return dba.open_blob(tra, blob_id);
+    const unsigned char bpb[] = {
+        isc_bpb_version1,
+        isc_bpb_type, 1, isc_bpb_type_stream
+    };
+
+    return dba.get()->openBlob(&st, tra, blob_id, sizeof(bpb), bpb);
 }
 
 IBlob *Transaction::create_blob(ISC_QUAD *blob_id)
 {
-    return dba.create_blob(tra, blob_id);
+    const unsigned char bpb[] = {
+        isc_bpb_version1,
+        isc_bpb_type, 1, isc_bpb_type_stream
+    };
+
+    return dba.get()->createBlob(&st, tra, blob_id, sizeof(bpb), bpb);
 }
 
 void Transaction::execute_statement(IStatement *statement,
@@ -264,37 +283,31 @@ IResultSet *Transaction::open_cursor(IStatement *statement,
 
 IStatement* Transaction::prepare(unsigned int len_sql, const char *sql)
 {
-    return dba.prepare(tra, len_sql, sql);
+    return dba.get()->prepare(&st, tra, len_sql, sql, SQL_DIALECT_CURRENT,
+        IStatement::PREPARE_PREFETCH_METADATA);
 }
 
-size_t Transaction::new_statement()
+ITransaction *Transaction::get()
 {
-    st_list.emplace_back(new Statement(this));
-    return st_list.size();
-}
-
-std::unique_ptr<Statement> &Transaction::get_statement(size_t sth)
-{
-    if (!sth || sth > st_list.size() || !st_list[sth - 1]) {
-        throw Php_Firebird_Exception(zend_ce_error, "Invalid statement handle");
+    FBDEBUG("Transaction::get()=%p", tra);
+    if (tra) {
+        return tra;
     }
-
-    return st_list[sth - 1];
+    throw Php_Firebird_Exception(zend_ce_error, "Invalid transaction pointer");
 }
 
-size_t Transaction::new_blob()
+void Transaction::finalize(int mode)
 {
-    bl_list.emplace_back(new Blob(this));
-    return bl_list.size();
-}
-
-std::unique_ptr<Blob> &Transaction::get_blob(size_t blh)
-{
-    if (!blh || blh > bl_list.size() || !bl_list[blh - 1]) {
-        throw Php_Firebird_Exception(zend_ce_error, "Invalid blob handle");
+    if (mode == FBP_TR_COMMIT) {
+        commit();
+    } else if (mode == (FBP_TR_ROLLBACK | FBP_TR_RETAIN)) {
+        rollback_ret();
+    } else if (mode == (FBP_TR_COMMIT | FBP_TR_RETAIN)) {
+        commit_ret();
+    } else {
+        rollback();
     }
-
-    return bl_list[blh - 1];
 }
+
 
 }// namespace

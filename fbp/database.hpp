@@ -5,6 +5,7 @@
 #include <firebird/Interface.h>
 
 #include "fbp/base.hpp"
+#include "fbp/transaction.hpp"
 
 using namespace Firebird;
 
@@ -22,24 +23,26 @@ class Database: Base {
 private:
     IAttachment *att = nullptr;
     std::vector<std::unique_ptr<Transaction>> tr_list;
+    std::vector<std::unique_ptr<Statement>> st_list;
+    std::vector<std::unique_ptr<Blob>> bl_list;
 public:
+    std::unique_ptr<Transaction> &get_transaction(size_t trh);
+    std::unique_ptr<Statement> &get_statement(size_t sth);
+    std::unique_ptr<Blob> &get_blob(size_t blh);
     Database();
     ~Database();
+    IAttachment *get();
     void connect(zval *args);
     void create(zval *args);
     void disconnect();
     void drop();
-    ITransaction *execute(ITransaction *tra, unsigned len_sql, const char *sql,
-        IMessageMetadata *im, unsigned char *in_buffer,
-        IMessageMetadata *om, unsigned char *out_buffer);
-    IBlob *open_blob(ITransaction *transaction, ISC_QUAD *blob_id);
-    IBlob *create_blob(ITransaction *transaction, ISC_QUAD *blob_id);
-    IStatement *prepare(ITransaction *transaction, unsigned int len_sql, const char *sql);
-    ITransaction *start_transaction(unsigned int tpb_len, const unsigned char* tpb);
-    size_t new_transaction();
-    std::unique_ptr<Transaction> &get_transaction(size_t trh);
-    std::unique_ptr<Statement> &get_statement(size_t trh, size_t sth);
-    std::unique_ptr<Blob> &get_blob(size_t trh, size_t blh);
+
+    size_t transaction_init();
+    size_t statement_init(size_t trh);
+    size_t blob_init(size_t trh);
+    void transaction_free(size_t trh);
+    void statement_free(size_t sth);
+    void blob_free(size_t blh);
 };
 
 } // namespace

@@ -11,7 +11,7 @@ require_once('functions.inc');
 
 (function(){
     $t = init_tmp_db_ibase()->new_transaction();
-    $t->start() or print_error_and_die("tr start", $t);
+    $t->start();
 
     $queries = [
         'INSERT INTO test1 VALUES (100, 2)',
@@ -19,21 +19,22 @@ require_once('functions.inc');
         'INSERT INTO test1 VALUES (100, 2)',
     ];
 
-    query_bulk_or_die($t, $queries);
+    query_bulk($t, $queries);
 
-    $rs = $t->query('SELECT COUNT(*) FROM test1 WHERE i = 100') or print_error_and_die("query1", $t);
+    $rs = $t->query('SELECT COUNT(*) FROM test1 WHERE i = 100');
     var_dump($rs->fetch_row());
 
-    var_dump($t->rollback_ret());
+    $t->rollback_ret();
+    print "rollback_ret OK\n";
 
-    $rs = $t->query('SELECT COUNT(*) FROM test1 WHERE i = 100') or print_error_and_die("query2", $t);
+    $rs = $t->query('SELECT COUNT(*) FROM test1 WHERE i = 100');
     var_dump($rs->fetch_row());
 
-    $r = $t->rollback() or print "$t->error_msg\n";
-    var_dump($r);
+    $t->rollback();
+    print "rollback 1 OK\n";
 
-    $r = $t->rollback() or print "$t->error_msg\n";
-    var_dump($r);
+    $t->rollback();
+    print "rollback 2 OK\n";
 })();
 
 ?>
@@ -42,11 +43,10 @@ array(1) {
   [0]=>
   int(3)
 }
-bool(true)
+rollback_ret OK
 array(1) {
   [0]=>
   int(0)
 }
-bool(true)
-invalid transaction handle (expecting explicit transaction start)
-bool(false)
+rollback 1 OK
+Invalid transaction pointer

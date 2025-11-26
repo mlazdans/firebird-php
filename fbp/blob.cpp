@@ -9,10 +9,10 @@ using namespace Firebird;
 
 namespace FBP {
 
-Blob::Blob(Transaction *tra)
+Blob::Blob(Transaction &tra)
     : tra{tra}
 {
-    FBDEBUG("new Blob(tra=%p, this=%p)", tra, this);
+    FBDEBUG("new Blob(this=%p)", PTR(*this));
 }
 
 Blob::~Blob() noexcept
@@ -39,7 +39,7 @@ Blob::~Blob() noexcept
 
 ISC_QUAD Blob::create()
 {
-    blob = tra->create_blob(&info.id);
+    blob = tra.create_blob(&info.id);
 
     set_info();
     info.is_writable = 1;
@@ -49,7 +49,7 @@ ISC_QUAD Blob::create()
 
 void Blob::open(ISC_QUAD *blob_id)
 {
-    blob = tra->open_blob(blob_id);
+    blob = tra.open_blob(blob_id);
 
     set_info();
 

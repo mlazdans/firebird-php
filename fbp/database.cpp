@@ -118,49 +118,15 @@ Database::~Database()
     if (err) fbu_handle_exception(__FILE__, __LINE__);
 }
 
-ITransaction *Database::execute(ITransaction *tra, unsigned len_sql, const char *sql,
-    IMessageMetadata* im, unsigned char *in_buffer,
-    IMessageMetadata* om, unsigned char *out_buffer)
+size_t Database::transaction_init()
 {
-    return att->execute(&st, tra, len_sql, sql, SQL_DIALECT_CURRENT, im, in_buffer, om, out_buffer);
-}
-
-IBlob *Database::open_blob(ITransaction *transaction, ISC_QUAD *blob_id)
-{
-    const unsigned char bpb[] = {
-        isc_bpb_version1,
-        isc_bpb_type, 1, isc_bpb_type_stream
-    };
-
-    return att->openBlob(&st, transaction, blob_id, sizeof(bpb), bpb);
-}
-
-IBlob *Database::create_blob(ITransaction *transaction, ISC_QUAD *blob_id)
-{
-    const unsigned char bpb[] = {
-        isc_bpb_version1,
-        isc_bpb_type, 1, isc_bpb_type_stream
-    };
-
-    return att->createBlob(&st, transaction, blob_id, sizeof(bpb), bpb);
-}
-
-IStatement *Database::prepare(ITransaction *transaction, unsigned int len_sql, const char *sql)
-{
-    return att->prepare(&st, transaction, len_sql, sql, SQL_DIALECT_CURRENT,
-        IStatement::PREPARE_PREFETCH_METADATA);
-}
-
-ITransaction* Database::start_transaction(unsigned int tpb_len, const unsigned char* tpb)
-{
-    return att->startTransaction(&st, tpb_len, tpb);
-}
-
-size_t Database::new_transaction()
-{
-    FBDEBUG("Database::new_transaction(this=%p)", PTR(*this));
     tr_list.emplace_back(new Transaction(*this));
     return tr_list.size();
+}
+
+void Database::transaction_free(size_t trh)
+{
+    get_transaction(trh).reset();
 }
 
 std::unique_ptr<Transaction> &Database::get_transaction(size_t trh)
@@ -173,14 +139,53 @@ std::unique_ptr<Transaction> &Database::get_transaction(size_t trh)
     return tr_list[trh - 1];
 }
 
-std::unique_ptr<Statement> &Database::get_statement(size_t trh, size_t sth)
+size_t Database::statement_init(size_t trh)
 {
-    return get_transaction(trh)->get_statement(sth);
+    st_list.emplace_back(new Statement(*get_transaction(trh)));
+    return st_list.size();
 }
 
-std::unique_ptr<Blob> &Database::get_blob(size_t trh, size_t blh)
+size_t Database::blob_init(size_t trh)
 {
-    return get_transaction(trh)->get_blob(blh);
+    bl_list.emplace_back(new Blob(*get_transaction(trh)));
+    return bl_list.size();
+}
+
+void Database::statement_free(size_t sth)
+{
+    get_statement(sth).reset();
+}
+
+std::unique_ptr<Statement> &Database::get_statement(size_t sth)
+{
+    if (!sth || sth > st_list.size() || !st_list[sth - 1]) {
+        throw Php_Firebird_Exception(zend_ce_error, "Invalid statement handle");
+    }
+
+    return st_list[sth - 1];
+}
+
+std::unique_ptr<Blob> &Database::get_blob(size_t blh)
+{
+    if (!blh || blh > bl_list.size() || !bl_list[blh - 1]) {
+        throw Php_Firebird_Exception(zend_ce_error, "Invalid blob handle");
+    }
+
+    return bl_list[blh - 1];
+}
+
+void Database::blob_free(size_t blh)
+{
+    get_blob(blh).reset();
+}
+
+IAttachment *Database::get()
+{
+    FBDEBUG("Database::get()=%p", att);
+    if (att) {
+        return att;
+    }
+    throw Php_Firebird_Exception(zend_ce_error, "Invalid database pointer");
 }
 
 } // namespace

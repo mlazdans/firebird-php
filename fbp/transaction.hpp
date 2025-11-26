@@ -50,23 +50,24 @@ class Transaction: Base
 private:
     Database &dba;
     ITransaction *tra = nullptr;
-    std::vector<std::unique_ptr<Statement>> st_list;
-    std::vector<std::unique_ptr<Blob>> bl_list;
 public:
     Transaction(Database &dba);
     ~Transaction() noexcept;
+    ITransaction *get();
     void start(const firebird_tbuilder *builder);
     ISC_INT64 query_transaction_id();
     static void fbu_transaction_build_tpb(IXpbBuilder *tpb, const firebird_tbuilder *builder);
-    int commit();
-    int commit_ret();
-    int rollback();
-    int rollback_ret();
-    zend_string *get_blob_contents(ISC_QUAD *blob_id);
-    ISC_QUAD create_blob(zend_string *data);
+    void commit();
+    void commit_ret();
+    void rollback();
+    void rollback_ret();
+
     ITransaction *execute(unsigned len_sql, const char *sql);
     IBlob *open_blob(ISC_QUAD *blob_id);
     IBlob *create_blob(ISC_QUAD *blob_id);
+    ISC_QUAD create_blob_from_string(zend_string *data);
+    zend_string *get_blob_contents(ISC_QUAD *blob_id);
+
     void execute_statement(IStatement *statement,
         IMessageMetadata* input_metadata, void* in_buffer,
         IMessageMetadata* output_metadata, void* out_buffer);
@@ -74,10 +75,8 @@ public:
         IMessageMetadata* input_metadata, void* in_buffer,
         IMessageMetadata* output_metadata);
     IStatement* prepare(unsigned int len_sql, const char *sql);
-    size_t new_statement();
-    size_t new_blob();
-    std::unique_ptr<Statement> &get_statement(size_t sth);
-    std::unique_ptr<Blob> &get_blob(size_t blh);
+
+    void finalize(int mode);
 };
 
 } // namespace

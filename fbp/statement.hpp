@@ -65,6 +65,8 @@ using namespace Firebird;
 
 namespace FBP {
 
+class Transaction;
+
 class Statement: Base
 {
     Statement(const Statement&) = delete;
@@ -72,7 +74,7 @@ class Statement: Base
     Statement(Statement&&) = default;
     Statement& operator=(Statement&&) = default;
 private:
-    Transaction *tra;
+    Transaction &tra;
     IStatement *statement = nullptr;
     IResultSet *cursor = nullptr;
     IMessageMetadata *input_metadata = nullptr, *output_metadata = nullptr;
@@ -89,10 +91,9 @@ private:
 public:
     unsigned int in_buffer_size = 0, out_buffer_size = 0;
 
-    Statement(Transaction *tra);
+    Statement(Transaction &tra);
     ~Statement() noexcept;
     void prepare(unsigned int len_sql, const char *sql);
-    IStatement* get_statement();
     void bind(zval *b_vars, unsigned int num_bind_args);
     void open_cursor();
     int close_cursor();

@@ -8,8 +8,6 @@
 #define STRNUM_PARSE_ERROR    1
 #define STRNUM_PARSE_OVERFLOW 2
 
-#define PTR(x) static_cast<void*>(&(x))
-
 extern "C" {
 
 #include <ibase.h>

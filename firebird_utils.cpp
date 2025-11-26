@@ -430,7 +430,7 @@ int fbu_is_valid_trh(firebird_trans *tr)
 int fbu_is_valid_sth(firebird_stmt *stmt)
 {
     try {
-        get_db(stmt->dbh)->get_transaction(stmt->trh)->get_statement(stmt->sth);
+        get_db(stmt->dbh)->get_statement(stmt->sth);
         return 1;
     } catch(...) {
         return 0;
@@ -516,7 +516,7 @@ int fbu_database_free(firebird_db *db)
 int fbu_transaction_init(const firebird_db *db, firebird_trans *tr)
 {
     return fbu_call_void([&]() {
-        tr->trh = get_db(db->dbh)->new_transaction();
+        tr->trh = get_db(db->dbh)->transaction_init();
         tr->dbh = db->dbh;
         tr->id = 0;
 
@@ -530,7 +530,7 @@ int fbu_transaction_free(firebird_trans *tr)
 {
     FBDEBUG("~%s(tr=%p, tr->trh=%zu)", __func__, tr, tr->trh);
     return fbu_call_void([&]() {
-        get_db(tr->dbh)->get_transaction(tr->trh).reset();
+        get_db(tr->dbh)->transaction_free(tr->trh);
         tr->trh = 0;
         return SUCCESS;
     }, __FILE__, __LINE__);
@@ -539,22 +539,10 @@ int fbu_transaction_free(firebird_trans *tr)
 int fbu_transaction_finalize(const firebird_trans *tr, int mode)
 {
     return fbu_call_void([&]() {
-        // auto tra = static_cast<Transaction *>(tr->trptr);
-        auto &tra = get_db(tr->dbh)->get_transaction(tr->trh);
-
-        // TODO: zero tr->trh ?
-        if (mode == FBP_TR_COMMIT) {
-            return tra->commit();
-        } else if (mode == (FBP_TR_ROLLBACK | FBP_TR_RETAIN)) {
-            return tra->rollback_ret();
-        } else if (mode == (FBP_TR_COMMIT | FBP_TR_RETAIN)) {
-            return tra->commit_ret();
-        } else {
-            return tra->rollback();
-        }
+        get_db(tr->dbh)->get_transaction(tr->trh)->finalize(mode);
+        return SUCCESS;
     }, __FILE__, __LINE__);
 }
-
 
 int fbu_transaction_start(firebird_trans *tr, const firebird_tbuilder *builder)
 {
@@ -569,8 +557,7 @@ int fbu_transaction_start(firebird_trans *tr, const firebird_tbuilder *builder)
 int fbu_transaction_execute(const firebird_trans *tr, size_t len_sql, const char *sql)
 {
     return fbu_call_void([&]() {
-        auto &tra = get_db(tr->dbh)->get_transaction(tr->trh);
-        auto new_tr = tra->execute(len_sql, sql);
+        auto new_tr =get_db(tr->dbh)->get_transaction(tr->trh)->execute(len_sql, sql);
 
         FBDEBUG("fbu_transaction_execute(trh=%zu, new_tr=%p)", tr->trh, new_tr);
 
@@ -589,12 +576,13 @@ int fbu_transaction_execute(const firebird_trans *tr, size_t len_sql, const char
 int fbu_statement_init(const firebird_trans *tr, firebird_stmt *stmt)
 {
     return fbu_call_void([&]() {
-        // auto s = new Statement(static_cast<Transaction *>(tr->trptr));
-        // stmt->info = s->get_info();
-        stmt->sth = get_db(tr->dbh)->get_transaction(tr->trh)->new_statement();
+        auto new_sth = get_db(tr->dbh)->statement_init(tr->trh);
+        auto info = get_db(tr->dbh)->get_statement(new_sth)->get_info();
+
+        stmt->sth = new_sth;
         stmt->dbh = tr->dbh;
         stmt->trh = tr->trh;
-        stmt->info = get_db(tr->dbh)->get_statement(stmt->trh, stmt->sth)->get_info();
+        stmt->info = info;
 
         FBDEBUG("fbu_statement_init(dbh=%zu, trh=%zu, sth=%zu)", stmt->dbh, stmt->trh, stmt->sth);
 
@@ -607,7 +595,7 @@ int fbu_statement_free(firebird_stmt *stmt)
     FBDEBUG("~fbu_statement_free(sth=%zu)", stmt->sth);
 
     return fbu_call_void([&]() {
-        get_db(stmt->dbh)->get_statement(stmt->trh, stmt->sth).reset();
+        get_db(stmt->dbh)->statement_free(stmt->sth);
         stmt->sth = 0;
         return SUCCESS;
     }, __FILE__, __LINE__);
@@ -616,7 +604,7 @@ int fbu_statement_free(firebird_stmt *stmt)
 int fbu_statement_prepare(const firebird_stmt *stmt, unsigned len_sql, const char *sql)
 {
     return fbu_call_void([&]() {
-        get_db(stmt->dbh)->get_statement(stmt->trh, stmt->sth)->prepare(len_sql, sql);
+        get_db(stmt->dbh)->get_statement(stmt->sth)->prepare(len_sql, sql);
         return SUCCESS;
     }, __FILE__, __LINE__);
 }
@@ -624,7 +612,7 @@ int fbu_statement_prepare(const firebird_stmt *stmt, unsigned len_sql, const cha
 int fbu_statement_bind(firebird_stmt *stmt, zval *b_vars, unsigned int num_bind_args)
 {
     return fbu_call_void([&]() {
-        get_db(stmt->dbh)->get_statement(stmt->trh, stmt->sth)->bind(b_vars, num_bind_args);
+        get_db(stmt->dbh)->get_statement(stmt->sth)->bind(b_vars, num_bind_args);
         stmt->is_exhausted = 0;
         return SUCCESS;
     }, __FILE__, __LINE__);
@@ -635,7 +623,7 @@ int fbu_statement_open_cursor(firebird_stmt *stmt)
     // TODO: check if already open
     return fbu_call_void([&]() {
         // static_cast<Statement *>(stmt->sptr)->open_cursor();
-        get_db(stmt->dbh)->get_statement(stmt->trh, stmt->sth)->open_cursor();
+        get_db(stmt->dbh)->get_statement(stmt->sth)->open_cursor();
         stmt->is_cursor_open = 1;
         return SUCCESS;
     }, __FILE__, __LINE__);
@@ -644,8 +632,7 @@ int fbu_statement_open_cursor(firebird_stmt *stmt)
 int fbu_statement_fetch_next(firebird_stmt *stmt)
 {
     return fbu_call_void([&]() {
-        // auto res = static_cast<Statement *>(stmt->sptr)->fetch_next();
-        auto res = get_db(stmt->dbh)->get_statement(stmt->trh, stmt->sth)->fetch_next();
+        auto res = get_db(stmt->dbh)->get_statement(stmt->sth)->fetch_next();
 
         if (res == IStatus::RESULT_OK) {
             return 0;
@@ -670,7 +657,7 @@ HashTable *fbu_statement_output_buffer_to_array(const firebird_stmt *stmt, int f
     HashTable *ht = nullptr;
     fbu_call_void([&]() {
         // ht = static_cast<Statement *>(stmt->sptr)->output_buffer_to_array(flags);
-        ht = get_db(stmt->dbh)->get_statement(stmt->trh, stmt->sth)->output_buffer_to_array(flags);
+        ht = get_db(stmt->dbh)->get_statement(stmt->sth)->output_buffer_to_array(flags);
 
         return SUCCESS;
     }, __FILE__, __LINE__);
@@ -682,7 +669,7 @@ int fbu_statement_execute(const firebird_stmt *stmt)
 {
     return fbu_call_void([&]() {
         // static_cast<Statement *>(stmt->sptr)->execute();
-        get_db(stmt->dbh)->get_statement(stmt->trh, stmt->sth)->execute();
+        get_db(stmt->dbh)->get_statement(stmt->sth)->execute();
         return SUCCESS;
     }, __FILE__, __LINE__);
 }
@@ -691,25 +678,20 @@ int fbu_statement_close_cursor(const firebird_stmt *stmt)
 {
     return fbu_call_void([&]() {
         // return static_cast<Statement *>(stmt->sptr)->close_cursor();
-        return get_db(stmt->dbh)->get_statement(stmt->trh, stmt->sth)->close_cursor();
+        return get_db(stmt->dbh)->get_statement(stmt->sth)->close_cursor();
     }, __FILE__, __LINE__);
 }
 
 int fbu_blob_init(const firebird_trans *tr, firebird_blob *blob)
 {
     return fbu_call_void([&]() {
-        blob->blh = get_db(tr->dbh)->get_transaction(tr->trh)->new_blob();
+        auto new_blh = get_db(tr->dbh)->blob_init(tr->trh);
+        auto info = get_db(tr->dbh)->get_blob(new_blh)->get_info();
+
+        blob->blh = new_blh;
         blob->dbh = tr->dbh;
         blob->trh = tr->trh;
-        blob->info = get_db(tr->dbh)->get_blob(blob->trh, blob->blh)->get_info();
-
-        // auto blo = new Blob(static_cast<Transaction *>(tr->trptr));
-
-        // FBDEBUG("fbu_blob_init(tr=%p, tr->trptr=%p, new Blob=%p)", tr, tr->trptr, blo);
-
-        // blob->blobptr = blo;
-        // blob->tr = tr;
-        // blob->info = blo->get_info();
+        blob->info = info;
 
         return SUCCESS;
     }, __FILE__, __LINE__);
@@ -719,7 +701,7 @@ int fbu_blob_create(const firebird_blob *blob)
 {
     return fbu_call_void([&]() {
         // static_cast<Blob *>(blob->blobptr)->create();
-        get_db(blob->dbh)->get_blob(blob->trh, blob->blh)->create();
+        get_db(blob->dbh)->get_blob(blob->blh)->create();
         return SUCCESS;
     }, __FILE__, __LINE__);
 }
@@ -728,7 +710,7 @@ int fbu_blob_open(const firebird_blob *blob, firebird_blob_id *blob_id)
 {
     return fbu_call_void([&]() {
         // static_cast<Blob *>(blob->blobptr)->open(&blob_id->bl_id);
-        get_db(blob->dbh)->get_blob(blob->trh, blob->blh)->open(&blob_id->bl_id);
+        get_db(blob->dbh)->get_blob(blob->blh)->open(&blob_id->bl_id);
         return SUCCESS;
     }, __FILE__, __LINE__);
 }
@@ -740,7 +722,7 @@ int fbu_blob_free(firebird_blob *blob)
     return fbu_call_void([&]() {
         // delete static_cast<Blob*>(blob->blobptr);
         // blob->blobptr = nullptr;
-        get_db(blob->dbh)->get_blob(blob->trh, blob->blh).reset();
+        get_db(blob->dbh)->blob_free(blob->blh);
         blob->blh = 0;
         return SUCCESS;
     }, __FILE__, __LINE__);
@@ -750,7 +732,7 @@ int fbu_blob_put(const firebird_blob *blob, unsigned int buf_size, const char *b
 {
     return fbu_call_void([&]() {
         // static_cast<Blob *>(blob->blobptr)->put_contents(buf_size, buf);
-        get_db(blob->dbh)->get_blob(blob->trh, blob->blh)->put_contents(buf_size, buf);
+        get_db(blob->dbh)->get_blob(blob->blh)->put_contents(buf_size, buf);
         return SUCCESS;
     }, __FILE__, __LINE__);
 }
@@ -759,7 +741,7 @@ int fbu_blob_close(const firebird_blob *blob)
 {
     return fbu_call_void([&]() {
         // static_cast<Blob *>(blob->blobptr)->close();
-        get_db(blob->dbh)->get_blob(blob->trh, blob->blh)->close();
+        get_db(blob->dbh)->get_blob(blob->blh)->close();
         return SUCCESS;
     }, __FILE__, __LINE__);
 }
@@ -768,7 +750,7 @@ int fbu_blob_cancel(const firebird_blob *blob)
 {
     return fbu_call_void([&]() {
         // static_cast<Blob *>(blob->blobptr)->cancel();
-        get_db(blob->dbh)->get_blob(blob->trh, blob->blh)->cancel();
+        get_db(blob->dbh)->get_blob(blob->blh)->cancel();
         return SUCCESS;
     }, __FILE__, __LINE__);
 }
@@ -779,7 +761,7 @@ zend_string *fbu_blob_get(const firebird_blob *blob, unsigned int max_len)
     zend_string *return_value = nullptr;
     fbu_call_void([&]() {
         // return_value = static_cast<Blob *>(blob->blobptr)->get_contents(max_len);
-        return_value = get_db(blob->dbh)->get_blob(blob->trh, blob->blh)->get_contents(max_len);
+        return_value = get_db(blob->dbh)->get_blob(blob->blh)->get_contents(max_len);
         return SUCCESS;
     }, __FILE__, __LINE__);
     return return_value;
@@ -789,7 +771,7 @@ int fbu_blob_seek(const firebird_blob *blob, int mode, int offset, int *new_offs
 {
     return fbu_call_void([&]() {
         // static_cast<Blob *>(blob->blobptr)->seek(mode, offset, new_offset);
-        get_db(blob->dbh)->get_blob(blob->trh, blob->blh)->seek(mode, offset, new_offset);
+        get_db(blob->dbh)->get_blob(blob->blh)->seek(mode, offset, new_offset);
         return SUCCESS;
     }, __FILE__, __LINE__);
 }

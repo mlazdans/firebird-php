@@ -15,9 +15,10 @@ using namespace Firebird;
 
 namespace FBP {
 
-Statement::Statement(Transaction *tra)
+Statement::Statement(Transaction &tra)
     : tra{tra}
 {
+    FBDEBUG("new Statement(tra=%p)=%p", PTR(tra), PTR(*this));
 }
 
 void Statement::prepare(unsigned int len_sql, const char *sql)
@@ -27,12 +28,7 @@ void Statement::prepare(unsigned int len_sql, const char *sql)
             "BUG: statement already prepared or internal structure corrupted");
     }
 
-    if (!tra) {
-        throw Php_Firebird_Exception(zend_ce_error,
-            "Invalid transaction handle");
-    }
-
-    IStatement *tmp = tra->prepare(len_sql, sql);
+    IStatement *tmp = tra.prepare(len_sql, sql);
 
     info.statement_type = tmp->getType(&st);
 
@@ -77,10 +73,6 @@ void Statement::prepare(unsigned int len_sql, const char *sql)
     }
 
     statement = tmp;
-}
-
-IStatement* Statement::get_statement() {
-    return statement;
 }
 
 void Statement::bind(zval *b_vars, unsigned int num_bind_args)
@@ -351,7 +343,7 @@ void Statement::bind(zval *b_vars, unsigned int num_bind_args)
                     bl_id = get_firebird_blob_from_zval(b_var)->info->id;
                 } else {
                     convert_to_string(b_var);
-                    bl_id = tra->create_blob(Z_STR_P(b_var));
+                    bl_id = tra.create_blob_from_string(Z_STR_P(b_var));
                 }
                 *reinterpret_cast<ISC_QUAD*>(sqldata) = static_cast<ISC_QUAD>(bl_id);
                 break;
@@ -449,7 +441,7 @@ parse_datetime: {
 void Statement::open_cursor()
 {
     // TODO: check if curs already opened
-    cursor = tra->open_cursor(statement, input_metadata, in_buffer, output_metadata);
+    cursor = tra.open_cursor(statement, input_metadata, in_buffer, output_metadata);
 }
 
 int Statement::close_cursor()
@@ -642,7 +634,7 @@ _set_datetime:
 
         case SQL_BLOB:
             if (flags & FBP_FETCH_BLOB_TEXT) {
-                ZVAL_STR(val, tra->get_blob_contents((ISC_QUAD *)data));
+                ZVAL_STR(val, tra.get_blob_contents((ISC_QUAD *)data));
             } else {
                 object_init_ex(val, FireBird_Blob_Id_ce);
                 FireBird_Blob_Id___construct(val, *(ISC_QUAD *)data);
@@ -703,7 +695,7 @@ _sql_long:
 
 void Statement::execute()
 {
-    tra->execute_statement(statement, input_metadata, in_buffer, output_metadata, out_buffer);
+    tra.execute_statement(statement, input_metadata, in_buffer, output_metadata, out_buffer);
     query_statistics();
 }
 

@@ -76,14 +76,14 @@ namespace FBP {
 class Blob: Base
 {
 private:
-    Transaction *tra;
+    Transaction &tra;
     IBlob *blob = nullptr;
     // ISC_QUAD id = {0};
     firebird_blob_info info = {0};
 
     void set_info();
 public:
-    Blob(Transaction *tra);
+    Blob(Transaction &tra);
     ~Blob() noexcept;
     ISC_QUAD create();
     void open(ISC_QUAD *blob_id);

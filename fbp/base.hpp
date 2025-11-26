@@ -9,6 +9,8 @@ extern "C" {
 #include "php_firebird_includes.h"
 }
 
+#define PTR(x) static_cast<void*>(&(x))
+
 using namespace Firebird;
 
 void fbu_handle_exception(const char *file, size_t line);
@@ -26,21 +28,6 @@ public:
 
 namespace FBP
 {
-
-// typedef struct database_h {
-//     size_t dbh;
-// } database_h;
-
-// typedef struct transaction_h {
-//     size_t dbh;
-//     size_t trh;
-// } transaction_h;
-
-// typedef struct statement_h {
-//     size_t dbh;
-//     size_t trh;
-//     size_t sth;
-// } statement_h;
 
 class Base
 {
