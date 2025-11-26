@@ -3,7 +3,6 @@
 
 #include <ibase.h>
 #include "php.h"
-#include "php_firebird_includes.h"
 
 extern zend_class_entry *FireBird_Service_ce;
 extern zend_class_entry *FireBird_Service_Connect_Args_ce;

@@ -8,7 +8,12 @@
 #define STRNUM_PARSE_ERROR    1
 #define STRNUM_PARSE_OVERFLOW 2
 
+void fbu_handle_exception(const char *file, size_t line);
+
 extern "C" {
+
+void fbu_xpb_insert_object(Firebird::IXpbBuilder* xpb, zval *obj, zend_class_entry *ce,
+    const firebird_xpb_zmap *xpb_zmap);
 
 #include <ibase.h>
 

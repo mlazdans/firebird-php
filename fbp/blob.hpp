@@ -6,6 +6,9 @@
 #include "fbp/database.hpp"
 #include "fbp/transaction.hpp"
 
+#define BLOB_ID_LEN     18
+#define BLOB_ID_MASK    "0x%" LL_MASK "x"
+
 #define FBP_BLOB_TYPE_SEGMENTED isc_bpb_type_segmented
 #define FBP_BLOB_TYPE_STREAMED  isc_bpb_type_stream
 

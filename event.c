@@ -2,7 +2,6 @@
 
 #include "php.h"
 #include "php_firebird.h"
-#include "php_firebird_includes.h"
 #include "zend_fibers.h"
 
 // zend_class_entry *FireBird_Event_ce;

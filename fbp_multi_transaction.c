@@ -2,7 +2,6 @@
 #include "php.h"
 #include "zend.h"
 #include "php_firebird.h"
-#include "php_firebird_includes.h"
 #include "ext/standard/php_var.h"
 
 #include "transaction.h"

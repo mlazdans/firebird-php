@@ -22,7 +22,6 @@ extern "C" {
 #include "zend_exceptions.h"
 #include "ext/spl/spl_exceptions.h"
 #include "ext/date/php_date.h"
-#include "php_firebird_includes.h"
 #include "firebird_utils.h"
 }
 
@@ -141,8 +140,6 @@ void fbu_handle_exception(const char *file, size_t line)
 template<typename Func>
 int fbu_call_void(Func&& f, const char *file, size_t line)
 {
-    ThrowStatusWrapper st(fb_get_master_interface()->getStatus());
-
     try
     {
         return f();

@@ -3,7 +3,6 @@
 #include <firebird/Interface.h>
 #include <stdint.h>
 
-#include "firebird_php.hpp"
 #include "firebird_utils.h"
 
 #include "fbp/base.hpp"
@@ -11,11 +10,7 @@
 #include "fbp/transaction.hpp"
 
 extern "C" {
-// #include "php.h"
 #include "zend_exceptions.h"
-// #include "zend_attributes.h"
-// #include "php_firebird_includes.h"
-// #include "ext/spl/spl_exceptions.h"
 }
 
 using namespace Firebird;

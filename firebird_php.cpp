@@ -18,7 +18,6 @@ extern "C" {
 #include "php.h"
 #include "php_ini.h"
 #include "ext/standard/php_standard.h"
-#include "php_firebird_includes.h"
 #include "SAPI.h"
 #include "zend_interfaces.h"
 #include "zend_exceptions.h"
@@ -205,6 +204,7 @@ PHP_MSHUTDOWN_FUNCTION(firebird)
     return SUCCESS;
 }
 
+#if 0
 static void _free_events(firebird_event *p, firebird_event *prev)
 {
     if (p == NULL) {
@@ -216,6 +216,7 @@ static void _free_events(firebird_event *p, firebird_event *prev)
         efree(p);
     }
 }
+#endif
 
 PHP_RSHUTDOWN_FUNCTION(firebird)
 {
@@ -588,6 +589,6 @@ void fbp_store_portable_integer(unsigned char *buffer, ISC_UINT64 value, int len
 }
 
 // fbp_object_accessor(zend_fiber);
-fbp_object_accessor(firebird_event);
+// fbp_object_accessor(firebird_event);
 
 }

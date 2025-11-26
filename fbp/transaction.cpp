@@ -28,11 +28,11 @@ void Transaction::start(const firebird_tbuilder *builder)
         throw Php_Firebird_Exception(zend_ce_error, "Transaction already started");
     }
 
-    if (builder) {
-        auto util = master->getUtilInterface();
-        auto tpb = util->getXpbBuilder(&st, IXpbBuilder::TPB, NULL, 0);
-        fbu_transaction_build_tpb(tpb, builder);
+    auto tpb = build_tpb(builder);
+
+    if (tpb) {
         tra = dba.get()->startTransaction(&st, tpb->getBufferLength(&st), tpb->getBuffer(&st));
+        tpb->dispose();
     } else {
         tra = dba.get()->startTransaction(&st, 0, NULL);
     }
@@ -58,13 +58,14 @@ ISC_INT64 Transaction::query_transaction_id()
     return -1;
 }
 
-void Transaction::fbu_transaction_build_tpb(IXpbBuilder *tpb, const firebird_tbuilder *builder)
+IXpbBuilder *Transaction::build_tpb(const firebird_tbuilder *builder)
 {
-    ThrowStatusWrapper st(fb_get_master_interface()->getStatus());
-
     FBDEBUG("Creating transaction start buffer");
 
-    if (!builder) return;
+    if (!builder) return nullptr;
+
+    auto util = master->getUtilInterface();
+    auto tpb = util->getXpbBuilder(&st, IXpbBuilder::TPB, NULL, 0);
 
     tpb->insertTag(&st, builder->read_only ? isc_tpb_read : isc_tpb_write);
 
@@ -122,6 +123,8 @@ void Transaction::fbu_transaction_build_tpb(IXpbBuilder *tpb, const firebird_tbu
     } else {
         fbp_fatal("BUG! invalid lock_timeout: %d", builder->lock_timeout);
     }
+
+    return tpb;
 }
 
 Transaction::~Transaction()

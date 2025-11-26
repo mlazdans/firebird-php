@@ -4,7 +4,6 @@
 #include "php.h"
 #include "zend_exceptions.h"
 #include "zend_attributes.h"
-#include "php_firebird_includes.h"
 
 #include "fbp_multi_transaction.h"
 

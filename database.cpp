@@ -5,7 +5,6 @@ extern "C" {
 #include "php.h"
 #include "zend_exceptions.h"
 #include "zend_attributes.h"
-#include "php_firebird_includes.h"
 #include "ext/spl/spl_exceptions.h"
 
 fbp_object_accessor(firebird_db);

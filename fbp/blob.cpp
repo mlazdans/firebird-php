@@ -4,6 +4,7 @@
 #include "fbp/database.hpp"
 #include "fbp/blob.hpp"
 #include "firebird_php.hpp"
+#include "firebird_utils.h"
 
 using namespace Firebird;
 

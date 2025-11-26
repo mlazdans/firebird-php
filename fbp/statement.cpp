@@ -8,7 +8,6 @@
 extern "C" {
 #include "ext/date/php_date.h"
 #include "firebird_utils.h"
-#include "php_firebird_includes.h"
 }
 
 using namespace Firebird;

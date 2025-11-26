@@ -6,6 +6,8 @@
 #include "fbp/database.hpp"
 #include "fbp/transaction.hpp"
 
+#include "firebird_php.hpp"
+
 #define FBP_FETCH_BLOB_TEXT (1<<0)
 #define FBP_FETCH_UNIXTIME  (1<<1)
 #define FBP_FETCH_DATE_OBJ  (1<<2)

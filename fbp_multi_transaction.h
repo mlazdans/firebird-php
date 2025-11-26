@@ -3,7 +3,6 @@
 
 #include <ibase.h>
 #include "php.h"
-#include "php_firebird_includes.h"
 
 typedef struct firebird_multi_trans {
     isc_tr_handle tr_handle;
