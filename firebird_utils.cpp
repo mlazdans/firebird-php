@@ -611,6 +611,7 @@ int fbu_statement_bind(firebird_stmt *stmt, zval *b_vars, unsigned int num_bind_
     return fbu_call_void([&]() {
         get_db(stmt->dbh)->get_statement(stmt->sth)->bind(b_vars, num_bind_args);
         stmt->is_exhausted = 0;
+        stmt->did_fake_fetch = 0;
         return SUCCESS;
     }, __FILE__, __LINE__);
 }
