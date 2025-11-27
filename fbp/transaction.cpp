@@ -36,26 +36,35 @@ void Transaction::start(const firebird_tbuilder *builder)
     } else {
         tra = dba.get()->startTransaction(&st, 0, NULL);
     }
+    is_info_dirty = true;
 }
 
-ISC_INT64 Transaction::query_transaction_id()
+void Transaction::query_info()
 {
     auto util = master->getUtilInterface();
 
     unsigned char req[] = { isc_info_tra_id };
     unsigned char resp[16];
 
-    tra->getInfo(&st, sizeof(req), req, sizeof(resp), resp);
+    get()->getInfo(&st, sizeof(req), req, sizeof(resp), resp);
 
     auto dpb = util->getXpbBuilder(&st, IXpbBuilder::INFO_RESPONSE, resp, sizeof(resp));
     for (dpb->rewind(&st); !dpb->isEof(&st); dpb->moveNext(&st)) {
         auto tag = dpb->getTag(&st);
         if (tag == isc_info_tra_id) {
-            return dpb->getBigInt(&st);
+            info.id = dpb->getBigInt(&st);
         }
     }
+}
 
-    return -1;
+void Transaction::get_info(firebird_trans_info *info_buf)
+{
+    if (is_info_dirty) {
+        query_info();
+        is_info_dirty = 0;
+    }
+
+    memcpy(info_buf, &info, sizeof(firebird_trans_info));
 }
 
 IXpbBuilder *Transaction::build_tpb(const firebird_tbuilder *builder)
@@ -151,56 +160,24 @@ Transaction::~Transaction()
 
 void Transaction::commit()
 {
-    // TODO: checks are needed? should be managed by Database
     get()->commit(&st);
     tra = nullptr;
-    // if (tra) {
-    //     tra->commit(&st);
-    //     tra->release();
-    //     tra = nullptr;
-    //     return SUCCESS;
-    // } else {
-    //     return FAILURE;
-    // }
 }
 
 void Transaction::commit_ret()
 {
     get()->commitRetaining(&st);
-
-    // TODO: checks are needed? should be managed by Database
-    // if (tra) {
-    //     tra->commitRetaining(&st);
-    //     return SUCCESS;
-    // } else {
-    //     return FAILURE;
-    // }
 }
 
 void Transaction::rollback()
 {
     get()->rollback(&st);
     tra = nullptr;
-
-    // if (tra) {
-    //     tra->rollback(&st);
-    //     tra->release();
-    //     tra = nullptr;
-    //     return SUCCESS;
-    // } else {
-    //     return FAILURE;
-    // }
 }
 
 void Transaction::rollback_ret()
 {
     get()->rollbackRetaining(&st);
-    // if (tra) {
-    //     tra->rollbackRetaining(&st);
-    //     return SUCCESS;
-    // } else {
-    //     return FAILURE;
-    // }
 }
 
 zend_string* Transaction::get_blob_contents(ISC_QUAD *blob_id)
@@ -232,21 +209,15 @@ ITransaction *Transaction::execute(unsigned len_sql, const char *sql)
 
     // TODO: release old?
     // return tra = dba.execute(tra, len_sql, sql, NULL, NULL, NULL, NULL);
-    return tra = dba.get()->execute(&st, tra, len_sql, sql, SQL_DIALECT_CURRENT, NULL, NULL, NULL, NULL);
+    auto new_tra = dba.get()->execute(&st, tra, len_sql, sql, SQL_DIALECT_CURRENT, NULL, NULL, NULL, NULL);
 
-    // return tra = dba.get_att()->execute(&st, tra, len_sql, sql, SQL_DIALECT_CURRENT, NULL, NULL, NULL, NULL);
+    if (new_tra != tra) {
+        if (tra) tra->release();
+        is_info_dirty = true;
+        tra = new_tra;
+    }
 
-    // if (tra2) {
-    //     if (!tra) {
-    //         return tra = tra2;
-    //     } else {
-    //         assert(tra == tra2);
-    //     }
-    // } else {
-    //     return tra = tra2;
-    // }
-
-    return nullptr;
+    return tra;
 }
 
 IBlob *Transaction::open_blob(ISC_QUAD *blob_id)
@@ -273,8 +244,13 @@ void Transaction::execute_statement(IStatement *statement,
     IMessageMetadata* input_metadata, void* in_buffer,
     IMessageMetadata* output_metadata, void* out_buffer)
 {
-    // TODO: release old?
-    tra = statement->execute(&st, tra, input_metadata, in_buffer, output_metadata, out_buffer);
+    auto new_tra = statement->execute(&st, tra, input_metadata, in_buffer, output_metadata, out_buffer);
+
+    if (new_tra != tra) {
+        if (tra) tra->release();
+        is_info_dirty = true;
+        tra = new_tra;
+    }
 }
 
 IResultSet *Transaction::open_cursor(IStatement *statement,

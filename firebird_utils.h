@@ -40,6 +40,7 @@ int fbu_transaction_start(firebird_trans *tr, const firebird_tbuilder *builder);
 int fbu_transaction_free(firebird_trans *tr);
 int fbu_transaction_finalize(const firebird_trans *tr, int mode);
 int fbu_transaction_execute(const firebird_trans *tr, size_t len_sql, const char *sql);
+int fbu_transaction_get_info(const firebird_trans *tr, firebird_trans_info *info);
 
 int fbu_statement_init(const firebird_trans *tr, firebird_stmt *stmt);
 int fbu_statement_free(firebird_stmt *stmt);

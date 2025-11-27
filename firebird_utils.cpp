@@ -515,7 +515,6 @@ int fbu_transaction_init(const firebird_db *db, firebird_trans *tr)
     return fbu_call_void([&]() {
         tr->trh = get_db(db->dbh)->transaction_init();
         tr->dbh = db->dbh;
-        tr->id = 0;
 
         FBDEBUG("fbu_transaction_init(dbh=%zu, new tr->trh=%zu)", db->dbh, tr->trh);
 
@@ -545,8 +544,6 @@ int fbu_transaction_start(firebird_trans *tr, const firebird_tbuilder *builder)
 {
     return fbu_call_void([&]() {
         get_db(tr->dbh)->get_transaction(tr->trh)->start(builder);
-        tr->id = get_db(tr->dbh)->get_transaction(tr->trh)->query_transaction_id();
-
         return SUCCESS;
     }, __FILE__, __LINE__);
 }
@@ -555,17 +552,15 @@ int fbu_transaction_execute(const firebird_trans *tr, size_t len_sql, const char
 {
     return fbu_call_void([&]() {
         auto new_tr =get_db(tr->dbh)->get_transaction(tr->trh)->execute(len_sql, sql);
-
         FBDEBUG("fbu_transaction_execute(trh=%zu, new_tr=%p)", tr->trh, new_tr);
+        return SUCCESS;
+    }, __FILE__, __LINE__);
+}
 
-        // TODO: detect transaction change and update ID
-        // if (new_tr) {
-        //     tr->id = tra->query_transaction_id();
-        // } else {
-        //     // ASSUME: Rolledback / commited
-        //     tr->id = 0;
-        // }
-
+int fbu_transaction_get_info(const firebird_trans *tr, firebird_trans_info *info)
+{
+    return fbu_call_void([&]() {
+        get_db(tr->dbh)->get_transaction(tr->trh)->get_info(info);
         return SUCCESS;
     }, __FILE__, __LINE__);
 }

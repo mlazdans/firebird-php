@@ -32,6 +32,10 @@ typedef struct firebird_tbuilder {
     zend_object std;
 } firebird_tbuilder;
 
+typedef struct firebird_trans_info {
+    ISC_INT64 id;
+} firebird_trans_info;
+
 }
 
 using namespace Firebird;
@@ -46,6 +50,15 @@ class Database;
 class Statement;
 class Blob;
 
+// TODO: continue experiments
+// struct ITransactionRelease {
+//     void operator()(ITransaction* t) const noexcept {
+//         if (t) t->release();
+//     }
+// };
+
+// using ITransactionPtr = std::unique_ptr<ITransaction, ITransactionRelease>;
+
 class Transaction: Base
 {
     Transaction(const Transaction&) = delete;
@@ -55,17 +68,21 @@ class Transaction: Base
 private:
     Database &dba;
     ITransaction *tra = nullptr;
+    firebird_trans_info info = {0};
+    bool is_info_dirty = true;
+private:
+    void query_info();
 public:
     Transaction(Database &dba);
     ~Transaction() noexcept;
     ITransaction *get();
     void start(const firebird_tbuilder *builder);
-    ISC_INT64 query_transaction_id();
     IXpbBuilder *build_tpb(const firebird_tbuilder *builder);
     void commit();
     void commit_ret();
     void rollback();
     void rollback_ret();
+    void get_info(firebird_trans_info *info_buf);
 
     ITransaction *execute(unsigned len_sql, const char *sql);
     IBlob *open_blob(ISC_QUAD *blob_id);
@@ -93,7 +110,6 @@ extern "C"
 typedef struct firebird_trans {
     size_t dbh;
     size_t trh;
-    ISC_INT64 id;
 
     zend_object std;
 } firebird_trans;
