@@ -618,11 +618,21 @@ _set_datetime:
             t_date_obj->time->i = t_minutes;
             t_date_obj->time->s = t_seconds;
             t_date_obj->time->us = t_fractions;
+            t_date_obj->time->sse_uptodate = 0;
 
             // efree(date_obj->time->tz_abbr);
             // efree(date_obj->time);
+            if ((flags & FBP_FETCH_UNIXTIME) && !(type == SQL_TYPE_TIME || type == SQL_TIME_TZ)) {
+                struct tm tm_time = {0};
+                tm_time.tm_year = t_date_obj->time->y - 1900;  // years since 1900
+                tm_time.tm_mon  = t_date_obj->time->m - 1;     // 0-11
+                tm_time.tm_mday = t_date_obj->time->d;
+                tm_time.tm_hour = t_date_obj->time->h;
+                tm_time.tm_min  = t_date_obj->time->i;
+                tm_time.tm_sec  = t_date_obj->time->s;
 
-            if (flags & FBP_FETCH_DATE_OBJ) {
+                ZVAL_LONG(val, timegm(&tm_time));
+            } else if (flags & FBP_FETCH_DATE_OBJ) {
                 ZVAL_COPY(val, &t_dateo);
             } else {
                 ZVAL_STR(val, php_format_date_obj(t_format, strlen(t_format), t_date_obj));

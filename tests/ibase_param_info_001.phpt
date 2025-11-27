@@ -1,6 +1,7 @@
 --TEST--
 InterBase: ibase_param_info(): Basic test. Ported from php-firebird.
 --SKIPIF--
+Skip TODO: need to refactor field info
 <?php include("skipif.inc"); ?>
 --FILE--
 <?php declare(strict_types = 1);

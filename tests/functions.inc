@@ -513,3 +513,18 @@ function init_tmp_db_ibase(): \FireBird\Database
 
     return $db;
 }
+
+function dump_rows(\FireBird\Statement $q, int $flags = 0): void
+{
+    while ($row = $q->fetch_array($flags)) {
+        var_dump($row);
+    }
+}
+
+function dump_table_rows(\FireBird\Transaction $t, $table, int $flags = 0): void
+{
+    $sql = sprintf('SELECT * FROM "%s"', $table);
+
+    dump_rows($t->query($sql), $flags);
+}
+
