@@ -72,6 +72,9 @@ void Database::create(zval *args)
     dpb = util->getXpbBuilder(&st, IXpbBuilder::DPB, NULL, 0);
     fbu_xpb_insert_object(dpb, args, FireBird_Create_Args_ce, &fbp_database_create_zmap);
 
+    dpb->insertInt(&st, isc_dpb_sql_dialect, SQL_DIALECT_CURRENT);
+    // fbp_dump_buffer(dpb->getBufferLength(&st), dpb->getBuffer(&st));
+
     att = prov->createDatabase(&st, Z_STRVAL_P(database),
         dpb->getBufferLength(&st), dpb->getBuffer(&st));
 }

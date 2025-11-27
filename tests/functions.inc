@@ -8,7 +8,7 @@ srand();
 
 set_exception_handler(function(\Throwable $e){
     if ($e instanceof \FireBird\Fb_Exception) {
-        print $e->getMessage();
+        print $e->getMessage()." in ".$e->getFile().":".$e->getLine();
     } else {
         throw $e;
     }
@@ -514,6 +514,18 @@ function init_tmp_db_ibase(): \FireBird\Database
     return $db;
 }
 
+function fields2sql_parts(array $fields): array
+{
+    $fields_str = '"'.join('","', $fields).'"';
+    $q_str = join(",", array_fill(0, count($fields), "?"));
+    return [$fields_str, $q_str];
+}
+
+function array2sql_parts(array $data): array
+{
+    return [...fields2sql_parts(array_keys($data)), $data];
+}
+
 function dump_rows(\FireBird\Statement $q, int $flags = 0): void
 {
     while ($row = $q->fetch_array($flags)) {
@@ -528,3 +540,43 @@ function dump_table_rows(\FireBird\Transaction $t, $table, int $flags = 0): void
     dump_rows($t->query($sql), $flags);
 }
 
+function skip_if_fb_lt(float $v): void
+{
+    if(($cv = get_fb_version()) < $v)die("skip Firebird server version $cv < $v");
+}
+
+function skip_if_fb_gt(float $v): void
+{
+    if(($cv = get_fb_version()) > $v)die("skip Firebird server version $cv > $v");
+}
+
+function skip_if_fb_gte(float $v): void
+{
+    if(($cv = get_fb_version()) >= $v)die("skip Firebird server version $cv >= $v");
+}
+
+// TODO: once service
+function get_fb_version(): float
+{
+    die("TODO: once service");
+    // global $host, $user, $password, $fb_version, $fb_version_str;
+
+    // if(isset($fb_version)) return $fb_version;
+
+    // if($se = ibase_service_attach($host ? $host : "localhost", $user, $password)) {
+    //     $fb_version_str = ibase_server_info($se, IBASE_SVC_SERVER_VERSION);
+    //     if($fb_version_str === false)die("skip cannot ibase_server_info()");
+    //     $server_version  = explode(" ", $fb_version_str);
+    //     $vers = (float)$server_version[count($server_version) - 1];
+    //     return $fb_version = $vers;
+    // } else {
+    //     die("skip: cannot connect");
+    // }
+}
+
+function insert_into(\FireBird\Transaction $t, string $table, array $data): \FireBird\Statement
+{
+    [$fields_str, $q_str] = array2sql_parts($data);
+    $sql = sprintf('INSERT INTO "%s" (%s) VALUES (%s)', $table, $fields_str, $q_str);
+    return $t->query($sql, ...array_values($data));
+}

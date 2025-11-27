@@ -159,6 +159,9 @@ extern zend_class_entry *FireBird_Blob_ce;
 extern zend_class_entry *FireBird_Blob_Id_ce;
 extern zend_class_entry *FireBird_Fb_Exception_ce;
 
+void fbp_dump_buffer(int len, const unsigned char *buffer);
+void fbp_dump_buffer_raw(int len, const unsigned char *buffer);
+
 }
 
 #endif // FIREBIRD_PHP_H

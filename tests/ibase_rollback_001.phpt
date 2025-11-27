@@ -49,4 +49,4 @@ array(1) {
   int(0)
 }
 rollback 1 OK
-Invalid transaction pointer
+Invalid transaction pointer%s

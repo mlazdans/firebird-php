@@ -32,4 +32,4 @@ int(3)
 int(0)
 Dynamic SQL Error
 SQL error code = -104
-Unexpected end of command - line 1, column 20
+Unexpected end of command - line 1, column 20%s

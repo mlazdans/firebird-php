@@ -115,8 +115,6 @@ typedef struct firebird_events {
 void fbp_store_portable_integer(unsigned char *buffer, ISC_UINT64 value, int length);
 int fbp_get_status_err_msg(const ISC_STATUS *status, char *msg, unsigned short msg_size);
 void fbp_status_error_ex(const ISC_STATUS *status, const char *file_name, size_t line_num);
-void fbp_dump_buffer(int len, const unsigned char *buffer);
-void fbp_dump_buffer_raw(int len, const unsigned char *buffer);
 ISC_INT64 fbp_update_err_props_ex(ISC_STATUS_ARRAY status, zend_class_entry *ce, zval *obj, const char *file_name, size_t line_num);
 ISC_INT64 fbp_call_error_handler(ISC_STATUS_ARRAY status, const char *file_name, size_t line_num);
 void fbp_declare_props_from_zmap(zend_class_entry *ce, const firebird_xpb_zmap *xpb_zmap);
