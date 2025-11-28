@@ -42,7 +42,7 @@ ISC_QUAD Blob::create()
 {
     blob = tra.create_blob(&info.id);
 
-    set_info();
+    query_info();
     info.is_writable = 1;
 
     return info.id;
@@ -52,22 +52,18 @@ void Blob::open(ISC_QUAD *blob_id)
 {
     blob = tra.open_blob(blob_id);
 
-    set_info();
+    query_info();
 
     info.id = *blob_id;
     info.is_writable = 0;
 }
 
-zend_string *Blob::get_contents(ISC_LONG max_len)
+void Blob::get_contents(int max_len, zend_string **buf)
 {
-    // ISC_STATUS stat;
-    // zend_string *bl_data;
-    // size_t cur_len, remaining_len;
-    // unsigned short seg_len;
-
     unsigned int len = 0;
     int64_t remaining_len = info.total_length - info.position;
 
+    // MAYBE: some limits?
     // if (remaining_len > INT32_MAX) {
     //     throw Php_Firebird_Exception(zend_ce_error, "Buffer too large");
     // }
@@ -79,14 +75,12 @@ zend_string *Blob::get_contents(ISC_LONG max_len)
     FBDEBUG("Blob::get_contents(position=%ld, remaining_len=%ld, max_len=%ld)",
         info.position, remaining_len, max_len);
 
-    zend_string *buf = zend_string_alloc(max_len, 0);
+    *buf = zend_string_alloc(max_len, 0);
 
-    blob->getSegment(&st, max_len, &ZSTR_VAL(buf), &len);
-    ZSTR_VAL(buf)[len] = '\0';
+    blob->getSegment(&st, max_len, &ZSTR_VAL(*buf), &len);
+    ZSTR_VAL(*buf)[len] = '\0';
 
     info.position += len;
-
-    return buf;
 }
 
 void Blob::put_contents(unsigned int buf_size, const char *buf)
@@ -96,8 +90,7 @@ void Blob::put_contents(unsigned int buf_size, const char *buf)
     info.total_length += buf_size;
 }
 
-
-void Blob::set_info()
+void Blob::query_info()
 {
     auto util = master->getUtilInterface();
 
@@ -136,7 +129,7 @@ void Blob::set_info()
     }
 }
 
-firebird_blob_info *Blob::get_info()
+const firebird_blob_info *Blob::get_info()
 {
     return &info;
 }

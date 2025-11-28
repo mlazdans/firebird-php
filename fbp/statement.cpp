@@ -467,30 +467,27 @@ int Statement::fetch_next()
     return fetch_res;
 }
 
-HashTable *Statement::output_buffer_to_array(int flags)
+void Statement::output_buffer_to_array(int flags, HashTable **hash)
 {
-    HashTable *hash;
     zval *result;
 
     if (flags & FBP_FETCH_HASHED) {
         if (!ht_aliases) alloc_ht_aliases();
-        hash = zend_array_dup(ht_aliases);
+        *hash = zend_array_dup(ht_aliases);
     } else if (flags & FBP_FETCH_INDEXED) {
         if (!ht_ind) alloc_ht_ind();
-        hash = zend_array_dup(ht_ind);
+        *hash = zend_array_dup(ht_ind);
     } else {
         throw Php_Firebird_Exception(zend_ce_error, "BUG: fetch method not set");
     }
 
     for (unsigned int index = 0; index < info.out_vars_count; index++) {
-        result = zend_hash_get_current_data(hash);
+        result = zend_hash_get_current_data(*hash);
         var_zval(result, index, flags);
-        zend_hash_move_forward(hash);
+        zend_hash_move_forward(*hash);
     }
 
-    zend_hash_internal_pointer_reset(hash);
-
-    return hash;
+    zend_hash_internal_pointer_reset(*hash);
 }
 
 int Statement::var_zval(zval *val, unsigned int index, int flags)
@@ -865,7 +862,7 @@ void Statement::query_statistics()
     info.affected_count = info.insert_count + info.update_count + info.delete_count;
 }
 
-firebird_stmt_info *Statement::get_info()
+const firebird_stmt_info *Statement::get_info()
 {
     return &info;
 }

@@ -69,7 +69,6 @@ private:
     Database &dba;
     ITransaction *tra = nullptr;
     firebird_trans_info info = {0};
-    bool is_info_dirty = true;
 private:
     void query_info();
 public:
@@ -82,7 +81,7 @@ public:
     void commit_ret();
     void rollback();
     void rollback_ret();
-    void get_info(firebird_trans_info *info_buf);
+    const firebird_trans_info *get_info();
 
     ITransaction *execute(unsigned len_sql, const char *sql);
     IBlob *open_blob(ISC_QUAD *blob_id);
@@ -110,6 +109,7 @@ extern "C"
 typedef struct firebird_trans {
     size_t dbh;
     size_t trh;
+    const firebird_trans_info *info;
 
     zend_object std;
 } firebird_trans;

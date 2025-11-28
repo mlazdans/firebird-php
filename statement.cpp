@@ -252,7 +252,7 @@ static zval* FireBird_Statement_read_property(zend_object *obj, zend_string *nam
     void **cache_slot, zval *rv)
 {
     firebird_stmt *stmt = get_firebird_stmt_from_obj(obj);
-    firebird_stmt_info *info = stmt->info;
+    const firebird_stmt_info *info = stmt->info;
 
     if (zend_string_equals_literal(name, "name")) {
         ZVAL_STRING(rv, info->name);
@@ -320,12 +320,16 @@ void FireBird_Statement_fetch(zval *self, int flags, zval *return_value)
                 }
             }
 
-            // TODO: throws?
-            if (fbu_statement_fetch_next(stmt)) {
+            int istatus;
+            if (fbu_statement_fetch_next(stmt, &istatus)) {
+                RETURN_THROWS();
+            }
+
+            if (istatus == IStatus::RESULT_NO_DATA) {
                 RETURN_FALSE;
             }
 
-            ht = fbu_statement_output_buffer_to_array(stmt, flags);
+            fbu_statement_output_buffer_to_array(stmt, flags, &ht);
         } break;
 
         // Simulate fetch for non-select queries. Just return what's in output buffer
@@ -333,7 +337,7 @@ void FireBird_Statement_fetch(zval *self, int flags, zval *return_value)
             if (!stmt->did_fake_fetch) {
                 stmt->did_fake_fetch = 1;
 
-                ht = fbu_statement_output_buffer_to_array(stmt, flags);
+                fbu_statement_output_buffer_to_array(stmt, flags, &ht);
             } else {
                 RETURN_FALSE;
             }

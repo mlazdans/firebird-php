@@ -40,7 +40,7 @@ typedef struct firebird_stmt {
     size_t dbh;
     size_t trh;
     size_t sth;
-    firebird_stmt_info *info;
+    const firebird_stmt_info *info;
 
     unsigned char did_fake_fetch, is_cursor_open, is_exhausted;
 
@@ -100,10 +100,10 @@ public:
     void open_cursor();
     int close_cursor();
     int fetch_next();
-    HashTable *output_buffer_to_array(int flags);
+    void output_buffer_to_array(int flags, HashTable **hash);
     int var_zval(zval *val, unsigned int index, int flags);
     void execute();
-    firebird_stmt_info *get_info();
+    const firebird_stmt_info *get_info();
 };
 
 }

@@ -76,14 +76,15 @@ PHP_METHOD(FireBird_Blob, cancel)
 int FireBird_Blob_get(zval *self, zval *return_value, size_t max_len)
 {
     firebird_blob *blob = get_firebird_blob_from_zval(self);
-    zend_string *data = fbu_blob_get(blob, max_len);
+    zend_string *data;
 
-    if (data) {
-        ZVAL_STR(return_value, data);
-        return SUCCESS;
+    if (fbu_blob_get(blob, max_len, &data)) {
+        return FAILURE;
     }
 
-    return FAILURE;
+    ZVAL_STR(return_value, data);
+
+    return SUCCESS;
 }
 
 PHP_METHOD(FireBird_Blob, get)
@@ -290,30 +291,29 @@ static zval* FireBird_Blob_read_property(zend_object *obj, zend_string *name, in
     void **cache_slot, zval *rv)
 {
     firebird_blob *blob = get_firebird_blob_from_obj(obj);
-    firebird_blob_info *info = blob->info;
 
     if (zend_string_equals_literal(name, "num_segments")) {
-        ZVAL_LONG(rv, info->num_segments);
+        ZVAL_LONG(rv, blob->info->num_segments);
         return rv;
     }
     if (zend_string_equals_literal(name, "max_segment")) {
-        ZVAL_LONG(rv, info->max_segment);
+        ZVAL_LONG(rv, blob->info->max_segment);
         return rv;
     }
     if (zend_string_equals_literal(name, "total_length")) {
-        ZVAL_LONG(rv, info->total_length);
+        ZVAL_LONG(rv, blob->info->total_length);
         return rv;
     }
     if (zend_string_equals_literal(name, "type")) {
-        ZVAL_LONG(rv, info->type);
+        ZVAL_LONG(rv, blob->info->type);
         return rv;
     }
     if (zend_string_equals_literal(name, "position")) {
-        ZVAL_LONG(rv, info->position);
+        ZVAL_LONG(rv, blob->info->position);
         return rv;
     }
     if (zend_string_equals_literal(name, "is_writable")) {
-        ZVAL_BOOL(rv, info->is_writable);
+        ZVAL_BOOL(rv, blob->info->is_writable);
         return rv;
     }
 

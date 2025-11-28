@@ -137,12 +137,13 @@ void fbu_handle_exception(const char *file, size_t line)
     zend_throw_exception_object(&ex);
 }
 
-template<typename Func>
-int fbu_call_void(Func&& f, const char *file, size_t line)
+template <typename F>
+int fbu_call_void(F&& f, const char* file, size_t line)
 {
     try
     {
-        return f();
+        f();
+        return SUCCESS;
     }
     catch (...)
     {
@@ -150,6 +151,22 @@ int fbu_call_void(Func&& f, const char *file, size_t line)
         return FAILURE;
     }
 }
+
+#define fbu_call_void2(f)                         \
+do {                                              \
+    try                                           \
+    {                                             \
+        do {                                      \
+            f;                                    \
+        } while(0);                               \
+        return SUCCESS;                           \
+    }                                             \
+    catch (...)                                   \
+    {                                             \
+        fbu_handle_exception(__FILE__, __LINE__); \
+        return FAILURE;                           \
+    }                                             \
+} while(0)
 
 const char* fbu_get_sql_type_name(unsigned type)
 {
@@ -437,148 +454,113 @@ int fbu_is_valid_sth(firebird_stmt *stmt)
 int fbu_database_init(firebird_db *db)
 {
     FBDEBUG("%s(db=%p)", __func__, db);
-    return fbu_call_void([&]() {
-        // Database* db_ptr = new Database();
-        // FBDEBUG("new Database at %p, db_list->size()=%zu", db_ptr, FBG(db_list).size());
-        // FBG(db_list).emplace_back(db_ptr);
-        // db->dbh = FBG(db_list).size();
+    return fbu_call_void([&]() -> void {
         FBG(db_list).emplace_back(new Database());
         db->dbh = FBG(db_list).size();
-        FBDEBUG("    received new Database()=%p", PTR(get_db(db->dbh)));
-        return SUCCESS;
+        FBDEBUG("    new Database()=%p", PTR(get_db(db->dbh)));
     }, __FILE__, __LINE__);
 }
 
 int fbu_database_connect(const firebird_db *db, zval *args)
 {
-    return fbu_call_void([&]() {
-        // static_cast<Database*>(db->dbptr)->connect(args);
-        // auto a = &get_db(db->dbh);
+    return fbu_call_void([&]() -> void {
         FBDEBUG("fbu_database_connect(dba=%p)", PTR(get_db(db->dbh)));
         get_db(db->dbh)->connect(args);
-        return SUCCESS;
     }, __FILE__, __LINE__);
 }
 
 int fbu_database_create(const firebird_db *db, zval *args)
 {
-    return fbu_call_void([&]() {
-        // static_cast<Database*>(db->dbptr)->create(args);
+    return fbu_call_void([&]() -> void {
         get_db(db->dbh)->create(args);
-        return SUCCESS;
     }, __FILE__, __LINE__);
 }
 
 int fbu_database_disconnect(firebird_db *db)
 {
-    return fbu_call_void([&]() {
-        // static_cast<Database*>(db->dbptr)->disconnect();
-        // delete static_cast<Database*>(db->dbptr);
-        // db->dbptr = nullptr;
+    return fbu_call_void([&]() -> void {
         get_db(db->dbh)->disconnect();
         get_db(db->dbh).reset();
         db->dbh = 0;
-
-        return SUCCESS;
     }, __FILE__, __LINE__);
 }
 
 int fbu_database_drop(firebird_db *db)
 {
-    return fbu_call_void([&]() {
-        // static_cast<Database*>(db->dbptr)->drop();
+    return fbu_call_void([&]() -> void {
         get_db(db->dbh)->drop();
         get_db(db->dbh).reset();
         db->dbh = 0;
-
-        // delete static_cast<Database*>(db->dbptr);
-        // db->dbptr = nullptr;
-        return SUCCESS;
     }, __FILE__, __LINE__);
 }
 
 int fbu_database_free(firebird_db *db)
 {
     FBDEBUG("~%s(db=%p, dbh=%d)", __func__, db, db->dbh);
-    return fbu_call_void([&]() {
-        // delete static_cast<Database*>(db->dbptr);
-        // db->dbptr = nullptr;
+    return fbu_call_void([&]() -> void {
         get_db(db->dbh).reset();
         db->dbh = 0;
-
-        return SUCCESS;
     }, __FILE__, __LINE__);
 }
 
 int fbu_transaction_init(const firebird_db *db, firebird_trans *tr)
 {
-    return fbu_call_void([&]() {
-        tr->trh = get_db(db->dbh)->transaction_init();
+    return fbu_call_void([&]() -> void {
+        // TODO: move login inside transaction_init
+        auto trh = get_db(db->dbh)->transaction_init();
+        auto info = get_db(db->dbh)->get_transaction(trh)->get_info();
+
+        tr->trh = trh;
         tr->dbh = db->dbh;
-
+        tr->info = info;
         FBDEBUG("fbu_transaction_init(dbh=%zu, new tr->trh=%zu)", db->dbh, tr->trh);
-
-        return SUCCESS;
     }, __FILE__, __LINE__);
 }
 
 int fbu_transaction_free(firebird_trans *tr)
 {
     FBDEBUG("~%s(tr=%p, tr->trh=%zu)", __func__, tr, tr->trh);
-    return fbu_call_void([&]() {
+    return fbu_call_void([&]() -> void {
         get_db(tr->dbh)->transaction_free(tr->trh);
         tr->trh = 0;
-        return SUCCESS;
     }, __FILE__, __LINE__);
 }
 
 int fbu_transaction_finalize(const firebird_trans *tr, int mode)
 {
-    return fbu_call_void([&]() {
+    return fbu_call_void([&]() -> void {
         get_db(tr->dbh)->get_transaction(tr->trh)->finalize(mode);
-        return SUCCESS;
     }, __FILE__, __LINE__);
 }
 
 int fbu_transaction_start(firebird_trans *tr, const firebird_tbuilder *builder)
 {
-    return fbu_call_void([&]() {
+    return fbu_call_void([&]() -> void {
         get_db(tr->dbh)->get_transaction(tr->trh)->start(builder);
-        return SUCCESS;
     }, __FILE__, __LINE__);
 }
 
 int fbu_transaction_execute(const firebird_trans *tr, size_t len_sql, const char *sql)
 {
-    return fbu_call_void([&]() {
-        auto new_tr =get_db(tr->dbh)->get_transaction(tr->trh)->execute(len_sql, sql);
-        FBDEBUG("fbu_transaction_execute(trh=%zu, new_tr=%p)", tr->trh, new_tr);
-        return SUCCESS;
+    return fbu_call_void([&]() -> void {
+        get_db(tr->dbh)->get_transaction(tr->trh)->execute(len_sql, sql);
     }, __FILE__, __LINE__);
 }
 
-int fbu_transaction_get_info(const firebird_trans *tr, firebird_trans_info *info)
-{
-    return fbu_call_void([&]() {
-        get_db(tr->dbh)->get_transaction(tr->trh)->get_info(info);
-        return SUCCESS;
-    }, __FILE__, __LINE__);
-}
 
 int fbu_statement_init(const firebird_trans *tr, firebird_stmt *stmt)
 {
-    return fbu_call_void([&]() {
-        auto new_sth = get_db(tr->dbh)->statement_init(tr->trh);
-        auto info = get_db(tr->dbh)->get_statement(new_sth)->get_info();
+    return fbu_call_void([&]() -> void {
+        // TODO: move logic into statement_init()?
+        auto sth = get_db(tr->dbh)->statement_init(tr->trh);
+        auto info = get_db(tr->dbh)->get_statement(sth)->get_info();
 
-        stmt->sth = new_sth;
+        stmt->sth = sth;
         stmt->dbh = tr->dbh;
         stmt->trh = tr->trh;
         stmt->info = info;
 
         FBDEBUG("fbu_statement_init(dbh=%zu, trh=%zu, sth=%zu)", stmt->dbh, stmt->trh, stmt->sth);
-
-        return SUCCESS;
     }, __FILE__, __LINE__);
 }
 
@@ -586,125 +568,97 @@ int fbu_statement_free(firebird_stmt *stmt)
 {
     FBDEBUG("~fbu_statement_free(sth=%zu)", stmt->sth);
 
-    return fbu_call_void([&]() {
+    return fbu_call_void([&]() -> void {
         get_db(stmt->dbh)->statement_free(stmt->sth);
         stmt->sth = 0;
-        return SUCCESS;
     }, __FILE__, __LINE__);
 }
 
-int fbu_statement_prepare(const firebird_stmt *stmt, unsigned len_sql, const char *sql)
+int fbu_statement_prepare(firebird_stmt *stmt, unsigned len_sql, const char *sql)
 {
-    return fbu_call_void([&]() {
+    return fbu_call_void([&]() -> void {
         get_db(stmt->dbh)->get_statement(stmt->sth)->prepare(len_sql, sql);
-        return SUCCESS;
     }, __FILE__, __LINE__);
 }
 
 int fbu_statement_bind(firebird_stmt *stmt, zval *b_vars, unsigned int num_bind_args)
 {
-    return fbu_call_void([&]() {
+    return fbu_call_void([&]() -> void {
         get_db(stmt->dbh)->get_statement(stmt->sth)->bind(b_vars, num_bind_args);
         stmt->is_exhausted = 0;
         stmt->did_fake_fetch = 0;
-        return SUCCESS;
     }, __FILE__, __LINE__);
 }
 
 int fbu_statement_open_cursor(firebird_stmt *stmt)
 {
     // TODO: check if already open
-    return fbu_call_void([&]() {
-        // static_cast<Statement *>(stmt->sptr)->open_cursor();
+    return fbu_call_void([&]() -> void {
         get_db(stmt->dbh)->get_statement(stmt->sth)->open_cursor();
         stmt->is_cursor_open = 1;
-        return SUCCESS;
     }, __FILE__, __LINE__);
 }
 
-int fbu_statement_fetch_next(firebird_stmt *stmt)
+int fbu_statement_fetch_next(firebird_stmt *stmt, int *istatus)
 {
-    return fbu_call_void([&]() {
-        auto res = get_db(stmt->dbh)->get_statement(stmt->sth)->fetch_next();
+    return fbu_call_void([&]() -> void {
+        *istatus = get_db(stmt->dbh)->get_statement(stmt->sth)->fetch_next();
 
-        if (res == IStatus::RESULT_OK) {
-            return 0;
-        }
-
-        if (res == IStatus::RESULT_NO_DATA) {
-            // Cursor will be closed by fetch_next()
-            stmt->is_cursor_open = 0;
+        if (*istatus == IStatus::RESULT_NO_DATA) {
+            stmt->is_cursor_open = 0; // Cursor is closed by fetch_next()
             stmt->is_exhausted = 1;
-            return 1;
         }
 
-        // Should do something here?
+        // Should do something else on error?
 
-        return -1;
     }, __FILE__, __LINE__);
 }
 
-HashTable *fbu_statement_output_buffer_to_array(const firebird_stmt *stmt, int flags)
+int fbu_statement_output_buffer_to_array(const firebird_stmt *stmt, int flags, HashTable **ht)
 {
-
-    HashTable *ht = nullptr;
-    fbu_call_void([&]() {
-        // ht = static_cast<Statement *>(stmt->sptr)->output_buffer_to_array(flags);
-        ht = get_db(stmt->dbh)->get_statement(stmt->sth)->output_buffer_to_array(flags);
-
-        return SUCCESS;
+    return fbu_call_void([&]() -> void {
+        get_db(stmt->dbh)->get_statement(stmt->sth)->output_buffer_to_array(flags, ht);
     }, __FILE__, __LINE__);
-
-    return ht;
 }
 
 int fbu_statement_execute(const firebird_stmt *stmt)
 {
-    return fbu_call_void([&]() {
-        // static_cast<Statement *>(stmt->sptr)->execute();
+    return fbu_call_void([&]() -> void {
         get_db(stmt->dbh)->get_statement(stmt->sth)->execute();
-        return SUCCESS;
     }, __FILE__, __LINE__);
 }
 
 int fbu_statement_close_cursor(const firebird_stmt *stmt)
 {
-    return fbu_call_void([&]() {
-        // return static_cast<Statement *>(stmt->sptr)->close_cursor();
-        return get_db(stmt->dbh)->get_statement(stmt->sth)->close_cursor();
+    return fbu_call_void([&]() -> void {
+        get_db(stmt->dbh)->get_statement(stmt->sth)->close_cursor();
     }, __FILE__, __LINE__);
 }
 
 int fbu_blob_init(const firebird_trans *tr, firebird_blob *blob)
 {
-    return fbu_call_void([&]() {
-        auto new_blh = get_db(tr->dbh)->blob_init(tr->trh);
-        auto info = get_db(tr->dbh)->get_blob(new_blh)->get_info();
+    return fbu_call_void([&]() -> void {
+        auto blh = get_db(tr->dbh)->blob_init(tr->trh);
+        auto info = get_db(tr->dbh)->get_blob(blh)->get_info();
 
-        blob->blh = new_blh;
+        blob->blh = blh;
         blob->dbh = tr->dbh;
         blob->trh = tr->trh;
         blob->info = info;
-
-        return SUCCESS;
     }, __FILE__, __LINE__);
 }
 
-int fbu_blob_create(const firebird_blob *blob)
+int fbu_blob_create(firebird_blob *blob)
 {
-    return fbu_call_void([&]() {
-        // static_cast<Blob *>(blob->blobptr)->create();
+    return fbu_call_void([&]() -> void {
         get_db(blob->dbh)->get_blob(blob->blh)->create();
-        return SUCCESS;
     }, __FILE__, __LINE__);
 }
 
-int fbu_blob_open(const firebird_blob *blob, firebird_blob_id *blob_id)
+int fbu_blob_open(firebird_blob *blob, firebird_blob_id *blob_id)
 {
-    return fbu_call_void([&]() {
-        // static_cast<Blob *>(blob->blobptr)->open(&blob_id->bl_id);
+    return fbu_call_void([&]() -> void {
         get_db(blob->dbh)->get_blob(blob->blh)->open(&blob_id->bl_id);
-        return SUCCESS;
     }, __FILE__, __LINE__);
 }
 
@@ -712,60 +666,44 @@ int fbu_blob_free(firebird_blob *blob)
 {
     FBDEBUG("~%s(blob=%p, blob->blh=%lu)", __func__, blob, blob->blh);
 
-    return fbu_call_void([&]() {
-        // delete static_cast<Blob*>(blob->blobptr);
-        // blob->blobptr = nullptr;
+    return fbu_call_void([&]() -> void {
         get_db(blob->dbh)->blob_free(blob->blh);
         blob->blh = 0;
-        return SUCCESS;
     }, __FILE__, __LINE__);
 }
 
 int fbu_blob_put(const firebird_blob *blob, unsigned int buf_size, const char *buf)
 {
-    return fbu_call_void([&]() {
-        // static_cast<Blob *>(blob->blobptr)->put_contents(buf_size, buf);
+    return fbu_call_void([&]() -> void {
         get_db(blob->dbh)->get_blob(blob->blh)->put_contents(buf_size, buf);
-        return SUCCESS;
     }, __FILE__, __LINE__);
 }
 
 int fbu_blob_close(const firebird_blob *blob)
 {
-    return fbu_call_void([&]() {
-        // static_cast<Blob *>(blob->blobptr)->close();
+    return fbu_call_void([&]() -> void {
         get_db(blob->dbh)->get_blob(blob->blh)->close();
-        return SUCCESS;
     }, __FILE__, __LINE__);
 }
 
 int fbu_blob_cancel(const firebird_blob *blob)
 {
-    return fbu_call_void([&]() {
-        // static_cast<Blob *>(blob->blobptr)->cancel();
+    return fbu_call_void([&]() -> void {
         get_db(blob->dbh)->get_blob(blob->blh)->cancel();
-        return SUCCESS;
     }, __FILE__, __LINE__);
 }
 
-zend_string *fbu_blob_get(const firebird_blob *blob, unsigned int max_len)
+int fbu_blob_get(const firebird_blob *blob, int max_len, zend_string **buf)
 {
-    // TODO: pass as params
-    zend_string *return_value = nullptr;
-    fbu_call_void([&]() {
-        // return_value = static_cast<Blob *>(blob->blobptr)->get_contents(max_len);
-        return_value = get_db(blob->dbh)->get_blob(blob->blh)->get_contents(max_len);
-        return SUCCESS;
+    return fbu_call_void([&]() -> void {
+        get_db(blob->dbh)->get_blob(blob->blh)->get_contents(max_len, buf);
     }, __FILE__, __LINE__);
-    return return_value;
 }
 
 int fbu_blob_seek(const firebird_blob *blob, int mode, int offset, int *new_offset)
 {
-    return fbu_call_void([&]() {
-        // static_cast<Blob *>(blob->blobptr)->seek(mode, offset, new_offset);
+    return fbu_call_void([&]() -> void {
         get_db(blob->dbh)->get_blob(blob->blh)->seek(mode, offset, new_offset);
-        return SUCCESS;
     }, __FILE__, __LINE__);
 }
 

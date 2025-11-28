@@ -233,14 +233,9 @@ static zval* FireBird_Transaction_read_property(zend_object *obj, zend_string *n
     void **cache_slot, zval *rv)
 {
     firebird_trans *tr = get_firebird_trans_from_obj(obj);
-    firebird_trans_info info_buf;
 
     if (zend_string_equals_literal(name, "id")) {
-        if (fbu_transaction_get_info(tr, &info_buf)) {
-            ZVAL_LONG(rv, -100);
-        } else {
-            ZVAL_LONG(rv, info_buf.id);
-        }
+        ZVAL_LONG(rv, tr->info->id);
         return rv;
     }
 

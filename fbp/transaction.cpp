@@ -36,35 +36,34 @@ void Transaction::start(const firebird_tbuilder *builder)
     } else {
         tra = dba.get()->startTransaction(&st, 0, NULL);
     }
-    is_info_dirty = true;
+    query_info();
 }
 
 void Transaction::query_info()
 {
-    auto util = master->getUtilInterface();
+    if (tra) {
+        auto util = master->getUtilInterface();
 
-    unsigned char req[] = { isc_info_tra_id };
-    unsigned char resp[16];
+        unsigned char req[] = { isc_info_tra_id };
+        unsigned char resp[16];
 
-    get()->getInfo(&st, sizeof(req), req, sizeof(resp), resp);
+        get()->getInfo(&st, sizeof(req), req, sizeof(resp), resp);
 
-    auto dpb = util->getXpbBuilder(&st, IXpbBuilder::INFO_RESPONSE, resp, sizeof(resp));
-    for (dpb->rewind(&st); !dpb->isEof(&st); dpb->moveNext(&st)) {
-        auto tag = dpb->getTag(&st);
-        if (tag == isc_info_tra_id) {
-            info.id = dpb->getBigInt(&st);
+        auto dpb = util->getXpbBuilder(&st, IXpbBuilder::INFO_RESPONSE, resp, sizeof(resp));
+        for (dpb->rewind(&st); !dpb->isEof(&st); dpb->moveNext(&st)) {
+            auto tag = dpb->getTag(&st);
+            if (tag == isc_info_tra_id) {
+                info.id = dpb->getBigInt(&st);
+            }
         }
+    } else {
+        info.id = 0;
     }
 }
 
-void Transaction::get_info(firebird_trans_info *info_buf)
+const firebird_trans_info *Transaction::get_info()
 {
-    if (is_info_dirty) {
-        query_info();
-        is_info_dirty = 0;
-    }
-
-    memcpy(info_buf, &info, sizeof(firebird_trans_info));
+    return &info;
 }
 
 IXpbBuilder *Transaction::build_tpb(const firebird_tbuilder *builder)
@@ -184,7 +183,8 @@ zend_string* Transaction::get_blob_contents(ISC_QUAD *blob_id)
 {
     auto blob = new Blob(*this);
     blob->open(blob_id);
-    auto ret = blob->get_contents(0);
+    zend_string *ret;
+    blob->get_contents(0, &ret);
 
     delete blob;
 
@@ -208,13 +208,11 @@ ITransaction *Transaction::execute(unsigned len_sql, const char *sql)
     // FBDEBUG("Transaction::execute(dba=%p)", dba);
 
     // TODO: release old?
-    // return tra = dba.execute(tra, len_sql, sql, NULL, NULL, NULL, NULL);
     auto new_tra = dba.get()->execute(&st, tra, len_sql, sql, SQL_DIALECT_CURRENT, NULL, NULL, NULL, NULL);
 
     if (new_tra != tra) {
-        if (tra) tra->release();
-        is_info_dirty = true;
         tra = new_tra;
+        query_info();
     }
 
     return tra;
@@ -247,9 +245,8 @@ void Transaction::execute_statement(IStatement *statement,
     auto new_tra = statement->execute(&st, tra, input_metadata, in_buffer, output_metadata, out_buffer);
 
     if (new_tra != tra) {
-        if (tra) tra->release();
-        is_info_dirty = true;
         tra = new_tra;
+        query_info();
     }
 }
 

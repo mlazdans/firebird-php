@@ -40,26 +40,25 @@ int fbu_transaction_start(firebird_trans *tr, const firebird_tbuilder *builder);
 int fbu_transaction_free(firebird_trans *tr);
 int fbu_transaction_finalize(const firebird_trans *tr, int mode);
 int fbu_transaction_execute(const firebird_trans *tr, size_t len_sql, const char *sql);
-int fbu_transaction_get_info(const firebird_trans *tr, firebird_trans_info *info);
 
 int fbu_statement_init(const firebird_trans *tr, firebird_stmt *stmt);
 int fbu_statement_free(firebird_stmt *stmt);
-int fbu_statement_prepare(const firebird_stmt *stmt, unsigned len_sql, const char *sql);
+int fbu_statement_prepare(firebird_stmt *stmt, unsigned len_sql, const char *sql);
 int fbu_statement_bind(firebird_stmt *stmt, zval *b_vars, unsigned int num_bind_args);
 int fbu_statement_open_cursor(firebird_stmt *stmt);
-int fbu_statement_fetch_next(firebird_stmt *stmt);
-HashTable *fbu_statement_output_buffer_to_array(const firebird_stmt *stmt, int flags);
+int fbu_statement_fetch_next(firebird_stmt *stmt, int *istatus);
+int fbu_statement_output_buffer_to_array(const firebird_stmt *stmt, int flags, HashTable **ht);
 int fbu_statement_execute(const firebird_stmt *stmt);
 int fbu_statement_close_cursor(const firebird_stmt *stmt);
 
 int fbu_blob_init(const firebird_trans *tr, firebird_blob *blob);
 int fbu_blob_free(firebird_blob *blob);
-int fbu_blob_open(const firebird_blob *blob, firebird_blob_id *blob_id);
-int fbu_blob_create(const firebird_blob *blob);
+int fbu_blob_open(firebird_blob *blob, firebird_blob_id *blob_id);
+int fbu_blob_create(firebird_blob *blob);
 int fbu_blob_close(const firebird_blob *blob);
 int fbu_blob_cancel(const firebird_blob *blob);
+int fbu_blob_get(const firebird_blob *blob, int max_len, zend_string **buf);
 int fbu_blob_put(const firebird_blob *blob, unsigned int buf_size, const char *buf);
-zend_string *fbu_blob_get(const firebird_blob *blob, unsigned int max_len);
 int fbu_blob_seek(const firebird_blob *blob, int mode, int offset, int *new_offset);
 
 }
