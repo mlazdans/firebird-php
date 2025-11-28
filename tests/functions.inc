@@ -9,6 +9,7 @@ srand();
 set_exception_handler(function(\Throwable $e){
     if ($e instanceof \FireBird\Fb_Exception) {
         print $e->getMessage()." in ".$e->getFile().":".$e->getLine();
+        // print $e->getTraceAsString();
     } else {
         throw $e;
     }

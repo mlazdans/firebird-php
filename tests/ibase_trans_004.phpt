@@ -1,12 +1,7 @@
 --TEST--
 php-firebird: ibase_trans(): handles
 --SKIPIF--
-<?php
-include("skipif.inc");
-// On FB2.5 server "invalid transaction handle" happens on fetch.
-// See also: tests/ibase_trans_012.phpt
-// skip_if_fb_lt(3.0);
-?>
+<?php include("skipif.inc"); ?>
 --FILE--
 <?php declare(strict_types = 1);
 
