@@ -145,4 +145,4 @@ require_once('functions.inc');
 
 ?>
 --EXPECT_EXTERNAL--
-007-blobs.out.txt
+blobs-001.out.txt
