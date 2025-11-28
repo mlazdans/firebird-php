@@ -20,11 +20,20 @@ int FireBird_Transaction___construct(zval *self, zval *database)
     firebird_trans *tr = get_firebird_trans_from_zval(self);
     firebird_db *db = get_firebird_db_from_zval(database);
 
-    FBDEBUG("FireBird_Transaction___construct (db=%p, tr=%p, dbh=%zu)", db, tr, db->dbh);
+    size_t trh;
+    const firebird_trans_info *info;
 
-    if (fbu_transaction_init(db, tr)) {
+    if (fbu_transaction_init(db->dbh, &trh)) {
         return FAILURE;
     }
+
+    if (fbu_transaction_get_info(db->dbh, trh, &info)) {
+        return FAILURE;
+    }
+
+    tr->trh = trh;
+    tr->dbh = db->dbh;
+    tr->info = info;
 
     return SUCCESS;
 }
@@ -49,7 +58,7 @@ int FireBird_Transaction_start(zval *self, zval *builder)
 
     FBDEBUG("FireBird_Transaction_start(tr=%p, tr->trh=%lu, tb=%p)", tr, tr->trh, tb);
 
-    return fbu_transaction_start(tr, tb);
+    return fbu_transaction_start(tr->dbh, tr->trh, tb);
 }
 
 PHP_METHOD(FireBird_Transaction, start)
@@ -76,7 +85,7 @@ static void FireBird_Transaction_finalize(INTERNAL_FUNCTION_PARAMETERS, int mode
 
     FBDEBUG("%s(tr=%p, mode=%d)", __func__, tr, mode);
 
-    if (fbu_transaction_finalize(tr, mode)) {
+    if (fbu_transaction_finalize(tr->dbh, tr->trh, mode)) {
         RETURN_THROWS();
     }
 }
@@ -139,7 +148,7 @@ int FireBird_Transaction_execute(zval *self, zend_string *sql)
 
     FBDEBUG("%s(tr=%p, trhr=%zu)", __func__, tr, tr->trh);
 
-    if (fbu_transaction_execute(tr, ZSTR_LEN(sql), ZSTR_VAL(sql))) {
+    if (fbu_transaction_execute(tr->dbh, tr->trh, ZSTR_LEN(sql), ZSTR_VAL(sql))) {
         return FAILURE;
     }
 
@@ -222,8 +231,11 @@ static void FireBird_Transaction_free_obj(zend_object *obj)
 
     FBDEBUG("~%s(tr=%p, tr->trh=%zu)", __func__, tr, tr->trh);
 
-    if (fbu_is_valid_trh(tr)) {
-        fbu_transaction_free(tr);
+    if (fbu_is_valid_trh(tr->dbh, tr->trh)) {
+        if (fbu_transaction_free(tr->dbh, tr->trh)) {
+            // throws
+        }
+        tr->trh = 0;
     }
 
     zend_object_std_dtor(&tr->std);

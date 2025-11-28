@@ -15,9 +15,21 @@ int FireBird_Blob___construct(zval *self, zval *Transaction)
     firebird_trans *tr = get_firebird_trans_from_zval(Transaction);
     firebird_blob *blob = get_firebird_blob_from_zval(self);
 
-    if (fbu_blob_init(tr, blob)) {
+    size_t blh;
+    const firebird_blob_info *info;
+
+    if (fbu_blob_init(tr->dbh, tr->trh, &blh)) {
         return FAILURE;
     }
+
+    if (fbu_blob_get_info(tr->dbh, blh, &info)) {
+        return FAILURE;
+    }
+
+    blob->blh = blh;
+    blob->dbh = tr->dbh;
+    blob->trh = tr->trh;
+    blob->info = info;
 
     PROP_SET(FireBird_Blob_ce, self, "transaction", Transaction);
 
@@ -41,7 +53,7 @@ int FireBird_Blob_close(zval *self)
 {
     firebird_blob *blob = get_firebird_blob_from_zval(self);
 
-    if (fbu_blob_close(blob)) {
+    if (fbu_blob_close(blob->dbh, blob->blh)) {
         return FAILURE;
     }
 
@@ -59,7 +71,7 @@ int FireBird_Blob_cancel(zval *self)
 {
     firebird_blob *blob = get_firebird_blob_from_zval(self);
 
-    if (fbu_blob_cancel(blob)) {
+    if (fbu_blob_cancel(blob->dbh, blob->blh)) {
         return FAILURE;
     }
 
@@ -78,7 +90,7 @@ int FireBird_Blob_get(zval *self, zval *return_value, size_t max_len)
     firebird_blob *blob = get_firebird_blob_from_zval(self);
     zend_string *data;
 
-    if (fbu_blob_get(blob, max_len, &data)) {
+    if (fbu_blob_get(blob->dbh, blob->blh, max_len, &data)) {
         return FAILURE;
     }
 
@@ -105,7 +117,7 @@ int FireBird_Blob_put(zval *self, const char *buf, unsigned int buf_size)
 {
     firebird_blob *blob = get_firebird_blob_from_zval(self);
 
-    if (fbu_blob_put(blob, buf_size, buf)) {
+    if (fbu_blob_put(blob->dbh, blob->blh, buf_size, buf)) {
         return FAILURE;
     }
 
@@ -131,7 +143,7 @@ int FireBird_Blob_open(zval *self, zval *Blob_Id)
     firebird_blob *blob = get_firebird_blob_from_zval(self);
     firebird_blob_id *id = get_firebird_blob_id_from_zval(Blob_Id);
 
-    if (fbu_blob_open(blob, id)) {
+    if (fbu_blob_open(blob->dbh, blob->blh, &id->bl_id)) {
         return FAILURE;
     }
 
@@ -155,7 +167,7 @@ int FireBird_Blob_create(zval *self)
 {
     firebird_blob *blob = get_firebird_blob_from_zval(self);
 
-    if (fbu_blob_create(blob)) {
+    if (fbu_blob_create(blob->dbh, blob->blh)) {
         return FAILURE;
     }
 
@@ -173,7 +185,7 @@ int FireBird_Blob_seek(zval *self, int mode, int offset, int *new_offset)
 {
     firebird_blob *blob = get_firebird_blob_from_zval(self);
 
-    if (fbu_blob_seek(blob, mode, offset, new_offset)) {
+    if (fbu_blob_seek(blob->dbh, blob->blh, mode, offset, new_offset)) {
         return FAILURE;
     }
 
@@ -215,7 +227,11 @@ static void FireBird_Blob_free_obj(zend_object *obj)
 
     FBDEBUG("~%s(blob=%p)", __func__, blob);
 
-    fbu_blob_free(blob);
+    if (fbu_blob_free(blob->dbh, blob->blh)) {
+        // TODO: throws?
+    }
+
+    blob->blh = 0;
 
     zend_object_std_dtor(&blob->std);
 }

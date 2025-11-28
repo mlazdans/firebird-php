@@ -365,11 +365,11 @@ PHP_METHOD(FireBird_Database, connect)
     object_init_ex(return_value, FireBird_Database_ce);
     firebird_db *db = get_firebird_db_from_zval(return_value);
 
-    if (fbu_database_init(db)) {
+    if (fbu_database_init(&db->dbh)) {
         RETURN_THROWS();
     }
 
-    if (fbu_database_connect(db, Connect_Args)) {
+    if (fbu_database_connect(db->dbh, Connect_Args)) {
         RETURN_THROWS();
     }
 
@@ -387,11 +387,11 @@ PHP_METHOD(FireBird_Database, create)
     object_init_ex(return_value, FireBird_Database_ce);
     firebird_db *db = get_firebird_db_from_zval(return_value);
 
-    if (fbu_database_init(db)) {
+    if (fbu_database_init(&db->dbh)) {
         RETURN_THROWS();
     }
 
-    if (fbu_database_create(db, Create_Args)) {
+    if (fbu_database_create(db->dbh, Create_Args)) {
         RETURN_THROWS();
     }
 
@@ -411,9 +411,11 @@ PHP_METHOD(FireBird_Database, drop)
 
     firebird_db *db = get_firebird_db_from_zval(ZEND_THIS);
 
-    if (fbu_database_drop(db)) {
+    if (fbu_database_drop(db->dbh)) {
         RETURN_THROWS();
     }
+
+    db->dbh = 0;
 }
 
 PHP_METHOD(FireBird_Database, get_info)
@@ -662,11 +664,11 @@ PHP_METHOD(FireBird_Database, disconnect)
 
     firebird_db *db = get_firebird_db_from_zval(ZEND_THIS);
 
-    FBDEBUG("Connection::disconnect(db=%p)", db);
-
-    if (fbu_database_disconnect(db)) {
+    if (fbu_database_disconnect(db->dbh)) {
         RETURN_THROWS();
     }
+
+    db->dbh = 0;
 }
 
 void FireBird_Database_reconnect_transaction(zval *Db, zval *return_value, zend_long id)
@@ -773,10 +775,9 @@ static void FireBird_Database_free_obj(zend_object *obj)
 {
     firebird_db *db = get_firebird_db_from_obj(obj);
 
-    FBDEBUG("~%s(db=%p, db->dbh=%lu)", __func__, db, db->dbh);
-
-    if (fbu_is_valid_dbh(db)) {
-        fbu_database_free(db);
+    if (fbu_is_valid_dbh(db->dbh)) {
+        fbu_database_free(db->dbh);
+        db->dbh = 0;
     }
 
     zend_object_std_dtor(&db->std);

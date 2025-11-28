@@ -21,9 +21,21 @@ int FireBird_Statement___construct(zval *self, zval *transaction)
     firebird_stmt *stmt = get_firebird_stmt_from_zval(self);
     firebird_trans *tr = get_firebird_trans_from_zval(transaction);
 
-    if (fbu_statement_init(tr, stmt)) {
+    size_t sth;
+    const firebird_stmt_info *info;
+
+    if (fbu_statement_init(tr->dbh, tr->trh, &sth)) {
         return FAILURE;
     }
+
+    if (fbu_statement_get_info(tr->dbh, sth, &info)) {
+        return FAILURE;
+    }
+
+    stmt->sth = sth;
+    stmt->dbh = tr->dbh;
+    stmt->trh = tr->trh;
+    stmt->info = info;
 
     PROP_SET(FireBird_Statement_ce, self, "transaction", transaction);
 
@@ -71,7 +83,9 @@ PHP_METHOD(FireBird_Statement, close_cursor)
 {
     ZEND_PARSE_PARAMETERS_NONE();
 
-    if (fbu_statement_close_cursor(get_firebird_stmt_from_zval(ZEND_THIS))) {
+    firebird_stmt *stmt = get_firebird_stmt_from_zval(ZEND_THIS);
+
+    if (fbu_statement_close_cursor(stmt->dbh, stmt->sth)) {
         RETURN_THROWS();
     }
 }
@@ -80,9 +94,13 @@ PHP_METHOD(FireBird_Statement, free)
 {
     ZEND_PARSE_PARAMETERS_NONE();
 
-    if (fbu_statement_free(get_firebird_stmt_from_zval(ZEND_THIS))) {
+    firebird_stmt *stmt = get_firebird_stmt_from_zval(ZEND_THIS);
+
+    if (fbu_statement_free(stmt->dbh, stmt->sth)) {
         RETURN_THROWS();
     }
+
+    stmt->sth = 0;
 }
 
 int FireBird_Statement_execute(zval *self, zval *bind_args, uint32_t num_bind_args)
@@ -100,9 +118,12 @@ int FireBird_Statement_execute(zval *self, zval *bind_args, uint32_t num_bind_ar
     switch(stmt->info->statement_type) {
         case isc_info_sql_stmt_select:
         case isc_info_sql_stmt_select_for_upd: {
-            if (fbu_statement_bind(stmt, bind_args, num_bind_args)) {
+            if (fbu_statement_bind(stmt->dbh, stmt->sth, bind_args, num_bind_args)) {
                 return FAILURE;
             }
+
+            stmt->is_exhausted = 0;
+            stmt->did_fake_fetch = 0;
         } break;
 
         case isc_info_sql_stmt_set_generator:
@@ -110,19 +131,23 @@ int FireBird_Statement_execute(zval *self, zval *bind_args, uint32_t num_bind_ar
         case isc_info_sql_stmt_insert:
         case isc_info_sql_stmt_update:
         case isc_info_sql_stmt_delete: {
-            if (fbu_statement_bind(stmt, bind_args, num_bind_args)) {
+            if (fbu_statement_bind(stmt->dbh, stmt->sth, bind_args, num_bind_args)) {
                 return FAILURE;
             }
 
-            if (fbu_statement_execute(stmt)) {
+            if (fbu_statement_execute(stmt->dbh, stmt->sth)) {
                 return FAILURE;
             }
+
+            stmt->is_exhausted = 0;
+            stmt->did_fake_fetch = 0;
         } break;
 
         case isc_info_sql_stmt_start_trans:
         case isc_info_sql_stmt_commit:
+        case isc_info_sql_stmt_savepoint:
         case isc_info_sql_stmt_ddl: {
-            if (fbu_statement_execute(stmt)) {
+            if (fbu_statement_execute(stmt->dbh, stmt->sth)) {
                 return FAILURE;
             }
         } break;
@@ -153,7 +178,7 @@ int FireBird_Statement_prepare(zval *self, zend_string *sql)
 {
     firebird_stmt *stmt = get_firebird_stmt_from_zval(self);
 
-    if (fbu_statement_prepare(stmt, ZSTR_LEN(sql), ZSTR_VAL(sql))) {
+    if (fbu_statement_prepare(stmt->dbh, stmt->sth, ZSTR_LEN(sql), ZSTR_VAL(sql))) {
         return FAILURE;
     }
 
@@ -241,8 +266,8 @@ static void FireBird_Statement_free_obj(zend_object *obj)
 
     FBDEBUG("~%s(sth=%zu)", __func__, stmt->sth);
 
-    if (fbu_is_valid_sth(stmt)) {
-        fbu_statement_free(stmt);
+    if (fbu_is_valid_sth(stmt->dbh, stmt->sth)) {
+        fbu_statement_free(stmt->dbh, stmt->sth);
     }
 
     zend_object_std_dtor(&stmt->std);
@@ -252,34 +277,33 @@ static zval* FireBird_Statement_read_property(zend_object *obj, zend_string *nam
     void **cache_slot, zval *rv)
 {
     firebird_stmt *stmt = get_firebird_stmt_from_obj(obj);
-    const firebird_stmt_info *info = stmt->info;
 
     if (zend_string_equals_literal(name, "name")) {
-        ZVAL_STRING(rv, info->name);
+        ZVAL_STRING(rv, stmt->info->name);
         return rv;
     }
     if (zend_string_equals_literal(name, "in_vars_count")) {
-        ZVAL_LONG(rv, info->in_vars_count);
+        ZVAL_LONG(rv, stmt->info->in_vars_count);
         return rv;
     }
     if (zend_string_equals_literal(name, "out_vars_count")) {
-        ZVAL_LONG(rv, info->out_vars_count);
+        ZVAL_LONG(rv, stmt->info->out_vars_count);
         return rv;
     }
     if (zend_string_equals_literal(name, "insert_count")) {
-        ZVAL_LONG(rv, info->insert_count);
+        ZVAL_LONG(rv, stmt->info->insert_count);
         return rv;
     }
     if (zend_string_equals_literal(name, "update_count")) {
-        ZVAL_LONG(rv, info->update_count);
+        ZVAL_LONG(rv, stmt->info->update_count);
         return rv;
     }
     if (zend_string_equals_literal(name, "delete_count")) {
-        ZVAL_LONG(rv, info->delete_count);
+        ZVAL_LONG(rv, stmt->info->delete_count);
         return rv;
     }
     if (zend_string_equals_literal(name, "affected_count")) {
-        ZVAL_LONG(rv, info->affected_count);
+        ZVAL_LONG(rv, stmt->info->affected_count);
         return rv;
     }
 
@@ -315,21 +339,31 @@ void FireBird_Statement_fetch(zval *self, int flags, zval *return_value)
 
             // TODO: throws?
             if (!stmt->is_cursor_open) {
-                if (fbu_statement_open_cursor(stmt)) {
+                if (fbu_statement_open_cursor(stmt->dbh, stmt->sth)) {
                     RETURN_FALSE;
                 }
+                stmt->is_cursor_open = 1;
             }
 
             int istatus;
-            if (fbu_statement_fetch_next(stmt, &istatus)) {
+            if (fbu_statement_fetch_next(stmt->dbh, stmt->sth, &istatus)) {
                 RETURN_THROWS();
             }
 
             if (istatus == IStatus::RESULT_NO_DATA) {
+                stmt->is_cursor_open = 0; // Cursor is closed by fetch_next()
+                stmt->is_exhausted = 1;
                 RETURN_FALSE;
             }
 
-            fbu_statement_output_buffer_to_array(stmt, flags, &ht);
+            // TODO: istatus != IStatus::RESULT_OK
+            assert(istatus == IStatus::RESULT_OK);
+
+            if (istatus != IStatus::RESULT_OK) {
+                RETURN_THROWS();
+            }
+
+            fbu_statement_output_buffer_to_array(stmt->dbh, stmt->sth, flags, &ht);
         } break;
 
         // Simulate fetch for non-select queries. Just return what's in output buffer
@@ -337,7 +371,7 @@ void FireBird_Statement_fetch(zval *self, int flags, zval *return_value)
             if (!stmt->did_fake_fetch) {
                 stmt->did_fake_fetch = 1;
 
-                fbu_statement_output_buffer_to_array(stmt, flags, &ht);
+                fbu_statement_output_buffer_to_array(stmt->dbh, stmt->sth, flags, &ht);
             } else {
                 RETURN_FALSE;
             }
