@@ -15,10 +15,7 @@ require_once('functions.inc');
 // });
 
 (function(){
-    $conn = init_tmp_db();
-    $t = $conn->start_transaction();
-
-    exec_from_file_ddl($t, "001-table.sql");
+    $t = init_tmp_db()->start_transaction();
 
     $table = "TEST_001";
 

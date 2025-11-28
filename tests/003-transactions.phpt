@@ -10,14 +10,13 @@ namespace FireBirdTests;
 require_once('functions.inc');
 
 (function(){
-    $db = init_tmp_db();
-    $t = $db->new_transaction();
+    $t = init_tmp_db(init_default_tables:false)->new_transaction();
 
     $table = "TEST_001";
 
     $queries = [
         "SET TRANSACTION",
-        empty($db_file) ? load_file_or_die(Config::$pwd."/001-table.sql") : 'SELECT * FROM RDB$DATABASE',
+        empty($db_file) ? load_file_or_die(Config::$pwd."/001-TEST_001.sql") : 'SELECT * FROM RDB$DATABASE',
         "COMMIT RETAIN",
         "DELETE FROM $table",
         "COMMIT RETAIN",

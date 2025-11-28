@@ -12,7 +12,7 @@ require_once('functions.inc');
 function test_time_unixtime(): void
 {
     // ini_set("ibase.timeformat", "%H:%M:%S");
-    $t = init_tmp_db_ibase()->start_transaction();
+    $t = init_tmp_db()->start_transaction();
 
     $t->query("CREATE TABLE TTEST (
         ID INTEGER,

@@ -12,7 +12,7 @@ namespace FireBirdTests;
 require_once('functions.inc');
 
 function test35() {
-    $t = init_tmp_db_ibase()->start_transaction();
+    $t = init_tmp_db()->start_transaction();
     $t->query('CREATE TABLE "test" (ID INTEGER, CLIENT_NAME VARCHAR(10))');
     $t->commit_ret();
 

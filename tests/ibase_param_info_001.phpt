@@ -11,8 +11,7 @@ namespace FireBirdTests;
 require_once('functions.inc');
 
 (function(){
-    $t = init_tmp_db_ibase()->new_transaction();
-    $t->start();
+    $t = init_tmp_db()->start_transaction();
     $rs = $t->prepare('SELECT * FROM test1 WHERE 1 = ? AND 2 = ?');
 
     var_bin($rs->get_var_info_in(1));

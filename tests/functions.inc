@@ -56,16 +56,6 @@ function out_result(\FireBird\Statement $result, string $table_name = "")
     echo "---\n";
 }
 
-function out_result_trap_error($result, $table_name = "")
-{
-   echo "--- $table_name ---\n";
-   while ($r = @ibase_fetch_row($result)) {
-        echo join("\t",$r)."\t\n";
-   }
-   echo "errmsg [" . ibase_errmsg() . "]\n";
-   echo "---\n";
-}
-
 /* M/D/Y H:M:S */
 function rand_datetime()
 {
@@ -202,40 +192,56 @@ function args_apply_defaults(\FireBird\Create_Args|\FireBird\Connect_Args $args)
     return $args;
 }
 
-function init_tmp_db(string $db_file = "", string $charset = "", bool $drop = true): \FireBird\Database
+function init_tmp_db(string $charset = "", bool $drop = true, bool $init_default_tables = true): \FireBird\Database
 {
-    if(empty($db_file)){
-        $args = new \FireBird\Create_Args;
-        $args->database = gen_random_db_file_name_or_die();
-        $args->page_size = 16 * 1024;
-        $args->timeout = 10;
-        args_apply_defaults($args);
-        // overrides
-        if($charset)$args->set_db_charset = $charset;
-        if($db = \FireBird\Database::create($args)) {
-            register_shutdown_function(function() use ($db, $drop) {
-                $drop && $db->drop();
-            });
-            return $db;
-        } else {
-            die("could not create");
-        }
-    } else {
-        $args = new \FireBird\Connect_Args;
-        $args->database = Config::$host.":$db_file";
-        args_apply_defaults($args);
-        // overrides
-        if($charset)$args->charset = $charset;
+    $args = new \FireBird\Create_Args;
+    $args->database = gen_random_db_file_name_or_die();
+    $args->page_size = 16 * 1024;
+    $args->timeout = 10;
+    args_apply_defaults($args);
 
-        if($db = \FireBird\Database::connect($args)) {
-            register_shutdown_function(function() use ($db, $drop) {
-                $drop && !$db->disconnect();
-            });
-            return $db;
-        } else {
-            die("could not connect");
-        }
+    // overrides
+    if ($charset) {
+        $args->set_db_charset = $charset;
     }
+
+    $db = \FireBird\Database::create($args);
+
+    if ($init_default_tables) {
+        $t = $db->start_transaction();
+
+        // Init db for php-firebird
+        $t->execute("CREATE TABLE TEST1 (I INTEGER, C VARCHAR(100))");
+        $t->commit_ret();
+        $t->query("INSERT INTO TEST1(I, C) VALUES(1, 'test table not created with isql')");
+
+        exec_from_file_ddl($t, "001-TEST_001.sql"); // TODO: sync Pi defaults
+        exec_from_file_ddl($t, "001-FIELDS25.sql"); // TODO: sync Pi defaults
+        $t->commit();
+    }
+
+    register_shutdown_function(function() use ($db, $drop) {
+        if ($drop) {
+            $db->drop();
+        } else {
+            $db->disconnect();
+        }
+    });
+
+    // TODO: move to sep. function
+    // $args = new \FireBird\Connect_Args;
+    // $args->database = Config::$host.":$db_file";
+    // args_apply_defaults($args);
+
+    // // overrides
+    // if($charset)$args->charset = $charset;
+
+    // $db = \FireBird\Database::connect($args);
+    // register_shutdown_function(function() use ($db) {
+    //     $db->disconnect();
+    // });
+
+    return $db;
 }
 
 function var_bin(mixed $v): void {
@@ -499,20 +505,6 @@ function is_ReadConsistency_enabled(\FireBird\Database $db): bool
     $t->rollback();
 
     return false;
-}
-
-function init_tmp_db_ibase(): \FireBird\Database
-{
-    $db = init_tmp_db();
-    $t = $db->new_transaction();
-    $t->start();
-    $t->execute("CREATE TABLE TEST1 (I INTEGER, C VARCHAR(100))");
-    $t->commit_ret();
-    $t->query("INSERT INTO TEST1(I, C) VALUES(1, 'test table not created with isql')");
-    $t->commit();
-    // $db->disconnect();
-
-    return $db;
 }
 
 function fields2sql_parts(array $fields): array

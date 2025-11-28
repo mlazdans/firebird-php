@@ -4,7 +4,7 @@ namespace FireBirdTests;
 
 function test_max_len_table(string $table, int $MAX_LEN, int $CHAR_LEN)
 {
-    $t = init_tmp_db_ibase()->start_transaction();
+    $t = init_tmp_db()->start_transaction();
 
     $c = 0;
 

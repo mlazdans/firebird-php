@@ -11,8 +11,7 @@ namespace FireBirdTests;
 require_once('functions.inc');
 
 (function(){
-    $t = init_tmp_db_ibase()->new_transaction();
-    $t->start();
+    $t = init_tmp_db()->start_transaction();
     $t->query('INSERT INTO test1 VALUES (1, 100)');
     $t->query('INSERT INTO test1 VALUES (10000, 100)');
 

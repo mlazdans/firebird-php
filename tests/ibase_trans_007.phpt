@@ -10,9 +10,9 @@ namespace FireBirdTests;
 require_once('functions.inc');
 
 (function() {
-    $def = init_tmp_db_ibase()->start_transaction();
+    $def = init_tmp_db()->start_transaction();
 
-    $t = init_tmp_db_ibase()->new_transaction();
+    $t = init_tmp_db()->new_transaction();
 
     $t->query("SET TRANSACTION");
     $rs = $t->query("DELETE FROM TEST1");

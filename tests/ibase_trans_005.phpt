@@ -10,7 +10,7 @@ namespace FireBirdTests;
 require_once('functions.inc');
 
 (function() {
-    $t = init_tmp_db_ibase()->new_transaction();
+    $t = init_tmp_db()->new_transaction();
     $t->query("SET TRANSACTION");
     var_dump($t->id > 0);
 })();

@@ -11,7 +11,7 @@ require_once('functions.inc');
 
 function test_time_tz_unixtime(): void
 {
-    $t = init_tmp_db_ibase()->start_transaction();
+    $t = init_tmp_db()->start_transaction();
     $t->query("CREATE TABLE TTEST (
         ID INTEGER,
         T1 TIME WITH TIME ZONE DEFAULT '15:45:59 Europe/Riga',

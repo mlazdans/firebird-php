@@ -10,15 +10,12 @@ namespace FireBirdTests;
 require_once('functions.inc');
 
 (function(){
-    $db = init_tmp_db();
-    $t = $db->start_transaction();
+    $t = init_tmp_db()->start_transaction();
 
     $table = "TEST_001";
     $fields = "BLOB_1, DECFLOAT_16, DECFLOAT_34";
 
     $queries = [
-        load_file_or_die(Config::$pwd."/001-table.sql"),
-        "COMMIT RETAIN",
         ["INSERT INTO $table ($fields) VALUES (?, 0, 0)", ["blobby"]],
         ["INSERT INTO $table ($fields) VALUES (NULL, ?, NULL)", [2.718281828459045235360287471352]],
         ["INSERT INTO $table ($fields) VALUES (NULL, NULL, ?)", [2.718281828459045235360287471352]],

@@ -10,11 +10,7 @@ namespace FireBirdTests;
 require_once('functions.inc');
 
 (function(){
-    $db = init_tmp_db();
-    $t = $db->start_transaction();
-
-    $t->execute(load_file_or_die(Config::$pwd."/001-table.sql"));
-    $t->commit_ret();
+    $t = init_tmp_db()->start_transaction();
 
     $table = "TEST_001";
     $queries = [

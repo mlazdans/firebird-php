@@ -10,7 +10,7 @@ namespace FireBirdTests;
 require_once('functions.inc');
 
 (function(){
-    $db = init_tmp_db_ibase();
+    $db = init_tmp_db();
 
     $b = new \FireBird\TBuilder;
     $b->read_only(true);
