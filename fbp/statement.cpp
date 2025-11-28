@@ -22,7 +22,7 @@ Statement::Statement(Transaction &tra)
 
 void Statement::prepare(unsigned int len_sql, const char *sql)
 {
-    if (statement) {
+    if (stmt) {
         throw Php_Firebird_Exception(zend_ce_error,
             "BUG: statement already prepared or internal structure corrupted");
     }
@@ -71,7 +71,7 @@ void Statement::prepare(unsigned int len_sql, const char *sql)
         };
     }
 
-    statement = tmp;
+    stmt = tmp;
 }
 
 void Statement::bind(zval *b_vars, unsigned int num_bind_args)
@@ -440,19 +440,14 @@ parse_datetime: {
 void Statement::open_cursor()
 {
     // TODO: check if curs already opened
-    cursor = tra.open_cursor(statement, input_metadata, in_buffer, output_metadata);
+    cursor = tra.open_cursor(get(), input_metadata, in_buffer, output_metadata);
 }
 
-int Statement::close_cursor()
+void Statement::close_cursor()
 {
-    if (cursor) {
-        cursor->close(&st);
-        cursor->release();
-        cursor = nullptr;
-        return SUCCESS;
-    } else {
-        return FAILURE;
-    }
+    get_cursor()->close(&st);
+    cursor->release();
+    cursor = nullptr;
 }
 
 int Statement::fetch_next()
@@ -701,7 +696,7 @@ _sql_long:
 
 void Statement::execute()
 {
-    tra.execute_statement(statement, input_metadata, in_buffer, output_metadata, out_buffer);
+    tra.execute_statement(get(), input_metadata, in_buffer, output_metadata, out_buffer);
     query_statistics();
 }
 
@@ -713,7 +708,7 @@ Statement::~Statement() noexcept
     try
     {
         if (cursor) cursor->close(&st);
-        if (statement) statement->free(&st);
+        if (stmt) stmt->free(&st);
     }
     catch (...)
     {
@@ -725,9 +720,9 @@ Statement::~Statement() noexcept
         cursor = nullptr;
     }
 
-    if (statement) {
-        statement->release();
-        statement = nullptr;
+    if (stmt) {
+        stmt->release();
+        stmt = nullptr;
     }
 
     if (input_metadata) {
@@ -832,7 +827,7 @@ void Statement::query_statistics()
     info.select_count = 0;
     info.affected_count = 0;
 
-    statement->getInfo(&st, sizeof(req), req, sizeof(resp), resp);
+    get()->getInfo(&st, sizeof(req), req, sizeof(resp), resp);
 
     const ISC_UCHAR* p = resp;
 
@@ -865,6 +860,24 @@ void Statement::query_statistics()
 const firebird_stmt_info *Statement::get_info()
 {
     return &info;
+}
+
+IStatement *Statement::get()
+{
+    FBDEBUG("Statement::get()=%p", stmt);
+    if (stmt) {
+        return stmt;
+    }
+    throw Php_Firebird_Exception(zend_ce_error, "Invalid statement pointer");
+}
+
+IResultSet *Statement::get_cursor()
+{
+    FBDEBUG("Statement::get_cursor()=%p", cursor);
+    if (cursor) {
+        return cursor;
+    }
+    throw Php_Firebird_Exception(zend_ce_error, "Invalid cursor pointer");
 }
 
 } // namespace

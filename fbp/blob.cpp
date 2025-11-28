@@ -60,6 +60,10 @@ void Blob::open(ISC_QUAD *blob_id)
 
 void Blob::get_contents(int max_len, zend_string **buf)
 {
+    if (info.is_writable) {
+        throw Php_Firebird_Exception(zend_ce_error, "Attempted to read from a writable BLOB");
+    }
+
     unsigned int len = 0;
     int64_t remaining_len = info.total_length - info.position;
 
@@ -72,20 +76,25 @@ void Blob::get_contents(int max_len, zend_string **buf)
         max_len = remaining_len;
     }
 
-    FBDEBUG("Blob::get_contents(position=%ld, remaining_len=%ld, max_len=%ld)",
-        info.position, remaining_len, max_len);
-
     *buf = zend_string_alloc(max_len, 0);
-
-    blob->getSegment(&st, max_len, &ZSTR_VAL(*buf), &len);
+    get()->getSegment(&st, max_len, &ZSTR_VAL(*buf), &len);
     ZSTR_VAL(*buf)[len] = '\0';
 
+    FBDEBUG("Blob::get_contents(position=%ld, remaining_len=%ld, max_len=%ld, read=%ld)",
+        info.position, remaining_len, max_len, len);
+
     info.position += len;
+
+    assert(info.position <= info.total_length);
 }
 
 void Blob::put_contents(unsigned int buf_size, const char *buf)
 {
-    blob->putSegment(&st, buf_size, buf);
+    if (!info.is_writable) {
+        throw Php_Firebird_Exception(zend_ce_error, "Attempted to write to a read-only BLOB");
+    }
+
+    get()->putSegment(&st, buf_size, buf);
     info.position += buf_size;
     info.total_length += buf_size;
 }
@@ -127,6 +136,8 @@ void Blob::query_info()
                 break;
         }
     }
+
+    assert(info.position <= info.total_length);
 }
 
 const firebird_blob_info *Blob::get_info()
@@ -136,31 +147,36 @@ const firebird_blob_info *Blob::get_info()
 
 void Blob::close()
 {
-    if (blob) {
-        blob->close(&st);
-        blob->release();
-        blob = nullptr;
-    }
+    get()->close(&st);
+    blob->release();
+    blob = nullptr;
 }
 
 void Blob::cancel()
 {
-    if (blob) {
-        blob->cancel(&st);
-        blob->release();
-        blob = nullptr;
-    }
+    get()->cancel(&st);
+    blob->release();
+    blob = nullptr;
 }
 
 void Blob::seek(int mode, int offset, int *new_offset)
 {
-    *new_offset = blob->seek(&st, mode, offset);
+    *new_offset = get()->seek(&st, mode, offset);
     info.position = *new_offset;
 }
 
 bool Blob::has_blob()
 {
     return blob != nullptr;
+}
+
+IBlob *Blob::get()
+{
+    FBDEBUG("Blob::get()=%p", blob);
+    if (blob) {
+        return blob;
+    }
+    throw Php_Firebird_Exception(zend_ce_error, "Invalid blob pointer");
 }
 
 } // namespace

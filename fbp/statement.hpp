@@ -77,7 +77,7 @@ class Statement: Base
     Statement& operator=(Statement&&) = default;
 private:
     Transaction &tra;
-    IStatement *statement = nullptr;
+    IStatement *stmt = nullptr;
     IResultSet *cursor = nullptr;
     IMessageMetadata *input_metadata = nullptr, *output_metadata = nullptr;
     unsigned char *in_buffer = nullptr, *out_buffer = nullptr;
@@ -98,12 +98,14 @@ public:
     void prepare(unsigned int len_sql, const char *sql);
     void bind(zval *b_vars, unsigned int num_bind_args);
     void open_cursor();
-    int close_cursor();
+    void close_cursor();
     int fetch_next();
     void output_buffer_to_array(int flags, HashTable **hash);
     int var_zval(zval *val, unsigned int index, int flags);
     void execute();
     const firebird_stmt_info *get_info();
+    IStatement *get();
+    IResultSet *get_cursor();
 };
 
 }

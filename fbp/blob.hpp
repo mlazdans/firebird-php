@@ -97,6 +97,7 @@ public:
     void cancel();
     void seek(int mode, int offset, int *new_offset);
     bool has_blob();
+    IBlob *get();
 };
 
 }

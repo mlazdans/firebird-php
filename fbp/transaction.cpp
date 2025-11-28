@@ -160,6 +160,7 @@ Transaction::~Transaction()
 void Transaction::commit()
 {
     get()->commit(&st);
+    tra->release();
     tra = nullptr;
 }
 
@@ -171,6 +172,7 @@ void Transaction::commit_ret()
 void Transaction::rollback()
 {
     get()->rollback(&st);
+    tra->release();
     tra = nullptr;
 }
 

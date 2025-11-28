@@ -122,7 +122,13 @@ require_once('functions.inc');
         print $e->getMessage()."\n";
     }
     $b->close();
-    $b->close();
+
+    try {
+        $b->close();
+        print "Should not double close\n";
+    } catch (\Exception $e) {
+        print $e->getMessage()."\n";
+    }
 
     $q = $t->query("SELECT ID, BLOB_1 FROM $table WHERE ID = 5");
 
