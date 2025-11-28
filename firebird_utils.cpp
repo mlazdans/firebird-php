@@ -126,6 +126,7 @@ void fbu_handle_exception(const char *file, size_t line)
         free(symbols);
 #endif
     } catch (const Php_Firebird_Exception& error) {
+        // TODO: separate database exception from extension exception
         error_msg = error.what();
     } catch (...) {
         error_msg = "Unhandled exception";
@@ -137,19 +138,17 @@ void fbu_handle_exception(const char *file, size_t line)
     zend_throw_exception_object(&ex);
 }
 
-#define fbu_ex_wrap(f)                            \
-do {                                              \
+#define fbu_ex_wrap_start()                       \
     try                                           \
-    {                                             \
-        f;                                        \
+    {
+#define fbu_ex_wrap_end() \
         return SUCCESS;                           \
     }                                             \
     catch (...)                                   \
     {                                             \
         fbu_handle_exception(__FILE__, __LINE__); \
         return FAILURE;                           \
-    }                                             \
-} while(0);
+    }
 
 const char* fbu_get_sql_type_name(unsigned type)
 {
@@ -371,263 +370,263 @@ int fbu_is_valid_sth(size_t dbh, size_t sth)
 int fbu_database_init(size_t *dbh)
 {
     FBDEBUG("%s()", __func__);
-    fbu_ex_wrap({
+    fbu_ex_wrap_start();
         FBG(db_list).emplace_back(new Database());
         *dbh = FBG(db_list).size();
         FBDEBUG("    dbh=%zu", *dbh);
-    });
+    fbu_ex_wrap_end();
 }
 
 int fbu_database_connect(size_t dbh, zval *args)
 {
     FBDEBUG("%s(dbh=%zu)", __func__, dbh);
-    fbu_ex_wrap({
+    fbu_ex_wrap_start();
         get_db(dbh)->connect(args);
-    });
+    fbu_ex_wrap_end();
 }
 
 int fbu_database_create(size_t dbh, zval *args)
 {
     FBDEBUG("%s(dbh=%zu)", __func__, dbh);
-    fbu_ex_wrap({
+    fbu_ex_wrap_start();
         get_db(dbh)->create(args);
-    });
+    fbu_ex_wrap_end();
 }
 
 int fbu_database_disconnect(size_t dbh)
 {
     FBDEBUG("%s(dbh=%zu)", __func__, dbh);
-    fbu_ex_wrap({
+    fbu_ex_wrap_start();
         get_db(dbh)->disconnect();
         get_db(dbh).reset();
-    });
+    fbu_ex_wrap_end();
 }
 
 int fbu_database_drop(size_t dbh)
 {
     FBDEBUG("%s(dbh=%zu)", __func__, dbh);
-    fbu_ex_wrap({
+    fbu_ex_wrap_start();
         get_db(dbh)->drop();
         get_db(dbh).reset();
-    });
+    fbu_ex_wrap_end();
 }
 
 int fbu_database_free(size_t dbh)
 {
     FBDEBUG("%s(dbh=%zu)", __func__, dbh);
-    fbu_ex_wrap({
+    fbu_ex_wrap_start();
         get_db(dbh).reset();
-    });
+    fbu_ex_wrap_end();
 }
 
 int fbu_transaction_init(size_t dbh, size_t *trh)
 {
     FBDEBUG("%s(dbh=%zu)", __func__, dbh);
-    fbu_ex_wrap({
+    fbu_ex_wrap_start();
         *trh = get_db(dbh)->transaction_init();
-    });
+    fbu_ex_wrap_end();
 }
 
 int fbu_transaction_get_info(size_t dbh, size_t trh, const firebird_trans_info **info)
 {
     FBDEBUG("%s(dbh=%zu, trh=%zu)", __func__, dbh, trh);
-    fbu_ex_wrap({
+    fbu_ex_wrap_start();
         *info = get_db(dbh)->get_transaction(trh)->get_info();
-    });
+    fbu_ex_wrap_end();
 }
 
 int fbu_transaction_free(size_t dbh, size_t trh)
 {
     FBDEBUG("%s(dbh=%zu, trh=%zu)", __func__, dbh, trh);
-    fbu_ex_wrap({
+    fbu_ex_wrap_start();
         get_db(dbh)->transaction_free(trh);
-    });
+    fbu_ex_wrap_end();
 }
 
 int fbu_transaction_finalize(size_t dbh, size_t trh, int mode)
 {
     FBDEBUG("%s(dbh=%zu, trh=%zu)", __func__, dbh, trh);
-    fbu_ex_wrap({
+    fbu_ex_wrap_start();
         get_db(dbh)->get_transaction(trh)->finalize(mode);
-    });
+    fbu_ex_wrap_end();
 }
 
 int fbu_transaction_start(size_t dbh, size_t trh, const firebird_tbuilder *builder)
 {
     FBDEBUG("%s(dbh=%zu, trh=%zu)", __func__, dbh, trh);
-    fbu_ex_wrap({
+    fbu_ex_wrap_start();
         get_db(dbh)->get_transaction(trh)->start(builder);
-    });
+    fbu_ex_wrap_end();
 }
 
 int fbu_transaction_execute(size_t dbh, size_t trh, size_t len_sql, const char *sql)
 {
     FBDEBUG("%s(dbh=%zu, trh=%zu)", __func__, dbh, trh);
-    fbu_ex_wrap({
+    fbu_ex_wrap_start();
         get_db(dbh)->get_transaction(trh)->execute(len_sql, sql);
-    });
+    fbu_ex_wrap_end();
 }
 
 
 int fbu_statement_init(size_t dbh, size_t trh, size_t *sth)
 {
     FBDEBUG("%s(dbh=%zu, trh=%zu)", __func__, dbh, trh);
-    fbu_ex_wrap({
+    fbu_ex_wrap_start();
         *sth = get_db(dbh)->statement_init(trh);
-    });
+    fbu_ex_wrap_end();
 }
 
 int fbu_statement_get_info(size_t dbh, size_t sth, const firebird_stmt_info **info)
 {
     FBDEBUG("%s(dbh=%zu, sth=%zu)", __func__, dbh, sth);
-    fbu_ex_wrap({
+    fbu_ex_wrap_start();
         *info = get_db(dbh)->get_statement(sth)->get_info();
-    });
+    fbu_ex_wrap_end();
 }
 
 int fbu_statement_free(size_t dbh, size_t sth)
 {
     FBDEBUG("%s(dbh=%zu, sth=%zu)", __func__, dbh, sth);
-    fbu_ex_wrap({
+    fbu_ex_wrap_start();
         get_db(dbh)->statement_free(sth);
-    });
+    fbu_ex_wrap_end();
 }
 
 int fbu_statement_prepare(size_t dbh, size_t sth, unsigned len_sql, const char *sql)
 {
     FBDEBUG("%s(dbh=%zu, sth=%zu)", __func__, dbh, sth);
-    fbu_ex_wrap({
+    fbu_ex_wrap_start();
         get_db(dbh)->get_statement(sth)->prepare(len_sql, sql);
-    });
+    fbu_ex_wrap_end();
 }
 
 int fbu_statement_bind(size_t dbh, size_t sth, zval *b_vars, unsigned int num_bind_args)
 {
     FBDEBUG("%s(dbh=%zu, sth=%zu)", __func__, dbh, sth);
-    fbu_ex_wrap({
+    fbu_ex_wrap_start();
         get_db(dbh)->get_statement(sth)->bind(b_vars, num_bind_args);
-    });
+    fbu_ex_wrap_end();
 }
 
 int fbu_statement_open_cursor(size_t dbh, size_t sth)
 {
     // TODO: check if already open
     FBDEBUG("%s(dbh=%zu, sth=%zu)", __func__, dbh, sth);
-    fbu_ex_wrap({
+    fbu_ex_wrap_start();
         get_db(dbh)->get_statement(sth)->open_cursor();
-    });
+    fbu_ex_wrap_end();
 }
 
 int fbu_statement_fetch_next(size_t dbh, size_t sth, int *istatus)
 {
     FBDEBUG("%s(dbh=%zu, sth=%zu)", __func__, dbh, sth);
-    fbu_ex_wrap({
+    fbu_ex_wrap_start();
         *istatus = get_db(dbh)->get_statement(sth)->fetch_next();
-    });
+    fbu_ex_wrap_end();
 }
 
 int fbu_statement_output_buffer_to_array(size_t dbh, size_t sth, int flags, HashTable **ht)
 {
     FBDEBUG("%s(dbh=%zu, sth=%zu)", __func__, dbh, sth);
-    fbu_ex_wrap({
+    fbu_ex_wrap_start();
         get_db(dbh)->get_statement(sth)->output_buffer_to_array(flags, ht);
-    });
+    fbu_ex_wrap_end();
 }
 
 int fbu_statement_execute(size_t dbh, size_t sth)
 {
     FBDEBUG("%s(dbh=%zu, sth=%zu)", __func__, dbh, sth);
-    fbu_ex_wrap({
+    fbu_ex_wrap_start();
         get_db(dbh)->get_statement(sth)->execute();
-    });
+    fbu_ex_wrap_end();
 }
 
 int fbu_statement_close_cursor(size_t dbh, size_t sth)
 {
     FBDEBUG("%s(dbh=%zu, sth=%zu)", __func__, dbh, sth);
-    fbu_ex_wrap({
+    fbu_ex_wrap_start();
         get_db(dbh)->get_statement(sth)->close_cursor();
-    });
+    fbu_ex_wrap_end();
 }
 
 int fbu_blob_init(size_t dbh, size_t trh, size_t *blh)
 {
     FBDEBUG("%s(dbh=%zu, trh=%zu)", __func__, dbh, trh);
-    fbu_ex_wrap({
+    fbu_ex_wrap_start();
         *blh = get_db(dbh)->blob_init(trh);
-    });
+    fbu_ex_wrap_end();
 }
 
 int fbu_blob_get_info(size_t dbh, size_t blh, const firebird_blob_info **info)
 {
     FBDEBUG("%s(dbh=%zu, blh=%zu)", __func__, dbh, blh);
-    fbu_ex_wrap({
+    fbu_ex_wrap_start();
         *info = get_db(dbh)->get_blob(blh)->get_info();
-    });
+    fbu_ex_wrap_end();
 }
 
 int fbu_blob_create(size_t dbh, size_t blh)
 {
     FBDEBUG("%s(dbh=%zu, blh=%zu)", __func__, dbh, blh);
-    fbu_ex_wrap({
+    fbu_ex_wrap_start();
         get_db(dbh)->get_blob(blh)->create();
-    });
+    fbu_ex_wrap_end();
 }
 
 int fbu_blob_open(size_t dbh, size_t blh, ISC_QUAD *bl_id)
 {
     FBDEBUG("%s(dbh=%zu, blh=%zu)", __func__, dbh, blh);
-    fbu_ex_wrap({
+    fbu_ex_wrap_start();
         get_db(dbh)->get_blob(blh)->open(bl_id);
-    });
+    fbu_ex_wrap_end();
 }
 
 int fbu_blob_free(size_t dbh, size_t blh)
 {
     FBDEBUG("%s(dbh=%zu, blh=%zu)", __func__, dbh, blh);
-    fbu_ex_wrap({
+    fbu_ex_wrap_start();
         get_db(dbh)->blob_free(blh);
-    });
+    fbu_ex_wrap_end();
 }
 
 int fbu_blob_put(size_t dbh, size_t blh, unsigned int buf_size, const char *buf)
 {
     FBDEBUG("%s(dbh=%zu, blh=%zu)", __func__, dbh, blh);
-    fbu_ex_wrap({
+    fbu_ex_wrap_start();
         get_db(dbh)->get_blob(blh)->put_contents(buf_size, buf);
-    });
+    fbu_ex_wrap_end();
 }
 
 int fbu_blob_close(size_t dbh, size_t blh)
 {
     FBDEBUG("%s(dbh=%zu, blh=%zu)", __func__, dbh, blh);
-    fbu_ex_wrap({
+    fbu_ex_wrap_start();
         get_db(dbh)->get_blob(blh)->close();
-    });
+    fbu_ex_wrap_end();
 }
 
 int fbu_blob_cancel(size_t dbh, size_t blh)
 {
     FBDEBUG("%s(dbh=%zu, blh=%zu)", __func__, dbh, blh);
-    fbu_ex_wrap({
+    fbu_ex_wrap_start();
         get_db(dbh)->get_blob(blh)->cancel();
-    });
+    fbu_ex_wrap_end();
 }
 
 int fbu_blob_get(size_t dbh, size_t blh, int max_len, zend_string **buf)
 {
     FBDEBUG("%s(dbh=%zu, blh=%zu)", __func__, dbh, blh);
-    fbu_ex_wrap({
+    fbu_ex_wrap_start();
         get_db(dbh)->get_blob(blh)->get_contents(max_len, buf);
-    });
+    fbu_ex_wrap_end();
 }
 
 int fbu_blob_seek(size_t dbh, size_t blh, int mode, int offset, int *new_offset)
 {
     FBDEBUG("%s(dbh=%zu, blh=%zu)", __func__, dbh, blh);
-    fbu_ex_wrap({
+    fbu_ex_wrap_start();
         get_db(dbh)->get_blob(blh)->seek(mode, offset, new_offset);
-    });
+    fbu_ex_wrap_end();
 }
 
 } // extern "C"
