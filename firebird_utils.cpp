@@ -137,28 +137,11 @@ void fbu_handle_exception(const char *file, size_t line)
     zend_throw_exception_object(&ex);
 }
 
-template <typename F>
-int fbu_call_void(F&& f, const char* file, size_t line)
-{
-    try
-    {
-        f();
-        return SUCCESS;
-    }
-    catch (...)
-    {
-        fbu_handle_exception(file, line);
-        return FAILURE;
-    }
-}
-
-#define fbu_call_void2(f)                         \
+#define fbu_ex_wrap(f)                            \
 do {                                              \
     try                                           \
     {                                             \
-        do {                                      \
-            f;                                    \
-        } while(0);                               \
+        f;                                        \
         return SUCCESS;                           \
     }                                             \
     catch (...)                                   \
@@ -166,7 +149,7 @@ do {                                              \
         fbu_handle_exception(__FILE__, __LINE__); \
         return FAILURE;                           \
     }                                             \
-} while(0)
+} while(0);
 
 const char* fbu_get_sql_type_name(unsigned type)
 {
@@ -259,67 +242,6 @@ void fbu_xpb_insert_object(IXpbBuilder* xpb, zval *obj, zend_class_entry *ce,
         }
     }
 }
-
-/*
-class CopyStatusWrapper : public BaseStatusWrapper<ThrowStatusWrapper>
-{
-public:
-    // CopyStatusWrapper(IStatus* aStatus) noexcept
-    //     : BaseStatusWrapper(aStatus)
-    // {
-    // }
-
-    CopyStatusWrapper(IStatus* aStatus, ISC_STATUS* iscStatus)
-        : BaseStatusWrapper(aStatus), iscStatusArray(iscStatus)
-    {
-        std::memset(iscStatusArray, 0, sizeof(ISC_STATUS) * 20);
-        iscStatusArray[0] = isc_arg_end;
-    }
-
-    static void checkException(CopyStatusWrapper* status)
-    {
-        if (status->dirty && (status->getState() & IStatus::STATE_ERRORS)) {
-            const ISC_STATUS *from = status->getErrors();
-            for(size_t i=0; i < 20; ++i) {
-                // fbu_copy_status((const ISC_STATUS*)st.getErrors(), status, 20);
-                status->iscStatusArray[i] = from[i];
-                // memcpy(status->iscStatusArray + i, from + i, sizeof(ISC_STATUS));
-                if (from[i] == isc_arg_end) {
-                    break;
-                }
-            }
-        }
-    }
-
-    // ~CopyStatusWrapper()
-    // {
-    //     if (status)
-    //         status->dispose();
-    // }
-
-    // Return pointer to Firebird IStatus* (for API calls)
-    // IStatus* operator->() { return fbStatus; }
-    // IStatus* get() { return fbStatus; }
-
-    // After a call, copy status back to legacy array
-    void sync()
-    {
-        const ISC_STATUS* fb = status->getErrors();
-
-        if (!fb) return;
-
-        // Copy up to 20 status codes
-        for (int i = 0; i < 20 && fb[i] != isc_arg_end; ++i)
-            iscStatusArray[i] = fb[i];
-
-        // Terminate the array
-        iscStatusArray[19] = isc_arg_end;
-    }
-
-private:
-    ISC_STATUS* iscStatusArray;
-};
-*/
 
 extern "C" {
 
@@ -449,263 +371,263 @@ int fbu_is_valid_sth(size_t dbh, size_t sth)
 int fbu_database_init(size_t *dbh)
 {
     FBDEBUG("%s()", __func__);
-    return fbu_call_void([&]() -> void {
+    fbu_ex_wrap({
         FBG(db_list).emplace_back(new Database());
         *dbh = FBG(db_list).size();
         FBDEBUG("    dbh=%zu", *dbh);
-    }, __FILE__, __LINE__);
+    });
 }
 
 int fbu_database_connect(size_t dbh, zval *args)
 {
     FBDEBUG("%s(dbh=%zu)", __func__, dbh);
-    return fbu_call_void([&]() -> void {
+    fbu_ex_wrap({
         get_db(dbh)->connect(args);
-    }, __FILE__, __LINE__);
+    });
 }
 
 int fbu_database_create(size_t dbh, zval *args)
 {
     FBDEBUG("%s(dbh=%zu)", __func__, dbh);
-    return fbu_call_void([&]() -> void {
+    fbu_ex_wrap({
         get_db(dbh)->create(args);
-    }, __FILE__, __LINE__);
+    });
 }
 
 int fbu_database_disconnect(size_t dbh)
 {
     FBDEBUG("%s(dbh=%zu)", __func__, dbh);
-    return fbu_call_void([&]() -> void {
+    fbu_ex_wrap({
         get_db(dbh)->disconnect();
         get_db(dbh).reset();
-    }, __FILE__, __LINE__);
+    });
 }
 
 int fbu_database_drop(size_t dbh)
 {
     FBDEBUG("%s(dbh=%zu)", __func__, dbh);
-    return fbu_call_void([&]() -> void {
+    fbu_ex_wrap({
         get_db(dbh)->drop();
         get_db(dbh).reset();
-    }, __FILE__, __LINE__);
+    });
 }
 
 int fbu_database_free(size_t dbh)
 {
     FBDEBUG("%s(dbh=%zu)", __func__, dbh);
-    return fbu_call_void([&]() -> void {
+    fbu_ex_wrap({
         get_db(dbh).reset();
-    }, __FILE__, __LINE__);
+    });
 }
 
 int fbu_transaction_init(size_t dbh, size_t *trh)
 {
     FBDEBUG("%s(dbh=%zu)", __func__, dbh);
-    return fbu_call_void([&]() -> void {
+    fbu_ex_wrap({
         *trh = get_db(dbh)->transaction_init();
-    }, __FILE__, __LINE__);
+    });
 }
 
 int fbu_transaction_get_info(size_t dbh, size_t trh, const firebird_trans_info **info)
 {
     FBDEBUG("%s(dbh=%zu, trh=%zu)", __func__, dbh, trh);
-    return fbu_call_void([&]() -> void {
+    fbu_ex_wrap({
         *info = get_db(dbh)->get_transaction(trh)->get_info();
-    }, __FILE__, __LINE__);
+    });
 }
 
 int fbu_transaction_free(size_t dbh, size_t trh)
 {
     FBDEBUG("%s(dbh=%zu, trh=%zu)", __func__, dbh, trh);
-    return fbu_call_void([&]() -> void {
+    fbu_ex_wrap({
         get_db(dbh)->transaction_free(trh);
-    }, __FILE__, __LINE__);
+    });
 }
 
 int fbu_transaction_finalize(size_t dbh, size_t trh, int mode)
 {
     FBDEBUG("%s(dbh=%zu, trh=%zu)", __func__, dbh, trh);
-    return fbu_call_void([&]() -> void {
+    fbu_ex_wrap({
         get_db(dbh)->get_transaction(trh)->finalize(mode);
-    }, __FILE__, __LINE__);
+    });
 }
 
 int fbu_transaction_start(size_t dbh, size_t trh, const firebird_tbuilder *builder)
 {
     FBDEBUG("%s(dbh=%zu, trh=%zu)", __func__, dbh, trh);
-    return fbu_call_void([&]() -> void {
+    fbu_ex_wrap({
         get_db(dbh)->get_transaction(trh)->start(builder);
-    }, __FILE__, __LINE__);
+    });
 }
 
 int fbu_transaction_execute(size_t dbh, size_t trh, size_t len_sql, const char *sql)
 {
     FBDEBUG("%s(dbh=%zu, trh=%zu)", __func__, dbh, trh);
-    return fbu_call_void([&]() -> void {
+    fbu_ex_wrap({
         get_db(dbh)->get_transaction(trh)->execute(len_sql, sql);
-    }, __FILE__, __LINE__);
+    });
 }
 
 
 int fbu_statement_init(size_t dbh, size_t trh, size_t *sth)
 {
     FBDEBUG("%s(dbh=%zu, trh=%zu)", __func__, dbh, trh);
-    return fbu_call_void([&]() -> void {
+    fbu_ex_wrap({
         *sth = get_db(dbh)->statement_init(trh);
-    }, __FILE__, __LINE__);
+    });
 }
 
 int fbu_statement_get_info(size_t dbh, size_t sth, const firebird_stmt_info **info)
 {
     FBDEBUG("%s(dbh=%zu, sth=%zu)", __func__, dbh, sth);
-    return fbu_call_void([&]() -> void {
+    fbu_ex_wrap({
         *info = get_db(dbh)->get_statement(sth)->get_info();
-    }, __FILE__, __LINE__);
+    });
 }
 
 int fbu_statement_free(size_t dbh, size_t sth)
 {
     FBDEBUG("%s(dbh=%zu, sth=%zu)", __func__, dbh, sth);
-    return fbu_call_void([&]() -> void {
+    fbu_ex_wrap({
         get_db(dbh)->statement_free(sth);
-    }, __FILE__, __LINE__);
+    });
 }
 
 int fbu_statement_prepare(size_t dbh, size_t sth, unsigned len_sql, const char *sql)
 {
     FBDEBUG("%s(dbh=%zu, sth=%zu)", __func__, dbh, sth);
-    return fbu_call_void([&]() -> void {
+    fbu_ex_wrap({
         get_db(dbh)->get_statement(sth)->prepare(len_sql, sql);
-    }, __FILE__, __LINE__);
+    });
 }
 
 int fbu_statement_bind(size_t dbh, size_t sth, zval *b_vars, unsigned int num_bind_args)
 {
     FBDEBUG("%s(dbh=%zu, sth=%zu)", __func__, dbh, sth);
-    return fbu_call_void([&]() -> void {
+    fbu_ex_wrap({
         get_db(dbh)->get_statement(sth)->bind(b_vars, num_bind_args);
-    }, __FILE__, __LINE__);
+    });
 }
 
 int fbu_statement_open_cursor(size_t dbh, size_t sth)
 {
     // TODO: check if already open
     FBDEBUG("%s(dbh=%zu, sth=%zu)", __func__, dbh, sth);
-    return fbu_call_void([&]() -> void {
+    fbu_ex_wrap({
         get_db(dbh)->get_statement(sth)->open_cursor();
-    }, __FILE__, __LINE__);
+    });
 }
 
 int fbu_statement_fetch_next(size_t dbh, size_t sth, int *istatus)
 {
     FBDEBUG("%s(dbh=%zu, sth=%zu)", __func__, dbh, sth);
-    return fbu_call_void([&]() -> void {
+    fbu_ex_wrap({
         *istatus = get_db(dbh)->get_statement(sth)->fetch_next();
-    }, __FILE__, __LINE__);
+    });
 }
 
 int fbu_statement_output_buffer_to_array(size_t dbh, size_t sth, int flags, HashTable **ht)
 {
     FBDEBUG("%s(dbh=%zu, sth=%zu)", __func__, dbh, sth);
-    return fbu_call_void([&]() -> void {
+    fbu_ex_wrap({
         get_db(dbh)->get_statement(sth)->output_buffer_to_array(flags, ht);
-    }, __FILE__, __LINE__);
+    });
 }
 
 int fbu_statement_execute(size_t dbh, size_t sth)
 {
     FBDEBUG("%s(dbh=%zu, sth=%zu)", __func__, dbh, sth);
-    return fbu_call_void([&]() -> void {
+    fbu_ex_wrap({
         get_db(dbh)->get_statement(sth)->execute();
-    }, __FILE__, __LINE__);
+    });
 }
 
 int fbu_statement_close_cursor(size_t dbh, size_t sth)
 {
     FBDEBUG("%s(dbh=%zu, sth=%zu)", __func__, dbh, sth);
-    return fbu_call_void([&]() -> void {
+    fbu_ex_wrap({
         get_db(dbh)->get_statement(sth)->close_cursor();
-    }, __FILE__, __LINE__);
+    });
 }
 
 int fbu_blob_init(size_t dbh, size_t trh, size_t *blh)
 {
     FBDEBUG("%s(dbh=%zu, trh=%zu)", __func__, dbh, trh);
-    return fbu_call_void([&]() -> void {
+    fbu_ex_wrap({
         *blh = get_db(dbh)->blob_init(trh);
-    }, __FILE__, __LINE__);
+    });
 }
 
 int fbu_blob_get_info(size_t dbh, size_t blh, const firebird_blob_info **info)
 {
     FBDEBUG("%s(dbh=%zu, blh=%zu)", __func__, dbh, blh);
-    return fbu_call_void([&]() -> void {
+    fbu_ex_wrap({
         *info = get_db(dbh)->get_blob(blh)->get_info();
-    }, __FILE__, __LINE__);
+    });
 }
 
 int fbu_blob_create(size_t dbh, size_t blh)
 {
     FBDEBUG("%s(dbh=%zu, blh=%zu)", __func__, dbh, blh);
-    return fbu_call_void([&]() -> void {
+    fbu_ex_wrap({
         get_db(dbh)->get_blob(blh)->create();
-    }, __FILE__, __LINE__);
+    });
 }
 
 int fbu_blob_open(size_t dbh, size_t blh, ISC_QUAD *bl_id)
 {
     FBDEBUG("%s(dbh=%zu, blh=%zu)", __func__, dbh, blh);
-    return fbu_call_void([&]() -> void {
+    fbu_ex_wrap({
         get_db(dbh)->get_blob(blh)->open(bl_id);
-    }, __FILE__, __LINE__);
+    });
 }
 
 int fbu_blob_free(size_t dbh, size_t blh)
 {
     FBDEBUG("%s(dbh=%zu, blh=%zu)", __func__, dbh, blh);
-    return fbu_call_void([&]() -> void {
+    fbu_ex_wrap({
         get_db(dbh)->blob_free(blh);
-    }, __FILE__, __LINE__);
+    });
 }
 
 int fbu_blob_put(size_t dbh, size_t blh, unsigned int buf_size, const char *buf)
 {
     FBDEBUG("%s(dbh=%zu, blh=%zu)", __func__, dbh, blh);
-    return fbu_call_void([&]() -> void {
+    fbu_ex_wrap({
         get_db(dbh)->get_blob(blh)->put_contents(buf_size, buf);
-    }, __FILE__, __LINE__);
+    });
 }
 
 int fbu_blob_close(size_t dbh, size_t blh)
 {
     FBDEBUG("%s(dbh=%zu, blh=%zu)", __func__, dbh, blh);
-    return fbu_call_void([&]() -> void {
+    fbu_ex_wrap({
         get_db(dbh)->get_blob(blh)->close();
-    }, __FILE__, __LINE__);
+    });
 }
 
 int fbu_blob_cancel(size_t dbh, size_t blh)
 {
     FBDEBUG("%s(dbh=%zu, blh=%zu)", __func__, dbh, blh);
-    return fbu_call_void([&]() -> void {
+    fbu_ex_wrap({
         get_db(dbh)->get_blob(blh)->cancel();
-    }, __FILE__, __LINE__);
+    });
 }
 
 int fbu_blob_get(size_t dbh, size_t blh, int max_len, zend_string **buf)
 {
     FBDEBUG("%s(dbh=%zu, blh=%zu)", __func__, dbh, blh);
-    return fbu_call_void([&]() -> void {
+    fbu_ex_wrap({
         get_db(dbh)->get_blob(blh)->get_contents(max_len, buf);
-    }, __FILE__, __LINE__);
+    });
 }
 
 int fbu_blob_seek(size_t dbh, size_t blh, int mode, int offset, int *new_offset)
 {
     FBDEBUG("%s(dbh=%zu, blh=%zu)", __func__, dbh, blh);
-    return fbu_call_void([&]() -> void {
+    fbu_ex_wrap({
         get_db(dbh)->get_blob(blh)->seek(mode, offset, new_offset);
-    }, __FILE__, __LINE__);
+    });
 }
 
 } // extern "C"
