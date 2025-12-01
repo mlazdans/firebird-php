@@ -181,6 +181,15 @@ PHP_METHOD(FireBird_Blob, create)
     }
 }
 
+PHP_METHOD(FireBird_Blob, id)
+{
+    object_init_ex(return_value, FireBird_Blob_Id_ce);
+    firebird_blob_id *blob_id = get_firebird_blob_id_from_zval(return_value);
+
+    firebird_blob *blob = get_firebird_blob_from_zval(ZEND_THIS);
+    blob_id->bl_id = blob->info->id;
+}
+
 int FireBird_Blob_seek(zval *self, int mode, int offset, int *new_offset)
 {
     firebird_blob *blob = get_firebird_blob_from_zval(self);
@@ -267,23 +276,19 @@ PHP_METHOD(FireBird_Blob_Id, __construct)
 {
 }
 
-PHP_METHOD(FireBird_Blob_Id, to_legacy_id)
+PHP_METHOD(FireBird_Blob_Id, __toString)
 {
-    zval *Blob_Id;
-
-    ZEND_PARSE_PARAMETERS_START(1, 1)
-        Z_PARAM_OBJECT_OF_CLASS(Blob_Id, FireBird_Blob_Id_ce)
-    ZEND_PARSE_PARAMETERS_END();
+    ZEND_PARSE_PARAMETERS_NONE();
 
     char buf[BLOB_ID_LEN+1];
-    firebird_blob_id *blob_id = get_firebird_blob_id_from_zval(Blob_Id);
+    firebird_blob_id *blob_id = get_firebird_blob_id_from_zval(ZEND_THIS);
 
     int size = fbp_blob_id_to_string(blob_id->bl_id, sizeof(buf), buf);
 
     RETURN_STRINGL(buf, size);
 }
 
-PHP_METHOD(FireBird_Blob_Id, from_legacy_id)
+PHP_METHOD(FireBird_Blob_Id, from_str)
 {
     char *id;
     size_t id_len;
@@ -292,13 +297,11 @@ PHP_METHOD(FireBird_Blob_Id, from_legacy_id)
         Z_PARAM_STRING(id, id_len)
     ZEND_PARSE_PARAMETERS_END();
 
-    char buf[BLOB_ID_LEN+1];
-
     object_init_ex(return_value, FireBird_Blob_Id_ce);
     firebird_blob_id *blob_id = get_firebird_blob_id_from_zval(return_value);
 
-    // TODO: this actually does not throw. Add throwing exception.
     if (fbp_blob_id_to_quad(id_len, id, &blob_id->bl_id)) {
+        zend_throw_exception_ex(zend_ce_error, 0, "BLOB ID conversion failed");
         RETURN_THROWS();
     }
 }

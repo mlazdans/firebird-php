@@ -418,6 +418,7 @@ class Blob
     public readonly Transaction $transaction;
 
     public function __construct(\FireBird\Transaction $tr) {}
+    public function id(): Blob_Id { die; }
     public function create(): void { die; }
     public function open(Blob_Id $id): void { die; }
     public function close(): void { die; }
@@ -669,16 +670,8 @@ class Var_Info
 class Blob_Id
 {
     private function __construct() {}
-
-    /**
-     * Converts blob id to a format used in PHP ibase extension
-     * */
-    public static function to_legacy_id(): string { die; }
-
-    /**
-     * Converts from string format used in PHP ibase extension to Blob_id
-     * */
-    public static function from_legacy_id(string $legacy_id): Blob_Id { die; }
+    public function __toString(): string { die; }
+    public static function from_str(string $id): Blob_Id { die; }
 }
 
 class Connect_Args

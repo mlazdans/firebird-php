@@ -1,5 +1,5 @@
 /* This is a generated file, edit the .stub.php file instead.
- * Stub hash: d73976bc12242859ba8ee0a9d5cc78d39dd5c9b2 */
+ * Stub hash: 73dcccb66f194b0194e696b5288276ff2c1c4204 */
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_get_client_version, 0, 0, IS_DOUBLE, 0)
 ZEND_END_ARG_INFO()
@@ -122,6 +122,9 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_class_FireBird_Blob___construct, 0, 0, 1)
 	ZEND_ARG_OBJ_INFO(0, tr, FireBird\\Transaction, 0)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_class_FireBird_Blob_id, 0, 0, FireBird\\Blob_Id, 0)
+ZEND_END_ARG_INFO()
+
 #define arginfo_class_FireBird_Blob_create arginfo_class_FireBird_Database_disconnect
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_FireBird_Blob_open, 0, 1, IS_VOID, 0)
@@ -176,11 +179,11 @@ ZEND_END_ARG_INFO()
 
 #define arginfo_class_FireBird_Blob_Id___construct arginfo_class_FireBird_Database___construct
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_FireBird_Blob_Id_to_legacy_id, 0, 0, IS_STRING, 0)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_FireBird_Blob_Id___toString, 0, 0, IS_STRING, 0)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_class_FireBird_Blob_Id_from_legacy_id, 0, 1, FireBird\\Blob_Id, 0)
-	ZEND_ARG_TYPE_INFO(0, legacy_id, IS_STRING, 0)
+ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_class_FireBird_Blob_Id_from_str, 0, 1, FireBird\\Blob_Id, 0)
+	ZEND_ARG_TYPE_INFO(0, id, IS_STRING, 0)
 ZEND_END_ARG_INFO()
 
 ZEND_FUNCTION(FireBird_get_client_version);
@@ -220,6 +223,7 @@ ZEND_METHOD(FireBird_Statement, get_var_info_in);
 ZEND_METHOD(FireBird_Statement, get_var_info_out);
 ZEND_METHOD(FireBird_Statement, set_name);
 ZEND_METHOD(FireBird_Blob, __construct);
+ZEND_METHOD(FireBird_Blob, id);
 ZEND_METHOD(FireBird_Blob, create);
 ZEND_METHOD(FireBird_Blob, open);
 ZEND_METHOD(FireBird_Blob, close);
@@ -239,8 +243,8 @@ ZEND_METHOD(FireBird_TBuilder, isolation_read_committed_no_record_version);
 ZEND_METHOD(FireBird_TBuilder, isolation_read_committed_read_consistency);
 ZEND_METHOD(FireBird_TBuilder, dump_state);
 ZEND_METHOD(FireBird_Blob_Id, __construct);
-ZEND_METHOD(FireBird_Blob_Id, to_legacy_id);
-ZEND_METHOD(FireBird_Blob_Id, from_legacy_id);
+ZEND_METHOD(FireBird_Blob_Id, __toString);
+ZEND_METHOD(FireBird_Blob_Id, from_str);
 
 static const zend_function_entry ext_functions[] = {
 	ZEND_RAW_FENTRY(ZEND_NS_NAME("FireBird", "get_client_version"), zif_FireBird_get_client_version, arginfo_FireBird_get_client_version, 0, NULL, NULL)
@@ -296,6 +300,7 @@ static const zend_function_entry class_FireBird_Statement_methods[] = {
 
 static const zend_function_entry class_FireBird_Blob_methods[] = {
 	ZEND_ME(FireBird_Blob, __construct, arginfo_class_FireBird_Blob___construct, ZEND_ACC_PUBLIC)
+	ZEND_ME(FireBird_Blob, id, arginfo_class_FireBird_Blob_id, ZEND_ACC_PUBLIC)
 	ZEND_ME(FireBird_Blob, create, arginfo_class_FireBird_Blob_create, ZEND_ACC_PUBLIC)
 	ZEND_ME(FireBird_Blob, open, arginfo_class_FireBird_Blob_open, ZEND_ACC_PUBLIC)
 	ZEND_ME(FireBird_Blob, close, arginfo_class_FireBird_Blob_close, ZEND_ACC_PUBLIC)
@@ -323,8 +328,8 @@ static const zend_function_entry class_FireBird_TBuilder_methods[] = {
 
 static const zend_function_entry class_FireBird_Blob_Id_methods[] = {
 	ZEND_ME(FireBird_Blob_Id, __construct, arginfo_class_FireBird_Blob_Id___construct, ZEND_ACC_PRIVATE)
-	ZEND_ME(FireBird_Blob_Id, to_legacy_id, arginfo_class_FireBird_Blob_Id_to_legacy_id, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
-	ZEND_ME(FireBird_Blob_Id, from_legacy_id, arginfo_class_FireBird_Blob_Id_from_legacy_id, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
+	ZEND_ME(FireBird_Blob_Id, __toString, arginfo_class_FireBird_Blob_Id___toString, ZEND_ACC_PUBLIC)
+	ZEND_ME(FireBird_Blob_Id, from_str, arginfo_class_FireBird_Blob_Id_from_str, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
 	ZEND_FE_END
 };
 
