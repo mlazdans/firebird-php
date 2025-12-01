@@ -1,6 +1,5 @@
+# TODO: cleanup
 php-error.log
-build.sh
-debug.sh
 run.sh
 test.sh
 valgrind.sh
@@ -81,3 +80,5 @@ tests/config.inc
 # coverage
 /coverage.info
 /reports
+
+silence.php

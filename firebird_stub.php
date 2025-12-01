@@ -4,7 +4,7 @@
  * This stub  is *NOT* for arginfo generation!
  */
 
-namespace FireBird;
+namespace FireBird222;
 
 /**
  * Option for Statement\fetch functions to return blob fields as strings.

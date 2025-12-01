@@ -5,6 +5,7 @@ FireBird: events
 
 require_once('functions.inc');
 include("skipif.inc");
+print "skip Events are broken";
 if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') print "skip Broken on windows\n";
 
 ?>

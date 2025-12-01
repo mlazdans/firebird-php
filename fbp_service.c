@@ -1,7 +1,6 @@
-#include <firebird/fb_c_api.h>
+// #include <firebird/fb_c_api.h>
 #include "php.h"
 #include "php_firebird.h"
-#include "php_firebird_includes.h"
 
 #include "service.h"
 #include "fbp_service.h"
@@ -50,21 +49,21 @@ firebird_xpb_zmap fbp_user_info_zmap = XPB_ZMAP_INIT(
 
 fbp_object_accessor(firebird_service);
 
-int fbp_service_build_dpb(zend_class_entry *ce, zval *Args, const firebird_xpb_zmap *xpb_zmap, const char **dpb_buf, short *num_dpb_written)
-{
-    struct IMaster* master = fb_get_master_interface();
-    struct IStatus* st = IMaster_getStatus(master);
-    struct IUtil* utl = IMaster_getUtilInterface(master);
-    struct IXpbBuilder* xpb = IUtil_getXpbBuilder(utl, st, IXpbBuilder_SPB_ATTACH, NULL, 0);
+// int fbp_service_build_dpb(zend_class_entry *ce, zval *Args, const firebird_xpb_zmap *xpb_zmap, const char **dpb_buf, short *num_dpb_written)
+// {
+//     struct IMaster* master = fb_get_master_interface();
+//     struct IStatus* st = IMaster_getStatus(master);
+//     struct IUtil* utl = IMaster_getUtilInterface(master);
+//     struct IXpbBuilder* xpb = IUtil_getXpbBuilder(utl, st, IXpbBuilder_SPB_ATTACH, NULL, 0);
 
-    IXpbBuilder_insertTag(xpb, st, isc_spb_version3);
-    fbp_insert_xpb_from_zmap(ce, Args, xpb_zmap, xpb, st);
+//     IXpbBuilder_insertTag(xpb, st, isc_spb_version3);
+//     fbp_insert_xpb_from_zmap(ce, Args, xpb_zmap, xpb, st);
 
-    *num_dpb_written = IXpbBuilder_getBufferLength(xpb, st);
-    *dpb_buf = IXpbBuilder_getBuffer(xpb, st);
+//     *num_dpb_written = IXpbBuilder_getBufferLength(xpb, st);
+//     *dpb_buf = IXpbBuilder_getBuffer(xpb, st);
 
-    return SUCCESS;
-}
+//     return SUCCESS;
+// }
 
 int fbp_service_connect(firebird_service *svc, zval *Service_Connect_Args)
 {
@@ -72,7 +71,7 @@ int fbp_service_connect(firebird_service *svc, zval *Service_Connect_Args)
     const char *dpb_buffer;
     short num_dpb_written;
 
-    service_name = OBJ_GET(FireBird_Service_Connect_Args_ce, Service_Connect_Args, "service_name", &rv);
+    service_name = PROP_GET(FireBird_Service_Connect_Args_ce, Service_Connect_Args, "service_name");
 
     if (fbp_service_build_dpb(FireBird_Service_Connect_Args_ce, Service_Connect_Args,
         &fbp_service_connect_zmap, &dpb_buffer, &num_dpb_written)) {
@@ -263,25 +262,25 @@ error:
     return FAILURE;
 }
 
-int fbp_service_addmod_user(firebird_service *svc, zval *User_Info, const ISC_UCHAR tag)
-{
-    struct IMaster* master = fb_get_master_interface();
-    struct IStatus* st = IMaster_getStatus(master);
-    struct IUtil* utl = IMaster_getUtilInterface(master);
-    struct IXpbBuilder* xpb = IUtil_getXpbBuilder(utl, st, IXpbBuilder_SPB_START, NULL, 0);
+// int fbp_service_addmod_user(firebird_service *svc, zval *User_Info, const ISC_UCHAR tag)
+// {
+//     struct IMaster* master = fb_get_master_interface();
+//     struct IStatus* st = IMaster_getStatus(master);
+//     struct IUtil* utl = IMaster_getUtilInterface(master);
+//     struct IXpbBuilder* xpb = IUtil_getXpbBuilder(utl, st, IXpbBuilder_SPB_START, NULL, 0);
 
-    IXpbBuilder_insertTag(xpb, st, tag);
+//     IXpbBuilder_insertTag(xpb, st, tag);
 
-    fbp_insert_xpb_from_zmap(FireBird_Server_User_Info_ce, User_Info, &fbp_user_info_zmap, xpb, st);
+//     fbp_insert_xpb_from_zmap(FireBird_Server_User_Info_ce, User_Info, &fbp_user_info_zmap, xpb, st);
 
-    fbp_dump_buffer(IXpbBuilder_getBufferLength(xpb, st), IXpbBuilder_getBuffer(xpb, st));
+//     fbp_dump_buffer(IXpbBuilder_getBufferLength(xpb, st), IXpbBuilder_getBuffer(xpb, st));
 
-    if (isc_service_start(FBG(status), &svc->svc_handle, NULL, IXpbBuilder_getBufferLength(xpb, st), IXpbBuilder_getBuffer(xpb, st))) {
-        return FAILURE;
-    }
+//     if (isc_service_start(FBG(status), &svc->svc_handle, NULL, IXpbBuilder_getBufferLength(xpb, st), IXpbBuilder_getBuffer(xpb, st))) {
+//         return FAILURE;
+//     }
 
-    return SUCCESS;
-}
+//     return SUCCESS;
+// }
 
 int fbp_service_delete_user(firebird_service *svc, const char *username, ISC_USHORT username_len)
 {
@@ -291,7 +290,7 @@ int fbp_service_delete_user(firebird_service *svc, const char *username, ISC_USH
     *p++ = isc_action_svc_delete_user;
     *p++ = isc_spb_sec_username;
 
-    ISC_UCHAR bytes_num = min(username_len, sizeof(buf) - (p - buf) - 2);
+    ISC_UCHAR bytes_num = MIN(username_len, sizeof(buf) - (p - buf) - 2);
 
     fbp_store_portable_integer(p, bytes_num, 2); p += 2;
     memcpy(p, username, bytes_num); p += bytes_num;
@@ -306,7 +305,7 @@ int fbp_service_delete_user(firebird_service *svc, const char *username, ISC_USH
 #define spb_insert_db(dbname_len, dbname) spb_insert_str(isc_spb_dbname, dbname_len, dbname)
 #define spb_insert_str(tag, str_len, str) do {                             \
         *p++ = tag;                                                        \
-        ISC_UCHAR bytes_count = min(str_len, sizeof(buf) - (p - buf) - 2); \
+        ISC_UCHAR bytes_count = MIN(str_len, sizeof(buf) - (p - buf) - 2); \
         fbp_store_portable_integer(p, bytes_count, 2); p += 2;             \
         memcpy(p, str, bytes_count); p += bytes_count;                     \
     } while(0)

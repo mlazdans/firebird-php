@@ -1,8 +1,7 @@
 #include <ibase.h>
 #include "php.h"
-#include "php_firebird_includes.h"
 
-zend_class_entry *FireBird_Var_Info_ce;
+// zend_class_entry *FireBird_Var_Info_ce;
 
 void register_FireBird_Var_Info_ce()
 {

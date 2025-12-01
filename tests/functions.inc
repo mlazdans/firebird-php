@@ -6,6 +6,16 @@ require_once(__DIR__."/config.inc");
 
 srand();
 
+set_exception_handler(function(\Throwable $e){
+    if ($e instanceof \FireBird\Fb_Exception) {
+        print $e->getMessage()." in ".$e->getFile().":".$e->getLine();
+        // print $e->getTraceAsString();
+    } else {
+        throw $e;
+    }
+});
+
+
 class Mon_Transaction
 {
     public ?int $MON_TRANSACTION_ID;
@@ -26,50 +36,37 @@ class Mon_Transaction
 function out_table(\FireBird\Transaction $t, string $table_name)
 {
     echo "--- $table_name ---\n";
-    $res = $t->query("SELECT * from $table_name") or print_error_and_die("query", $t);
+    $res = $t->query("SELECT * from $table_name");
     while ($r = $res->fetch_row()) {
         echo join("\t",$r)."\t\n";
     }
 
-    if($r === false) print_error_and_die("fetch", $res);
-
-    $res->close() or print_error_and_die("close", $res);
+    $res->free();
 
     echo "---\n";
 }
 
-function out_result(\FireBird\Statement $result, string $table_name = "", bool $close = true)
+function out_result(\FireBird\Statement $result, string $table_name = "")
 {
     echo "--- $table_name ---\n";
     while ($r = $result->fetch_row()) {
         echo join("\t",$r)."\t\n";
     }
 
-    if($r === false) print_error_and_die("fetch", $result);
-
-    if($close) {
-        $result->close() or print_error_and_die("close", $result);
-    }
-
     echo "---\n";
-}
-
-function out_result_trap_error($result, $table_name = "")
-{
-   echo "--- $table_name ---\n";
-   while ($r = @ibase_fetch_row($result)) {
-        echo join("\t",$r)."\t\n";
-   }
-   echo "errmsg [" . ibase_errmsg() . "]\n";
-   echo "---\n";
 }
 
 /* M/D/Y H:M:S */
 function rand_datetime()
 {
-    return sprintf("%02d/%02d/%4d %02d:%02d:%02d",
-        rand()%12+1, rand()%28+1, rand()%100+1910,
+    // "%m/%d/%Y %H:%M:%S"
+    return sprintf("%4d-%02d-%02d %02d:%02d:%02d",
+        rand()%100+1910, rand()%12+1, rand()%28+1,
         rand()%24,   rand()%60,  rand()%60);
+
+    // return sprintf("%02d/%02d/%4d %02d:%02d:%02d",
+    //     rand()%12+1, rand()%28+1, rand()%100+1910,
+    //     rand()%24,   rand()%60,  rand()%60);
 }
 
 /* random binary string  */
@@ -112,34 +109,34 @@ function rand_number($len , $prec = -1, $sign = 1)
     if ($sign && (rand() % 3 == 0)) {
         $n = "-" .$n;
     }
-    return $n;
+    return $prec ? $n : (int)$n;
 }
 
-function print_error(string $cat, \FireBird\IError $o): void
-{
-    hl();
-    if(isset($o->errors)){
-        printf("ERROR [$cat]:[$o->sqlstate] $o->error_file:$o->error_lineno\n");
-        if(!Config::$skip_ext_error && isset($o->ext_error_line)) {
-            print "at $o->ext_error_line\n";
-        }
+// function print_error(string $cat): void
+// {
+//     hl();
+//     if(isset($o->errors)){
+//         printf("ERROR [$cat]:[$o->sqlstate] $o->error_file:$o->error_lineno\n");
+//         if(!Config::$skip_ext_error && isset($o->ext_error_line)) {
+//             print "at $o->ext_error_line\n";
+//         }
 
-        foreach($o->errors as $i=>$e) {
-            printf("$i: $e->error_code_long ($e->error_code) $e->error_msg\n");
-        }
-    } else {
-        printf("ERROR [$cat] -no error information-\n");
-    }
-    hl();
-}
+//         foreach($o->errors as $i=>$e) {
+//             printf("$i: $e->error_code_long ($e->error_code) $e->error_msg\n");
+//         }
+//     } else {
+//         printf("ERROR [$cat] -no error information-\n");
+//     }
+//     hl();
+// }
 
-function print_error_and_die(string $cat, \FireBird\IError $o): never
-{
-    print_error($cat, $o);
-    // debug_print_backtrace();
-    // print "===============================================================================\n";
-    die;
-}
+// function print_error_and_die(string $cat): never
+// {
+//     print_error($cat);
+//     // debug_print_backtrace();
+//     // print "===============================================================================\n";
+//     die;
+// }
 
 function load_file_or_die(string $path): string
 {
@@ -158,22 +155,15 @@ function load_file_or_die(string $path): string
     return $data;
 }
 
-function exec_from_file(\FireBird\Transaction $t, string $file_name): bool
+function exec_from_file(\FireBird\Transaction $t, string $file_name): \FireBird\Statement
 {
-    return $t->execute_immediate(load_file_or_die(Config::$pwd."/$file_name"));
+    return $t->query(load_file_or_die(Config::$pwd."/$file_name"));
 }
 
-function exec_from_file_ddl(\FireBird\Transaction $t, string $file_name): bool
+function exec_from_file_ddl(\FireBird\Transaction $t, string $file_name): void
 {
-    if(!exec_from_file($t, $file_name)) {
-        print_error_and_die("exec_from_file_ddl", $t);
-    }
-
-    if(!$t->commit_ret()) {
-        print_error_and_die("commit_ret", $t);
-    }
-
-    return true;
+    exec_from_file($t, $file_name);
+    $t->commit_ret();
 }
 
 function gen_random_db_file_name_or_die(): string
@@ -202,46 +192,56 @@ function args_apply_defaults(\FireBird\Create_Args|\FireBird\Connect_Args $args)
     return $args;
 }
 
-function init_tmp_db(string $db_file = "", string $charset = "", bool $drop = true): \FireBird\Database
+function init_tmp_db(string $charset = "", bool $drop = true, bool $init_default_tables = true): \FireBird\Database
 {
-    $conn = new \FireBird\Connector;
+    $args = new \FireBird\Create_Args;
+    $args->database = gen_random_db_file_name_or_die();
+    $args->page_size = 16 * 1024;
+    $args->timeout = 10;
+    args_apply_defaults($args);
 
-    if(empty($db_file)){
-        $args = new \FireBird\Create_Args;
-        $args->database = gen_random_db_file_name_or_die();
-        $args->page_size = 16 * 1024;
-        $args->timeout = 10;
-        args_apply_defaults($args);
-        // overrides
-        if($charset)$args->set_db_charset = $charset;
-        if($db = $conn->create($args)) {
-            register_shutdown_function(function() use ($db, $drop) {
-                if($drop && !$db->drop()) {
-                    print_error_and_die("drop", $db);
-                }
-            });
-            return $db;
-        } else {
-            print_error_and_die("create", $conn);
-        }
-    } else {
-        $args = new \FireBird\Connect_Args;
-        $args->database = Config::$host.":$db_file";
-        args_apply_defaults($args);
-        // overrides
-        if($charset)$args->charset = $charset;
-
-        if($db = $conn->connect($args)) {
-            register_shutdown_function(function() use ($db, $drop) {
-                if($drop && !$db->disconnect()) {
-                    print_error_and_die("disconnect", $db);
-                }
-            });
-            return $db;
-        } else {
-            print_error_and_die("connect", $conn);
-        }
+    // overrides
+    if ($charset) {
+        $args->set_db_charset = $charset;
     }
+
+    $db = \FireBird\Database::create($args);
+
+    if ($init_default_tables) {
+        $t = $db->start_transaction();
+
+        // Init db for php-firebird
+        $t->execute("CREATE TABLE TEST1 (I INTEGER, C VARCHAR(100))");
+        $t->commit_ret();
+        $t->query("INSERT INTO TEST1(I, C) VALUES(1, 'test table not created with isql')");
+
+        exec_from_file_ddl($t, "001-TEST_001.sql"); // TODO: sync Pi defaults
+        exec_from_file_ddl($t, "001-FIELDS25.sql"); // TODO: sync Pi defaults
+        $t->commit();
+    }
+
+    register_shutdown_function(function() use ($db, $drop) {
+        if ($drop) {
+            $db->drop();
+        } else {
+            $db->disconnect();
+        }
+    });
+
+    // TODO: move to sep. function
+    // $args = new \FireBird\Connect_Args;
+    // $args->database = Config::$host.":$db_file";
+    // args_apply_defaults($args);
+
+    // // overrides
+    // if($charset)$args->charset = $charset;
+
+    // $db = \FireBird\Database::connect($args);
+    // register_shutdown_function(function() use ($db) {
+    //     $db->disconnect();
+    // });
+
+    return $db;
 }
 
 function var_bin(mixed $v): void {
@@ -268,7 +268,7 @@ function replace_binary(string $data): string
     return $buff ?? $data;
 }
 
-function run_tests(\FireBird\Transaction $t, array $select_tests): array
+function run_tests(\FireBird\Transaction $t, array $select_tests): array|false
 {
     $results = [];
     foreach($select_tests as $i=>[$test_name, $sql, $bind_args, $fetch_flags]) {
@@ -281,12 +281,9 @@ function run_tests(\FireBird\Transaction $t, array $select_tests): array
                 var_bin($r);
                 $test_results[] = $r;
             }
-
-            if(false === $r) {
-                print_error_and_die("fetch [$i]", $s);
-            }
         } else {
-            print_error_and_die("query [$i]", $t);
+            print "Query FAIL\n";
+            return false;
         }
         print "\n";
 
@@ -305,75 +302,62 @@ function results_equal(array $test_result1, array $test_result2): bool
     return array_udiff($test_result1, $test_result2, $f) == [];
 }
 
-function query_or_error(\FireBird\Transaction $t, string $sql, ...$bind_args): \FireBird\Statement|false
-{
-    if(false === ($s = $t->query($sql, ...$bind_args))){
-        print_error("query", $t);
-    }
-    return $s;
-}
+// function query_or_error(\FireBird\Transaction $t, string $sql, ...$bind_args): \FireBird\Statement|false
+// {
+//     if(false === ($s = $t->query($sql, ...$bind_args))){
+//         print_error("query", $t);
+//         print_r(date_get_last_errors());
+//     }
+//     return $s;
+// }
 
-function execute_immediate_or_error(\FireBird\Transaction $t, string $sql, ...$bind_args): bool
-{
-    if(false === ($s = $t->execute_immediate($sql, ...$bind_args))){
-        print_error("execute_immediate", $t);
-        print "Query: $sql\n";
-    }
-    return $s;
-}
+// function execute_immediate_or_error(\FireBird\Transaction $t, string $sql): bool
+// {
+//     if(false === $t->execute($sql)){
+//         print_error("execute_immediate", $t);
+//         print "Query: $sql\n";
+//         return false;
+//     }
+//     return true;
+// }
 
-function execute_immediate_or_die(\FireBird\Transaction $t, string $sql, ...$bind_args): bool
-{
-    if($s = execute_immediate_or_error($t, $sql, ...$bind_args)) {
-        return $s;
-    } else {
-        die;
-    }
-}
+// function execute_immediate_or_die(\FireBird\Transaction $t, string $sql, ...$bind_args): bool
+// {
+//     if($s = execute_immediate_or_error($t, $sql, ...$bind_args)) {
+//         return $s;
+//     } else {
+//         die;
+//     }
+// }
 
-function query_or_die(\FireBird\Transaction $t, string $sql, ...$bind_args): \FireBird\Statement
-{
-    if($s = query_or_error($t, $sql, ...$bind_args)) {
-        return $s;
-    } else {
-        die;
-    }
-}
+// function query_or_die(\FireBird\Transaction $t, string $sql, ...$bind_args): \FireBird\Statement
+// {
+//     if($s = query_or_error($t, $sql, ...$bind_args)) {
+//         return $s;
+//     } else {
+//         print_r($sql);
+//         die;
+//     }
+// }
 
-function prepare_or_error(\FireBird\Transaction $t, string $sql): \FireBird\Statement|false
-{
-    if(false === ($s = $t->prepare($sql))){
-        print_error("prepare", $t);
-    }
-    return $s;
-}
+// function prepare_or_error(\FireBird\Transaction $t, string $sql): \FireBird\Statement|false
+// {
+//     if(false === ($s = $t->prepare($sql))){
+//         print_error("prepare", $t);
+//     }
+//     return $s;
+// }
 
-function prepare_or_die(\FireBird\Transaction $t, string $sql): \FireBird\Statement
-{
-    if($s = prepare_or_error($t, $sql)) {
-        return $s;
-    } else {
-        die;
-    }
-}
+// function prepare_or_die(\FireBird\Transaction $t, string $sql): \FireBird\Statement
+// {
+//     if($s = prepare_or_error($t, $sql)) {
+//         return $s;
+//     } else {
+//         die;
+//     }
+// }
 
-function query_bulk(\FireBird\Transaction $t, array $queries): bool
-{
-    foreach($queries as $query_tuple) {
-        if(is_array($query_tuple)) {
-            [$sql, $bind_args] = $query_tuple;
-        } else {
-            $sql = $query_tuple;
-            $bind_args = [];
-        }
-        if(!query_or_error($t, $sql, ...$bind_args)){
-            return false;
-        }
-    }
-    return true;
-}
-
-function execute_immediate_bulk(\FireBird\Transaction $t, array $queries, bool $verbose = false): bool
+function query_bulk(\FireBird\Transaction $t, array $queries): void
 {
     foreach($queries as $query_tuple) {
         if(is_array($query_tuple)) {
@@ -382,29 +366,18 @@ function execute_immediate_bulk(\FireBird\Transaction $t, array $queries, bool $
             $sql = $query_tuple;
             $bind_args = [];
         }
+        $t->query($sql, ...$bind_args);
+    }
+}
 
+function execute_immediate_bulk(\FireBird\Transaction $t, array $queries, bool $verbose = false)
+{
+    foreach($queries as $sql) {
         if($verbose){
             print "$sql;\n";
         }
 
-        if(!execute_immediate_or_error($t, $sql, ...$bind_args)){
-            return false;
-        }
-    }
-    return true;
-}
-
-function query_bulk_or_die(\FireBird\Transaction $t, array $queries): void
-{
-    if(!query_bulk($t, $queries)){
-        die;
-    }
-}
-
-function execute_immediate_bulk_or_die(\FireBird\Transaction $t, array $queries): void
-{
-    if(!execute_immediate_bulk($t, $queries)){
-        die;
+        $t->execute($sql);
     }
 }
 
@@ -413,26 +386,11 @@ function fetch_and_print(\FireBird\Statement $q, int $flags = 0): void
     while($r = $q->fetch_object($flags)) {
         var_bin($r);
     }
-
-    if(false === $r) {
-        print_error("fetch", $q);
-    }
 }
 
-function fetch_and_print_or_die(\FireBird\Statement $q, int $flags = 0): void
+function query_and_fetch_and_print(\FireBird\Transaction $t, string $sql, int $flags = 0): void
 {
-    while($r = $q->fetch_object($flags)) {
-        var_bin($r);
-    }
-
-    if(false === $r) {
-        print_error_and_die("fetch", $q);
-    }
-}
-
-function query_and_fetch_and_print_or_die(\FireBird\Transaction $t, string $sql, int $flags = 0): void
-{
-    fetch_and_print_or_die(query_or_die($t, $sql), $flags);
+    fetch_and_print($t->query($sql), $flags);
 }
 
 function hl(?string $msg = null): void
@@ -522,8 +480,8 @@ function random_builder(): \FireBird\TBuilder
 
 function get_isolation_level_or_die(\FireBird\Transaction $t): int
 {
-    $q = $t->query('SELECT MON$ISOLATION_MODE FROM MON$TRANSACTIONS WHERE MON$TRANSACTION_ID = CURRENT_TRANSACTION') or print_error_and_die("query", $t);
-    $row = $q->fetch_array() or print_error_and_die("fetch", $q);
+    $q = $t->query('SELECT MON$ISOLATION_MODE FROM MON$TRANSACTIONS WHERE MON$TRANSACTION_ID = CURRENT_TRANSACTION');
+    $row = $q->fetch_array();
 
     return $row['MON$ISOLATION_MODE'];
 }
@@ -536,29 +494,82 @@ function is_ReadConsistency_enabled(\FireBird\Database $db): bool
 {
     // 3
     $t = $db->new_transaction();
-    $t->execute_immediate("SET TRANSACTION ISOLATION LEVEL READ COMMITTED NO RECORD_VERSION") or print_error_and_die("set trans", $t);
+    $t->execute("SET TRANSACTION ISOLATION LEVEL READ COMMITTED NO RECORD_VERSION");
     if(get_isolation_level_or_die($t) != 3) return true;
-    $t->rollback() or print_error_and_die("rollback", $t);
+    $t->rollback();
 
     // 2
     $t = $db->new_transaction();
-    $t->execute_immediate("SET TRANSACTION ISOLATION LEVEL READ COMMITTED RECORD_VERSION") or print_error_and_die("set trans", $t);
+    $t->execute("SET TRANSACTION ISOLATION LEVEL READ COMMITTED RECORD_VERSION");
     if(get_isolation_level_or_die($t) != 2) return true;
-    $t->rollback() or print_error_and_die("rollback", $t);
+    $t->rollback();
 
     return false;
 }
 
-function init_tmp_db_ibase(): \FireBird\Database
+function fields2sql_parts(array $fields): array
 {
-    $db = init_tmp_db();
-    $t = $db->new_transaction();
-    $t->start() or print_error_and_die("trans start", $t);
-    $t->execute_immediate("CREATE TABLE TEST1 (I INTEGER, C VARCHAR(100))") or print_error_and_die("create table", $t);
-    $t->commit_ret() or print_error_and_die("commit_ret", $t);
-    $t->query("INSERT INTO TEST1(I, C) VALUES(1, 'test table not created with isql')") or print_error_and_die("query", $t);
-    $t->commit() or print_error_and_die("commit", $t);
-    // $db->disconnect() or print_error_and_die("disconnect", $db);
+    $fields_str = '"'.join('","', $fields).'"';
+    $q_str = join(",", array_fill(0, count($fields), "?"));
+    return [$fields_str, $q_str];
+}
 
-    return $db;
+function array2sql_parts(array $data): array
+{
+    return [...fields2sql_parts(array_keys($data)), $data];
+}
+
+function dump_rows(\FireBird\Statement $q, int $flags = 0): void
+{
+    while ($row = $q->fetch_array($flags)) {
+        var_dump($row);
+    }
+}
+
+function dump_table_rows(\FireBird\Transaction $t, $table, int $flags = 0): void
+{
+    $sql = sprintf('SELECT * FROM "%s"', $table);
+
+    dump_rows($t->query($sql), $flags);
+}
+
+function skip_if_fb_lt(float $v): void
+{
+    if(($cv = get_fb_version()) < $v)die("skip Firebird server version $cv < $v");
+}
+
+function skip_if_fb_gt(float $v): void
+{
+    if(($cv = get_fb_version()) > $v)die("skip Firebird server version $cv > $v");
+}
+
+function skip_if_fb_gte(float $v): void
+{
+    if(($cv = get_fb_version()) >= $v)die("skip Firebird server version $cv >= $v");
+}
+
+// TODO: once service
+function get_fb_version(): float
+{
+    die("TODO: once service");
+    // global $host, $user, $password, $fb_version, $fb_version_str;
+
+    // if(isset($fb_version)) return $fb_version;
+
+    // if($se = ibase_service_attach($host ? $host : "localhost", $user, $password)) {
+    //     $fb_version_str = ibase_server_info($se, IBASE_SVC_SERVER_VERSION);
+    //     if($fb_version_str === false)die("skip cannot ibase_server_info()");
+    //     $server_version  = explode(" ", $fb_version_str);
+    //     $vers = (float)$server_version[count($server_version) - 1];
+    //     return $fb_version = $vers;
+    // } else {
+    //     die("skip: cannot connect");
+    // }
+}
+
+function insert_into(\FireBird\Transaction $t, string $table, array $data): \FireBird\Statement
+{
+    [$fields_str, $q_str] = array2sql_parts($data);
+    $sql = sprintf('INSERT INTO "%s" (%s) VALUES (%s)', $table, $fields_str, $q_str);
+    return $t->query($sql, ...array_values($data));
 }

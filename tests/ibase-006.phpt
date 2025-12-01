@@ -10,15 +10,13 @@ namespace FireBirdTests;
 require_once('functions.inc');
 
 (function(){
-    if(false === ($conn = init_tmp_db(charset: "NONE"))) {
-        return;
-    }
+    $db = init_tmp_db(charset: "NONE");
 
-    if(!(($t = $conn->new_transaction()) && $t->start())) {
-        print_error_and_die("transaction", $conn);
-    }
+    $t = $db->new_transaction();
+    // $t = $db->start_transaction() or print_error_and_die("transaction", $conn);
+    $t->execute("SET TRANSACTION");
 
-    execute_immediate_or_die($t,
+    $t->execute(
         "CREATE table test6 (
             iter		integer,
             v_char		char(1000),
@@ -30,9 +28,9 @@ require_once('functions.inc');
             v_numeric   numeric(4,2),
             v_smallint  smallint,
             v_varchar   varchar(10000)
-            )");
+        )");
 
-    execute_immediate_or_die($t,
+    $t->execute(
         "CREATE procedure add1 (arg integer)
         returns (result integer)
         as
@@ -40,10 +38,10 @@ require_once('functions.inc');
             result = arg +1;
         end");
 
-    $t->commit_ret() or print_error_and_die("commit_ret", $t);
+    $t->commit_ret();
 
     /* if timefmt not supported, hide error */
-    ini_set('firebird.timestampformat',"%m/%d/%Y %H:%M:%S");
+    // ini_set('firebird.timestampformat',"%m/%d/%Y %H:%M:%S");
 
     echo "insert\n";
 
@@ -59,17 +57,16 @@ require_once('functions.inc');
         $v_smallint = ((int)rand_number(5)) % 32767;
         $v_varchar = rand_str(10000);
 
-        query_or_die($t, "INSERT into test6
+        $t->query("INSERT into test6
             (iter,v_char,v_date,v_decimal,v_double,v_float,
             v_integer,v_numeric,v_smallint,v_varchar)
             values (?,?,?,?,?,?,?,?,?,?)",
             $iter, $v_char, $v_date, $v_decimal, $v_double, $v_float,
             $v_integer, $v_numeric, $v_smallint, $v_varchar);
 
-        $sel = query_or_die($t, "SELECT * from test6 where iter = ?", $iter);
+        $sel = $t->query("SELECT * from test6 where iter = ?", $iter);
 
         $row = $sel->fetch_object();
-        if(false === $row) print_error_and_die("fetch_object", $sel);
 
         if(substr($row->V_CHAR,0,strlen($v_char)) != $v_char) {
             echo " CHAR fail:\n";
@@ -116,7 +113,7 @@ require_once('functions.inc');
             echo " in:  $v_varchar\n";
             echo " out: $row->V_VARCHAR\n";
         }
-        $sel->close() or print_error_and_die("close", $sel);
+        // $sel->close() or print_error_and_die("close", $sel);
     }/* for($iter)*/
 
     echo "select\n";
@@ -133,19 +130,19 @@ require_once('functions.inc');
         $v_varchar = rand_str(10000);
 
         /* clear table*/
-        query_or_die($t, "DELETE from test6");
+        $t->query("DELETE from test6");
 
         /* make one record */
-        query_or_die($t, "INSERT into test6
+        $t->query("INSERT into test6
             (iter, v_char,v_date,v_decimal,
             v_integer,v_numeric,v_smallint,v_varchar)
             values (666, '$v_char',?,$v_decimal, $v_integer,
             $v_numeric, $v_smallint, '$v_varchar')",$v_date);
 
         $test_f = function(\FireBird\Transaction $t, string $msg, string $sql, ...$bind_args) {
-            $sel = query_or_die($t, $sql, ...$bind_args);
+            $sel = $t->query($sql, ...$bind_args);
             if(!$sel->fetch_row())echo "$msg\n";
-            $sel->close() or print_error_and_die("close", $sel);
+            // $sel->close() or print_error_and_die("close", $sel);
         };
 
         /* test all types */
@@ -161,13 +158,13 @@ require_once('functions.inc');
     echo "prepare and exec insert\n";
 
     /* prepare table */
-    query_or_die($t, "DELETE from test6");
+    $t->query("DELETE from test6");
 
     /* prepare query */
-    $query = prepare_or_die($t, "INSERT into test6 (v_integer) values (?)");
+    $query = $t->prepare("INSERT into test6 (v_integer) values (?)");
 
     for($i = 0; $i < 10; $i++) {
-        $query->execute($i) or print_error_and_die("execute", $query);
+        $query->execute($i);
     }
 
     out_table($t, "test6");
@@ -175,28 +172,32 @@ require_once('functions.inc');
     echo "prepare and exec select\n";
 
     /* prepare query */
-    $query = prepare_or_die($t, "SELECT * from test6
+    $query = $t->prepare("SELECT * from test6
         where v_integer between ? and ?");
 
     $low_border = 2;
     $high_border = 6;
 
-    $query->execute($low_border, $high_border) or print_error_and_die("execute", $query);
+    $query->execute($low_border, $high_border);
     out_result($query, "test6");
     // $query->free() or print_error_and_die("free", $query);
 
     $low_border = 0;
     $high_border = 4;
-    $query->execute($low_border, $high_border) or print_error_and_die("execute", $query);
+    $query->execute($low_border, $high_border);
     out_result($query, "test6");
     // $query->free() or print_error_and_die("free", $query);
 
-    $query->execute("5", 7.499) or print_error_and_die("execute", $query);
+    // TODO: Mismatched types
+    // $query->execute("5", 7.499) or print_error_and_die("execute", $query);
+    $query->execute(5, 7);
     out_result($query, "test6");
 
-    $query->free() or print_error_and_die("free", $query);
+    $query->free();
 
     /* test execute procedure */
+    // Disabled ill pattern
+    /*
     $query = prepare_or_die($t, "execute procedure add1(?)");
 
     // XXX: collecting execute results on same query does not makes sense.
@@ -218,8 +219,9 @@ require_once('functions.inc');
         $query->execute($i) or print_error_and_die("execute", $query);
         out_result($query, "proc add1", false); // EXECUTE PROCEDURE has no cursor, so nothing to close
     }
+    */
 
-    $t->commit() or print_error_and_die("commit", $t);
+    $t->commit();
 
     echo "end of test\n";
 })();

@@ -10,27 +10,21 @@ namespace FireBirdTests;
 require_once('functions.inc');
 
 (function(){
-    if(false === ($conn = init_tmp_db())) {
-        return;
-    }
-
-    if(false === ($t = $conn->new_transaction())) {
-        print_error_and_die("transaction", $conn);
-    }
+    $t = init_tmp_db(init_default_tables:false)->new_transaction();
 
     $queries = [
         "SET TRANSACTION",
-        load_file_or_die(Config::$pwd."/001-table.sql"),
+        load_file_or_die(Config::$pwd."/001-TEST_001.sql"),
         "COMMIT RETAIN",
         "CREATE SEQUENCE GEN_GEN START WITH 1024 INCREMENT BY 8",
         "SET GENERATOR GEN_GEN TO 512",
         "COMMIT RETAIN",
     ];
 
-    execute_immediate_bulk_or_die($t, $queries);
+    execute_immediate_bulk($t, $queries);
 
-    query_and_fetch_and_print_or_die($t, 'SELECT NEXT VALUE FOR GEN_GEN FROM RDB$DATABASE', \FireBird\FETCH_BLOBS);
-    query_and_fetch_and_print_or_die($t, 'SELECT NEXT VALUE FOR GEN_GEN FROM RDB$DATABASE', \FireBird\FETCH_BLOBS);
+    query_and_fetch_and_print($t, 'SELECT NEXT VALUE FOR GEN_GEN FROM RDB$DATABASE', \FireBird\FETCH_BLOB_TEXT);
+    query_and_fetch_and_print($t, 'SELECT NEXT VALUE FOR GEN_GEN FROM RDB$DATABASE', \FireBird\FETCH_BLOB_TEXT);
 
     $t->commit();
 })();

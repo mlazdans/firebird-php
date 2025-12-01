@@ -1,18 +1,18 @@
-#include <firebird/fb_c_api.h>
+// #include <firebird/fb_c_api.h>
 #include "php.h"
 #include "zend.h"
 #include "php_firebird.h"
-#include "php_firebird_includes.h"
 #include "ext/standard/php_var.h"
 
 #include "transaction.h"
-#include "fbp_transaction.h"
 #include "fbp_multi_transaction.h"
 
 fbp_object_accessor(firebird_multi_trans);
 
 int fbp_multi_transaction_start(firebird_multi_trans *mtr)
 {
+    TODO("fbp_multi_transaction_start");
+#if 0
     zend_array *db_arr = Z_ARR(mtr->Databases);
     zend_array *b_arr = Z_ARR(mtr->Builders);
     zval *Db, *Builder;
@@ -45,4 +45,5 @@ int fbp_multi_transaction_start(firebird_multi_trans *mtr)
     efree(buffers);
 
     return SUCCESS;
+#endif
 }

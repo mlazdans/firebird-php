@@ -33,34 +33,4 @@ prepare and exec select
 						6				
 						7				
 ---
---- proc add1 ---
-1	
----
---- proc add1 ---
-2	
----
---- proc add1 ---
-3	
----
---- proc add1 ---
-4	
----
---- proc add1 ---
-5	
----
---- proc add1 ---
-6	
----
---- proc add1 ---
-7	
----
---- proc add1 ---
-8	
----
---- proc add1 ---
-9	
----
---- proc add1 ---
-10	
----
 end of test

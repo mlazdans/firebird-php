@@ -17,8 +17,8 @@ require_once('functions.inc');
     $test_count = 100;
     for($i = 0; $i < $test_count; $i++){
         $b = random_builder();
-        $t1 = $db->new_transaction($b);
-        if(!$t1->start()) {
+        $t1 = $db->start_transaction($b);
+        if(!$t1) {
             $b->dump_state();
             print_error_and_die("start t1", $t1);
         }
@@ -31,7 +31,7 @@ require_once('functions.inc');
 
         unstrip_fb_specials($row);
 
-        if(cmp_builder($t1->builder, $row, $is_ReadConsistency_enabled)){
+        if(cmp_builder($b, $row, $is_ReadConsistency_enabled)){
             print "Error at test: $i\n";
             $b->dump_state();
         }

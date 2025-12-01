@@ -10,21 +10,8 @@ namespace FireBirdTests;
 require_once('functions.inc');
 
 (function(){
-    if(false === ($conn = init_tmp_db())) {
-        return;
-    }
-
-    if(false === (($t = $conn->new_transaction()) && $t->start())) {
-        print_error_and_die("transaction", $conn);
-    }
-
-    if(!exec_from_file_ddl($t, "001-table.sql")) {
-        print_error_and_die("create_table", $t);
-    }
-
-    if(!exec_from_file_ddl($t, "002-proc.sql")) {
-        print_error_and_die("create_proc", $t);
-    }
+    $t = init_tmp_db()->start_transaction();
+    exec_from_file_ddl($t, "002-proc.sql");
 
     $table = "TEST_001";
 
@@ -43,17 +30,17 @@ require_once('functions.inc');
     $fields = "ID, BLOB_0, BLOB_1, BOOL_1, VARCHAR_1";
     $select_tests = [
         ["Select from table WHERE BOOL_1 = ? (false)",
-            "SELECT $fields FROM $table WHERE BOOL_1 = ?", [false], \FireBird\FETCH_BLOBS],
+            "SELECT $fields FROM $table WHERE BOOL_1 = ?", [false], \FireBird\FETCH_BLOB_TEXT],
         ["Select from table WHERE BOOL_1 = false",
-            "SELECT $fields FROM $table WHERE BOOL_1 = FALSE", [], \FireBird\FETCH_BLOBS],
+            "SELECT $fields FROM $table WHERE BOOL_1 = FALSE", [], \FireBird\FETCH_BLOB_TEXT],
 
         ["Select from table WHERE BOOL_1 = ? (true)",
-            "SELECT $fields FROM $table WHERE BOOL_1 = ?", [true], \FireBird\FETCH_BLOBS],
+            "SELECT $fields FROM $table WHERE BOOL_1 = ?", [true], \FireBird\FETCH_BLOB_TEXT],
         ["Select from table WHERE BOOL_1 = true",
-            "SELECT $fields FROM $table WHERE BOOL_1 = TRUE", [], \FireBird\FETCH_BLOBS],
+            "SELECT $fields FROM $table WHERE BOOL_1 = TRUE", [], \FireBird\FETCH_BLOB_TEXT],
 
         ["Select ID from procedure which returns ID if BOOL_1 = true",
-            "SELECT * FROM PROC_002_1(?)", [true], \FireBird\FETCH_BLOBS],
+            "SELECT * FROM PROC_002_1(?)", [true], \FireBird\FETCH_BLOB_TEXT],
     ];
     $results = run_tests($t, $select_tests);
 
@@ -69,10 +56,7 @@ require_once('functions.inc');
     }
     printf("Did procedure returned IDs with true? %s\n", $proc_ok ? "YES" : "NO");
 
-
-    if(!$t->commit()) {
-        print_error_and_die("commit", $t);
-    }
+    $t->commit();
 })();
 
 ?>

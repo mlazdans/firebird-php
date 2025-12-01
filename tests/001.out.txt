@@ -24,7 +24,9 @@ Row data object(stdClass) {
   ["BOOL_1"]=>
   bool(true)
   ["DATE_1"]=>
-  string(10) "2025-03-14"
+  string(10) "2025-11-06"
+  ["TIME_1"]=>
+  string(8) "15:45:59"
   ["DECFLOAT_16"]=>
   string(17) "3.141592653589793"
   ["DECFLOAT_34"]=>
@@ -43,6 +45,10 @@ Row data object(stdClass) {
   string(9) "VARCHAR_1"
   ["SMALLINT_1"]=>
   int(1)
+  ["TIME_TZ"]=>
+  string(20) "15:45:59 Europe/Riga"
+  ["TIMESTAMP_TZ"]=>
+  string(31) "2025-11-06 15:45:59 Europe/Riga"
 }
 Row data object(stdClass) {
   ["ID"]=>
@@ -54,7 +60,9 @@ Row data object(stdClass) {
   ["BOOL_1"]=>
   bool(true)
   ["DATE_1"]=>
-  string(10) "2025-03-14"
+  string(10) "2025-11-06"
+  ["TIME_1"]=>
+  string(8) "15:45:59"
   ["DECFLOAT_16"]=>
   string(17) "3.141592653589793"
   ["DECFLOAT_34"]=>
@@ -73,6 +81,10 @@ Row data object(stdClass) {
   string(9) "VARCHAR_1"
   ["SMALLINT_1"]=>
   int(1)
+  ["TIME_TZ"]=>
+  string(20) "15:45:59 Europe/Riga"
+  ["TIMESTAMP_TZ"]=>
+  string(31) "2025-11-06 15:45:59 Europe/Riga"
 }
 
 Select DECFLOAT_34 where condition inline -------------------------------------
