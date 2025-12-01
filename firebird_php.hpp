@@ -49,8 +49,11 @@ ZEND_BEGIN_MODULE_GLOBALS(firebird)
     bool debug;
     std::vector<std::unique_ptr<FBP::Database>> db_list;
     // int has_error_handler;
-    zend_fcall_info error_fci;
-    zend_fcall_info_cache error_fcc;
+    // zend_fcall_info error_fci;
+    // zend_fcall_info_cache error_fcc;
+    int client_version;
+    int client_major_version;
+    int client_minor_version;
 ZEND_END_MODULE_GLOBALS(firebird)
 
 ZEND_EXTERN_MODULE_GLOBALS(firebird)

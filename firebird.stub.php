@@ -98,6 +98,10 @@ const SM_SINGLE = 2;
  */
 const SM_FULL   = 3;
 
+function get_client_version(): float { die; }
+function get_client_major_version(): int { die; }
+function get_client_minor_version(): int { die; }
+
 // function get_errors(): array { die; }
 // function set_error_handler(callable $handler): void {}
 

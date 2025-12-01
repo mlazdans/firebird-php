@@ -1,5 +1,13 @@
 /* This is a generated file, edit the .stub.php file instead.
- * Stub hash: 3e32e790f138e3051c0370dad9fa139459103cca */
+ * Stub hash: b5df1ec4fde81c855b32049769adc16b9a5c91df */
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_get_client_version, 0, 0, IS_DOUBLE, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_get_client_major_version, 0, 0, IS_LONG, 0)
+ZEND_END_ARG_INFO()
+
+#define arginfo_FireBird_get_client_minor_version arginfo_FireBird_get_client_major_version
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_class_FireBird_Database___construct, 0, 0, 0)
 ZEND_END_ARG_INFO()
@@ -175,6 +183,9 @@ ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_class_FireBird_Blob_Id_from_legac
 	ZEND_ARG_TYPE_INFO(0, legacy_id, IS_STRING, 0)
 ZEND_END_ARG_INFO()
 
+ZEND_FUNCTION(FireBird_get_client_version);
+ZEND_FUNCTION(FireBird_get_client_major_version);
+ZEND_FUNCTION(FireBird_get_client_minor_version);
 ZEND_METHOD(FireBird_Database, __construct);
 ZEND_METHOD(FireBird_Database, connect);
 ZEND_METHOD(FireBird_Database, create);
@@ -230,6 +241,13 @@ ZEND_METHOD(FireBird_TBuilder, dump_state);
 ZEND_METHOD(FireBird_Blob_Id, __construct);
 ZEND_METHOD(FireBird_Blob_Id, to_legacy_id);
 ZEND_METHOD(FireBird_Blob_Id, from_legacy_id);
+
+static const zend_function_entry ext_functions[] = {
+	ZEND_RAW_FENTRY(ZEND_NS_NAME("FireBird", "get_client_version"), zif_FireBird_get_client_version, arginfo_FireBird_get_client_version, 0, NULL, NULL)
+	ZEND_RAW_FENTRY(ZEND_NS_NAME("FireBird", "get_client_major_version"), zif_FireBird_get_client_major_version, arginfo_FireBird_get_client_major_version, 0, NULL, NULL)
+	ZEND_RAW_FENTRY(ZEND_NS_NAME("FireBird", "get_client_minor_version"), zif_FireBird_get_client_minor_version, arginfo_FireBird_get_client_minor_version, 0, NULL, NULL)
+	ZEND_FE_END
+};
 
 static const zend_function_entry class_FireBird_Database_methods[] = {
 	ZEND_ME(FireBird_Database, __construct, arginfo_class_FireBird_Database___construct, ZEND_ACC_PRIVATE)

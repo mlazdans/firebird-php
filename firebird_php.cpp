@@ -21,6 +21,7 @@ extern "C" {
 #include "SAPI.h"
 #include "zend_interfaces.h"
 #include "zend_exceptions.h"
+#include "firebird_utils.h"
 
 // #include "service.h"
 // #include "multi_transaction.h"
@@ -31,6 +32,10 @@ extern "C" {
 PHP_RINIT_FUNCTION(firebird)
 {
     // FBG(db_list) = new std::vector<std::unique_ptr<Database>>();
+    auto client_version = fbu_get_client_version();
+    FBG(client_version) = client_version;
+    FBG(client_major_version) = (client_version >> 8) & 0xFF;
+    FBG(client_minor_version) = client_version & 0xFF;
 
     return SUCCESS;
 }
@@ -45,7 +50,7 @@ static PHP_GINIT_FUNCTION(firebird);
 zend_module_entry firebird_module_entry = {
     STANDARD_MODULE_HEADER,
     "firebird",
-    NULL, // ext_functions,
+    ext_functions,
     PHP_MINIT(firebird),
     PHP_MSHUTDOWN(firebird),
     PHP_RINIT(firebird),
@@ -586,6 +591,21 @@ void fbp_store_portable_integer(unsigned char *buffer, ISC_UINT64 value, int len
     for (int i = 0; i < length; i++) {
         buffer[i] = (value >> (i * 8)) & 0xFF;
     }
+}
+
+PHP_FUNCTION(FireBird_get_client_version)
+{
+    RETURN_DOUBLE((double)FBG(client_major_version) + (double)FBG(client_minor_version) / 10);
+}
+
+PHP_FUNCTION(FireBird_get_client_major_version)
+{
+    RETURN_LONG(FBG(client_major_version));
+}
+
+PHP_FUNCTION(FireBird_get_client_minor_version)
+{
+    RETURN_LONG(FBG(client_minor_version));
 }
 
 // fbp_object_accessor(zend_fiber);

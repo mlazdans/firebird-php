@@ -8,7 +8,6 @@
 #define STRNUM_PARSE_ERROR    1
 #define STRNUM_PARSE_OVERFLOW 2
 
-
 extern "C" {
 
 void fbu_handle_exception(const char *file, size_t line);
