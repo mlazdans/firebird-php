@@ -320,16 +320,6 @@ class Transaction
      * Prepares transaction for two-phase commit.
      * */
     // public function prepare_2pc(): bool { die; }
-
-    /**
-     * execute without prepare.
-     *
-     * TODO: create input metadata buffer from bind_args. It's up to user then
-     * to guarantee propper types. Parse output metadata buffer same as fetch.
-     * Could return most 1 row. Statement should check statement type and
-     * process accordingly
-     */
-    // public function execute(string $sql, mixed ...$bind_args): Statement|false { die; }
 }
 
 class Statement

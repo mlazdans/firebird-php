@@ -1,5 +1,5 @@
 /* This is a generated file, edit the .stub.php file instead.
- * Stub hash: b5df1ec4fde81c855b32049769adc16b9a5c91df */
+ * Stub hash: d73976bc12242859ba8ee0a9d5cc78d39dd5c9b2 */
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_get_client_version, 0, 0, IS_DOUBLE, 0)
 ZEND_END_ARG_INFO()
