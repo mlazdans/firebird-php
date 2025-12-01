@@ -31,7 +31,7 @@ while ($r = $q->fetch_object(\FireBird\FETCH_FETCH_BLOB_TEXT)) {
 
 Some example code can be fetched from [tests](tests/)
 
-PHP stub file: [firebird_stub.php](firebird_stub.php)
+PHP stub file: [firebird._stub.php](firebird.stub.php)
 
 # Build
 
