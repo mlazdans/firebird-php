@@ -36,6 +36,7 @@ public:
     void create(zval *args);
     void disconnect();
     void drop();
+    void execute_create(unsigned int len_sql, const char *sql);
 
     size_t transaction_init();
     size_t statement_init(size_t trh);

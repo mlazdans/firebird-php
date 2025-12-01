@@ -175,11 +175,11 @@ const SM_FULL   = 3;
 
 class Database
 {
-    protected Connect_Args|Create_Args $args;
+    public readonly Connect_Args|Create_Args|null $args;
 
     /**
      * Do not instantiate this class directly. Use Database::connect() or
-     * Database::create() instead.
+     * Database::create() or Database::execute_create() instead.
      */
     private function __construct() {}
 
@@ -192,6 +192,11 @@ class Database
      * @throws Fb_Exception
      */
     static public function create(Create_Args $args): Database { die; }
+
+    /**
+     * @throws Fb_Exception
+     */
+    static public function execute_create(string $sql): Database { die; }
 
     /**
      * Wrapper around (new Transaction($this))->start(?TBuilder $tb = null);

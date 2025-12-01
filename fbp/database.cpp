@@ -186,4 +186,15 @@ IAttachment *Database::get()
     throw Php_Firebird_Exception(zend_ce_error, "Invalid database pointer");
 }
 
+void Database::execute_create(unsigned int len_sql, const char *sql)
+{
+    if (att) {
+        throw Php_Firebird_Exception(zend_ce_value_error, "Database already initialized");
+    }
+
+    auto util = master->getUtilInterface();
+    // executeCreateDatabase(StatusType* status, unsigned stmtLength, const char* creatDBstatement, unsigned dialect, FB_BOOLEAN* stmtIsCreateDb)
+    att = util->executeCreateDatabase(&st, len_sql, sql, SQL_DIALECT_CURRENT, NULL);
+}
+
 } // namespace

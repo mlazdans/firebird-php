@@ -1,5 +1,5 @@
 /* This is a generated file, edit the .stub.php file instead.
- * Stub hash: 94ef93b91e6972d8b30a3e50bddbb7665b9c7ae5 */
+ * Stub hash: 3e32e790f138e3051c0370dad9fa139459103cca */
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_class_FireBird_Database___construct, 0, 0, 0)
 ZEND_END_ARG_INFO()
@@ -10,6 +10,10 @@ ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_class_FireBird_Database_create, 0, 1, FireBird\\Database, 0)
 	ZEND_ARG_OBJ_INFO(0, args, FireBird\\Create_Args, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_class_FireBird_Database_execute_create, 0, 1, FireBird\\Database, 0)
+	ZEND_ARG_TYPE_INFO(0, sql, IS_STRING, 0)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_class_FireBird_Database_start_transaction, 0, 0, FireBird\\Transaction, 0)
@@ -174,6 +178,7 @@ ZEND_END_ARG_INFO()
 ZEND_METHOD(FireBird_Database, __construct);
 ZEND_METHOD(FireBird_Database, connect);
 ZEND_METHOD(FireBird_Database, create);
+ZEND_METHOD(FireBird_Database, execute_create);
 ZEND_METHOD(FireBird_Database, start_transaction);
 ZEND_METHOD(FireBird_Database, new_transaction);
 ZEND_METHOD(FireBird_Database, get_info);
@@ -230,6 +235,7 @@ static const zend_function_entry class_FireBird_Database_methods[] = {
 	ZEND_ME(FireBird_Database, __construct, arginfo_class_FireBird_Database___construct, ZEND_ACC_PRIVATE)
 	ZEND_ME(FireBird_Database, connect, arginfo_class_FireBird_Database_connect, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
 	ZEND_ME(FireBird_Database, create, arginfo_class_FireBird_Database_create, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
+	ZEND_ME(FireBird_Database, execute_create, arginfo_class_FireBird_Database_execute_create, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
 	ZEND_ME(FireBird_Database, start_transaction, arginfo_class_FireBird_Database_start_transaction, ZEND_ACC_PUBLIC)
 	ZEND_ME(FireBird_Database, new_transaction, arginfo_class_FireBird_Database_new_transaction, ZEND_ACC_PUBLIC)
 	ZEND_ME(FireBird_Database, get_info, arginfo_class_FireBird_Database_get_info, ZEND_ACC_PUBLIC)
@@ -336,8 +342,8 @@ static zend_class_entry *register_class_FireBird_Database(void)
 	property_args_type_list->num_types = 2;
 	property_args_type_list->types[0] = (zend_type) ZEND_TYPE_INIT_CLASS(property_args_class_FireBird_Connect_Args, 0, 0);
 	property_args_type_list->types[1] = (zend_type) ZEND_TYPE_INIT_CLASS(property_args_class_FireBird_Create_Args, 0, 0);
-	zend_type property_args_type = ZEND_TYPE_INIT_UNION(property_args_type_list, 0);
-	zend_declare_typed_property(class_entry, ZSTR_KNOWN(ZEND_STR_ARGS), &property_args_default_value, ZEND_ACC_PROTECTED, NULL, property_args_type);
+	zend_type property_args_type = ZEND_TYPE_INIT_UNION(property_args_type_list, MAY_BE_NULL);
+	zend_declare_typed_property(class_entry, ZSTR_KNOWN(ZEND_STR_ARGS), &property_args_default_value, ZEND_ACC_PUBLIC|ZEND_ACC_READONLY, NULL, property_args_type);
 
 	return class_entry;
 }

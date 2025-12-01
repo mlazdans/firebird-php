@@ -398,6 +398,26 @@ PHP_METHOD(FireBird_Database, create)
     PROP_SET(FireBird_Database_ce, return_value, "args", Create_Args);
 }
 
+PHP_METHOD(FireBird_Database, execute_create)
+{
+     zend_string *sql;
+
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+        Z_PARAM_STR(sql)
+    ZEND_PARSE_PARAMETERS_END();
+
+    object_init_ex(return_value, FireBird_Database_ce);
+    firebird_db *db = get_firebird_db_from_zval(return_value);
+
+    if (fbu_database_init(&db->dbh)) {
+        RETURN_THROWS();
+    }
+
+    if (fbu_database_execute_create(db->dbh, ZSTR_LEN(sql), ZSTR_VAL(sql))) {
+        RETURN_THROWS();
+    }
+}
+
 static firebird_db *FireBird_Database_get_db_or_throw(zval *dbobj)
 {
     firebird_db *db = get_firebird_db_from_zval(dbobj);

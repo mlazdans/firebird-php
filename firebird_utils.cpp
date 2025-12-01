@@ -411,6 +411,14 @@ int fbu_database_drop(size_t dbh)
     fbu_ex_wrap_end();
 }
 
+int fbu_database_execute_create(size_t dbh, unsigned int len_sql, const char *sql)
+{
+    FBDEBUG("%s(dbh=%zu)", __func__, dbh);
+    fbu_ex_wrap_start();
+        get_db(dbh)->execute_create(len_sql, sql);
+    fbu_ex_wrap_end();
+}
+
 int fbu_database_free(size_t dbh)
 {
     FBDEBUG("%s(dbh=%zu)", __func__, dbh);
