@@ -17,20 +17,17 @@ Currently supported PHP version: 8.4.x
 <?php declare(strict_types = 1);
 
 $args = new \FireBird\Connect_Args;
-$args->database = "localhost/3070:/opt/db/test.fdb";
+$args->database = "localhost:/opt/db/test.fdb";
 $args->user_name = "sysdba";
 $args->password = "masterkey";
 
-$db = (new \FireBird\Connector)->connect($args);
-$t = $db->new_transaction();
-$t->start();
+$db = \FireBird\Database::connect($args);
+$t = $db->start_transaction();
 $q = $t->query("SELECT * FROM TEST_TABLE");
-while ($r = $q->fetch_object(\FireBird\FETCH_BLOBS)) {
+while ($r = $q->fetch_object(\FireBird\FETCH_FETCH_BLOB_TEXT)) {
     print_r($r);
 }
 ```
-
-Example with error checking: [examples/error_checking.php](examples/error_checking.php)
 
 Some example code can be fetched from [tests](tests/)
 
@@ -65,9 +62,9 @@ php-firebird-build-all.bat
 
 |     | Function                  | Notes |
 | --- | ------------------------- |  ---  |
-|✅    | ibase_add_user           |      |
+|❌    | ibase_add_user           | C++ refactoring needed |
 |✅    | ibase_affected_rows      |      |
-|✅    | ibase_backup             |      |
+|❌    | ibase_backup             | C++ refactoring needed |
 |✅    | ibase_blob_add           |      |
 |✅    | ibase_blob_cancel        |      |
 |✅    | ibase_blob_close         |      |
@@ -82,35 +79,35 @@ php-firebird-build-all.bat
 |✅    | ibase_commit_ret         |      |
 |✅    | ibase_connect            |      |
 |🚫    | ibase_db_info            | Not worth it. It appears this returns unstructured data anyways. |
-|✅    | ibase_delete_user        |      |
+|❌    | ibase_delete_user        | C++ refactoring needed |
 |✅    | ibase_drop_db            |      |
-|✅    | ibase_errcode            |      |
-|✅    | ibase_errmsg             |      |
+|✅    | ibase_errcode            | Via exceptions |
+|✅    | ibase_errmsg             | Via exceptions |
 |✅    | ibase_execute            |      |
 |✅    | ibase_fetch_assoc        |      |
 |✅    | ibase_fetch_object       |      |
 |✅    | ibase_fetch_row          |      |
 |✅    | ibase_field_info         |      |
-|✅    | ibase_free_event_handler |      |
+|❌    | ibase_free_event_handler | C++ refactoring needed |
 |✅    | ibase_free_query         |      |
 |✅    | ibase_free_result        |      |
 |🚫    | ibase_gen_id             | Can be easily done from PHP |
-|✅    | ibase_maintain_db        |      |
-|✅    | ibase_modify_user        |      |
-|✅    | ibase_name_result        |      |
+|❌    | ibase_maintain_db        | C++ refactoring needed |
+|❌    | ibase_modify_user        | C++ refactoring needed |
+|❌    | ibase_name_result        | C++ refactoring needed |
 |✅    | ibase_num_fields         |      |
 |✅    | ibase_num_params         |      |
 |✅    | ibase_param_info         |      |
 |❓    | ibase_pconnect           | Not sure if this is a good idea. Most likely this will be used inproperly anyways, leaving around long running transactions. [ALTER SESSION RESET](https://firebirdsql.org/file/documentation/html/en/refdocs/fblangref50/firebird-50-language-reference.html#fblangref50-management-session-reset-alter)     |
 |✅    | ibase_prepare            |      |
 |✅    | ibase_query              |      |
-|✅    | ibase_restore            |      |
+|❌    | ibase_restore            | C++ refactoring needed |
 |✅    | ibase_rollback           |      |
 |✅    | ibase_rollback_ret       |      |
-|✅    | ibase_server_info        |      |
-|✅    | ibase_service_attach     |      |
-|✅    | ibase_service_detach     |      |
-|⌛    | ibase_set_event_handler  | Via event loop. Does not work on Windows |
+|❌    | ibase_server_info        | C++ refactoring needed |
+|❌    | ibase_service_attach     | C++ refactoring needed |
+|❌    | ibase_service_detach     | C++ refactoring needed |
+|❌    | ibase_set_event_handler  |      |
 |✅    | ibase_trans              |      |
 |❌    | ibase_wait_event         |      |
 
