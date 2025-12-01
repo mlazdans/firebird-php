@@ -66,7 +66,7 @@ Expected b->total_length=15, actual=15
 ID: 2, BLOB_1 (5 bytes) = 'Binde'
 Expected b->position=5, actual=5
 FireBird\Blob::open(): Argument #1 ($id) must be of type FireBird\Blob_Id, null given
-cannot update old BLOB
+Attempted to write to a read-only BLOB
 Invalid blob pointer
 Seeked data: Put number: 4
 Seeked data: Put number: 8
