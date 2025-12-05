@@ -1,22 +1,41 @@
-// #include <firebird/fb_c_api.h>
+// #include "php.h"
+// #include "php_firebird.h"
+// #include "zend_exceptions.h"
+
+// #include "service.h"
+// #include "fbp_service.h"
+
+#include "fbp/service.hpp"
+#include "firebird_php.hpp"
+#include "firebird_utils.h"
+
+extern "C" {
 
 #include "php.h"
-#include "php_firebird.h"
-#include "zend_exceptions.h"
 
-#include "service.h"
-#include "fbp_service.h"
-
-zend_class_entry *FireBird_Service_ce;
-zend_class_entry *FireBird_Server_Info_ce;
-zend_class_entry *FireBird_Server_Db_Info_ce;
-zend_class_entry *FireBird_Server_User_Info_ce;
-zend_class_entry *FireBird_Service_Connect_Args_ce;
+firebird_xpb_zmap fbp_service_connect_zmap = XPB_ZMAP_INIT(
+    ((const uint8_t[]){
+        isc_spb_user_name, isc_spb_password
+    }),
+    ((const char *[]){
+        "user_name", "password"
+    }),
+    ((uint32_t []) {
+        MAY_BE_STRING, MAY_BE_STRING
+    })
+);
 
 static zend_object_handlers FireBird_Service_object_handlers;
 
+PHP_METHOD(FireBird_Service, __construct)
+{
+}
+
 int FireBird_Service_connect(zval *Service, zval *Service_Connect_Args)
 {
+    TODO("FireBird_Service_connect");
+    return FAILURE;
+#if 0
     firebird_service *svc = get_firebird_service_from_zval(Service);
 
     if (fbp_service_connect(svc, Service_Connect_Args)) {
@@ -27,6 +46,7 @@ int FireBird_Service_connect(zval *Service, zval *Service_Connect_Args)
     PROP_SET(FireBird_Service_ce, Service, "args", Service_Connect_Args);
 
     return SUCCESS;
+#endif
 }
 
 PHP_METHOD(FireBird_Service, connect)
@@ -40,7 +60,10 @@ PHP_METHOD(FireBird_Service, connect)
     RETVAL_BOOL(SUCCESS == FireBird_Service_connect(ZEND_THIS, Service_Connect_Args));
 }
 
-PHP_METHOD(FireBird_Service, disconnect) {
+PHP_METHOD(FireBird_Service, disconnect)
+{
+    TODO("PHP_METHOD(FireBird_Service, disconnect)");
+#if 0
     ZEND_PARSE_PARAMETERS_NONE();
 
     firebird_service *svc = get_firebird_service_from_zval(ZEND_THIS);
@@ -58,10 +81,13 @@ PHP_METHOD(FireBird_Service, disconnect) {
     }
 
     RETURN_FALSE;
+#endif
 }
 
 PHP_METHOD(FireBird_Service, get_server_info)
 {
+    TODO("PHP_METHOD(FireBird_Service, get_server_info)");
+#if 0
     ZEND_PARSE_PARAMETERS_NONE();
 
     char info_resp[1024] = { 0 };
@@ -86,10 +112,13 @@ PHP_METHOD(FireBird_Service, get_server_info)
         zval_ptr_dtor(return_value);
         RETURN_FALSE;
     }
+#endif
 }
 
 PHP_METHOD(FireBird_Service, add_user)
 {
+    TODO("PHP_METHOD(FireBird_Service, add_user)");
+#if 0
     zval *User_Info = NULL;
 
     ZEND_PARSE_PARAMETERS_START(1, 1)
@@ -104,10 +133,13 @@ PHP_METHOD(FireBird_Service, add_user)
     }
 
     RETURN_TRUE;
+#endif
 }
 
 PHP_METHOD(FireBird_Service, modify_user)
 {
+    TODO("PHP_METHOD(FireBird_Service, modify_user)");
+#if 0
     zval *User_Info = NULL;
 
     ZEND_PARSE_PARAMETERS_START(1, 1)
@@ -122,10 +154,13 @@ PHP_METHOD(FireBird_Service, modify_user)
     }
 
     RETURN_TRUE;
+#endif
 }
 
 PHP_METHOD(FireBird_Service, delete_user)
 {
+    TODO("PHP_METHOD(FireBird_Service, delete_user)");
+#if 0
     char *username;
     size_t username_len;
 
@@ -141,10 +176,14 @@ PHP_METHOD(FireBird_Service, delete_user)
     }
 
     RETURN_TRUE;
+#endif
 }
 
 PHP_METHOD(FireBird_Service, backup)
 {
+
+    TODO("PHP_METHOD(FireBird_Service, backup)");
+#if 0
     char *dbname, *bkpname;
     zend_long dbname_len, bkpname_len;
 
@@ -161,10 +200,13 @@ PHP_METHOD(FireBird_Service, backup)
     }
 
     RETURN_TRUE;
+#endif
 }
 
 PHP_METHOD(FireBird_Service, restore)
 {
+    TODO("PHP_METHOD(FireBird_Service, restore)");
+#if 0
     char *dbname, *bkpname;
     zend_long dbname_len, bkpname_len;
 
@@ -181,10 +223,13 @@ PHP_METHOD(FireBird_Service, restore)
     }
 
     RETURN_TRUE;
+#endif
 }
 
 PHP_METHOD(FireBird_Service, shutdown_db)
 {
+    TODO("PHP_METHOD(FireBird_Service, shutdown_db)");
+#if 0
     char *dbname;
     size_t dbname_len;
     zend_long mode = 0, timeout = 0;
@@ -204,10 +249,13 @@ PHP_METHOD(FireBird_Service, shutdown_db)
     }
 
     RETURN_TRUE;
+#endif
 }
 
 PHP_METHOD(FireBird_Service, db_online)
 {
+    TODO("PHP_METHOD(FireBird_Service, db_online)");
+#if 0
     char *dbname;
     size_t dbname_len;
     zend_long mode = 0, timeout = 0;
@@ -227,10 +275,13 @@ PHP_METHOD(FireBird_Service, db_online)
     }
 
     RETURN_TRUE;
+#endif
 }
 
 PHP_METHOD(FireBird_Service, set_page_buffers)
 {
+    TODO("PHP_METHOD(FireBird_Service, set_page_buffers)");
+#if 0
     char *dbname;
     size_t dbname_len;
     zend_long buffers;
@@ -248,10 +299,13 @@ PHP_METHOD(FireBird_Service, set_page_buffers)
     }
 
     RETURN_TRUE;
+#endif
 }
 
 PHP_METHOD(FireBird_Service, set_sweep_interval)
 {
+    TODO("PHP_METHOD(FireBird_Service, set_sweep_interval)");
+#if 0
     char *dbname;
     size_t dbname_len;
     zend_long interval;
@@ -269,10 +323,13 @@ PHP_METHOD(FireBird_Service, set_sweep_interval)
     }
 
     RETURN_TRUE;
+#endif
 }
 
 PHP_METHOD(FireBird_Service, deny_new_attachments)
 {
+    TODO("PHP_METHOD(FireBird_Service, deny_new_attachments)");
+#if 0
     char *dbname;
     size_t dbname_len;
     zend_long interval;
@@ -289,10 +346,13 @@ PHP_METHOD(FireBird_Service, deny_new_attachments)
     }
 
     RETURN_TRUE;
+#endif
 }
 
 PHP_METHOD(FireBird_Service, deny_new_transactions)
 {
+    TODO("PHP_METHOD(FireBird_Service, deny_new_transactions)");
+#if 0
     char *dbname;
     size_t dbname_len;
     zend_long interval;
@@ -309,10 +369,13 @@ PHP_METHOD(FireBird_Service, deny_new_transactions)
     }
 
     RETURN_TRUE;
+#endif
 }
 
 PHP_METHOD(FireBird_Service, set_write_mode_async)
 {
+    TODO("PHP_METHOD(FireBird_Service, set_write_mode_async)");
+#if 0
     char *dbname;
     size_t dbname_len;
     zend_long interval;
@@ -329,10 +392,13 @@ PHP_METHOD(FireBird_Service, set_write_mode_async)
     }
 
     RETURN_TRUE;
+#endif
 }
 
 PHP_METHOD(FireBird_Service, set_write_mode_sync)
 {
+    TODO("PHP_METHOD(FireBird_Service, set_write_mode_sync)");
+#if 0
     char *dbname;
     size_t dbname_len;
     zend_long interval;
@@ -349,10 +415,13 @@ PHP_METHOD(FireBird_Service, set_write_mode_sync)
     }
 
     RETURN_TRUE;
+#endif
 }
 
 PHP_METHOD(FireBird_Service, set_access_mode_readonly)
 {
+    TODO("PHP_METHOD(FireBird_Service, set_access_mode_readonly)");
+#if 0
     char *dbname;
     size_t dbname_len;
     zend_long interval;
@@ -369,10 +438,13 @@ PHP_METHOD(FireBird_Service, set_access_mode_readonly)
     }
 
     RETURN_TRUE;
+#endif
 }
 
 PHP_METHOD(FireBird_Service, set_access_mode_readwrite)
 {
+    TODO("PHP_METHOD(FireBird_Service, set_access_mode_readwrite)");
+#if 0
     char *dbname;
     size_t dbname_len;
     zend_long interval;
@@ -389,10 +461,13 @@ PHP_METHOD(FireBird_Service, set_access_mode_readwrite)
     }
 
     RETURN_TRUE;
+#endif
 }
 
 PHP_METHOD(FireBird_Service, enable_reserve_space)
 {
+    TODO("PHP_METHOD(FireBird_Service, enable_reserve_space)");
+#if 0
     char *dbname;
     size_t dbname_len;
     zend_long interval;
@@ -409,10 +484,13 @@ PHP_METHOD(FireBird_Service, enable_reserve_space)
     }
 
     RETURN_TRUE;
+#endif
 }
 
 PHP_METHOD(FireBird_Service, disable_reserve_space)
 {
+    TODO("PHP_METHOD(FireBird_Service, disable_reserve_space)");
+#if 0
     char *dbname;
     size_t dbname_len;
     zend_long interval;
@@ -429,10 +507,13 @@ PHP_METHOD(FireBird_Service, disable_reserve_space)
     }
 
     RETURN_TRUE;
+#endif
 }
 
 PHP_METHOD(FireBird_Service, set_sql_dialect)
 {
+    TODO("PHP_METHOD(FireBird_Service, set_sql_dialect)");
+#if 0
     char *dbname;
     size_t dbname_len;
     zend_long dialect;
@@ -450,39 +531,14 @@ PHP_METHOD(FireBird_Service, set_sql_dialect)
     }
 
     RETURN_TRUE;
+#endif
 }
-
-// const zend_function_entry FireBird_Service_methods[] = {
-//     PHP_ME(Service, connect, arginfo_FireBird_Service_connect, ZEND_ACC_PUBLIC)
-//     PHP_ME(Service, disconnect, arginfo_none_return_bool, ZEND_ACC_PUBLIC)
-//     PHP_ME(Service, get_server_info, arginfo_FireBird_Service_get_server_info, ZEND_ACC_PUBLIC)
-//     PHP_ME(Service, add_user, arginfo_FireBird_Service_add_user, ZEND_ACC_PUBLIC)
-//     PHP_ME(Service, modify_user, arginfo_FireBird_Service_add_user, ZEND_ACC_PUBLIC)
-//     PHP_ME(Service, delete_user, arginfo_FireBird_Service_delete_user, ZEND_ACC_PUBLIC)
-//     PHP_ME(Service, backup, arginfo_FireBird_Service_backup, ZEND_ACC_PUBLIC)
-//     PHP_ME(Service, restore, arginfo_FireBird_Service_restore, ZEND_ACC_PUBLIC)
-//     PHP_ME(Service, shutdown_db, arginfo_FireBird_Service_shutdown_db, ZEND_ACC_PUBLIC)
-//     PHP_ME(Service, db_online, arginfo_FireBird_Service_db_online, ZEND_ACC_PUBLIC)
-//     PHP_ME(Service, set_page_buffers, arginfo_FireBird_Service_set_page_buffers, ZEND_ACC_PUBLIC)
-//     PHP_ME(Service, set_sweep_interval, arginfo_FireBird_Service_set_sweep_interval, ZEND_ACC_PUBLIC)
-//     PHP_ME(Service, deny_new_attachments, arginfo_FireBird_Service_dbname_return_bool, ZEND_ACC_PUBLIC)
-//     PHP_ME(Service, deny_new_transactions, arginfo_FireBird_Service_dbname_return_bool, ZEND_ACC_PUBLIC)
-//     PHP_ME(Service, set_write_mode_async, arginfo_FireBird_Service_dbname_return_bool, ZEND_ACC_PUBLIC)
-//     PHP_ME(Service, set_write_mode_sync, arginfo_FireBird_Service_dbname_return_bool, ZEND_ACC_PUBLIC)
-//     PHP_ME(Service, set_access_mode_readonly, arginfo_FireBird_Service_dbname_return_bool, ZEND_ACC_PUBLIC)
-//     PHP_ME(Service, set_access_mode_readwrite, arginfo_FireBird_Service_dbname_return_bool, ZEND_ACC_PUBLIC)
-//     PHP_ME(Service, enable_reserve_space, arginfo_FireBird_Service_dbname_return_bool, ZEND_ACC_PUBLIC)
-//     PHP_ME(Service, disable_reserve_space, arginfo_FireBird_Service_dbname_return_bool, ZEND_ACC_PUBLIC)
-//     PHP_ME(Service, set_sql_dialect, arginfo_FireBird_Service_set_sql_dialect, ZEND_ACC_PUBLIC)
-
-//     PHP_FE_END
-// };
 
 static zend_object *FireBird_Service_create(zend_class_entry *ce)
 {
     FBDEBUG("FireBird_Service_create()");
 
-    firebird_service *s = zend_object_alloc(sizeof(firebird_service), ce);
+    firebird_service *s = (firebird_service *)zend_object_alloc(sizeof(firebird_service), ce);
 
     zend_object_std_init(&s->std, ce);
     object_properties_init(&s->std, ce);
@@ -496,13 +552,13 @@ static void FireBird_Service_free_obj(zend_object *obj)
 
     firebird_service *svc = get_firebird_service_from_obj(obj);
 
-    if(svc->svc_handle) {
-        if(isc_service_detach(FBG(status), &svc->svc_handle)) {
-            fbp_status_error(FBG(status));
-        } else {
-            svc->svc_handle = 0;
-        }
-    }
+    // if(svc->svc_handle) {
+    //     if(isc_service_detach(FBG(status), &svc->svc_handle)) {
+    //         fbp_status_error(FBG(status));
+    //     } else {
+    //         svc->svc_handle = 0;
+    //     }
+    // }
 
     zend_object_std_dtor(&svc->std);
 }
@@ -527,44 +583,46 @@ static void FireBird_Service_free_obj(zend_object *obj)
 //     FireBird_Service_object_handlers.free_obj = FireBird_Service_free_obj;
 // }
 
-void register_FireBird_Server_Info_ce()
-{
-    zend_class_entry tmp_ce;
-    INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "Server_Info", NULL);
-    FireBird_Server_Info_ce = zend_register_internal_class(&tmp_ce);
+// void register_FireBird_Server_Info_ce()
+// {
+//     zend_class_entry tmp_ce;
+//     INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "Server_Info", NULL);
+//     FireBird_Server_Info_ce = zend_register_internal_class(&tmp_ce);
 
-    fbp_declare_props_from_zmap(FireBird_Server_Info_ce, &fbp_server_info_zmap);
+//     fbp_declare_props_from_zmap(FireBird_Server_Info_ce, &fbp_server_info_zmap);
 
-    DECLARE_PROP_OBJ(FireBird_Server_Info_ce, db_info, FireBird\\Server_Db_Info, ZEND_ACC_PUBLIC);
-    DECLARE_PROP_ARRAY(FireBird_Server_Info_ce, users, ZEND_ACC_PUBLIC);
-}
+//     DECLARE_PROP_OBJ(FireBird_Server_Info_ce, db_info, FireBird\\Server_Db_Info, ZEND_ACC_PUBLIC);
+//     DECLARE_PROP_ARRAY(FireBird_Server_Info_ce, users, ZEND_ACC_PUBLIC);
+// }
 
-void register_FireBird_Server_Db_Info_ce()
-{
-    zend_class_entry tmp_ce;
-    INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "Server_Db_Info", NULL);
-    FireBird_Server_Db_Info_ce = zend_register_internal_class(&tmp_ce);
+// void register_FireBird_Server_Db_Info_ce()
+// {
+//     zend_class_entry tmp_ce;
+//     INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "Server_Db_Info", NULL);
+//     FireBird_Server_Db_Info_ce = zend_register_internal_class(&tmp_ce);
 
-    DECLARE_PROP_LONG(FireBird_Server_Db_Info_ce, num_att, ZEND_ACC_PUBLIC);
-    DECLARE_PROP_LONG(FireBird_Server_Db_Info_ce, num_db, ZEND_ACC_PUBLIC);
-    DECLARE_PROP_ARRAY(FireBird_Server_Db_Info_ce, dbname, ZEND_ACC_PUBLIC);
-}
+//     DECLARE_PROP_LONG(FireBird_Server_Db_Info_ce, num_att, ZEND_ACC_PUBLIC);
+//     DECLARE_PROP_LONG(FireBird_Server_Db_Info_ce, num_db, ZEND_ACC_PUBLIC);
+//     DECLARE_PROP_ARRAY(FireBird_Server_Db_Info_ce, dbname, ZEND_ACC_PUBLIC);
+// }
 
-void register_FireBird_Server_User_Info_ce()
-{
-    zend_class_entry tmp_ce;
-    INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "Server_User_Info", NULL);
-    FireBird_Server_User_Info_ce = zend_register_internal_class(&tmp_ce);
+// void register_FireBird_Server_User_Info_ce()
+// {
+//     zend_class_entry tmp_ce;
+//     INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "Server_User_Info", NULL);
+//     FireBird_Server_User_Info_ce = zend_register_internal_class(&tmp_ce);
 
-    fbp_declare_props_from_zmap(FireBird_Server_User_Info_ce, &fbp_user_info_zmap);
-}
+//     fbp_declare_props_from_zmap(FireBird_Server_User_Info_ce, &fbp_user_info_zmap);
+// }
 
-void register_FireBird_Service_Connect_Args_ce()
-{
-    zend_class_entry tmp_ce;
-    INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "Service_Connect_Args", NULL);
-    FireBird_Service_Connect_Args_ce = zend_register_internal_class(&tmp_ce);
+// void register_FireBird_Service_Connect_Args_ce()
+// {
+//     zend_class_entry tmp_ce;
+//     INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "Service_Connect_Args", NULL);
+//     FireBird_Service_Connect_Args_ce = zend_register_internal_class(&tmp_ce);
 
-    DECLARE_PROP_STRING(FireBird_Service_Connect_Args_ce, service_name, ZEND_ACC_PUBLIC);
-    fbp_declare_props_from_zmap(FireBird_Service_Connect_Args_ce, &fbp_service_connect_zmap);
+//     DECLARE_PROP_STRING(FireBird_Service_Connect_Args_ce, service_name, ZEND_ACC_PUBLIC);
+//     fbp_declare_props_from_zmap(FireBird_Service_Connect_Args_ce, &fbp_service_connect_zmap);
+// }
+
 }

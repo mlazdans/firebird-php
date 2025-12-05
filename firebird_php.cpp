@@ -137,6 +137,11 @@ zend_class_entry *FireBird_Statement_ce;
 zend_class_entry *FireBird_Blob_ce;
 zend_class_entry *FireBird_Blob_Id_ce;
 zend_class_entry *FireBird_Fb_Exception_ce;
+zend_class_entry *FireBird_Service_ce;
+zend_class_entry *FireBird_Service_Connect_Args_ce;
+zend_class_entry *FireBird_Server_Info_ce;
+zend_class_entry *FireBird_Server_Db_Info_ce;
+zend_class_entry *FireBird_Server_User_Info_ce;
 
 PHP_MINIT_FUNCTION(firebird)
 {
@@ -171,14 +176,15 @@ PHP_MINIT_FUNCTION(firebird)
 
     FireBird_Fb_Exception_ce = register_class_FireBird_Fb_Exception(zend_ce_exception);
 
+    FireBird_Service_ce = register_class_FireBird_Service();
+    FireBird_Service_Connect_Args_ce = register_class_FireBird_Service_Connect_Args();
+    FireBird_Server_Info_ce = register_class_FireBird_Server_Info();
+    FireBird_Server_Db_Info_ce = register_class_FireBird_Server_Db_Info();
+    FireBird_Server_User_Info_ce = register_class_FireBird_Server_User_Info();
+
     // register_FireBird_Var_Info_ce();
     // register_FireBird_Db_Info_ce();
     // register_FireBird_Event_ce();
-    // register_FireBird_Service_ce();
-    // register_FireBird_Service_Connect_Args_ce();
-    // register_FireBird_Server_Info_ce();
-    // register_FireBird_Server_Db_Info_ce();
-    // register_FireBird_Server_User_Info_ce();
     // register_FireBird_Multi_Transaction_ce();
 
     return SUCCESS;
@@ -527,64 +533,6 @@ void fbp_declare_props_from_zmap(zend_class_entry *ce, const firebird_xpb_zmap *
         zend_string_release(prop_name);
     }
 }
-
-// void fbp_insert_xpb_from_zmap(zend_class_entry *ce, zval *args, const firebird_xpb_zmap *xpb_zmap, struct IXpbBuilder* xpb, struct IStatus* st)
-// {
-//     zend_string *prop_name = NULL;
-//     zend_property_info *prop_info = NULL;
-//     zval rv, *val, *checkval;
-//     int i;
-
-//     for (int i = 0; i < xpb_zmap->count; i++) {
-//         prop_name = zend_string_init(xpb_zmap->names[i], strlen(xpb_zmap->names[i]), 1);
-
-// #ifdef PHP_DEBUG
-//         if (!zend_hash_exists(&ce->properties_info, prop_name)) {
-//             fbp_fatal("BUG! Property %s does not exist for %s::%s. Verify xpb_zmap",
-//                 xpb_zmap->names[i], ZSTR_VAL(ce->name), xpb_zmap->names[i]);
-//             zend_string_release(prop_name);
-//             continue;
-//         }
-// #endif
-
-//         prop_info = zend_get_property_info(ce, prop_name, 0);
-//         checkval = OBJ_PROP(Z_OBJ_P(args), prop_info->offset);
-//         if (Z_ISUNDEF_P(checkval)) {
-//             FBDEBUG("property: %s is uninitialized", xpb_zmap->names[i]);
-//             zend_string_release(prop_name);
-//             continue;
-//         }
-
-//         val = zend_read_property_ex(ce, Z_OBJ_P(args), prop_name, 0, &rv);
-//         zend_string_release(prop_name);
-
-//         switch (Z_TYPE_P(val)) {
-//             case IS_STRING:
-//                 FBDEBUG("property: %s is string: `%s`", xpb_zmap->names[i], Z_STRVAL_P(val));
-//                 IXpbBuilder_insertString(xpb, st, xpb_zmap->tags[i], Z_STRVAL_P(val));
-//                 break;
-//             case IS_LONG:
-//                 FBDEBUG("property: %s is long: `%u`", xpb_zmap->names[i], Z_LVAL_P(val));
-//                 IXpbBuilder_insertInt(xpb, st, xpb_zmap->tags[i], (int)Z_LVAL_P(val));
-//                 break;
-//             case IS_TRUE:
-//                 FBDEBUG("property: %s is true", xpb_zmap->names[i]);
-//                 IXpbBuilder_insertInt(xpb, st, xpb_zmap->tags[i], (char)1);
-//                 break;
-//             case IS_FALSE:
-//                 FBDEBUG("property: %s is false", xpb_zmap->names[i]);
-//                 IXpbBuilder_insertInt(xpb, st, xpb_zmap->tags[i], (char)0);
-//                 break;
-//             case IS_NULL:
-//                 FBDEBUG("property: %s is null", xpb_zmap->names[i]);
-//                 break;
-//             default:
-//                 fbp_fatal("BUG! Unhandled: type %s for property %s::%s",
-//                     zend_get_type_by_const(Z_TYPE_P(val)), ZSTR_VAL(ce->name), xpb_zmap->names[i]);
-//                 break;
-//         }
-//     }
-// }
 
 void fbp_store_portable_integer(unsigned char *buffer, ISC_UINT64 value, int length)
 {

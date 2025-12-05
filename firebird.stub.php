@@ -435,66 +435,71 @@ class Blob
 //     public static function consume(): bool { die; }
 // }
 
-// TODO: Temp disable
-// class Service
-// {
-//     protected Service_Connect_Args $args;
+class Service
+{
+    public readonly Service_Connect_Args $args;
 
-//     public function connect(Service_Connect_Args $args): bool { die; }
-//     public function disconnect(): bool { die; }
-//     public function get_server_info(): Server_Info|false { die; }
-//     public function add_user(Server_User_Info $user_info): bool { die; }
-//     public function modify_user(Server_User_Info $user_info): bool { die; }
-//     public function delete_user(string $username): bool { die; }
-//     public function backup(string $dbname, string $bkp_file, int $options = 0): bool { die; }
-//     public function restore(string $bkp_file, string $dbname, int $options = 0): bool { die; }
+    /**
+     * Do not instantiate this class directly. Use Service::connect() instead.
+     */
+    private function __construct() {}
 
-//     /**
-//      * Shuts down the database when:
-//      *   There are no connections to the database, or
-//      *   At the end of the timeout period you specify
-//      *
-//      * @param string $dbname path to database (on service machine)
-//      * @param int $mode shutdown mode
-//      * @see SM_NORMAL, SM_MULTI, SM_SINGLE, SM_FULL
-//      * @param int $timeout wait timeout in seconds
-//      * */
-//     public function shutdown_db(string $dbname, int $mode = 0, int $timeout = 0): bool { die; }
+    public function connect(Service_Connect_Args $args): Service { die; }
+    public function disconnect(): void { die; }
+    public function get_server_info(): Server_Info { die; }
+    public function add_user(Server_User_Info $user_info): void { die; }
+    public function modify_user(Server_User_Info $user_info): void { die; }
+    public function delete_user(string $username): void { die; }
+    public function backup(string $dbname, string $bkp_file, int $options = 0): void { die; }
+    public function restore(string $bkp_file, string $dbname, int $options = 0): void { die; }
 
-//     /**
-//      * Bring a shutdown database back online
-//      *
-//      * @param string $dbname path to database (on service machine)
-//      * @param int $mode shutdown mode
-//      * @see SM_NORMAL, SM_MULTI, SM_SINGLE, SM_FULL
-//      * */
-//     public function db_online(string $dbname, int $mode = 0): bool { die; }
-//     public function set_page_buffers(string $dbname, int $buffers): bool { die; }
-//     public function set_sweep_interval(string $dbname, int $interval): bool { die; }
-//     public function deny_new_attachments(string $dbname): bool { die; }
-//     public function deny_new_transactions(string $dbname): bool { die; }
-//     public function set_write_mode_async(string $dbname): bool { die; }
-//     public function set_write_mode_sync(string $dbname): bool { die; }
-//     public function set_access_mode_readonly(string $dbname): bool { die; }
-//     public function set_access_mode_readwrite(string $dbname): bool { die; }
-//     public function enable_reserve_space(string $database): bool { die; }
-//     public function disable_reserve_space(string $database): bool { die; }
-//     public function set_sql_dialect(string $database, int $dialect): bool { die; }
+    /**
+     * Shuts down the database when:
+     *   There are no connections to the database, or
+     *   At the end of the timeout period you specify
+     *
+     * @param string $dbname path to database (on service machine)
+     * @param int $mode shutdown mode
+     * @see SM_NORMAL, SM_MULTI, SM_SINGLE, SM_FULL
+     * @param int $timeout wait timeout in seconds
+     * */
+    public function shutdown_db(string $dbname, int $mode = 0, int $timeout = 0): void { die; }
 
-//     // isc_spb_prp_nolinger
-//     // isc_spb_prp_activate               Activate shadow files. Legacy stuff
+    /**
+     * Bring a shutdown database back online
+     *
+     * @param string $dbname path to database (on service machine)
+     * @param int $mode shutdown mode
+     * @see SM_NORMAL, SM_MULTI, SM_SINGLE, SM_FULL
+     * */
+    public function db_online(string $dbname, int $mode = 0): void { die; }
 
-//     // isc_spb_prp_replica_mode
-//     // #define isc_spb_prp_rm_none			0
-//     // #define isc_spb_prp_rm_readonly		1
-//     // #define isc_spb_prp_rm_readwrite	2
+    public function set_page_buffers(string $dbname, int $buffers): void { die; }
+    public function set_sweep_interval(string $dbname, int $interval): void { die; }
+    public function deny_new_attachments(string $dbname): void { die; }
+    public function deny_new_transactions(string $dbname): void { die; }
+    public function set_write_mode_async(string $dbname): void { die; }
+    public function set_write_mode_sync(string $dbname): void { die; }
+    public function set_access_mode_readonly(string $dbname): void { die; }
+    public function set_access_mode_readwrite(string $dbname): void { die; }
+    public function enable_reserve_space(string $database): void { die; }
+    public function disable_reserve_space(string $database): void { die; }
+    public function set_sql_dialect(string $database, int $dialect): void { die; }
 
-//     // Repair / fix
-//     // case isc_spb_rpr_commit_trans:
-//     // case isc_spb_rpr_rollback_trans:
-//     // case isc_spb_rpr_recover_two_phase:
-//     // case isc_spb_rpr_par_workers:
-// }
+    // isc_spb_prp_nolinger
+    // isc_spb_prp_activate               Activate shadow files. Legacy stuff
+
+    // isc_spb_prp_replica_mode
+    // #define isc_spb_prp_rm_none			0
+    // #define isc_spb_prp_rm_readonly		1
+    // #define isc_spb_prp_rm_readwrite	2
+
+    // Repair / fix
+    // case isc_spb_rpr_commit_trans:
+    // case isc_spb_rpr_rollback_trans:
+    // case isc_spb_rpr_recover_two_phase:
+    // case isc_spb_rpr_par_workers:
+}
 
 /**
  * Transaction builder

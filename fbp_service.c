@@ -5,18 +5,6 @@
 #include "service.h"
 #include "fbp_service.h"
 
-firebird_xpb_zmap fbp_service_connect_zmap = XPB_ZMAP_INIT(
-    ((const char []){
-        isc_spb_user_name, isc_spb_password
-    }),
-    ((const char *[]){
-        "user_name", "password"
-    }),
-    ((uint32_t []) {
-        MAY_BE_STRING, MAY_BE_STRING
-    })
-);
-
 firebird_xpb_zmap fbp_server_info_zmap = XPB_ZMAP_INIT(
     ((const char []){
         isc_info_svc_server_version, isc_info_svc_implementation, isc_info_svc_get_env, isc_info_svc_get_env_lock, isc_info_svc_get_env_msg,
