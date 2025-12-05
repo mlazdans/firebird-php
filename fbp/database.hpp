@@ -50,11 +50,6 @@ public:
 
 extern "C" {
 
-extern zend_class_entry *FireBird_Database_ce;
-extern zend_class_entry *FireBird_Db_Info_ce;
-extern zend_class_entry *FireBird_Connect_Args_ce;
-extern zend_class_entry *FireBird_Create_Args_ce;
-
 extern firebird_xpb_zmap fbp_database_create_zmap;
 extern firebird_xpb_zmap fbp_database_connect_zmap;
 extern firebird_xpb_zmap fbp_database_info_zmap;
