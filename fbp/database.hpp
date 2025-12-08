@@ -53,7 +53,6 @@ extern "C" {
 
 extern firebird_xpb_zmap fbp_database_create_zmap;
 extern firebird_xpb_zmap fbp_database_connect_zmap;
-extern firebird_xpb_zmap fbp_database_info_zmap;
 
 typedef struct firebird_db {
     size_t dbh;
@@ -65,9 +64,5 @@ fbp_declare_object_accessor(firebird_db);
 
 void register_FireBird_Database_object_handlers();
 void FireBird_Database_reconnect_transaction(zval *Db, zval *return_value, zend_long id);
-
-// int fbp_database_build_dpb(zend_class_entry *ce, zval *Args, const firebird_xpb_zmap *xpb_zmap, const char **dpb_buf, short *num_dpb_written);
-// int fbp_database_get_info(firebird_db *db, zval *Db_Info,
-//     size_t info_req_size, char *info_req, size_t info_resp_size, char *info_resp, size_t max_limbo_count);
 
 }

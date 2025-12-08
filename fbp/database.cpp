@@ -21,17 +21,6 @@ Database::Database()
 {
 }
 
-// int prepare(firebird_trans *tr, unsigned len_sql, const unsigned char *sql, firebird_stmt *stmt)
-// {
-//     if (!tr || !tr->trptr) return false;
-//     auto tra = static_cast<Transaction *>(tr->trptr);
-
-//     auto s = att->prepare(&st, tra, len_sql, sql, SQL_DIALECT_CURRENT,
-//         IStatement::PREPARE_PREFETCH_METADATA
-//     );
-
-// }
-
 void Database::connect(zval *args)
 {
     auto util = master->getUtilInterface();
