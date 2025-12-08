@@ -443,6 +443,14 @@ int fbu_database_free(size_t dbh)
     fbu_ex_wrap_end();
 }
 
+int fbu_database_get_info(size_t dbh, zval *db_info)
+{
+    FBDEBUG("%s(dbh=%zu)", __func__, dbh);
+    fbu_ex_wrap_start();
+        get_db(dbh)->get_info(db_info);
+    fbu_ex_wrap_end();
+}
+
 int fbu_transaction_init(size_t dbh, size_t *trh)
 {
     FBDEBUG("%s(dbh=%zu)", __func__, dbh);

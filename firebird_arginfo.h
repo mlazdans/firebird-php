@@ -1,5 +1,5 @@
 /* This is a generated file, edit the .stub.php file instead.
- * Stub hash: 2950a25057c7daf998a9973a0e23f600bca21209 */
+ * Stub hash: 66e88fb0b00643310f9976dd349a40ba6ff3de9f */
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_get_client_version, 0, 0, IS_DOUBLE, 0)
 ZEND_END_ARG_INFO()
@@ -833,54 +833,6 @@ static zend_class_entry *register_class_FireBird_Db_Info(void)
 	zend_declare_typed_property(class_entry, property_attachment_id_name, &property_attachment_id_default_value, ZEND_ACC_PUBLIC, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_LONG));
 	zend_string_release_ex(property_attachment_id_name, true);
 
-	zval property_read_seq_count_default_value;
-	ZVAL_UNDEF(&property_read_seq_count_default_value);
-	zend_string *property_read_seq_count_name = zend_string_init("read_seq_count", sizeof("read_seq_count") - 1, true);
-	zend_declare_typed_property(class_entry, property_read_seq_count_name, &property_read_seq_count_default_value, ZEND_ACC_PUBLIC, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_LONG));
-	zend_string_release_ex(property_read_seq_count_name, true);
-
-	zval property_read_idx_count_default_value;
-	ZVAL_UNDEF(&property_read_idx_count_default_value);
-	zend_string *property_read_idx_count_name = zend_string_init("read_idx_count", sizeof("read_idx_count") - 1, true);
-	zend_declare_typed_property(class_entry, property_read_idx_count_name, &property_read_idx_count_default_value, ZEND_ACC_PUBLIC, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_LONG));
-	zend_string_release_ex(property_read_idx_count_name, true);
-
-	zval property_insert_count_default_value;
-	ZVAL_UNDEF(&property_insert_count_default_value);
-	zend_string *property_insert_count_name = zend_string_init("insert_count", sizeof("insert_count") - 1, true);
-	zend_declare_typed_property(class_entry, property_insert_count_name, &property_insert_count_default_value, ZEND_ACC_PUBLIC, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_LONG));
-	zend_string_release_ex(property_insert_count_name, true);
-
-	zval property_update_count_default_value;
-	ZVAL_UNDEF(&property_update_count_default_value);
-	zend_string *property_update_count_name = zend_string_init("update_count", sizeof("update_count") - 1, true);
-	zend_declare_typed_property(class_entry, property_update_count_name, &property_update_count_default_value, ZEND_ACC_PUBLIC, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_LONG));
-	zend_string_release_ex(property_update_count_name, true);
-
-	zval property_delete_count_default_value;
-	ZVAL_UNDEF(&property_delete_count_default_value);
-	zend_string *property_delete_count_name = zend_string_init("delete_count", sizeof("delete_count") - 1, true);
-	zend_declare_typed_property(class_entry, property_delete_count_name, &property_delete_count_default_value, ZEND_ACC_PUBLIC, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_LONG));
-	zend_string_release_ex(property_delete_count_name, true);
-
-	zval property_backout_count_default_value;
-	ZVAL_UNDEF(&property_backout_count_default_value);
-	zend_string *property_backout_count_name = zend_string_init("backout_count", sizeof("backout_count") - 1, true);
-	zend_declare_typed_property(class_entry, property_backout_count_name, &property_backout_count_default_value, ZEND_ACC_PUBLIC, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_LONG));
-	zend_string_release_ex(property_backout_count_name, true);
-
-	zval property_purge_count_default_value;
-	ZVAL_UNDEF(&property_purge_count_default_value);
-	zend_string *property_purge_count_name = zend_string_init("purge_count", sizeof("purge_count") - 1, true);
-	zend_declare_typed_property(class_entry, property_purge_count_name, &property_purge_count_default_value, ZEND_ACC_PUBLIC, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_LONG));
-	zend_string_release_ex(property_purge_count_name, true);
-
-	zval property_expunge_count_default_value;
-	ZVAL_UNDEF(&property_expunge_count_default_value);
-	zend_string *property_expunge_count_name = zend_string_init("expunge_count", sizeof("expunge_count") - 1, true);
-	zend_declare_typed_property(class_entry, property_expunge_count_name, &property_expunge_count_default_value, ZEND_ACC_PUBLIC, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_LONG));
-	zend_string_release_ex(property_expunge_count_name, true);
-
 	zval property_isc_version_default_value;
 	ZVAL_UNDEF(&property_isc_version_default_value);
 	zend_string *property_isc_version_name = zend_string_init("isc_version", sizeof("isc_version") - 1, true);
@@ -892,12 +844,6 @@ static zend_class_entry *register_class_FireBird_Db_Info(void)
 	zend_string *property_firebird_version_name = zend_string_init("firebird_version", sizeof("firebird_version") - 1, true);
 	zend_declare_typed_property(class_entry, property_firebird_version_name, &property_firebird_version_default_value, ZEND_ACC_PUBLIC, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_ARRAY));
 	zend_string_release_ex(property_firebird_version_name, true);
-
-	zval property_limbo_default_value;
-	ZVAL_UNDEF(&property_limbo_default_value);
-	zend_string *property_limbo_name = zend_string_init("limbo", sizeof("limbo") - 1, true);
-	zend_declare_typed_property(class_entry, property_limbo_name, &property_limbo_default_value, ZEND_ACC_PUBLIC, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_ARRAY));
-	zend_string_release_ex(property_limbo_name, true);
 
 	zval property_sweep_interval_default_value;
 	ZVAL_UNDEF(&property_sweep_interval_default_value);
@@ -1082,14 +1028,8 @@ static zend_class_entry *register_class_FireBird_Db_Info(void)
 	zval property_db_guid_default_value;
 	ZVAL_UNDEF(&property_db_guid_default_value);
 	zend_string *property_db_guid_name = zend_string_init("db_guid", sizeof("db_guid") - 1, true);
-	zend_declare_typed_property(class_entry, property_db_guid_name, &property_db_guid_default_value, ZEND_ACC_PUBLIC, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_LONG));
+	zend_declare_typed_property(class_entry, property_db_guid_name, &property_db_guid_default_value, ZEND_ACC_PUBLIC, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_STRING));
 	zend_string_release_ex(property_db_guid_name, true);
-
-	zval property_db_file_id_default_value;
-	ZVAL_UNDEF(&property_db_file_id_default_value);
-	zend_string *property_db_file_id_name = zend_string_init("db_file_id", sizeof("db_file_id") - 1, true);
-	zend_declare_typed_property(class_entry, property_db_file_id_name, &property_db_file_id_default_value, ZEND_ACC_PUBLIC, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_LONG));
-	zend_string_release_ex(property_db_file_id_name, true);
 
 	zval property_replica_mode_default_value;
 	ZVAL_UNDEF(&property_replica_mode_default_value);

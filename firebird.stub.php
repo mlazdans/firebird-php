@@ -606,18 +606,9 @@ class Db_Info
 
     public int $allocation;
     public int $attachment_id;
-    public int $read_seq_count;
-    public int $read_idx_count;
-    public int $insert_count;
-    public int $update_count;
-    public int $delete_count;
-    public int $backout_count;
-    public int $purge_count;
-    public int $expunge_count;
 
     public array $isc_version;
     public array $firebird_version;
-    public array $limbo;
 
     public int $sweep_interval;
     public int $ods_version;
@@ -655,8 +646,7 @@ class Db_Info
 
     public int $next_attachment;
     public int $next_statement;
-    public int $db_guid;
-    public int $db_file_id;
+    public string $db_guid;
 
     public int $replica_mode;
     public string $username;

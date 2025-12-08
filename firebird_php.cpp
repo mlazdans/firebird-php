@@ -179,6 +179,7 @@ PHP_MINIT_FUNCTION(firebird)
     FireBird_Server_Info_ce = register_class_FireBird_Server_Info();
     FireBird_Server_Db_Info_ce = register_class_FireBird_Server_Db_Info();
     FireBird_User_Info_ce = register_class_FireBird_User_Info();
+    FireBird_Db_Info_ce = register_class_FireBird_Db_Info();
 
     // register_FireBird_Var_Info_ce();
     // register_FireBird_Event_ce();

@@ -35,6 +35,7 @@ int fbu_database_disconnect(size_t dbh);
 int fbu_database_connect(size_t dbh, zval *args);
 int fbu_database_create(size_t dbh, zval *args);
 int fbu_database_execute_create(size_t dbh, unsigned int len_sql, const char *sql);
+int fbu_database_get_info(size_t dbh, zval *db_info);
 
 int fbu_transaction_init(size_t dbh, size_t *trh);
 int fbu_transaction_get_info(size_t dbh, size_t trh, const firebird_trans_info **info);
