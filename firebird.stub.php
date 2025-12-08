@@ -444,14 +444,22 @@ class Service
      */
     private function __construct() {}
 
-    public function connect(Service_Connect_Args $args): Service { die; }
+    public static function connect(Service_Connect_Args $args): Service { die; }
     public function disconnect(): void { die; }
     public function get_server_info(): Server_Info { die; }
-    public function add_user(Server_User_Info $user_info): void { die; }
-    public function modify_user(Server_User_Info $user_info): void { die; }
+    public function get_db_info(): Server_Db_Info { die; }
+
+    /**
+     * @return User_Info[]
+     */
+    public function get_users(): array { die; }
+    public function add_user(User_Info $user_info): void { die; }
+    public function modify_user(User_Info $user_info): void { die; }
     public function delete_user(string $username): void { die; }
-    public function backup(string $dbname, string $bkp_file, int $options = 0): void { die; }
-    public function restore(string $bkp_file, string $dbname, int $options = 0): void { die; }
+
+    // Temp disabled
+    // public function backup(string $dbname, string $bkp_file, int $options = 0): void { die; }
+    // public function restore(string $bkp_file, string $dbname, int $options = 0): void { die; }
 
     /**
      * Shuts down the database when:
@@ -463,7 +471,7 @@ class Service
      * @see SM_NORMAL, SM_MULTI, SM_SINGLE, SM_FULL
      * @param int $timeout wait timeout in seconds
      * */
-    public function shutdown_db(string $dbname, int $mode = 0, int $timeout = 0): void { die; }
+    // public function shutdown_db(string $dbname, int $mode = 0, int $timeout = 0): void { die; }
 
     /**
      * Bring a shutdown database back online
@@ -472,19 +480,19 @@ class Service
      * @param int $mode shutdown mode
      * @see SM_NORMAL, SM_MULTI, SM_SINGLE, SM_FULL
      * */
-    public function db_online(string $dbname, int $mode = 0): void { die; }
+    // public function db_online(string $dbname, int $mode = 0): void { die; }
 
-    public function set_page_buffers(string $dbname, int $buffers): void { die; }
-    public function set_sweep_interval(string $dbname, int $interval): void { die; }
-    public function deny_new_attachments(string $dbname): void { die; }
-    public function deny_new_transactions(string $dbname): void { die; }
-    public function set_write_mode_async(string $dbname): void { die; }
-    public function set_write_mode_sync(string $dbname): void { die; }
-    public function set_access_mode_readonly(string $dbname): void { die; }
-    public function set_access_mode_readwrite(string $dbname): void { die; }
-    public function enable_reserve_space(string $database): void { die; }
-    public function disable_reserve_space(string $database): void { die; }
-    public function set_sql_dialect(string $database, int $dialect): void { die; }
+    // public function set_page_buffers(string $dbname, int $buffers): void { die; }
+    // public function set_sweep_interval(string $dbname, int $interval): void { die; }
+    // public function deny_new_attachments(string $dbname): void { die; }
+    // public function deny_new_transactions(string $dbname): void { die; }
+    // public function set_write_mode_async(string $dbname): void { die; }
+    // public function set_write_mode_sync(string $dbname): void { die; }
+    // public function set_access_mode_readonly(string $dbname): void { die; }
+    // public function set_access_mode_readwrite(string $dbname): void { die; }
+    // public function enable_reserve_space(string $database): void { die; }
+    // public function disable_reserve_space(string $database): void { die; }
+    // public function set_sql_dialect(string $database, int $dialect): void { die; }
 
     // isc_spb_prp_nolinger
     // isc_spb_prp_activate               Activate shadow files. Legacy stuff
@@ -556,10 +564,6 @@ class Server_Info
     public string $get_env_lock;
     public string $get_env_msg;
     public string $user_dbpath;
-    public ?Server_Db_Info $db_info;
-
-    /** @var Server_User_Info[] */
-    public array $users;
 }
 
 class Server_Db_Info
@@ -568,10 +572,10 @@ class Server_Db_Info
     public int $num_db;
 
     /** @var string[] */
-    public array $dbname;
+    public array $databases;
 }
 
-class Server_User_Info
+class User_Info
 {
     public string $username;
     public string $firstname;

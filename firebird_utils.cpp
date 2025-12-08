@@ -12,6 +12,7 @@
 
 #include "fbp/base.hpp"
 #include "fbp/database.hpp"
+#include "fbp/service.hpp"
 #include "fbp/statement.hpp"
 #include "fbp/blob.hpp"
 #include "firebird_php.hpp"
@@ -345,7 +346,22 @@ static inline std::unique_ptr<Database>& get_db_ptr(std::size_t h, const char *f
     }
 }
 
+int fbu_is_valid_svh(size_t svh)
+{
+    return (svh && svh <= FBG(sv_list).size() && FBG(sv_list)[svh - 1]);
+}
+
+static inline std::unique_ptr<Service>& get_sv_ptr(std::size_t h, const char *file_name, size_t line_num)
+{
+    if (fbu_is_valid_svh(h)) {
+        return FBG(sv_list)[h - 1];
+    } else {
+        throw Php_Firebird_Exception(zend_ce_error, "Invalid service manager handle");
+    }
+}
+
 #define get_db(h) get_db_ptr(h, __FILE__, __LINE__)
+#define get_sv(h) get_sv_ptr(h, __FILE__, __LINE__)
 
 int fbu_is_valid_trh(size_t dbh, size_t trh)
 {
@@ -634,6 +650,89 @@ int fbu_blob_seek(size_t dbh, size_t blh, int mode, int offset, int *new_offset)
     FBDEBUG("%s(dbh=%zu, blh=%zu)", __func__, dbh, blh);
     fbu_ex_wrap_start();
         get_db(dbh)->get_blob(blh)->seek(mode, offset, new_offset);
+    fbu_ex_wrap_end();
+}
+
+int fbu_service_init(size_t *svh)
+{
+    FBDEBUG("%s()", __func__);
+    fbu_ex_wrap_start();
+        FBG(sv_list).emplace_back(new Service());
+        *svh = FBG(sv_list).size();
+        FBDEBUG("    svh=%zu", *svh);
+    fbu_ex_wrap_end();
+}
+
+int fbu_service_free(size_t svh)
+{
+    FBDEBUG("%s(svh=%zu)", __func__, svh);
+    fbu_ex_wrap_start();
+        get_sv(svh).reset();
+    fbu_ex_wrap_end();
+}
+
+int fbu_service_connect(size_t svh, zval *args)
+{
+    FBDEBUG("%s(svh=%zu)", __func__, svh);
+    fbu_ex_wrap_start();
+        get_sv(svh)->connect(args);
+    fbu_ex_wrap_end();
+}
+
+int fbu_service_disconnect(size_t svh)
+{
+    FBDEBUG("%s(svh=%zu)", __func__, svh);
+    fbu_ex_wrap_start();
+        get_sv(svh)->disconnect();
+        get_sv(svh).reset();
+    fbu_ex_wrap_end();
+}
+
+int fbu_service_get_server_info(size_t svh, zval *Server_Info)
+{
+    FBDEBUG("%s(svh=%zu)", __func__, svh);
+    fbu_ex_wrap_start();
+        get_sv(svh)->get_info(Server_Info);
+    fbu_ex_wrap_end();
+}
+
+int fbu_service_get_users(size_t svh, zval *users)
+{
+    FBDEBUG("%s(svh=%zu)", __func__, svh);
+    fbu_ex_wrap_start();
+        get_sv(svh)->get_users(users);
+    fbu_ex_wrap_end();
+}
+
+int fbu_service_add_user(size_t svh, zval *user_info)
+{
+    FBDEBUG("%s(svh=%zu)", __func__, svh);
+    fbu_ex_wrap_start();
+        get_sv(svh)->add_user(user_info);
+    fbu_ex_wrap_end();
+}
+
+int fbu_service_modify_user(size_t svh, zval *user_info)
+{
+    FBDEBUG("%s(svh=%zu)", __func__, svh);
+    fbu_ex_wrap_start();
+        get_sv(svh)->modify_user(user_info);
+    fbu_ex_wrap_end();
+}
+
+int fbu_service_delete_user(size_t svh, const char *username, size_t username_len)
+{
+    FBDEBUG("%s(svh=%zu)", __func__, svh);
+    fbu_ex_wrap_start();
+        get_sv(svh)->delete_user(username, username_len);
+    fbu_ex_wrap_end();
+}
+
+int fbu_service_get_db_info(size_t svh, zval *server_db_info)
+{
+    FBDEBUG("%s(svh=%zu)", __func__, svh);
+    fbu_ex_wrap_start();
+        get_sv(svh)->get_db_info(server_db_info);
     fbu_ex_wrap_end();
 }
 

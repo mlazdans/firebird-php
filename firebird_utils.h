@@ -24,6 +24,7 @@ int fbu_string_to_numeric(const char *s, size_t slen, int scale, uint64_t max,
 void fbu_init_date_object(const char *tzbuff, zval *o);
 
 int fbu_is_valid_dbh(size_t dbh);
+int fbu_is_valid_svh(size_t svh);
 int fbu_is_valid_trh(size_t dbh, size_t trh);
 int fbu_is_valid_sth(size_t dbh, size_t sth);
 
@@ -63,5 +64,16 @@ int fbu_blob_cancel(size_t dbh, size_t blh);
 int fbu_blob_get(size_t dbh, size_t blh, int max_len, zend_string **buf);
 int fbu_blob_put(size_t dbh, size_t blh, unsigned int buf_size, const char *buf);
 int fbu_blob_seek(size_t dbh, size_t blh, int mode, int offset, int *new_offset);
+
+int fbu_service_init(size_t *svh);
+int fbu_service_get_users(size_t svh, zval *users);
+int fbu_service_add_user(size_t svh, zval *user_info);
+int fbu_service_modify_user(size_t svh, zval *user_info);
+int fbu_service_delete_user(size_t svh, const char *username, size_t username_len);
+int fbu_service_get_db_info(size_t svh, zval *server_db_info);
+int fbu_service_free(size_t svh);
+int fbu_service_disconnect(size_t svh);
+int fbu_service_connect(size_t svh, zval *args);
+int fbu_service_get_server_info(size_t svh, zval *Server_Info);
 
 }

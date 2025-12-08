@@ -13,6 +13,9 @@ extern "C" {
 
 #include "php.h"
 
+fbp_object_accessor(firebird_service);
+static zend_object_handlers FireBird_Service_object_handlers;
+
 firebird_xpb_zmap fbp_service_connect_zmap = XPB_ZMAP_INIT(
     ((const uint8_t[]){
         isc_spb_user_name, isc_spb_password
@@ -25,142 +28,123 @@ firebird_xpb_zmap fbp_service_connect_zmap = XPB_ZMAP_INIT(
     })
 );
 
-static zend_object_handlers FireBird_Service_object_handlers;
+firebird_xpb_zmap fbp_user_info_zmap = XPB_ZMAP_INIT(
+    ((const uint8_t[]){
+        isc_spb_sec_username, isc_spb_sec_password, isc_spb_sec_firstname, isc_spb_sec_middlename,
+        isc_spb_sec_lastname, isc_spb_sec_admin
+    }),
+    ((const char *[]){
+        "username", "password", "firstname", "middlename",
+        "lastname", "admin"
+    }),
+    ((uint32_t []) {
+        MAY_BE_STRING, MAY_BE_STRING, MAY_BE_STRING, MAY_BE_STRING,
+        MAY_BE_STRING, MAY_BE_TRUE | MAY_BE_FALSE
+    })
+);
 
 PHP_METHOD(FireBird_Service, __construct)
 {
 }
 
-int FireBird_Service_connect(zval *Service, zval *Service_Connect_Args)
-{
-    TODO("FireBird_Service_connect");
-    return FAILURE;
-#if 0
-    firebird_service *svc = get_firebird_service_from_zval(Service);
-
-    if (fbp_service_connect(svc, Service_Connect_Args)) {
-        update_err_props(FBG(status), FireBird_Service_ce, Service);
-        return FAILURE;
-    }
-
-    PROP_SET(FireBird_Service_ce, Service, "args", Service_Connect_Args);
-
-    return SUCCESS;
-#endif
-}
-
 PHP_METHOD(FireBird_Service, connect)
 {
-    zval *Service_Connect_Args = NULL;
+    zval *args = NULL;
 
     ZEND_PARSE_PARAMETERS_START(1, 1)
-        Z_PARAM_OBJECT_OF_CLASS(Service_Connect_Args, FireBird_Service_Connect_Args_ce)
+        Z_PARAM_OBJECT_OF_CLASS(args, FireBird_Service_Connect_Args_ce)
     ZEND_PARSE_PARAMETERS_END();
 
-    RETVAL_BOOL(SUCCESS == FireBird_Service_connect(ZEND_THIS, Service_Connect_Args));
+    object_init_ex(return_value, FireBird_Service_ce);
+    firebird_service *svc = get_firebird_service_from_zval(return_value);
+
+    if (fbu_service_init(&svc->svh)) {
+        RETURN_THROWS();
+    }
+
+    if (fbu_service_connect(svc->svh, args)) {
+        RETURN_THROWS();
+    }
+
+    PROP_SET(FireBird_Service_ce, return_value, "args", args);
 }
 
 PHP_METHOD(FireBird_Service, disconnect)
 {
-    TODO("PHP_METHOD(FireBird_Service, disconnect)");
-#if 0
     ZEND_PARSE_PARAMETERS_NONE();
 
     firebird_service *svc = get_firebird_service_from_zval(ZEND_THIS);
-
-    FBDEBUG("Service::disconnect()");
-
-    if(svc->svc_handle) {
-        FBDEBUG_NOFL("  Closing handle: %d", svc->svc_handle);
-        if(isc_service_detach(FBG(status), &svc->svc_handle)){
-            update_err_props(FBG(status), FireBird_Service_ce, ZEND_THIS);
-        } else {
-            svc->svc_handle = 0;
-            RETURN_TRUE;
-        }
+    if (fbu_service_disconnect(svc->svh)) {
+        RETURN_THROWS();
     }
-
-    RETURN_FALSE;
-#endif
 }
 
 PHP_METHOD(FireBird_Service, get_server_info)
 {
-    TODO("PHP_METHOD(FireBird_Service, get_server_info)");
-#if 0
     ZEND_PARSE_PARAMETERS_NONE();
-
-    char info_resp[1024] = { 0 };
-
-    // TODO: separate only SYSDBA accessible information
-    static char info_req[] = {
-        isc_info_svc_server_version,
-        isc_info_svc_implementation,
-        isc_info_svc_get_env,
-        isc_info_svc_get_env_lock,
-        isc_info_svc_get_env_msg,
-        isc_info_svc_user_dbpath,
-        isc_info_svc_svr_db_info,
-        isc_info_svc_get_users,
-    };
 
     firebird_service *svc = get_firebird_service_from_zval(ZEND_THIS);
 
     object_init_ex(return_value, FireBird_Server_Info_ce);
-    if(fbp_service_get_server_info(svc, return_value, sizeof(info_req), info_req, sizeof(info_resp), info_resp)) {
-        update_err_props(FBG(status), FireBird_Service_ce, ZEND_THIS);
-        zval_ptr_dtor(return_value);
-        RETURN_FALSE;
+    if (fbu_service_get_server_info(svc->svh, return_value)) {
+        RETURN_THROWS();
     }
-#endif
+}
+
+PHP_METHOD(FireBird_Service, get_db_info)
+{
+    ZEND_PARSE_PARAMETERS_NONE();
+
+    firebird_service *svc = get_firebird_service_from_zval(ZEND_THIS);
+
+    object_init_ex(return_value, FireBird_Server_Db_Info_ce);
+    if (fbu_service_get_db_info(svc->svh, return_value)) {
+        RETURN_THROWS();
+    }
+}
+
+PHP_METHOD(FireBird_Service, get_users)
+{
+    ZEND_PARSE_PARAMETERS_NONE();
+
+    firebird_service *svc = get_firebird_service_from_zval(ZEND_THIS);
+
+    array_init(return_value);
+    if (fbu_service_get_users(svc->svh, return_value)) {
+        RETURN_THROWS();
+    }
 }
 
 PHP_METHOD(FireBird_Service, add_user)
 {
-    TODO("PHP_METHOD(FireBird_Service, add_user)");
-#if 0
-    zval *User_Info = NULL;
+    zval *ui = NULL;
 
     ZEND_PARSE_PARAMETERS_START(1, 1)
-        Z_PARAM_OBJECT_OF_CLASS(User_Info, FireBird_Server_User_Info_ce)
+        Z_PARAM_OBJECT_OF_CLASS(ui, FireBird_User_Info_ce)
     ZEND_PARSE_PARAMETERS_END();
 
     firebird_service *svc = get_firebird_service_from_zval(ZEND_THIS);
-
-    if (FAILURE == fbp_service_addmod_user(svc, User_Info, isc_action_svc_add_user)) {
-        update_err_props(FBG(status), FireBird_Service_ce, ZEND_THIS);
-        RETURN_FALSE;
+    if (fbu_service_add_user(svc->svh, ui)) {
+        RETURN_THROWS();
     }
-
-    RETURN_TRUE;
-#endif
 }
 
 PHP_METHOD(FireBird_Service, modify_user)
 {
-    TODO("PHP_METHOD(FireBird_Service, modify_user)");
-#if 0
-    zval *User_Info = NULL;
+    zval *ui = NULL;
 
     ZEND_PARSE_PARAMETERS_START(1, 1)
-        Z_PARAM_OBJECT_OF_CLASS(User_Info, FireBird_Server_User_Info_ce)
+        Z_PARAM_OBJECT_OF_CLASS(ui, FireBird_User_Info_ce)
     ZEND_PARSE_PARAMETERS_END();
 
     firebird_service *svc = get_firebird_service_from_zval(ZEND_THIS);
-
-    if (FAILURE == fbp_service_addmod_user(svc, User_Info, isc_action_svc_modify_user)) {
-        update_err_props(FBG(status), FireBird_Service_ce, ZEND_THIS);
-        RETURN_FALSE;
+    if (fbu_service_modify_user(svc->svh, ui)) {
+        RETURN_THROWS();
     }
-
-    RETURN_TRUE;
-#endif
 }
 
 PHP_METHOD(FireBird_Service, delete_user)
 {
-    TODO("PHP_METHOD(FireBird_Service, delete_user)");
-#if 0
     char *username;
     size_t username_len;
 
@@ -170,13 +154,9 @@ PHP_METHOD(FireBird_Service, delete_user)
         Z_PARAM_STRING(username, username_len)
     ZEND_PARSE_PARAMETERS_END();
 
-    if (fbp_service_delete_user(svc, username, username_len)) {
-        update_err_props(FBG(status), FireBird_Service_ce, ZEND_THIS);
-        RETURN_FALSE;
+    if (fbu_service_delete_user(svc->svh, username, username_len)) {
+        RETURN_THROWS();
     }
-
-    RETURN_TRUE;
-#endif
 }
 
 PHP_METHOD(FireBird_Service, backup)
@@ -534,95 +514,39 @@ PHP_METHOD(FireBird_Service, set_sql_dialect)
 #endif
 }
 
-static zend_object *FireBird_Service_create(zend_class_entry *ce)
+static zend_object *FireBird_Service_create_object(zend_class_entry *ce)
 {
-    FBDEBUG("FireBird_Service_create()");
+    FBDEBUG("FireBird_Service_create_object()");
 
-    firebird_service *s = (firebird_service *)zend_object_alloc(sizeof(firebird_service), ce);
+    firebird_service *sv = (firebird_service *)zend_object_alloc(sizeof(firebird_service), ce);
 
-    zend_object_std_init(&s->std, ce);
-    object_properties_init(&s->std, ce);
+    zend_object_std_init(&sv->std, ce);
+    object_properties_init(&sv->std, ce);
 
-    return &s->std;
+    return &sv->std;
 }
 
 static void FireBird_Service_free_obj(zend_object *obj)
 {
-    FBDEBUG("FireBird_Service_free_obj");
+    firebird_service *sv = get_firebird_service_from_obj(obj);
 
-    firebird_service *svc = get_firebird_service_from_obj(obj);
+    if (fbu_is_valid_svh(sv->svh)) {
+        fbu_service_free(sv->svh);
+        sv->svh = 0;
+    }
 
-    // if(svc->svc_handle) {
-    //     if(isc_service_detach(FBG(status), &svc->svc_handle)) {
-    //         fbp_status_error(FBG(status));
-    //     } else {
-    //         svc->svc_handle = 0;
-    //     }
-    // }
-
-    zend_object_std_dtor(&svc->std);
+    zend_object_std_dtor(&sv->std);
 }
 
-// void register_FireBird_Service_ce()
-// {
-//     zend_class_entry tmp_ce;
-//     INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "Service", FireBird_Service_methods);
-//     FireBird_Service_ce = zend_register_internal_class(&tmp_ce);
+void register_FireBird_Service_object_handlers()
+{
+    FireBird_Service_ce->create_object = FireBird_Service_create_object;
+    FireBird_Service_ce->default_object_handlers = &FireBird_Service_object_handlers;
 
-//     DECLARE_PROP_OBJ(FireBird_Service_ce, args, FireBird\\Service_Connect_Args, ZEND_ACC_PROTECTED_SET);
-//     DECLARE_ERR_PROPS(FireBird_Service_ce);
+    memcpy(&FireBird_Service_object_handlers, &std_object_handlers, sizeof(zend_object_handlers));
 
-//     zend_class_implements(FireBird_Service_ce, 1, FireBird_IError_ce);
-
-//     FireBird_Service_ce->create_object = FireBird_Service_create;
-//     FireBird_Service_ce->default_object_handlers = &FireBird_Service_object_handlers;
-
-//     memcpy(&FireBird_Service_object_handlers, &std_object_handlers, sizeof(zend_object_handlers));
-
-//     FireBird_Service_object_handlers.offset = XtOffsetOf(firebird_service, std);
-//     FireBird_Service_object_handlers.free_obj = FireBird_Service_free_obj;
-// }
-
-// void register_FireBird_Server_Info_ce()
-// {
-//     zend_class_entry tmp_ce;
-//     INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "Server_Info", NULL);
-//     FireBird_Server_Info_ce = zend_register_internal_class(&tmp_ce);
-
-//     fbp_declare_props_from_zmap(FireBird_Server_Info_ce, &fbp_server_info_zmap);
-
-//     DECLARE_PROP_OBJ(FireBird_Server_Info_ce, db_info, FireBird\\Server_Db_Info, ZEND_ACC_PUBLIC);
-//     DECLARE_PROP_ARRAY(FireBird_Server_Info_ce, users, ZEND_ACC_PUBLIC);
-// }
-
-// void register_FireBird_Server_Db_Info_ce()
-// {
-//     zend_class_entry tmp_ce;
-//     INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "Server_Db_Info", NULL);
-//     FireBird_Server_Db_Info_ce = zend_register_internal_class(&tmp_ce);
-
-//     DECLARE_PROP_LONG(FireBird_Server_Db_Info_ce, num_att, ZEND_ACC_PUBLIC);
-//     DECLARE_PROP_LONG(FireBird_Server_Db_Info_ce, num_db, ZEND_ACC_PUBLIC);
-//     DECLARE_PROP_ARRAY(FireBird_Server_Db_Info_ce, dbname, ZEND_ACC_PUBLIC);
-// }
-
-// void register_FireBird_Server_User_Info_ce()
-// {
-//     zend_class_entry tmp_ce;
-//     INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "Server_User_Info", NULL);
-//     FireBird_Server_User_Info_ce = zend_register_internal_class(&tmp_ce);
-
-//     fbp_declare_props_from_zmap(FireBird_Server_User_Info_ce, &fbp_user_info_zmap);
-// }
-
-// void register_FireBird_Service_Connect_Args_ce()
-// {
-//     zend_class_entry tmp_ce;
-//     INIT_NS_CLASS_ENTRY(tmp_ce, "FireBird", "Service_Connect_Args", NULL);
-//     FireBird_Service_Connect_Args_ce = zend_register_internal_class(&tmp_ce);
-
-//     DECLARE_PROP_STRING(FireBird_Service_Connect_Args_ce, service_name, ZEND_ACC_PUBLIC);
-//     fbp_declare_props_from_zmap(FireBird_Service_Connect_Args_ce, &fbp_service_connect_zmap);
-// }
+    FireBird_Service_object_handlers.offset = XtOffsetOf(firebird_service, std);
+    FireBird_Service_object_handlers.free_obj = FireBird_Service_free_obj;
+}
 
 }

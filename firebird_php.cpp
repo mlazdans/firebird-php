@@ -4,6 +4,7 @@
 #include "firebird_php.hpp"
 #include "fbp/blob.hpp"
 #include "fbp/statement.hpp"
+#include "fbp/service.hpp"
 
 extern "C" {
 
@@ -22,11 +23,6 @@ extern "C" {
 #include "zend_interfaces.h"
 #include "zend_exceptions.h"
 #include "firebird_utils.h"
-
-// #include "service.h"
-// #include "multi_transaction.h"
-// #include "fbp_service.h"
-
 #include "firebird_arginfo.h"
 
 PHP_RINIT_FUNCTION(firebird)
@@ -141,7 +137,7 @@ zend_class_entry *FireBird_Service_ce;
 zend_class_entry *FireBird_Service_Connect_Args_ce;
 zend_class_entry *FireBird_Server_Info_ce;
 zend_class_entry *FireBird_Server_Db_Info_ce;
-zend_class_entry *FireBird_Server_User_Info_ce;
+zend_class_entry *FireBird_User_Info_ce;
 
 PHP_MINIT_FUNCTION(firebird)
 {
@@ -177,13 +173,14 @@ PHP_MINIT_FUNCTION(firebird)
     FireBird_Fb_Exception_ce = register_class_FireBird_Fb_Exception(zend_ce_exception);
 
     FireBird_Service_ce = register_class_FireBird_Service();
+    register_FireBird_Service_object_handlers();
+
     FireBird_Service_Connect_Args_ce = register_class_FireBird_Service_Connect_Args();
     FireBird_Server_Info_ce = register_class_FireBird_Server_Info();
     FireBird_Server_Db_Info_ce = register_class_FireBird_Server_Db_Info();
-    FireBird_Server_User_Info_ce = register_class_FireBird_Server_User_Info();
+    FireBird_User_Info_ce = register_class_FireBird_User_Info();
 
     // register_FireBird_Var_Info_ce();
-    // register_FireBird_Db_Info_ce();
     // register_FireBird_Event_ce();
     // register_FireBird_Multi_Transaction_ce();
 
@@ -231,8 +228,8 @@ static void _free_events(firebird_event *p, firebird_event *prev)
 
 PHP_RSHUTDOWN_FUNCTION(firebird)
 {
-    // _free_events(fb_events.events, fb_events.events ? fb_events.events->next : NULL);
     FBG(db_list).clear();
+    FBG(sv_list).clear();
 
     return SUCCESS;
 }

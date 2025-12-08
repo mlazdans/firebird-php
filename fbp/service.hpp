@@ -11,6 +11,8 @@ extern "C" {
 // #include <ibase.h>
 
 typedef struct firebird_service {
+    size_t svh;
+
     // isc_svc_handle svc_handle;
     // zval args;
     // char *hostname;
@@ -34,11 +36,7 @@ extern firebird_xpb_zmap fbp_service_connect_zmap;
 extern firebird_xpb_zmap fbp_server_info_zmap;
 extern firebird_xpb_zmap fbp_user_info_zmap;
 
-// extern void register_FireBird_Service_ce();
-// extern void register_FireBird_Service_Connect_Args_ce();
-// extern void register_FireBird_Server_Info_ce();
-// extern void register_FireBird_Server_Db_Info_ce();
-// extern void register_FireBird_Server_User_Info_ce();
+void register_FireBird_Service_object_handlers();
 
 }
 
@@ -57,9 +55,16 @@ private:
 public:
     Service();
     ~Service();
-    IService *get();
+    // IService *get();
     void connect(zval *args);
     void disconnect();
+    void get_info(zval *server_info);
+    void get_users(zval *users);
+    void add_user(zval *user_info);
+    void modify_user(zval *user_info);
+    void add_or_modify_user(zval *user_info, const ISC_UCHAR tag);
+    void delete_user(const char *username, size_t username_len);
+    void get_db_info(zval *server_db_info);
 };
 
 }

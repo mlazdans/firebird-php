@@ -20,21 +20,6 @@ firebird_xpb_zmap fbp_server_info_zmap = XPB_ZMAP_INIT(
     })
 );
 
-firebird_xpb_zmap fbp_user_info_zmap = XPB_ZMAP_INIT(
-    ((const char []){
-        isc_spb_sec_username, isc_spb_sec_password, isc_spb_sec_firstname, isc_spb_sec_middlename,
-        isc_spb_sec_lastname, isc_spb_sec_admin
-    }),
-    ((const char *[]){
-        "username", "password", "firstname", "middlename",
-        "lastname", "admin"
-    }),
-    ((uint32_t []) {
-        MAY_BE_STRING, MAY_BE_STRING, MAY_BE_STRING, MAY_BE_STRING,
-        MAY_BE_STRING, MAY_BE_TRUE | MAY_BE_FALSE
-    })
-);
-
 fbp_object_accessor(firebird_service);
 
 // int fbp_service_build_dpb(zend_class_entry *ce, zval *Args, const firebird_xpb_zmap *xpb_zmap, const char **dpb_buf, short *num_dpb_written)

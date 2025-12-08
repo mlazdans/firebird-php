@@ -12,7 +12,8 @@
 #define FIREBIRD_TIME_FMT "%H:%M:%S"
 
 namespace FBP {
-class Database;
+    class Database;
+    class Service;
 }
 
 extern "C" {
@@ -48,6 +49,7 @@ ZEND_BEGIN_MODULE_GLOBALS(firebird)
     // ISC_STATUS_ARRAY status;
     bool debug;
     std::vector<std::unique_ptr<FBP::Database>> db_list;
+    std::vector<std::unique_ptr<FBP::Service>> sv_list;
     // int has_error_handler;
     // zend_fcall_info error_fci;
     // zend_fcall_info_cache error_fcc;
@@ -165,7 +167,7 @@ extern zend_class_entry *FireBird_Service_ce;
 extern zend_class_entry *FireBird_Service_Connect_Args_ce;
 extern zend_class_entry *FireBird_Server_Info_ce;
 extern zend_class_entry *FireBird_Server_Db_Info_ce;
-extern zend_class_entry *FireBird_Server_User_Info_ce;
+extern zend_class_entry *FireBird_User_Info_ce;
 
 void fbp_dump_buffer(int len, const unsigned char *buffer);
 void fbp_dump_buffer_raw(int len, const unsigned char *buffer);
