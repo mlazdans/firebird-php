@@ -38,6 +38,8 @@ int fbu_database_execute_create(size_t dbh, unsigned int len_sql, const char *sq
 int fbu_database_get_info(size_t dbh, zval *db_info);
 
 int fbu_transaction_init(size_t dbh, size_t *trh);
+int fbu_transaction_reconnect(size_t dbh, ISC_ULONG id, size_t *trh);
+int fbu_transaction_get_limbo(size_t dbh, zval *tr_arr, short max_count);
 int fbu_transaction_get_info(size_t dbh, size_t trh, const firebird_trans_info **info);
 int fbu_transaction_start(size_t dbh, size_t trh, const firebird_tbuilder *builder);
 int fbu_transaction_free(size_t dbh, size_t trh);

@@ -111,6 +111,16 @@ size_t Database::transaction_init()
     return tr_list.size();
 }
 
+size_t Database::transaction_reconnect(ISC_ULONG tr_id)
+{
+    auto tr = new Transaction(*this);
+    tr->set(att->reconnectTransaction(&st, sizeof(tr_id), (const unsigned char*)&tr_id));
+    tr->query_info();
+
+    tr_list.emplace_back(tr);
+    return tr_list.size();
+}
+
 void Database::transaction_free(size_t trh)
 {
     get_transaction(trh).reset();
@@ -443,6 +453,40 @@ void Database::get_info(zval *db_info)
         }
         pos += 3 + b->getLength(&st);
     }
+}
+
+void Database::get_limbo_transactions(zval *tr_arr, short max_count)
+{
+    const unsigned char req[] = { isc_info_limbo };
+
+    size_t resp_capacity = TRANS_ID_SIZE * max_count;
+    auto resp = (unsigned char *)emalloc(resp_capacity);
+
+    att->getInfo(&st, sizeof(req), req, resp_capacity, resp);
+    auto b = master->getUtilInterface()->getXpbBuilder(&st, IXpbBuilder::INFO_RESPONSE, resp, resp_capacity);
+
+    size_t limbo_count = 0;
+    for (b->rewind(&st); !b->isEof(&st); b->moveNext(&st)) {
+        auto tag = b->getTag(&st);
+
+        if (tag == isc_info_end) break;
+
+        switch(tag) {
+            case isc_info_limbo: {
+                if(limbo_count++ < max_count) {
+                    add_next_index_long(tr_arr, b->getBigInt(&st));
+                } else {
+                    goto finish_with_limbo;
+                }
+            } break;
+
+            default:
+                fbp_fatal("BUG! Unhandled DB info tag: %d", tag);
+                break;
+        }
+    }
+finish_with_limbo:
+    efree(resp);
 }
 
 } // namespace

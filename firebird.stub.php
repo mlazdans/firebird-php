@@ -259,10 +259,10 @@ class Database
      *
      * @see get_limbo_transactions()
      * */
-    public function reconnect_transaction(int $id): Transaction|false { die; }
+    public function reconnect_transaction(int $id): Transaction { die; }
 
-    /** @return int[]|false */
-    public function get_limbo_transactions(int $max_count): array|false { die; }
+    /** @return int[] */
+    public function get_limbo_transactions(int $max_count): array { die; }
 }
 
 // TODO: Temp disable

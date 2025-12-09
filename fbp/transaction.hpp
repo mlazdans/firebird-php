@@ -8,9 +8,7 @@
 #include "fbp/statement.hpp"
 #include "firebird_php.hpp"
 
-// For limbo buffers. Need roughly 7 bytes per transaction id
-#define TRANS_ID_SIZE 8
-#define TRANS_MAX_STACK_COUNT 128
+#define TRANS_ID_SIZE 7
 
 extern "C" {
 
@@ -69,13 +67,13 @@ private:
     Database &dba;
     ITransaction *tra = nullptr;
     firebird_trans_info info = {0};
-private:
-    void query_info();
 public:
     Transaction(Database &dba);
     ~Transaction() noexcept;
     ITransaction *get();
+    void set(ITransaction *tra);
     void start(const firebird_tbuilder *builder);
+    void query_info();
     IXpbBuilder *build_tpb(const firebird_tbuilder *builder);
     void commit();
     void commit_ret();

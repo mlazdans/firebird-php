@@ -274,6 +274,15 @@ ITransaction *Transaction::get()
     throw Php_Firebird_Exception(zend_ce_error, "Invalid transaction pointer");
 }
 
+void Transaction::set(ITransaction *new_tra)
+{
+    if (tra) {
+        throw Php_Firebird_Exception(zend_ce_error, "Transaction already started");
+    }
+
+    tra = new_tra;
+}
+
 void Transaction::finalize(int mode)
 {
     if (mode == FBP_TR_COMMIT) {

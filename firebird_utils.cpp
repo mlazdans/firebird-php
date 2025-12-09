@@ -459,6 +459,22 @@ int fbu_transaction_init(size_t dbh, size_t *trh)
     fbu_ex_wrap_end();
 }
 
+int fbu_transaction_get_limbo(size_t dbh, zval *tr_arr, short max_count)
+{
+    FBDEBUG("%s(dbh=%zu)", __func__, dbh);
+    fbu_ex_wrap_start();
+        get_db(dbh)->get_limbo_transactions(tr_arr, max_count);
+    fbu_ex_wrap_end();
+}
+
+int fbu_transaction_reconnect(size_t dbh, ISC_ULONG id, size_t *trh)
+{
+    FBDEBUG("%s(dbh=%zu)", __func__, dbh);
+    fbu_ex_wrap_start();
+        *trh = get_db(dbh)->transaction_reconnect(id);
+    fbu_ex_wrap_end();
+}
+
 int fbu_transaction_get_info(size_t dbh, size_t trh, const firebird_trans_info **info)
 {
     FBDEBUG("%s(dbh=%zu, trh=%zu)", __func__, dbh, trh);

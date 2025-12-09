@@ -39,12 +39,14 @@ public:
     void execute_create(unsigned int len_sql, const char *sql);
 
     size_t transaction_init();
+    size_t transaction_reconnect(ISC_ULONG tr_id);
     size_t statement_init(size_t trh);
     size_t blob_init(size_t trh);
     void transaction_free(size_t trh);
     void statement_free(size_t sth);
     void blob_free(size_t blh);
     void get_info(zval *db_info);
+    void get_limbo_transactions(zval *tr_arr, short max_count);
 };
 
 } // namespace
@@ -63,6 +65,5 @@ typedef struct firebird_db {
 fbp_declare_object_accessor(firebird_db);
 
 void register_FireBird_Database_object_handlers();
-void FireBird_Database_reconnect_transaction(zval *Db, zval *return_value, zend_long id);
 
 }

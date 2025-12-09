@@ -1,5 +1,5 @@
 /* This is a generated file, edit the .stub.php file instead.
- * Stub hash: 66e88fb0b00643310f9976dd349a40ba6ff3de9f */
+ * Stub hash: 66bae00ae3da268e730f45671c48491d4bf0e1d6 */
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_get_client_version, 0, 0, IS_DOUBLE, 0)
 ZEND_END_ARG_INFO()
@@ -44,11 +44,11 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_FireBird_Database_on_event
 	ZEND_ARG_TYPE_INFO(0, f, IS_CALLABLE, 0)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_WITH_RETURN_OBJ_TYPE_MASK_EX(arginfo_class_FireBird_Database_reconnect_transaction, 0, 1, FireBird\\Transaction, MAY_BE_FALSE)
+ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_class_FireBird_Database_reconnect_transaction, 0, 1, FireBird\\Transaction, 0)
 	ZEND_ARG_TYPE_INFO(0, id, IS_LONG, 0)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_class_FireBird_Database_get_limbo_transactions, 0, 1, MAY_BE_ARRAY|MAY_BE_FALSE)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_FireBird_Database_get_limbo_transactions, 0, 1, IS_ARRAY, 0)
 	ZEND_ARG_TYPE_INFO(0, max_count, IS_LONG, 0)
 ZEND_END_ARG_INFO()
 

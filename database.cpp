@@ -266,94 +266,44 @@ PHP_METHOD(FireBird_Database, disconnect)
     db->dbh = 0;
 }
 
-void FireBird_Database_reconnect_transaction(zval *Db, zval *return_value, zend_long id)
-{
-    TODO("FireBird_Database_reconnect_transaction");
-#if 0
-    object_init_ex(return_value, FireBird_Transaction_ce);
-    FireBird_Transaction___construct(return_value, Db, NULL);
-    firebird_trans *tr = get_firebird_trans_from_zval(return_value);
-
-    FBDEBUG("Connection, reconnect_transaction: %d", id);
-    if (fbp_transaction_reconnect(tr, id)) {
-        update_err_props(FBG(status), FireBird_Database_ce, Db);
-        zval_ptr_dtor(return_value);
-        RETURN_FALSE;
-    }
-
-    zend_update_property_long(FireBird_Transaction_ce, Z_OBJ_P(return_value), "id", 2, (zend_long)tr->tr_id);
-#endif
-}
-
 PHP_METHOD(FireBird_Database, reconnect_transaction)
 {
-    TODO("PHP_METHOD(FireBird_Database, reconnect_transaction)");
-#if 0
     zend_long id;
-    zval rv, *database;
 
     ZEND_PARSE_PARAMETERS_START(1, 1)
         Z_PARAM_LONG(id)
     ZEND_PARSE_PARAMETERS_END();
 
-    FireBird_Database_reconnect_transaction(ZEND_THIS, return_value, id);
-#endif
+    object_init_ex(return_value, FireBird_Transaction_ce);
+    if (FireBird_Transaction___construct(return_value, ZEND_THIS)) {
+        RETURN_THROWS();
+    }
+
+    firebird_trans *tr = get_firebird_trans_from_zval(return_value);
+    if (fbu_transaction_reconnect(tr->dbh, id, &tr->trh)) {
+        RETURN_THROWS();
+    }
 }
 
 PHP_METHOD(FireBird_Database, get_limbo_transactions)
 {
-    TODO("PHP_METHOD(FireBird_Database, get_limbo_transactions)");
-#if 0
     zend_long max_count;
-    zval rv, tr_id;
 
     ZEND_PARSE_PARAMETERS_START(1, 1)
         Z_PARAM_LONG(max_count)
     ZEND_PARSE_PARAMETERS_END();
 
-    if (max_count < 1) {
-        zend_throw_exception_ex(zend_ce_value_error, 0, "Invalid max_count argument. Expected max_count value > 0");
+    if (max_count < 1 || max_count > 0x7FFF) {
+        zend_throw_exception_ex(zend_ce_value_error, 0, "Invalid max_count argument. Valid range 1 - %d", 0x7FFF);
         RETURN_THROWS();
     }
-
-    if (max_count > 0x7FFF) {
-        zend_throw_exception_ex(zend_ce_value_error, 0, "Invalid max_count argument. max_count value capped at %d", 0x7FFF);
-        RETURN_THROWS();
-    }
-
-    char *info_resp;
-    size_t info_resp_capacity;
-    char stack_buff[TRANS_ID_SIZE * TRANS_MAX_STACK_COUNT];
-
-    if (max_count <= TRANS_MAX_STACK_COUNT) {
-        info_resp_capacity = sizeof(stack_buff);
-        info_resp = stack_buff;
-    } else {
-        info_resp_capacity = TRANS_ID_SIZE * max_count;
-        info_resp = (char *)emalloc(info_resp_capacity);
-    }
-
-    static char info_req[] = { isc_info_limbo, isc_info_end };
 
     firebird_db *db = get_firebird_db_from_zval(ZEND_THIS);
-    zval db_info = { 0 };
 
-    object_init_ex(&db_info, FireBird_Db_Info_ce);
-
-    if (fbp_database_get_info(db, &db_info, sizeof(info_req), info_req, info_resp_capacity, info_resp, max_count)) {
-        // update_err_props(FBG(status), FireBird_Database_ce, ZEND_THIS);
-        RETVAL_FALSE;
-        goto free;
+    array_init(return_value);
+    if (fbu_transaction_get_limbo(db->dbh, return_value, max_count)) {
+        RETURN_THROWS();
     }
-
-    ZVAL_COPY_VALUE(return_value, PROP_GET(FireBird_Db_Info_ce, &db_info, "limbo"));
-
-free:
-    zval_ptr_dtor(&db_info);
-    if (max_count > TRANS_MAX_STACK_COUNT) {
-        efree(info_resp);
-    }
-#endif
 }
 
 PHP_METHOD(FireBird_Database, __construct)
