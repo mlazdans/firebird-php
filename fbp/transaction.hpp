@@ -125,7 +125,6 @@ fbp_declare_object_accessor(firebird_trans);
 
 int FireBird_Transaction___construct(zval *self, zval *database);
 int FireBird_Transaction_start(zval *self, zval *builder);
-// int FireBird_Transaction_prepare(zval *Tr, zval *return_Stmt, const ISC_SCHAR* sql);
 void register_FireBird_Transaction_object_handlers();
 void register_FireBird_TBuilder_object_handlers();
 

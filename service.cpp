@@ -1,10 +1,3 @@
-// #include "php.h"
-// #include "php_firebird.h"
-// #include "zend_exceptions.h"
-
-// #include "service.h"
-// #include "fbp_service.h"
-
 #include "fbp/service.hpp"
 #include "firebird_php.hpp"
 #include "firebird_utils.h"

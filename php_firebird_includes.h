@@ -32,17 +32,6 @@ extern "C" {
 
 #include <ibase.h>
 
-// ZEND_BEGIN_MODULE_GLOBALS(firebird)
-//     ISC_STATUS_ARRAY status;
-//     bool debug;
-//     // int has_error_handler;
-//     zend_fcall_info error_fci;
-//     zend_fcall_info_cache error_fcc;
-// ZEND_END_MODULE_GLOBALS(firebird)
-
-// ZEND_EXTERN_MODULE_GLOBALS(firebird)
-
-
 typedef struct firebird_event {
     ISC_LONG event_id;
     isc_db_handle *db_handle;
@@ -68,49 +57,6 @@ typedef struct firebird_events {
     firebird_event *events;
     size_t count;
 } firebird_events;
-
-
-
-#define DECLARE_PROP_OBJ(class_ce, name, obj_name, visibilty) DECLARE_PROP(class_ce, name, ZEND_TYPE_INIT_CLASS(zend_string_init(#obj_name, sizeof(#obj_name)-1, 1), 0, 0), visibilty)
-#define DECLARE_PROP_LONG(class_ce, name, visibilty) DECLARE_PROP(class_ce, name, ZEND_TYPE_INIT_MASK(MAY_BE_LONG), visibilty)
-#define DECLARE_PROP_BOOL(class_ce, name, visibilty) DECLARE_PROP(class_ce, name, ZEND_TYPE_INIT_MASK(MAY_BE_BOOL), visibilty)
-#define DECLARE_PROP_STRING(class_ce, name, visibilty) DECLARE_PROP(class_ce, name, ZEND_TYPE_INIT_MASK(MAY_BE_STRING), visibilty)
-#define DECLARE_PROP_ARRAY(class_ce, name, visibilty) DECLARE_PROP(class_ce, name, ZEND_TYPE_INIT_MASK(MAY_BE_ARRAY), visibilty)
-#define DECLARE_PROP(class_ce, name, type, visibilty) do {                            \
-    zval prop_##name##_def_val;                                                       \
-    ZVAL_UNDEF(&prop_##name##_def_val);                                               \
-    zend_string *prop_##name##_name = zend_string_init(#name, sizeof(#name) - 1, 1);  \
-    zend_declare_typed_property(class_ce, prop_##name##_name, &prop_##name##_def_val, \
-        visibilty, NULL,                                                              \
-        (zend_type) type);                                                            \
-    zend_string_release(prop_##name##_name);                                          \
-} while (0)
-
-#define DECLARE_FERR_PROPS(ce)                                  \
-    DECLARE_PROP_STRING(ce, error_msg, ZEND_ACC_PROTECTED_SET); \
-    DECLARE_PROP_LONG(ce, error_code, ZEND_ACC_PROTECTED_SET);  \
-    DECLARE_PROP_LONG(ce, error_code_long, ZEND_ACC_PROTECTED_SET)
-
-#define DECLARE_IERR_PROPS(ce)                                   \
-    DECLARE_PROP_STRING(ce, error_file, ZEND_ACC_PROTECTED_SET); \
-    DECLARE_PROP_LONG(ce, error_lineno, ZEND_ACC_PROTECTED_SET); \
-    DECLARE_PROP_ARRAY(ce, errors, ZEND_ACC_PROTECTED_SET);      \
-    DECLARE_PROP_STRING(ce, sqlstate, ZEND_ACC_PROTECTED_SET);   \
-
-#ifdef PHP_DEBUG
-#define DECLARE_ERR_PROPS(ce)                                            \
-    do {                                                                 \
-        DECLARE_FERR_PROPS(ce);                                          \
-        DECLARE_IERR_PROPS(ce);                                          \
-        DECLARE_PROP_STRING(ce, ext_error_line, ZEND_ACC_PROTECTED_SET); \
-    } while(0)
-#else
-#define DECLARE_ERR_PROPS(ce)   \
-    do {                        \
-        DECLARE_FERR_PROPS(ce); \
-        DECLARE_IERR_PROPS(ce); \
-    } while(0)
-#endif
 
 void fbp_store_portable_integer(unsigned char *buffer, ISC_UINT64 value, int length);
 int fbp_get_status_err_msg(const ISC_STATUS *status, char *msg, unsigned short msg_size);

@@ -8,10 +8,6 @@
 #include "fbp/base.hpp"
 #include "fbp/service.hpp"
 
-extern "C" {
-// #include "zend_exceptions.h"
-}
-
 using namespace Firebird;
 
 namespace FBP {
