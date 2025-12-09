@@ -46,26 +46,34 @@ void Statement::prepare(unsigned int len_sql, const char *sql)
     info.sql = estrdup(sql);
     info.sql_len = len_sql;
 
-    in_fields.reserve(info.in_vars_count);
-    out_fields.reserve(info.out_vars_count);
+    in_vars.resize(info.in_vars_count);
+    out_vars.resize(info.out_vars_count);
 
     for (unsigned int index = 0; index < info.in_vars_count; index++) {
-        in_fields[index] = {
+        in_vars[index] = firebird_var {
+            .field = input_metadata->getField(&st, index),
             .alias = input_metadata->getAlias(&st, index),
+            .relation = input_metadata->getRelation(&st, index),
             .type = input_metadata->getType(&st, index),
-            .len = input_metadata->getLength(&st, index),
+            .subtype = input_metadata->getSubType(&st, index),
+            .length = input_metadata->getLength(&st, index),
             .scale = input_metadata->getScale(&st, index),
+            .is_nullable = (int)input_metadata->isNullable(&st, index),
             .offset = input_metadata->getOffset(&st, index),
             .null_offset = input_metadata->getNullOffset(&st, index),
         };
     }
 
     for (unsigned int index = 0; index < info.out_vars_count; index++) {
-        out_fields[index] = {
+        out_vars[index] = firebird_var {
+            .field = output_metadata->getField(&st, index),
             .alias = output_metadata->getAlias(&st, index),
+            .relation = output_metadata->getRelation(&st, index),
             .type = output_metadata->getType(&st, index),
-            .len = output_metadata->getLength(&st, index),
+            .subtype = output_metadata->getSubType(&st, index),
+            .length = output_metadata->getLength(&st, index),
             .scale = output_metadata->getScale(&st, index),
+            .is_nullable = (int)output_metadata->isNullable(&st, index),
             .offset = output_metadata->getOffset(&st, index),
             .null_offset = output_metadata->getNullOffset(&st, index),
         };
@@ -95,20 +103,20 @@ void Statement::bind(zval *b_vars, unsigned int num_bind_args)
     for (size_t i = 0; i < info.in_vars_count; ++i) {
         zval *b_var = &b_vars[i];
 
-        auto sqlind = reinterpret_cast<short*>(in_buffer + in_fields[i].null_offset);
+        auto sqlind = reinterpret_cast<short*>(in_buffer + in_vars[i].null_offset);
 
         if (Z_TYPE_P(b_var) == IS_NULL) {
             *sqlind = -1;
             continue;
         }
 
-        auto sqldata = in_buffer + in_fields[i].offset;
-        auto scale = in_fields[i].scale;
-        auto len_sqldata = in_fields[i].len;
+        auto sqldata = in_buffer + in_vars[i].offset;
+        auto scale = in_vars[i].scale;
+        auto len_sqldata = in_vars[i].length;
 
         *sqlind = 0;
 
-        auto sqltype = in_fields[i].type;
+        auto sqltype = in_vars[i].type;
 
         FBDEBUG("sqltype: %s, sql buflen: %d, phptype: %s",
             fbu_get_sql_type_name(sqltype), len_sqldata, zend_zval_type_name(b_var));
@@ -508,20 +516,17 @@ int Statement::var_zval(zval *val, unsigned int index, int flags)
         LL_LIT(1000000000000000000)
     };
 
-    auto nullind = *(int16_t*)(out_buffer + out_fields[index].null_offset);
+    auto nullind = *(int16_t*)(out_buffer + out_vars[index].null_offset);
 
     if (nullind) {
         ZVAL_NULL(val);
         return SUCCESS;
     }
 
-    auto type = out_fields[index].type;
-    auto len = out_fields[index].len;
-    auto scale = out_fields[index].scale;
-    auto data = out_buffer + out_fields[index].offset;
-
-    // FBDEBUG("   alias=%s, type: %s", out_fields[index].alias,
-    //     fbu_get_sql_type_name(type));
+    auto type = out_vars[index].type;
+    auto len = out_vars[index].length;
+    auto scale = out_vars[index].scale;
+    auto data = out_buffer + out_vars[index].offset;
 
     char str_buf[255];
     size_t str_len;
@@ -537,7 +542,7 @@ int Statement::var_zval(zval *val, unsigned int index, int flags)
     switch (type)
     {
         default:
-            fbp_fatal("unhandled type: %d, field: %s", type, out_fields[index].alias);
+            fbp_fatal("unhandled type: %d, field: %s", type, out_vars[index].alias);
 
         case SQL_VARYING:
             len = ((firebird_vary *) data)->vary_length;
@@ -878,6 +883,47 @@ IResultSet *Statement::get_cursor()
         return cursor;
     }
     throw Php_Firebird_Exception(zend_ce_error, "Invalid cursor pointer");
+}
+
+void Statement::get_var_info(int in, unsigned int index, zval *var_info)
+{
+    std::vector<firebird_var> *vars;
+
+    if (in) {
+        vars = &in_vars;
+    } else {
+        vars = &out_vars;
+    }
+
+    if (index >= (*vars).size()) {
+        throw Php_Firebird_Exception(zend_ce_value_error, "Invalid var index");
+    }
+
+    auto var = &(*vars)[index];
+
+    zend_update_property_string(FireBird_Var_Info_ce, Z_OBJ_P(var_info),
+        "field", sizeof("field") - 1, var->field);
+
+    zend_update_property_string(FireBird_Var_Info_ce, Z_OBJ_P(var_info),
+        "alias", sizeof("alias") - 1, var->alias);
+
+    zend_update_property_string(FireBird_Var_Info_ce, Z_OBJ_P(var_info),
+        "relation", sizeof("relation") - 1, var->relation);
+
+    zend_update_property_long(FireBird_Var_Info_ce, Z_OBJ_P(var_info),
+        "type", sizeof("type") - 1, var->type);
+
+    zend_update_property_long(FireBird_Var_Info_ce, Z_OBJ_P(var_info),
+        "subtype", sizeof("subtype") - 1, var->subtype);
+
+    zend_update_property_long(FireBird_Var_Info_ce, Z_OBJ_P(var_info),
+        "length", sizeof("length") - 1, var->length);
+
+    zend_update_property_long(FireBird_Var_Info_ce, Z_OBJ_P(var_info),
+        "scale", sizeof("scale") - 1, var->scale);
+
+    zend_update_property_bool(FireBird_Var_Info_ce, Z_OBJ_P(var_info),
+        "is_nullable", sizeof("is_nullable") - 1, var->is_nullable);
 }
 
 } // namespace

@@ -1,5 +1,5 @@
 /* This is a generated file, edit the .stub.php file instead.
- * Stub hash: 652ebb36016282252ed67088a510d6334d77667d */
+ * Stub hash: f027fa2e987e8929570513f8fb17dc0e5f8f8fbe */
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_get_client_version, 0, 0, IS_DOUBLE, 0)
 ZEND_END_ARG_INFO()
@@ -110,7 +110,7 @@ ZEND_END_ARG_INFO()
 
 #define arginfo_class_FireBird_Statement_free arginfo_class_FireBird_Database_disconnect
 
-ZEND_BEGIN_ARG_WITH_RETURN_OBJ_TYPE_MASK_EX(arginfo_class_FireBird_Statement_get_var_info_in, 0, 1, FireBird\\Var_Info, MAY_BE_FALSE)
+ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_class_FireBird_Statement_get_var_info_in, 0, 1, FireBird\\Var_Info, 0)
 	ZEND_ARG_TYPE_INFO(0, num, IS_LONG, 0)
 ZEND_END_ARG_INFO()
 
@@ -1069,9 +1069,11 @@ static zend_class_entry *register_class_FireBird_Var_Info(void)
 	INIT_NS_CLASS_ENTRY(ce, "FireBird", "Var_Info", NULL);
 	class_entry = zend_register_internal_class_with_flags(&ce, NULL, 0);
 
-	zval property_name_default_value;
-	ZVAL_UNDEF(&property_name_default_value);
-	zend_declare_typed_property(class_entry, ZSTR_KNOWN(ZEND_STR_NAME), &property_name_default_value, ZEND_ACC_PUBLIC, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_STRING));
+	zval property_field_default_value;
+	ZVAL_UNDEF(&property_field_default_value);
+	zend_string *property_field_name = zend_string_init("field", sizeof("field") - 1, true);
+	zend_declare_typed_property(class_entry, property_field_name, &property_field_default_value, ZEND_ACC_PUBLIC, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_STRING));
+	zend_string_release_ex(property_field_name, true);
 
 	zval property_alias_default_value;
 	ZVAL_UNDEF(&property_alias_default_value);
@@ -1085,21 +1087,21 @@ static zend_class_entry *register_class_FireBird_Var_Info(void)
 	zend_declare_typed_property(class_entry, property_relation_name, &property_relation_default_value, ZEND_ACC_PUBLIC, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_STRING));
 	zend_string_release_ex(property_relation_name, true);
 
-	zval property_byte_length_default_value;
-	ZVAL_UNDEF(&property_byte_length_default_value);
-	zend_string *property_byte_length_name = zend_string_init("byte_length", sizeof("byte_length") - 1, true);
-	zend_declare_typed_property(class_entry, property_byte_length_name, &property_byte_length_default_value, ZEND_ACC_PUBLIC, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_LONG));
-	zend_string_release_ex(property_byte_length_name, true);
-
 	zval property_type_default_value;
 	ZVAL_UNDEF(&property_type_default_value);
 	zend_declare_typed_property(class_entry, ZSTR_KNOWN(ZEND_STR_TYPE), &property_type_default_value, ZEND_ACC_PUBLIC, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_LONG));
 
-	zval property_sub_type_default_value;
-	ZVAL_UNDEF(&property_sub_type_default_value);
-	zend_string *property_sub_type_name = zend_string_init("sub_type", sizeof("sub_type") - 1, true);
-	zend_declare_typed_property(class_entry, property_sub_type_name, &property_sub_type_default_value, ZEND_ACC_PUBLIC, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_LONG));
-	zend_string_release_ex(property_sub_type_name, true);
+	zval property_subtype_default_value;
+	ZVAL_UNDEF(&property_subtype_default_value);
+	zend_string *property_subtype_name = zend_string_init("subtype", sizeof("subtype") - 1, true);
+	zend_declare_typed_property(class_entry, property_subtype_name, &property_subtype_default_value, ZEND_ACC_PUBLIC, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_LONG));
+	zend_string_release_ex(property_subtype_name, true);
+
+	zval property_length_default_value;
+	ZVAL_UNDEF(&property_length_default_value);
+	zend_string *property_length_name = zend_string_init("length", sizeof("length") - 1, true);
+	zend_declare_typed_property(class_entry, property_length_name, &property_length_default_value, ZEND_ACC_PUBLIC, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_LONG));
+	zend_string_release_ex(property_length_name, true);
 
 	zval property_scale_default_value;
 	ZVAL_UNDEF(&property_scale_default_value);
@@ -1107,11 +1109,11 @@ static zend_class_entry *register_class_FireBird_Var_Info(void)
 	zend_declare_typed_property(class_entry, property_scale_name, &property_scale_default_value, ZEND_ACC_PUBLIC, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_LONG));
 	zend_string_release_ex(property_scale_name, true);
 
-	zval property_nullable_default_value;
-	ZVAL_UNDEF(&property_nullable_default_value);
-	zend_string *property_nullable_name = zend_string_init("nullable", sizeof("nullable") - 1, true);
-	zend_declare_typed_property(class_entry, property_nullable_name, &property_nullable_default_value, ZEND_ACC_PUBLIC, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_BOOL));
-	zend_string_release_ex(property_nullable_name, true);
+	zval property_is_nullable_default_value;
+	ZVAL_UNDEF(&property_is_nullable_default_value);
+	zend_string *property_is_nullable_name = zend_string_init("is_nullable", sizeof("is_nullable") - 1, true);
+	zend_declare_typed_property(class_entry, property_is_nullable_name, &property_is_nullable_default_value, ZEND_ACC_PUBLIC, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_BOOL));
+	zend_string_release_ex(property_is_nullable_name, true);
 
 	return class_entry;
 }

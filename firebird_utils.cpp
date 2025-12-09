@@ -604,6 +604,14 @@ int fbu_statement_close_cursor(size_t dbh, size_t sth)
     fbu_ex_wrap_end();
 }
 
+int fbu_statement_get_var_info(size_t dbh, size_t sth, int in, unsigned int index, zval *var_info)
+{
+    FBDEBUG("%s(dbh=%zu, sth=%zu)", __func__, dbh, sth);
+    fbu_ex_wrap_start();
+        get_db(dbh)->get_statement(sth)->get_var_info(in, index, var_info);
+    fbu_ex_wrap_end();
+}
+
 int fbu_blob_init(size_t dbh, size_t trh, size_t *blh)
 {
     FBDEBUG("%s(dbh=%zu, trh=%zu)", __func__, dbh, trh);

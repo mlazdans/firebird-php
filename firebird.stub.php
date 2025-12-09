@@ -378,14 +378,14 @@ class Statement
      *
      * @see $num_vars_in
      * */
-    public function get_var_info_in(int $num): Var_Info|false { die; }
+    public function get_var_info_in(int $num): Var_Info { die; }
 
     /**
      * Gets information about outbound variable from a statement.
      *
      * @see $num_vars_out
      * */
-    public function get_var_info_out(int $num): Var_Info|false { die; }
+    public function get_var_info_out(int $num): Var_Info { die; }
 
     /**
      * Set a cursor name for a dynamic request.
@@ -656,14 +656,14 @@ class Db_Info
 
 class Var_Info
 {
-    public string $name;
+    public string $field;
     public string $alias;
     public string $relation;
-    public int $byte_length;
     public int $type;
-    public int $sub_type;
+    public int $subtype;
+    public int $length;
     public int $scale;
-    public bool $nullable;
+    public bool $is_nullable;
 }
 
 class Blob_Id

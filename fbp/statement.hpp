@@ -16,14 +16,18 @@
 #define FBP_FETCH_HASHED    (1<<5)
 
 extern "C" {
-typedef struct firebird_field {
+typedef struct firebird_var {
+    const char *field;
     const char *alias;
+    const char *relation;
     unsigned int type;
-    unsigned int len;
+    int subtype;
+    unsigned int length;
     int scale;
+    int is_nullable;
     unsigned int offset;
     unsigned int null_offset;
-} firebird_field;
+} firebird_var;
 
 typedef struct firebird_stmt_info {
     unsigned char statement_type;
@@ -58,7 +62,6 @@ int FireBird_Statement___construct(zval *self, zval *transaction);
 int FireBird_Statement_prepare(zval *self, zend_string *sql);
 int FireBird_Statement_execute(zval *self, zval *bind_args, uint32_t num_bind_args);
 void FireBird_Statement_fetch(zval *self, int flags, zval *return_value);
-
 void register_FireBird_Statement_object_handlers();
 
 }
@@ -83,8 +86,8 @@ private:
     unsigned char *in_buffer = nullptr, *out_buffer = nullptr;
     HashTable *ht_aliases = nullptr, *ht_ind = nullptr;
     firebird_stmt_info info = {0};
-    std::vector<firebird_field> in_fields;
-    std::vector<firebird_field> out_fields;
+    std::vector<firebird_var> in_vars;
+    std::vector<firebird_var> out_vars;
 
     void insert_alias(const char *alias);
     void alloc_ht_aliases();
@@ -106,6 +109,7 @@ public:
     const firebird_stmt_info *get_info();
     IStatement *get();
     IResultSet *get_cursor();
+    void get_var_info(int in, unsigned int index, zval *var_info);
 };
 
 }

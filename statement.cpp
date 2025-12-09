@@ -14,8 +14,6 @@ extern "C" {
 fbp_object_accessor(firebird_stmt);
 static zend_object_handlers FireBird_Statement_object_handlers;
 
-// void FireBird_Var_Info_from_var(zval *return_value, XSQLVAR *var);
-
 int FireBird_Statement___construct(zval *self, zval *transaction)
 {
     firebird_stmt *stmt = get_firebird_stmt_from_zval(self);
@@ -187,21 +185,18 @@ int FireBird_Statement_prepare(zval *self, zend_string *sql)
 
 PHP_METHOD(FireBird_Statement, get_var_info_in)
 {
-    TODO("PHP_METHOD(FireBird_Statement, get_var_info_in)");
-#if 0
-    zend_long num;
-    firebird_stmt *stmt = get_firebird_stmt_from_zval(ZEND_THIS);
+    zend_long index;
 
     ZEND_PARSE_PARAMETERS_START(1, 1)
-        Z_PARAM_LONG(num)
+        Z_PARAM_LONG(index)
     ZEND_PARSE_PARAMETERS_END();
 
-    if (num < 0 || num >= stmt->in_sqlda->sqld) {
-        RETURN_FALSE;
-    }
+    firebird_stmt *stmt = get_firebird_stmt_from_zval(ZEND_THIS);
 
-    FireBird_Var_Info_from_var(return_value, stmt->in_sqlda->sqlvar + num);
-#endif
+    object_init_ex(return_value, FireBird_Var_Info_ce);
+    if (fbu_statement_get_var_info(stmt->dbh, stmt->sth, 1, index, return_value)) {
+        RETURN_THROWS();
+    }
 }
 
 PHP_METHOD(FireBird_Statement, get_var_info_out)
