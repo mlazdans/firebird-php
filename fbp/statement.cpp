@@ -87,7 +87,7 @@ void Statement::bind(zval *b_vars, unsigned int num_bind_args)
     FBDEBUG("%s(in_buffer=%p)", __func__, in_buffer);
     auto util = master->getUtilInterface();
 
-    char tmp_buf[256];
+    char tmp_buf[256], type_buf[64];
     struct tm t;
     const char *tformat;
     int64_t long_min, long_max;
@@ -114,12 +114,14 @@ void Statement::bind(zval *b_vars, unsigned int num_bind_args)
         auto scale = in_vars[i].scale;
         auto len_sqldata = in_vars[i].length;
 
+        auto type_named = fbu_get_sql_type_name(&in_vars[i], type_buf, sizeof(type_buf));
+
         *sqlind = 0;
 
         auto sqltype = in_vars[i].type;
 
         FBDEBUG("sqltype: %s, sql buflen: %d, phptype: %s",
-            fbu_get_sql_type_name(sqltype), len_sqldata, zend_zval_type_name(b_var));
+            type_named, len_sqldata, zend_zval_type_name(b_var));
 
         // Init
         long_min = long_max = 0;
@@ -202,7 +204,7 @@ void Statement::bind(zval *b_vars, unsigned int num_bind_args)
                     int sign, exp;
 
                     FBDEBUG("type: %s; scale: %d; s: %s",
-                        fbu_get_sql_type_name(sqltype), scale, Z_STRVAL_P(b_var)
+                        type_named, scale, Z_STRVAL_P(b_var)
                     );
 
                     int parse_err = fbu_string_to_numeric(Z_STRVAL_P(b_var), Z_STRLEN_P(b_var),
@@ -214,7 +216,7 @@ void Statement::bind(zval *b_vars, unsigned int num_bind_args)
                             case STRNUM_PARSE_OVERFLOW:
                                 slprintf(tmp_buf, sizeof(tmp_buf),
                                     "Argument %d: %s value %zu out of range [%ld, %ld]",
-                                    i, fbu_get_sql_type_name(sqltype), res, long_min, long_max
+                                    i, type_named, res, long_min, long_max
                                 );
                                 break;
                             default:
@@ -234,7 +236,7 @@ void Statement::bind(zval *b_vars, unsigned int num_bind_args)
                     if (long_val < long_min || long_val > long_max) {
                         slprintf(tmp_buf, sizeof(tmp_buf),
                             "Argument %d: %s value %ld out of range [%d, %d]",
-                            i, fbu_get_sql_type_name(sqltype), long_val, long_min, long_max
+                            i, type_named, long_val, long_min, long_max
                         );
                         throw Php_Firebird_Exception(zend_ce_value_error, std::string(tmp_buf));
                     }
@@ -259,7 +261,7 @@ void Statement::bind(zval *b_vars, unsigned int num_bind_args)
                 break;
 
             default:
-                fbp_fatal("Unhandled type check for sqltype: %s(%d)", fbu_get_sql_type_name(sqltype), sqltype);
+                fbp_fatal("Unhandled type check for sqltype: %s(%d)", type_named, sqltype);
         }
 
         // Populate metadata buffer
@@ -390,7 +392,7 @@ void Statement::bind(zval *b_vars, unsigned int num_bind_args)
 wrong_z_type: {
         slprintf(tmp_buf, sizeof(tmp_buf),
             "Argument %d: type mismatch '%s' to SQL type '%s'", i,
-            zend_get_type_by_const(Z_TYPE_P(b_var)), fbu_get_sql_type_name(sqltype));
+            zend_get_type_by_const(Z_TYPE_P(b_var)), type_named);
 
         throw Php_Firebird_Exception(zend_ce_type_error, std::string(tmp_buf));
     }
@@ -899,6 +901,7 @@ void Statement::get_var_info(int in, unsigned int index, zval *var_info)
         throw Php_Firebird_Exception(zend_ce_value_error, "Invalid var index");
     }
 
+    char type_buf[64];
     auto var = &(*vars)[index];
 
     zend_update_property_string(FireBird_Var_Info_ce, Z_OBJ_P(var_info),
@@ -909,6 +912,10 @@ void Statement::get_var_info(int in, unsigned int index, zval *var_info)
 
     zend_update_property_string(FireBird_Var_Info_ce, Z_OBJ_P(var_info),
         "relation", sizeof("relation") - 1, var->relation);
+
+    zend_update_property_string(FireBird_Var_Info_ce, Z_OBJ_P(var_info),
+        "type_str", sizeof("type_str") - 1,
+        fbu_get_sql_type_name(var, type_buf, sizeof(type_buf)));
 
     zend_update_property_long(FireBird_Var_Info_ce, Z_OBJ_P(var_info),
         "type", sizeof("type") - 1, var->type);

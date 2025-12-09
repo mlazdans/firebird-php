@@ -151,34 +151,59 @@ void fbu_handle_exception(const char *file, size_t line)
         return FAILURE;                           \
     }
 
-const char* fbu_get_sql_type_name(unsigned type)
+// +-----------+------------------------+---------------------+
+// | Precision | Data type              | Dialect 3           |
+// +-----------+------------------------+---------------------+
+// | 1 - 4     | NUMERIC                | SMALLINT            |
+// | 1 - 4     | DECIMAL                | INTEGER             |
+// | 5 - 9     | NUMERIC or DECIMAL     | INTEGER             |
+// | 10 - 18   | NUMERIC or DECIMAL     | BIGINT              |
+// | 19 - 38   | NUMERIC or DECIMAL     | INT128              |
+// +-----------+------------------------+---------------------+
+const char* fbu_get_sql_type_name(firebird_var *var, char *buf, size_t buf_size)
 {
-    switch (type)
-    {
-    case SQL_TEXT:            return "CHAR";
-    case SQL_VARYING:         return "VARCHAR";
-    case SQL_SHORT:           return "SHORT";
-    case SQL_LONG:            return "LONG";
-    case SQL_INT64:           return "BIGINT";
-    case SQL_FLOAT:           return "FLOAT";
-    case SQL_DOUBLE:          return "DOUBLE";
-    case SQL_DEC16:           return "DECFLOAT(16)";
-    case SQL_DEC34:           return "DECFLOAT(34)";
-    case SQL_INT128:          return "INT128";
-    case SQL_D_FLOAT:         return "D_FLOAT";
-    case SQL_TIMESTAMP:       return "TIMESTAMP";
-    case SQL_TIMESTAMP_TZ:    return "TIMESTAMP WITH TIME ZONE";
-    case SQL_TIMESTAMP_TZ_EX: return "EXTENDED TIMESTAMP WITH TIME ZONE";
-    case SQL_TYPE_DATE:       return "SQL DATE";
-    case SQL_TYPE_TIME:       return "TIME";
-    case SQL_TIME_TZ:         return "TIME WITH TIME ZONE";
-    case SQL_TIME_TZ_EX:      return "EXTENDED TIME WITH TIME ZONE";
-    case SQL_BLOB:            return "BLOB";
-    case SQL_ARRAY:           return "ARRAY";
-    case SQL_QUAD:            return "QUAD";
-    case SQL_BOOLEAN:         return "BOOLEAN";
-    case SQL_NULL:            return "NULL";
-    default:                  return "UNKNOWN";
+    unsigned short precision = 0;
+
+    if (var->scale < 0) {
+        switch (var->type) {
+            case SQL_SHORT  : precision = 4; break;
+            case SQL_LONG   : precision = 9; break;
+            case SQL_INT64  : precision = 18; break;
+            case SQL_INT128 : precision = 38; break;
+            default: fbp_fatal("BUG: unhandled type: %d with scale: %d", var->type, var->scale);
+        }
+
+        slprintf(buf, buf_size, "NUMERIC(%d,%d)", precision, -var->scale);
+
+        return buf;
+    } else {
+        switch (var->type)
+        {
+            case SQL_TEXT:            return "CHAR";
+            case SQL_VARYING:         return "VARCHAR";
+            case SQL_SHORT:           return "SMALLINT";
+            case SQL_LONG:            return "INTEGER";
+            case SQL_INT64:           return "BIGINT";
+            case SQL_FLOAT:           return "FLOAT";
+            case SQL_DOUBLE:          return "DOUBLE PRECISION";
+            case SQL_DEC16:           return "DECFLOAT(16)";
+            case SQL_DEC34:           return "DECFLOAT(34)";
+            case SQL_INT128:          return "INT128";
+            case SQL_D_FLOAT:         return "D_FLOAT";
+            case SQL_TIMESTAMP:       return "TIMESTAMP";
+            case SQL_TIMESTAMP_TZ:    return "TIMESTAMP WITH TIME ZONE";
+            case SQL_TIMESTAMP_TZ_EX: return "EXTENDED TIMESTAMP WITH TIME ZONE";
+            case SQL_TYPE_DATE:       return "DATE";
+            case SQL_TYPE_TIME:       return "TIME";
+            case SQL_TIME_TZ:         return "TIME WITH TIME ZONE";
+            case SQL_TIME_TZ_EX:      return "EXTENDED TIME WITH TIME ZONE";
+            case SQL_BLOB:            return "BLOB";
+            case SQL_ARRAY:           return "ARRAY";
+            case SQL_QUAD:            return "QUAD";
+            case SQL_BOOLEAN:         return "BOOLEAN";
+            case SQL_NULL:            return "NULL";
+            default:                  return "UNKNOWN";
+        }
     }
 }
 

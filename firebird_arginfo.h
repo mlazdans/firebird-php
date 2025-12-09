@@ -1,5 +1,5 @@
 /* This is a generated file, edit the .stub.php file instead.
- * Stub hash: f027fa2e987e8929570513f8fb17dc0e5f8f8fbe */
+ * Stub hash: 6e963d58f17096bc4b80a3ab2d67022db30d9bf9 */
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_get_client_version, 0, 0, IS_DOUBLE, 0)
 ZEND_END_ARG_INFO()
@@ -1086,6 +1086,12 @@ static zend_class_entry *register_class_FireBird_Var_Info(void)
 	zend_string *property_relation_name = zend_string_init("relation", sizeof("relation") - 1, true);
 	zend_declare_typed_property(class_entry, property_relation_name, &property_relation_default_value, ZEND_ACC_PUBLIC, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_STRING));
 	zend_string_release_ex(property_relation_name, true);
+
+	zval property_type_str_default_value;
+	ZVAL_UNDEF(&property_type_str_default_value);
+	zend_string *property_type_str_name = zend_string_init("type_str", sizeof("type_str") - 1, true);
+	zend_declare_typed_property(class_entry, property_type_str_name, &property_type_str_default_value, ZEND_ACC_PUBLIC, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_STRING));
+	zend_string_release_ex(property_type_str_name, true);
 
 	zval property_type_default_value;
 	ZVAL_UNDEF(&property_type_default_value);

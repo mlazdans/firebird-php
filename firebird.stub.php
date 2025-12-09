@@ -659,6 +659,7 @@ class Var_Info
     public string $field;
     public string $alias;
     public string $relation;
+    public string $type_str;
     public int $type;
     public int $subtype;
     public int $length;

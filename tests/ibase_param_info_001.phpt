@@ -27,6 +27,8 @@ object(FireBird\Var_Info) {
   string(0) ""
   ["relation"]=>
   string(0) ""
+  ["type_str"]=>
+  string(7) "INTEGER"
   ["type"]=>
   int(496)
   ["subtype"]=>

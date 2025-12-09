@@ -1,0 +1,42 @@
+--TEST--
+ibase_field_info(): basic fields
+--SKIPIF--
+<?php include("skipif.inc"); ?>
+--FILE--
+<?php declare(strict_types = 1);
+
+namespace FireBirdTests;
+
+require_once('functions.inc');
+require("common.inc");
+
+(function(){
+    $t = init_tmp_db(charset: "NONE")->start_transaction();
+    test_fields25($t);
+})();
+
+?>
+--EXPECT--
+ID/INTEGER/4
+SMALLINT_1/SMALLINT/2
+INTEGER_FIELD/INTEGER/4
+BIGINT_FIELD/BIGINT/8
+NUMERIC_1/NUMERIC(4,4)/2
+DECIMAL_1/NUMERIC(9,4)/4
+NUMERIC_2/NUMERIC(9,8)/4
+DECIMAL_2/NUMERIC(9,8)/4
+NUMERIC_3/NUMERIC(18,16)/8
+DECIMAL_3/NUMERIC(18,16)/8
+FLOAT_FIELD/FLOAT/4
+DOUBLE_FIELD/DOUBLE PRECISION/8
+CHAR_FIXED/CHAR/10
+VARCHAR_FIELD/VARCHAR/50
+CHAR_UTF8/CHAR/40
+VARCHAR_UTF8/VARCHAR/200
+DATE_FIELD/DATE/4
+TIME_FIELD/TIME/4
+TIMESTAMP_FIELD/TIMESTAMP/8
+BINARY_FIXED/CHAR/16
+VARBINARY_FIELD/VARCHAR/100
+BLOB_TEXT/BLOB/8
+BLOB_BINARY/BLOB/8
