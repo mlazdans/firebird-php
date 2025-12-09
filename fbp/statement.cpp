@@ -27,7 +27,7 @@ void Statement::prepare(unsigned int len_sql, const char *sql)
             "BUG: statement already prepared or internal structure corrupted");
     }
 
-    IStatement *tmp = tra.prepare(len_sql, sql);
+    IStatement *tmp = tra.prepare_statement(len_sql, sql);
 
     info.statement_type = tmp->getType(&st);
 

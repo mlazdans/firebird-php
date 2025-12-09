@@ -93,9 +93,10 @@ public:
     IResultSet *open_cursor(IStatement *statement,
         IMessageMetadata* input_metadata, void* in_buffer,
         IMessageMetadata* output_metadata);
-    IStatement* prepare(unsigned int len_sql, const char *sql);
+    IStatement* prepare_statement(unsigned int len_sql, const char *sql);
 
     void finalize(int mode);
+    void prepare();
 };
 
 } // namespace
@@ -108,6 +109,7 @@ typedef struct firebird_trans {
     size_t dbh;
     size_t trh;
     const firebird_trans_info *info;
+    int is_prepared_2pc;
 
     zend_object std;
 } firebird_trans;

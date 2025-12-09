@@ -45,6 +45,7 @@ int fbu_transaction_start(size_t dbh, size_t trh, const firebird_tbuilder *build
 int fbu_transaction_free(size_t dbh, size_t trh);
 int fbu_transaction_finalize(size_t dbh, size_t trh, int mode);
 int fbu_transaction_execute(size_t dbh, size_t trh, size_t len_sql, const char *sql);
+int fbu_transaction_prepare(size_t dbh, size_t trh);
 
 int fbu_statement_init(size_t dbh, size_t trh, size_t *sth);
 int fbu_statement_get_info(size_t dbh, size_t sth, const firebird_stmt_info **info);

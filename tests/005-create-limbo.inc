@@ -16,36 +16,34 @@ require_once('functions.inc');
 
     $tr_id = (function() use ($db): int {
         // Create table
-        $t = $db->new_transaction()                              or print_error_and_die("new_transaction", $db);
-        $t->start()                                                or print_error_and_die("transaction start", $t);
-
-        if(!exec_from_file_ddl($t, "001-table.sql")) {
-            print_error_and_die("create_table", $t);
-        }
-
-        $t->commit_ret()                                           or print_error_and_die("commit_ret", $t);
+        $t = $db->start_transaction();
+        // exec_from_file_ddl($t, "001-table.sql");
 
         // First insert some data via standard transaction
-        $t->query("INSERT INTO TEST_001 (BLOB_1) VALUES (?)", "Bogus mogus") or print_error_and_die("query", $t);
-        $t->query("INSERT INTO TEST_001 (BLOB_1) VALUES (?)", "Foo bar")     or print_error_and_die("query", $t);
-        $t->commit()                                                         or print_error_and_die("commit", $t);
+        $t->query("INSERT INTO TEST_001 (BLOB_1) VALUES (?)", "Bogus mogus");
+        $t->query("INSERT INTO TEST_001 (BLOB_1) VALUES (?)", "Foo bar");
+        $t->commit();
 
         // Insert more data and put transaction in limbo
-        $t = $db->new_transaction()                                                          or print_error_and_die("new_transaction2", $db);
-        $t->start()                                                                            or print_error_and_die("transaction start", $t);
-        $t->query("INSERT INTO TEST_001 (BLOB_1) VALUES (?)", "Hello from transaction $t->id") or print_error_and_die("query", $t);
-        $t->prepare_2pc()                                                                      or print_error_and_die("prepare_2pc", $t);
+        $t = $db->start_transaction();
+        $t->query("INSERT INTO TEST_001 (BLOB_1) VALUES (?)", "Hello from transaction $t->id");
+        $t->prepare_2pc();
 
         print "Transaciton ID: $t->id prepared for two-phase commit\n";
 
         // These both inserts should fail because transaction has been prepared for 2pc
-        if($t->query("INSERT INTO TEST_001 (BLOB_1) VALUES (?)", "Hello from insert after 2pc transaction $t->id")) {
-            die("No insert after prepare_2pc should happen!");
+        try {
+            $t->query("INSERT INTO TEST_001 (BLOB_1) VALUES (?)", "Hello from insert after 2pc transaction $t->id");
+            die2("No insert after prepare_2pc should happen!");
+        } catch (\FireBird\Fb_Exception) {
         }
 
         if($p = $t->prepare("INSERT INTO TEST_001 (BLOB_1) VALUES (?)")) {
-            if($p->execute("Hello from prepare after 2pc transaction $t->id")) {
-                die("No prepare after prepare_2pc should happen!");
+            try {
+                if($p->execute("Hello from prepare after 2pc transaction $t->id")) {
+                    die2("No prepare after prepare_2pc should happen!");
+                }
+            } catch (\FireBird\Fb_Exception) {
             }
             $p->free();
         }

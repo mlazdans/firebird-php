@@ -5,23 +5,18 @@ FireBird: two-phase commit
 
 namespace FireBirdTests;
 
-die ("skip TODO");
-
 // Hacky way to simulate limbo transaction. In separate process create
 // transaction, prepare and then just exit. Share created database path and
 // transaction id with main test
 
-
 include("skipif.inc");
-
-$php_ini_path = realpath(__DIR__.DIRECTORY_SEPARATOR.'..');
 
 $cmd = $_SERVER['TEST_PHP_EXECUTABLE'] ?? $_SERVER['TEST_PHP_CGI_EXECUTABLE'] ?? false or die("skip TEST_PHP_EXECUTABLE and TEST_PHP_CGI_EXECUTABLE env not set");
 $extra_args = $_SERVER['TEST_PHP_EXTRA_ARGS'] ?? "";
 $cmd .= " $extra_args -d \"firebird.debug=0\" \"".__DIR__.DIRECTORY_SEPARATOR."005-create-limbo.inc".'"';
 
 if((false === exec($cmd, $output, $result)) || $result) {
-    "skip Could not execute limbo transaction creating in separate process";
+    printf("skip Could not execute limbo transaction creating in separate process: %s", join(" ", $output));
 }
 
 ?>
@@ -55,44 +50,40 @@ require_once('functions.inc');
     $args->database = $limbo_database_path;
 
     $printer = function() use ($args) {
-        $conn = new \FireBird\Connector;
-        $db = $conn->connect($args)                   or print_error_and_die("2nd connection", $conn);
-        $t = $db->new_transaction()                 or print_error_and_die("new_transaction", $db);
-        $t->start()                                   or print_error_and_die("transaction start", $t);
-        $q = $t->query("SELECT BLOB_1 FROM TEST_001") or print_error_and_die("query", $t);
+        $db = \FireBird\Database::connect($args);
+        $t = $db->start_transaction();
+        $q = $t->query("SELECT BLOB_1 FROM TEST_001");
 
-        fetch_and_print($q, \FireBird\FETCH_BLOBS);
+        fetch_and_print($q, \FireBird\FETCH_FETCH_BLOB_TEXT);
 
-        $q->free()                                    or print_error_and_die("free", $q);
-        $t->commit()                                  or print_error_and_die("commit", $t);
-        $db->disconnect()                           or print_error_and_die("disconnect2", $db);
+        $q->free();
+        $t->commit();
+        $db->disconnect();
     };
 
     $get_limbo_array = function() use ($args) {
-        $conn = new \FireBird\Connector;
-        $db = $conn->connect($args) or print_error_and_die("limbo connection", $conn);
-
-        if(false === ($limbo = $db->get_limbo_transactions(100))) {
-            print_error_and_die("get_limbo_transactions", $db);
-        }
+        $db = \FireBird\Database::connect($args);
+        $limbo = $db->get_limbo_transactions(100);
 
         printf("Limbo transaction count: %d, expected count: %d\n", count($limbo), 1);
-        $db->disconnect() or print_error_and_die("disconnect limbo", $db);
+        $db->disconnect();
     };
 
     $get_limbo_array();
 
     $reconnecter = function(int $tr_id) use ($args) {
-        $conn = new \FireBird\Connector;
-
-        $db = $conn->connect($args)               or print_error_and_die("3rd connection", $conn);
-        $t = $db->reconnect_transaction($tr_id) or print_error_and_die("reconnect_transaction", $db);
-        $t->commit()                              or print_error_and_die("commit", $t);
-        $db->disconnect()                       or print_error_and_die("disconnect3", $db);
+        $db = \FireBird\Database::connect($args);
+        $t = $db->reconnect_transaction($tr_id);
+        $t->commit();
+        $db->disconnect();
     };
 
     hl("Step 1");
-    $printer(); // Should not print only two inserted rows and error about transaction in limbo
+    try {
+        $printer(); // Should not print only two inserted rows and error about transaction in limbo
+    } catch (\FireBird\Fb_Exception $e) {
+        print $e->getMessage()."\n";
+    }
 
     hl("Step 2");
     $reconnecter($tr_id);
@@ -100,25 +91,43 @@ require_once('functions.inc');
 
     // Test reconnect to a bogus transaction
     (function(int $tr_id) use ($args) {
-        $conn = new \FireBird\Connector;
-
-        $db = $conn->connect($args)               or print_error_and_die("4th connection", $conn);
-        if(false === $db->reconnect_transaction($tr_id)) {
-            print_error("reconnect_transaction", $db);
-        } else {
-            user_error("reconnect_transaction with bogus transaction should not succeed!", E_USER_ERROR);
-        }
-        $db->disconnect()                       or print_error_and_die("disconnect3", $db);
+        $db = \FireBird\Database::connect($args);
+        $db->reconnect_transaction($tr_id);
+        $db->disconnect();
     })(999);
 
     // Drop
-    $conn = new \FireBird\Connector;
-    $db = $conn->connect($args)  or print_error_and_die("4th connection", $conn);
-    $db->drop()          or print_error_and_die("drop", $db);
+    $db = \FireBird\Database::connect($args);
+    $db->drop();
 
     unlink($share_path);
 })();
 
 ?>
---EXPECTF_EXTERNAL--
-005.out.txt
+--EXPECTF--
+Limbo transaction count: 1, expected count: 1
+==================================== Step 1 ====================================
+object(stdClass) {
+  ["BLOB_1"]=>
+  string(11) "Bogus mogus"
+}
+object(stdClass) {
+  ["BLOB_1"]=>
+  string(7) "Foo bar"
+}
+record from transaction %d is stuck in limbo
+==================================== Step 2 ====================================
+object(stdClass) {
+  ["BLOB_1"]=>
+  string(11) "Bogus mogus"
+}
+object(stdClass) {
+  ["BLOB_1"]=>
+  string(7) "Foo bar"
+}
+object(stdClass) {
+  ["BLOB_1"]=>
+  string(24) "Hello from transaction %d"
+}
+transaction is not in limbo
+transaction 999 is in an ill-defined state %s

@@ -319,7 +319,7 @@ class Transaction
     /**
      * Prepares transaction for two-phase commit.
      * */
-    // public function prepare_2pc(): bool { die; }
+    public function prepare_2pc(): void { die; }
 }
 
 class Statement

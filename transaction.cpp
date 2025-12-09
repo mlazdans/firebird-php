@@ -196,21 +196,15 @@ PHP_METHOD(FireBird_Transaction, create_blob)
 
 PHP_METHOD(FireBird_Transaction, prepare_2pc)
 {
-    TODO("PHP_METHOD(FireBird_Transaction, prepare_2pc)");
-#if 0
     ZEND_PARSE_PARAMETERS_NONE();
 
     firebird_trans *tr = get_firebird_trans_from_zval(ZEND_THIS);
 
-    if (isc_prepare_transaction(FBG(status), tr->tr_handle)) {
-        update_err_props(FBG(status), FireBird_Transaction_ce, ZEND_THIS);
-        RETURN_FALSE;
+    if (fbu_transaction_prepare(tr->dbh, tr->trh)) {
+        RETURN_THROWS();
     }
 
     tr->is_prepared_2pc = 1;
-
-    RETURN_TRUE;
-#endif
 }
 
 static zend_object *FireBird_Transaction_create_object(zend_class_entry *ce)
@@ -231,7 +225,7 @@ static void FireBird_Transaction_free_obj(zend_object *obj)
 
     FBDEBUG("~%s(tr=%p, tr->trh=%zu)", __func__, tr, tr->trh);
 
-    if (fbu_is_valid_trh(tr->dbh, tr->trh)) {
+    if (fbu_is_valid_trh(tr->dbh, tr->trh) && !tr->is_prepared_2pc) {
         if (fbu_transaction_free(tr->dbh, tr->trh)) {
             // throws
         }

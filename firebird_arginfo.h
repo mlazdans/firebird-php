@@ -1,5 +1,5 @@
 /* This is a generated file, edit the .stub.php file instead.
- * Stub hash: 66bae00ae3da268e730f45671c48491d4bf0e1d6 */
+ * Stub hash: 652ebb36016282252ed67088a510d6334d77667d */
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_get_client_version, 0, 0, IS_DOUBLE, 0)
 ZEND_END_ARG_INFO()
@@ -87,6 +87,8 @@ ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_FireBird_Transaction_execute, 0, 1, IS_VOID, 0)
 	ZEND_ARG_TYPE_INFO(0, sql, IS_STRING, 0)
 ZEND_END_ARG_INFO()
+
+#define arginfo_class_FireBird_Transaction_prepare_2pc arginfo_class_FireBird_Database_disconnect
 
 #define arginfo_class_FireBird_Statement___construct arginfo_class_FireBird_Database___construct
 
@@ -239,6 +241,7 @@ ZEND_METHOD(FireBird_Transaction, prepare);
 ZEND_METHOD(FireBird_Transaction, open_blob);
 ZEND_METHOD(FireBird_Transaction, create_blob);
 ZEND_METHOD(FireBird_Transaction, execute);
+ZEND_METHOD(FireBird_Transaction, prepare_2pc);
 ZEND_METHOD(FireBird_Statement, __construct);
 ZEND_METHOD(FireBird_Statement, fetch_object);
 ZEND_METHOD(FireBird_Statement, fetch_array);
@@ -317,6 +320,7 @@ static const zend_function_entry class_FireBird_Transaction_methods[] = {
 	ZEND_ME(FireBird_Transaction, open_blob, arginfo_class_FireBird_Transaction_open_blob, ZEND_ACC_PUBLIC)
 	ZEND_ME(FireBird_Transaction, create_blob, arginfo_class_FireBird_Transaction_create_blob, ZEND_ACC_PUBLIC)
 	ZEND_ME(FireBird_Transaction, execute, arginfo_class_FireBird_Transaction_execute, ZEND_ACC_PUBLIC)
+	ZEND_ME(FireBird_Transaction, prepare_2pc, arginfo_class_FireBird_Transaction_prepare_2pc, ZEND_ACC_PUBLIC)
 	ZEND_FE_END
 };
 

@@ -515,6 +515,13 @@ int fbu_transaction_execute(size_t dbh, size_t trh, size_t len_sql, const char *
     fbu_ex_wrap_end();
 }
 
+int fbu_transaction_prepare(size_t dbh, size_t trh)
+{
+    FBDEBUG("%s(dbh=%zu, trh=%zu)", __func__, dbh, trh);
+    fbu_ex_wrap_start();
+        get_db(dbh)->get_transaction(trh)->prepare();
+    fbu_ex_wrap_end();
+}
 
 int fbu_statement_init(size_t dbh, size_t trh, size_t *sth)
 {

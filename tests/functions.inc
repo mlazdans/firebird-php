@@ -140,17 +140,9 @@ function rand_number($len , $prec = -1, $sign = 1)
 
 function load_file_or_die(string $path): string
 {
-    if(!is_file($path)) {
-        die("ERROR: file not found $path");
-    }
-
-    if(!is_readable($path)) {
-        die("ERROR: file is not readable $path");
-    }
-
-    if(false === ($data = file_get_contents($path))) {
-        die("ERROR: could not load file $path");
-    }
+    if (!is_file($path)) die2("ERROR: file not found $path");
+    if (!is_readable($path)) die2("ERROR: file is not readable $path");
+    if (false === ($data = file_get_contents($path))) die2("ERROR: could not load file $path");
 
     return $data;
 }
@@ -533,25 +525,31 @@ function dump_table_rows(\FireBird\Transaction $t, $table, int $flags = 0): void
     dump_rows($t->query($sql), $flags);
 }
 
+function die2(string $msg)
+{
+    printf($msg);
+    exit(1);
+}
+
 function skip_if_fb_lt(float $v): void
 {
-    if(($cv = get_fb_version()) < $v)die("skip Firebird server version $cv < $v");
+    if(($cv = get_fb_version()) < $v)die2("skip Firebird server version $cv < $v");
 }
 
 function skip_if_fb_gt(float $v): void
 {
-    if(($cv = get_fb_version()) > $v)die("skip Firebird server version $cv > $v");
+    if(($cv = get_fb_version()) > $v)die2("skip Firebird server version $cv > $v");
 }
 
 function skip_if_fb_gte(float $v): void
 {
-    if(($cv = get_fb_version()) >= $v)die("skip Firebird server version $cv >= $v");
+    if(($cv = get_fb_version()) >= $v)die2("skip Firebird server version $cv >= $v");
 }
 
 // TODO: once service
 function get_fb_version(): float
 {
-    die("TODO: once service");
+    die2("TODO: once service");
     // global $host, $user, $password, $fb_version, $fb_version_str;
 
     // if(isset($fb_version)) return $fb_version;
