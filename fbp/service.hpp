@@ -2,9 +2,8 @@
 
 #include <firebird/Interface.h>
 
-#include "fbp/base.hpp"
-
-#include "firebird_php.hpp"
+#include "./base.hpp"
+#include "../firebird_php.hpp"
 
 extern "C" {
 

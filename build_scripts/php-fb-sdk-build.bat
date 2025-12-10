@@ -41,10 +41,10 @@ exit /B
     )
 
     if "%pfb_arch%" == "x86" (
-        set with_interbase="shared,%PFB_FB32_DIR%"
+        set with_firebird="shared,%PFB_FB32_DIR%"
         set build_msg=%build_msg% x86
     ) else (
-        set with_interbase="shared,%PFB_FB64_DIR%"
+        set with_firebird="shared,%PFB_FB64_DIR%"
         set build_msg=%build_msg% x86_64
     )
 
@@ -53,5 +53,5 @@ exit /B
     call phpsdk_buildtree php%pfb_php_vers%
     cd /D php-src
     call buildconf.bat --force --add-modules-dir=%PFB_SOURCE_DIR%
-    call configure.bat --disable-all --enable-cli %PFB_CONFIGURE_FLAGS% %extra_args% --with-interbase=%with_interbase%
+    call configure.bat --disable-all --enable-cli %PFB_CONFIGURE_FLAGS% %extra_args% --with-firebird=%with_firebird%
     nmake

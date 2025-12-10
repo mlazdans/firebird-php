@@ -9,31 +9,37 @@ extern "C" {
 fbp_object_accessor(firebird_service);
 static zend_object_handlers FireBird_Service_object_handlers;
 
-firebird_xpb_zmap fbp_service_connect_zmap = XPB_ZMAP_INIT(
-    ((const uint8_t[]){
-        isc_spb_user_name, isc_spb_password
-    }),
-    ((const char *[]){
-        "user_name", "password"
-    }),
-    ((uint32_t []) {
-        MAY_BE_STRING, MAY_BE_STRING
-    })
+constexpr uint8_t fbp_service_connect_tags[] {
+    isc_spb_user_name, isc_spb_password
+};
+constexpr const char *fbp_service_connect_names[] {
+    "user_name", "password"
+};
+constexpr uint32_t fbp_service_connect_ztypes[] {
+    MAY_BE_STRING, MAY_BE_STRING
+};
+firebird_xpb_zmap fbp_service_connect_zmap XPB_ZMAP_INIT(
+    fbp_service_connect_tags,
+    fbp_service_connect_names,
+    fbp_service_connect_ztypes
 );
 
-firebird_xpb_zmap fbp_user_info_zmap = XPB_ZMAP_INIT(
-    ((const uint8_t[]){
-        isc_spb_sec_username, isc_spb_sec_password, isc_spb_sec_firstname, isc_spb_sec_middlename,
-        isc_spb_sec_lastname, isc_spb_sec_admin
-    }),
-    ((const char *[]){
-        "username", "password", "firstname", "middlename",
-        "lastname", "admin"
-    }),
-    ((uint32_t []) {
-        MAY_BE_STRING, MAY_BE_STRING, MAY_BE_STRING, MAY_BE_STRING,
-        MAY_BE_STRING, MAY_BE_TRUE | MAY_BE_FALSE
-    })
+constexpr uint8_t fbp_user_info_tags[] {
+    isc_spb_sec_username, isc_spb_sec_password, isc_spb_sec_firstname, isc_spb_sec_middlename,
+    isc_spb_sec_lastname, isc_spb_sec_admin
+};
+constexpr const char *fbp_user_info_names[] {
+    "username", "password", "firstname", "middlename",
+    "lastname", "admin"
+};
+constexpr uint32_t fbp_user_info_ztypes[] {
+    MAY_BE_STRING, MAY_BE_STRING, MAY_BE_STRING, MAY_BE_STRING,
+    MAY_BE_STRING, MAY_BE_TRUE | MAY_BE_FALSE
+};
+firebird_xpb_zmap fbp_user_info_zmap XPB_ZMAP_INIT(
+    fbp_user_info_tags,
+    fbp_user_info_names,
+    fbp_user_info_ztypes
 );
 
 PHP_METHOD(FireBird_Service, __construct)

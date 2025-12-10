@@ -5,7 +5,7 @@
 */
 
 #include <firebird/Interface.h>
-#include <execinfo.h>
+// #include <execinfo.h>
 #include <iostream>
 #include <cstdlib>
 #include <string>
@@ -363,6 +363,7 @@ int fbu_is_valid_dbh(size_t dbh)
 }
 
 static inline std::unique_ptr<Database>& get_db_ptr(std::size_t h, const char *file_name, size_t line_num)
+noexcept(false)
 {
     if (fbu_is_valid_dbh(h)) {
         return FBG(db_list)[h - 1];
@@ -377,6 +378,7 @@ int fbu_is_valid_svh(size_t svh)
 }
 
 static inline std::unique_ptr<Service>& get_sv_ptr(std::size_t h, const char *file_name, size_t line_num)
+noexcept(false)
 {
     if (fbu_is_valid_svh(h)) {
         return FBG(sv_list)[h - 1];

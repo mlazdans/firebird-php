@@ -2,9 +2,9 @@
 
 #include <firebird/Interface.h>
 
-#include "fbp/base.hpp"
-#include "fbp/database.hpp"
-#include "fbp/transaction.hpp"
+#include "./base.hpp"
+#include "./database.hpp"
+#include "./transaction.hpp"
 
 #define BLOB_ID_LEN     18
 #define BLOB_ID_MASK    "0x%" LL_MASK "x"

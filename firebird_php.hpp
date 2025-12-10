@@ -4,7 +4,22 @@
 #include <vector>
 #include <memory>
 
-#define PHP_FIREBIRD_VERSION "0.0.1-alpha"
+#define PHP_FIREBIRD_VER_MAJOR 0
+#define PHP_FIREBIRD_VER_MINOR 0
+#define PHP_FIREBIRD_VER_REV 2
+#define PHP_FIREBIRD_VER_PRE "-alpha"
+
+#define TO_STRING_(x) #x
+#define TO_STRING(x) TO_STRING_(x)
+
+// Keep two digit style similar to FB_API_VER
+#define PHP_FIREBIRD_VER PHP_FIREBIRD_VER_MAJOR * 10 + PHP_FIREBIRD_VER_MINOR
+#define PHP_FIREBIRD_VER_STR \
+  TO_STRING(PHP_FIREBIRD_VER_MAJOR) "." \
+  TO_STRING(PHP_FIREBIRD_VER_MINOR) "." \
+  TO_STRING(PHP_FIREBIRD_VER_REV) \
+  PHP_FIREBIRD_VER_PRE
+
 #define METADATALENGTH 63*4
 // #define TPB_MAX_SIZE (32)
 
@@ -71,8 +86,13 @@ ZEND_TSRMLS_CACHE_EXTERN()
 #define update_err_props(status, _nd1, _nd2)
 
 #ifdef PHP_DEBUG
-#define FBDEBUG(format, ...) if(FBG(debug))php_printf(format " (%s:%d)\n" __VA_OPT__(,) __VA_ARGS__, __FILE__, __LINE__);
-#define FBDEBUG_NOFL(format, ...) if(FBG(debug))php_printf(format "\n" __VA_OPT__(,) __VA_ARGS__);
+#  ifdef PHP_WIN32
+#  define FBDEBUG(format, ...) if(FBG(debug))php_printf(format " (%s:%d)\n", ## __VA_ARGS__, __FILE__, __LINE__);
+#  define FBDEBUG_NOFL(format, ...) if(FBG(debug))php_printf(format "\n", ## __VA_ARGS__);
+#else
+#  define FBDEBUG(format, ...) if(FBG(debug))php_printf(format " (%s:%d)\n" __VA_OPT__(,) __VA_ARGS__, __FILE__, __LINE__);
+#  define FBDEBUG_NOFL(format, ...) if(FBG(debug))php_printf(format "\n" __VA_OPT__(,) __VA_ARGS__);
+#endif
 #else
 #define FBDEBUG(...)
 #define FBDEBUG_NOFL(...)
@@ -121,24 +141,16 @@ void fbp_error_ex(long level, const char *, ...)
 
 typedef struct firebird_xpb_zmap {
     const uint8_t *tags;
-    const char **names;
-    uint32_t *ztypes;
+    const char * const *names;
+    const uint32_t *ztypes;
     const short count;
 } firebird_xpb_zmap;
 
-#define _XPB_ZMAP_INIT(t, n, z) { \
-    .tags = t,                    \
-    .names = n,                   \
-    .ztypes = z,                  \
-    .count = ARRAY_SIZE(t)        \
-}
-
-#ifndef _MSC_VER
-#define XPB_ZMAP_INIT(t, n, z) _XPB_ZMAP_INIT(t, n, z); \
-static_assert(ARRAY_SIZE(t) == ARRAY_SIZE(n) && ARRAY_SIZE(n) == ARRAY_SIZE(z), "Array sizes do not match")
-#else
-#define XPB_ZMAP_INIT(t, n, z) _XPB_ZMAP_INIT(t, n, z)
-#endif
+#define XPB_ZMAP_INIT(t, n, z) { t, n, z, ARRAY_SIZE(t) }; \
+static_assert(                                             \
+    ARRAY_SIZE(t) == ARRAY_SIZE(n) &&                      \
+    ARRAY_SIZE(n) == ARRAY_SIZE(z),                        \
+    "Array sizes do not match")
 
 #define update_ferr_props(ce, obj, error_msg, error_msg_len, error_code, error_code_long)                      \
     do {                                                                                                       \

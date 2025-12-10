@@ -4,9 +4,9 @@
 #include <memory>
 #include <firebird/Interface.h>
 
-#include "fbp/base.hpp"
-#include "fbp/statement.hpp"
-#include "firebird_php.hpp"
+#include "./base.hpp"
+#include "./statement.hpp"
+#include "../firebird_php.hpp"
 
 #define TRANS_ID_SIZE 7
 

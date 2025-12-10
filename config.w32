@@ -1,5 +1,3 @@
-// vim:ft=javascript
-
 ARG_WITH("firebird", "Include Firebird support. DIR is the Firebird base install directory", "no");
 
 if (PHP_FIREBIRD != "no") {
@@ -9,8 +7,9 @@ if (PHP_FIREBIRD != "no") {
             CHECK_LIB("gds32_ms.lib", "firebird", PHP_FIREBIRD + "\\lib")
         )
     ) {
-        EXTENSION("firebird", "firebird.c fbp_database.c database.c fbp_transaction.c transaction.c fbp_statement.c statement.c fbp_blob.c blob.c error.c var_info.c event.c fbp_service.c service.c tbuilder.c multi_transaction.c fbp_multi_transaction.c firebird_utils.cpp fbp/*cpp", PHP_FIREBIRD_SHARED, "/DZEND_ENABLE_STATIC_TSRMLS_CACHE=1");
+        EXTENSION("firebird", "firebird_php.cpp database.cpp transaction.cpp statement.cpp blob.cpp service.cpp tbuilder.cpp firebird_utils.cpp fbp\\blob.cpp fbp\\database.cpp fbp\\service.cpp fbp\\statement.cpp fbp\\transaction.cpp", PHP_FIREBIRD_SHARED, "/DZEND_ENABLE_STATIC_TSRMLS_CACHE=1");
         AC_DEFINE('HAVE_FIREBIRD', 1, 'Have firebird library');
+        ADD_FLAG("CFLAGS_FIREBIRD", "/EHsc");
     } else {
         WARNING("firebird not enabled; libraries and headers not found");
     }

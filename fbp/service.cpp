@@ -3,10 +3,9 @@
 #include <firebird/Interface.h>
 #include <stdint.h>
 
-#include "firebird_utils.h"
-
-#include "fbp/base.hpp"
-#include "fbp/service.hpp"
+#include "./base.hpp"
+#include "./service.hpp"
+#include "../firebird_utils.h"
 
 using namespace Firebird;
 

@@ -1,7 +1,8 @@
 #include "firebird_php.hpp"
 #include "firebird_utils.h"
 
-extern "C" {
+extern "C"
+{
 #include "php.h"
 #include "zend_exceptions.h"
 #include "zend_attributes.h"
@@ -41,34 +42,40 @@ static zend_object_handlers FireBird_Database_object_handlers;
 // dpb_set_force_write
 // ✅ dpb_force_write
 
-firebird_xpb_zmap fbp_database_create_zmap = XPB_ZMAP_INIT(
-    ((const uint8_t[]){
-        isc_dpb_user_name, isc_dpb_password, isc_dpb_set_db_charset, isc_dpb_sweep_interval,
-        isc_dpb_set_page_buffers, isc_dpb_page_size, isc_dpb_force_write, isc_dpb_overwrite,
-        isc_dpb_connect_timeout
-    }),
-    ((const char *[]){
-        "user_name", "password", "set_db_charset", "sweep_interval",
-        "set_page_buffers", "page_size", "force_write", "overwrite",
-        "timeout"
-    }),
-    ((uint32_t []) {
-        MAY_BE_STRING, MAY_BE_STRING, MAY_BE_STRING, MAY_BE_LONG,
-        MAY_BE_LONG, MAY_BE_LONG, MAY_BE_BOOL, MAY_BE_BOOL,
-        MAY_BE_LONG
-    })
+constexpr uint8_t fbp_database_tags[] {
+    isc_dpb_user_name, isc_dpb_password, isc_dpb_set_db_charset, isc_dpb_sweep_interval,
+    isc_dpb_set_page_buffers, isc_dpb_page_size, isc_dpb_force_write, isc_dpb_overwrite,
+    isc_dpb_connect_timeout
+};
+constexpr const char *fbp_database_names[] {
+    "user_name", "password", "set_db_charset", "sweep_interval",
+    "set_page_buffers", "page_size", "force_write", "overwrite",
+    "timeout"
+};
+constexpr uint32_t fbp_database_ztypes[] {
+    MAY_BE_STRING, MAY_BE_STRING, MAY_BE_STRING, MAY_BE_LONG,
+    MAY_BE_LONG, MAY_BE_LONG, MAY_BE_BOOL, MAY_BE_BOOL,
+    MAY_BE_LONG
+};
+firebird_xpb_zmap fbp_database_create_zmap XPB_ZMAP_INIT(
+    fbp_database_tags,
+    fbp_database_names,
+    fbp_database_ztypes
 );
 
-firebird_xpb_zmap fbp_database_connect_zmap = XPB_ZMAP_INIT(
-    ((const uint8_t[]){
-        isc_dpb_user_name, isc_dpb_password, isc_dpb_lc_ctype, isc_dpb_sql_role_name, isc_dpb_num_buffers, isc_dpb_connect_timeout
-    }),
-    ((const char *[]){
-        "user_name", "password", "charset", "role_name", "num_buffers", "timeout"
-    }),
-    ((uint32_t []) {
-        MAY_BE_STRING, MAY_BE_STRING, MAY_BE_STRING, MAY_BE_STRING, MAY_BE_LONG, MAY_BE_LONG
-    })
+constexpr uint8_t fbp_database_connect_tags[] {
+    isc_dpb_user_name, isc_dpb_password, isc_dpb_lc_ctype, isc_dpb_sql_role_name, isc_dpb_num_buffers, isc_dpb_connect_timeout
+};
+constexpr const char *fbp_database_connect_names[] {
+    "user_name", "password", "charset", "role_name", "num_buffers", "timeout"
+};
+constexpr uint32_t fbp_database_connect_ztypes[] {
+    MAY_BE_STRING, MAY_BE_STRING, MAY_BE_STRING, MAY_BE_STRING, MAY_BE_LONG, MAY_BE_LONG
+};
+firebird_xpb_zmap fbp_database_connect_zmap XPB_ZMAP_INIT(
+    fbp_database_connect_tags,
+    fbp_database_connect_names,
+    fbp_database_connect_ztypes
 );
 
 PHP_METHOD(FireBird_Database, connect)
@@ -343,5 +350,4 @@ void register_FireBird_Database_object_handlers() {
     FireBird_Database_object_handlers.offset = XtOffsetOf(firebird_db, std);
     FireBird_Database_object_handlers.free_obj = FireBird_Database_free_obj;
 }
-
 }

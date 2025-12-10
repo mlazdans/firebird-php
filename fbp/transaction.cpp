@@ -2,13 +2,13 @@
 #include <memory>
 #include <firebird/Interface.h>
 
-#include "fbp/base.hpp"
-#include "fbp/database.hpp"
-#include "fbp/blob.hpp"
-#include "firebird_php.hpp"
+#include "./base.hpp"
+#include "./database.hpp"
+#include "./blob.hpp"
+#include "../firebird_php.hpp"
 
 extern "C" {
-#include "firebird_utils.h"
+#include "../firebird_utils.h"
 #include "zend_exceptions.h"
 }
 

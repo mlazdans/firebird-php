@@ -9,5 +9,4 @@ class Config {
     static string $host         = "localhost/3050";
     static string $charset      = "utf8";
     static bool $skip_ext_error = true;
-    static string $tmp_root     = "/tmp";             // Put your Firebird server tmp root here
 }

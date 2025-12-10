@@ -204,7 +204,7 @@ int FireBird_Blob_seek(zval *self, int mode, int offset, int *new_offset)
 PHP_METHOD(FireBird_Blob, seek)
 {
     zend_long offset, mode;
-    ISC_LONG new_offset = 0;
+    int new_offset = 0;
 
     ZEND_PARSE_PARAMETERS_START(2, 2)
         Z_PARAM_LONG(offset)

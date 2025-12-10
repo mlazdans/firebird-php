@@ -52,7 +52,7 @@ zend_module_entry firebird_module_entry = {
     PHP_RINIT(firebird),
     PHP_RSHUTDOWN(firebird),
     PHP_MINFO(firebird),
-    PHP_FIREBIRD_VERSION,
+    PHP_FIREBIRD_VER_STR,
     PHP_MODULE_GLOBALS(firebird),
     PHP_GINIT(firebird),
     NULL,
@@ -247,7 +247,7 @@ PHP_MINFO_FUNCTION(firebird)
         "static");
 #endif
 
-    php_info_print_table_row(2, "Interbase extension version", PHP_FIREBIRD_VERSION);
+    php_info_print_table_row(2, "Interbase extension version", PHP_FIREBIRD_VER_STR);
 
     snprintf( (s = tmp), sizeof(tmp), "Firebird API version %d", FB_API_VER);
     php_info_print_table_row(2, "Compile-time Client Library Version", s);

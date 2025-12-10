@@ -1,14 +1,18 @@
 #include <firebird/Interface.h>
 
-#include "fbp/base.hpp"
-#include "fbp/database.hpp"
-#include "fbp/statement.hpp"
-#include "firebird_php.hpp"
+#include "./base.hpp"
+#include "./database.hpp"
+#include "./statement.hpp"
+#include "../firebird_php.hpp"
 
 extern "C" {
 #include "ext/date/php_date.h"
-#include "firebird_utils.h"
+#include "../firebird_utils.h"
 }
+
+#ifdef _MSC_VER
+#define timegm _mkgmtime
+#endif
 
 using namespace Firebird;
 
@@ -51,31 +55,31 @@ void Statement::prepare(unsigned int len_sql, const char *sql)
 
     for (unsigned int index = 0; index < info.in_vars_count; index++) {
         in_vars[index] = firebird_var {
-            .field = input_metadata->getField(&st, index),
-            .alias = input_metadata->getAlias(&st, index),
-            .relation = input_metadata->getRelation(&st, index),
-            .type = input_metadata->getType(&st, index),
-            .subtype = input_metadata->getSubType(&st, index),
-            .length = input_metadata->getLength(&st, index),
-            .scale = input_metadata->getScale(&st, index),
-            .is_nullable = (int)input_metadata->isNullable(&st, index),
-            .offset = input_metadata->getOffset(&st, index),
-            .null_offset = input_metadata->getNullOffset(&st, index),
+            input_metadata->getField(&st, index),
+            input_metadata->getAlias(&st, index),
+            input_metadata->getRelation(&st, index),
+            input_metadata->getType(&st, index),
+            input_metadata->getSubType(&st, index),
+            input_metadata->getLength(&st, index),
+            input_metadata->getScale(&st, index),
+            (int)input_metadata->isNullable(&st, index),
+            input_metadata->getOffset(&st, index),
+            input_metadata->getNullOffset(&st, index),
         };
     }
 
     for (unsigned int index = 0; index < info.out_vars_count; index++) {
         out_vars[index] = firebird_var {
-            .field = output_metadata->getField(&st, index),
-            .alias = output_metadata->getAlias(&st, index),
-            .relation = output_metadata->getRelation(&st, index),
-            .type = output_metadata->getType(&st, index),
-            .subtype = output_metadata->getSubType(&st, index),
-            .length = output_metadata->getLength(&st, index),
-            .scale = output_metadata->getScale(&st, index),
-            .is_nullable = (int)output_metadata->isNullable(&st, index),
-            .offset = output_metadata->getOffset(&st, index),
-            .null_offset = output_metadata->getNullOffset(&st, index),
+            output_metadata->getField(&st, index),
+            output_metadata->getAlias(&st, index),
+            output_metadata->getRelation(&st, index),
+            output_metadata->getType(&st, index),
+            output_metadata->getSubType(&st, index),
+            output_metadata->getLength(&st, index),
+            output_metadata->getScale(&st, index),
+            (int)output_metadata->isNullable(&st, index),
+            output_metadata->getOffset(&st, index),
+            output_metadata->getNullOffset(&st, index),
         };
     }
 

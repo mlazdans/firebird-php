@@ -82,3 +82,5 @@ tests/config.inc
 /reports
 
 silence.php
+build_scripts/php-fb-config.bat
+win32/*.dll

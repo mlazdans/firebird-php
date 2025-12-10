@@ -2,11 +2,10 @@
 
 #include <firebird/Interface.h>
 
-#include "fbp/base.hpp"
-#include "fbp/database.hpp"
-#include "fbp/transaction.hpp"
-
-#include "firebird_php.hpp"
+#include "./base.hpp"
+#include "./database.hpp"
+#include "./transaction.hpp"
+#include "../firebird_php.hpp"
 
 #define FBP_FETCH_BLOB_TEXT (1<<0)
 #define FBP_FETCH_UNIXTIME  (1<<1)

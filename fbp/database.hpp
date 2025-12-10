@@ -4,8 +4,8 @@
 #include <memory>
 #include <firebird/Interface.h>
 
-#include "fbp/base.hpp"
-#include "fbp/transaction.hpp"
+#include "./base.hpp"
+#include "./transaction.hpp"
 
 using namespace Firebird;
 

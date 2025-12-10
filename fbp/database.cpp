@@ -3,11 +3,10 @@
 #include <firebird/Interface.h>
 #include <stdint.h>
 
-#include "firebird_utils.h"
-
-#include "fbp/base.hpp"
-#include "fbp/database.hpp"
-#include "fbp/transaction.hpp"
+#include "./base.hpp"
+#include "./database.hpp"
+#include "./transaction.hpp"
+#include "../firebird_utils.h"
 
 extern "C" {
 #include "zend_exceptions.h"

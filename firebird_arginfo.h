@@ -414,7 +414,7 @@ static zend_class_entry *register_class_FireBird_Database(void)
 	ZVAL_UNDEF(&property_args_default_value);
 	zend_string *property_args_class_FireBird_Connect_Args = zend_string_init("FireBird\\Connect_Args", sizeof("FireBird\\Connect_Args") - 1, 1);
 	zend_string *property_args_class_FireBird_Create_Args = zend_string_init("FireBird\\Create_Args", sizeof("FireBird\\Create_Args") - 1, 1);
-	zend_type_list *property_args_type_list = malloc(ZEND_TYPE_LIST_SIZE(2));
+	zend_type_list *property_args_type_list = (zend_type_list *)malloc(ZEND_TYPE_LIST_SIZE(2));
 	property_args_type_list->num_types = 2;
 	property_args_type_list->types[0] = (zend_type) ZEND_TYPE_INIT_CLASS(property_args_class_FireBird_Connect_Args, 0, 0);
 	property_args_type_list->types[1] = (zend_type) ZEND_TYPE_INIT_CLASS(property_args_class_FireBird_Create_Args, 0, 0);

@@ -161,7 +161,7 @@ function exec_from_file_ddl(\FireBird\Transaction $t, string $file_name): void
 function gen_random_db_file_name_or_die(): string
 {
     srand();
-    $database = Config::$tmp_root."/fbp_test".md5((string)rand());
+    $database = sys_get_temp_dir()."/fbp_test".md5((string)rand());
 
     if(!empty(Config::$host))$database = Config::$host.":$database";
 
