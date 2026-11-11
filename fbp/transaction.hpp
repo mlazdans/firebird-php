@@ -67,6 +67,7 @@ private:
     Database &dba;
     ITransaction *tra = nullptr;
     firebird_trans_info info = {0};
+    bool is_prepared = false;
 public:
     Transaction(Database &dba);
     ~Transaction() noexcept;
@@ -108,8 +109,6 @@ extern "C"
 typedef struct firebird_trans {
     size_t dbh;
     size_t trh;
-    const firebird_trans_info *info;
-    int is_prepared_2pc;
 
     zend_object std;
 } firebird_trans;

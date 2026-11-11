@@ -139,6 +139,14 @@ Transaction::~Transaction()
 {
     FBDEBUG("~Transaction(this=%p)", this);
 
+    if (tra && is_prepared) {
+        // Prepared for two-phase commit: leave it in limbo. Releasing the interface
+        // while still attached would let the client resolve it, so the database keeps
+        // it until after detach.
+        dba.keep_in_limbo(tra);
+        tra = nullptr;
+    }
+
     int err = 0;
     try
     {
@@ -162,6 +170,7 @@ void Transaction::commit()
     get()->commit(&st);
     tra->release();
     tra = nullptr;
+    is_prepared = false;
 }
 
 void Transaction::commit_ret()
@@ -174,6 +183,7 @@ void Transaction::rollback()
     get()->rollback(&st);
     tra->release();
     tra = nullptr;
+    is_prepared = false;
 }
 
 void Transaction::rollback_ret()
@@ -298,7 +308,8 @@ void Transaction::finalize(int mode)
 
 void Transaction::prepare()
 {
-    tra->prepare(&st, 0, nullptr);
+    get()->prepare(&st, 0, nullptr);
+    is_prepared = true;
 }
 
 }// namespace

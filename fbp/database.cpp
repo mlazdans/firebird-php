@@ -67,11 +67,23 @@ void Database::create(zval *args)
         dpb->getBufferLength(&st), dpb->getBuffer(&st));
 }
 
+void Database::keep_in_limbo(ITransaction *tra)
+{
+    limbo_list.push_back(tra);
+}
+
+void Database::release_limbo()
+{
+    for (auto tra: limbo_list) tra->release();
+    limbo_list.clear();
+}
+
 void Database::disconnect()
 {
     att->detach(&st);
     att->release();
     att = nullptr;
+    release_limbo();
 }
 
 void Database::drop()
@@ -79,16 +91,20 @@ void Database::drop()
     att->dropDatabase(&st);
     att->release();
     att = nullptr;
+    release_limbo();
 }
 
 Database::~Database()
 {
     FBDEBUG("~Database(this=%p)", this);
 
+    // Transactions before detach: active ones roll back, prepared ones move to
+    // limbo_list, which must still be alive (members are destroyed after this body)
+    tr_list.clear();
+
     int err = 0;
     try
     {
-        // trans_list.clear();
         if (att) disconnect();
     }
     catch (...)
@@ -100,6 +116,8 @@ Database::~Database()
         att->release();
         att = nullptr;
     }
+
+    release_limbo();
 
     if (err) fbu_handle_exception(__FILE__, __LINE__);
 }

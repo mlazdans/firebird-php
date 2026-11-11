@@ -21,19 +21,13 @@ int FireBird_Transaction___construct(zval *self, zval *database)
     firebird_db *db = get_firebird_db_from_zval(database);
 
     size_t trh;
-    const firebird_trans_info *info;
 
     if (fbu_transaction_init(db->dbh, &trh)) {
         return FAILURE;
     }
 
-    if (fbu_transaction_get_info(db->dbh, trh, &info)) {
-        return FAILURE;
-    }
-
     tr->trh = trh;
     tr->dbh = db->dbh;
-    tr->info = info;
 
     return SUCCESS;
 }
@@ -193,8 +187,6 @@ PHP_METHOD(FireBird_Transaction, prepare_2pc)
     if (fbu_transaction_prepare(tr->dbh, tr->trh)) {
         RETURN_THROWS();
     }
-
-    tr->is_prepared_2pc = 1;
 }
 
 static zend_object *FireBird_Transaction_create_object(zend_class_entry *ce)
@@ -215,10 +207,8 @@ static void FireBird_Transaction_free_obj(zend_object *obj)
 
     FBDEBUG("~%s(tr=%p, tr->trh=%zu)", __func__, tr, tr->trh);
 
-    if (fbu_is_valid_trh(tr->dbh, tr->trh) && !tr->is_prepared_2pc) {
-        if (fbu_transaction_free(tr->dbh, tr->trh)) {
-            // throws
-        }
+    if (fbu_is_valid_trh(tr->dbh, tr->trh)) {
+        fbu_transaction_free(tr->dbh, tr->trh);
         tr->trh = 0;
     }
 
@@ -228,10 +218,15 @@ static void FireBird_Transaction_free_obj(zend_object *obj)
 static zval* FireBird_Transaction_read_property(zend_object *obj, zend_string *name, int type,
     void **cache_slot, zval *rv)
 {
-    firebird_trans *tr = get_firebird_trans_from_obj(obj);
-
     if (zend_string_equals_literal(name, "id")) {
-        ZVAL_LONG(rv, tr->info->id);
+        // Looked up on every read: the C++ object is gone once its database is
+        // disconnected, and get_info() then throws instead of reading freed memory
+        firebird_trans *tr = get_firebird_trans_from_obj(obj);
+        const firebird_trans_info *info;
+        if (fbu_transaction_get_info(tr->dbh, tr->trh, &info)) {
+            return &EG(uninitialized_zval);
+        }
+        ZVAL_LONG(rv, info->id);
         return rv;
     }
 

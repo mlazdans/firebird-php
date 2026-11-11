@@ -25,7 +25,10 @@ private:
     std::vector<std::unique_ptr<Transaction>> tr_list;
     std::vector<std::unique_ptr<Statement>> st_list;
     std::vector<std::unique_ptr<Blob>> bl_list;
+    std::vector<ITransaction*> limbo_list;
+    void release_limbo();
 public:
+    void keep_in_limbo(ITransaction *tra);
     std::unique_ptr<Transaction> &get_transaction(size_t trh);
     std::unique_ptr<Statement> &get_statement(size_t sth);
     std::unique_ptr<Blob> &get_blob(size_t blh);
