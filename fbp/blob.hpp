@@ -60,10 +60,10 @@ void register_FireBird_Blob_Id_object_handlers();
 int FireBird_Blob___construct(zval *self, zval *Transaction);
 int FireBird_Blob_create(zval *self);
 int FireBird_Blob_open(zval *self, zval *Blob_Id);
-int FireBird_Blob_put(zval *self, const char *buf, unsigned int buf_size);
+int FireBird_Blob_put(zval *self, const char *buf, size_t buf_size);
 int FireBird_Blob_close(zval *self);
 int FireBird_Blob_cancel(zval *self);
-int FireBird_Blob_get(zval *self, zval *return_value, size_t max_len);
+int FireBird_Blob_get(zval *self, zval *return_value, zend_long max_len);
 
 void FireBird_Blob_Id___construct(zval *self, ISC_QUAD bl_id);
 
@@ -89,8 +89,8 @@ public:
     ~Blob() noexcept;
     ISC_QUAD create();
     void open(ISC_QUAD *blob_id);
-    void get_contents(int max_len, zend_string **buf);
-    void put_contents(unsigned int buf_size, const char *buf); // TODO: zend_string?
+    void get_contents(int64_t max_len, zend_string **buf);
+    void put_contents(size_t buf_size, const char *buf);
     const firebird_blob_info *get_info();
 
     void close();

@@ -85,7 +85,7 @@ PHP_METHOD(FireBird_Blob, cancel)
     }
 }
 
-int FireBird_Blob_get(zval *self, zval *return_value, size_t max_len)
+int FireBird_Blob_get(zval *self, zval *return_value, zend_long max_len)
 {
     firebird_blob *blob = get_firebird_blob_from_zval(self);
     zend_string *data;
@@ -113,7 +113,7 @@ PHP_METHOD(FireBird_Blob, get)
     }
 }
 
-int FireBird_Blob_put(zval *self, const char *buf, unsigned int buf_size)
+int FireBird_Blob_put(zval *self, const char *buf, size_t buf_size)
 {
     firebird_blob *blob = get_firebird_blob_from_zval(self);
 

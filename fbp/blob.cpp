@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <firebird/Interface.h>
 
 #include "./base.hpp"
@@ -58,45 +59,60 @@ void Blob::open(ISC_QUAD *blob_id)
     info.is_writable = 0;
 }
 
-void Blob::get_contents(int max_len, zend_string **buf)
+// Segment lengths are 16-bit on the wire: anything longer is silently cut modulo 64K,
+// so reads and writes go in chunks of at most this many bytes.
+static constexpr unsigned BLOB_CHUNK = 0xFFFF;
+
+void Blob::get_contents(int64_t max_len, zend_string **buf)
 {
     if (info.is_writable) {
         throw Php_Firebird_Exception(zend_ce_error, "Attempted to read from a writable BLOB");
     }
 
-    unsigned int len = 0;
     int64_t remaining_len = info.total_length - info.position;
+    if (remaining_len < 0) remaining_len = 0;
 
-    // MAYBE: some limits?
-    // if (remaining_len > INT32_MAX) {
-    //     throw Php_Firebird_Exception(zend_ce_error, "Buffer too large");
-    // }
+    size_t want = (max_len <= 0 || max_len > remaining_len) ? static_cast<size_t>(remaining_len) : static_cast<size_t>(max_len);
 
-    if (max_len <= 0 || max_len > remaining_len) {
-        max_len = remaining_len;
+    zend_string *str = zend_string_alloc(want, 0);
+    size_t got = 0;
+
+    try {
+        while (got < want) {
+            unsigned chunk = static_cast<unsigned>(std::min<size_t>(want - got, BLOB_CHUNK));
+            unsigned len = 0;
+            int res = get()->getSegment(&st, chunk, ZSTR_VAL(str) + got, &len);
+            got += len;
+            if (res == IStatus::RESULT_NO_DATA) break;
+        }
+    } catch (...) {
+        zend_string_efree(str);
+        throw;
     }
 
-    *buf = zend_string_alloc(max_len, 0);
-    get()->getSegment(&st, max_len, &ZSTR_VAL(*buf), &len);
-    ZSTR_VAL(*buf)[len] = '\0';
+    ZSTR_LEN(str) = got;
+    ZSTR_VAL(str)[got] = '\0';
+    *buf = str;
 
-    FBDEBUG("Blob::get_contents(position=%ld, remaining_len=%ld, max_len=%ld, read=%ld)",
-        info.position, remaining_len, max_len, len);
+    FBDEBUG("Blob::get_contents(position=%ld, remaining_len=%ld, max_len=%ld, read=%zu)",
+        (long)info.position, (long)remaining_len, (long)max_len, got);
 
-    info.position += len;
-
-    assert(info.position <= info.total_length);
+    info.position += got;
 }
 
-void Blob::put_contents(unsigned int buf_size, const char *buf)
+void Blob::put_contents(size_t buf_size, const char *buf)
 {
     if (!info.is_writable) {
         throw Php_Firebird_Exception(zend_ce_error, "Attempted to write to a read-only BLOB");
     }
 
-    get()->putSegment(&st, buf_size, buf);
-    info.position += buf_size;
-    info.total_length += buf_size;
+    for (size_t done = 0; done < buf_size; ) {
+        unsigned chunk = static_cast<unsigned>(std::min<size_t>(buf_size - done, BLOB_CHUNK));
+        get()->putSegment(&st, chunk, buf + done);
+        done += chunk;
+        info.position += chunk;
+        info.total_length += chunk;
+    }
 }
 
 void Blob::query_info()

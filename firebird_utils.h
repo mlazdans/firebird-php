@@ -64,8 +64,8 @@ int fbu_blob_open(size_t dbh, size_t blh, ISC_QUAD *bl_id);
 int fbu_blob_create(size_t dbh, size_t blh);
 int fbu_blob_close(size_t dbh, size_t blh);
 int fbu_blob_cancel(size_t dbh, size_t blh);
-int fbu_blob_get(size_t dbh, size_t blh, int max_len, zend_string **buf);
-int fbu_blob_put(size_t dbh, size_t blh, unsigned int buf_size, const char *buf);
+int fbu_blob_get(size_t dbh, size_t blh, int64_t max_len, zend_string **buf);
+int fbu_blob_put(size_t dbh, size_t blh, size_t buf_size, const char *buf);
 int fbu_blob_seek(size_t dbh, size_t blh, int mode, int offset, int *new_offset);
 
 int fbu_service_init(size_t *svh);

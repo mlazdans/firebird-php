@@ -603,7 +603,7 @@ int fbu_blob_free(size_t dbh, size_t blh)
     fbu_ex_wrap_end();
 }
 
-int fbu_blob_put(size_t dbh, size_t blh, unsigned int buf_size, const char *buf)
+int fbu_blob_put(size_t dbh, size_t blh, size_t buf_size, const char *buf)
 {
     FBDEBUG("%s(dbh=%zu, blh=%zu)", __func__, dbh, blh);
     fbu_ex_wrap_start();
@@ -627,7 +627,7 @@ int fbu_blob_cancel(size_t dbh, size_t blh)
     fbu_ex_wrap_end();
 }
 
-int fbu_blob_get(size_t dbh, size_t blh, int max_len, zend_string **buf)
+int fbu_blob_get(size_t dbh, size_t blh, int64_t max_len, zend_string **buf)
 {
     FBDEBUG("%s(dbh=%zu, blh=%zu)", __func__, dbh, blh);
     fbu_ex_wrap_start();
