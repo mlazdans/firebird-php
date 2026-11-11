@@ -601,15 +601,6 @@ int fbu_statement_bind(size_t dbh, size_t sth, zval *b_vars, unsigned int num_bi
     fbu_ex_wrap_end();
 }
 
-int fbu_statement_open_cursor(size_t dbh, size_t sth)
-{
-    // TODO: check if already open
-    FBDEBUG("%s(dbh=%zu, sth=%zu)", __func__, dbh, sth);
-    fbu_ex_wrap_start();
-        get_db(dbh)->get_statement(sth)->open_cursor();
-    fbu_ex_wrap_end();
-}
-
 int fbu_statement_fetch_next(size_t dbh, size_t sth, int *istatus)
 {
     FBDEBUG("%s(dbh=%zu, sth=%zu)", __func__, dbh, sth);

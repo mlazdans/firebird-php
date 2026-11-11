@@ -1,3 +1,4 @@
+#include <string>
 #include <firebird/Interface.h>
 
 #include "./base.hpp"
@@ -451,27 +452,71 @@ parse_datetime: {
     } // for
 } // bind
 
+bool Statement::is_select() const
+{
+    return info.statement_type == isc_info_sql_stmt_select ||
+        info.statement_type == isc_info_sql_stmt_select_for_upd;
+}
+
+// Closes and releases the cursor, if any. The interface is released even when
+// close() fails, and the member is cleared first so a throw never leaves it dangling.
+void Statement::free_cursor()
+{
+    if (!cursor) return;
+
+    auto c = cursor;
+    cursor = nullptr;
+
+    try {
+        c->close(&st);
+    } catch (...) {
+        c->release();
+        throw;
+    }
+    c->release();
+}
+
+// Opens a fresh cursor over the currently bound input, replacing any previous one.
 void Statement::open_cursor()
 {
-    // TODO: check if curs already opened
+    free_cursor();
+    cursor_exhausted = false;
     cursor = tra.open_cursor(get(), input_metadata, in_buffer, output_metadata);
 }
 
 void Statement::close_cursor()
 {
-    get_cursor()->close(&st);
-    cursor->release();
-    cursor = nullptr;
+    get_cursor();
+    cursor_exhausted = true;
+    free_cursor();
 }
 
 int Statement::fetch_next()
 {
     FBDEBUG("Statement::fetch_next(this=%p, out_buffer=%p)", this, out_buffer);
+
+    // As in Firebird: rows come from what execute returns (the IResultSet of
+    // openCursor(), or the output message of IStatement::execute()). A statement
+    // that was only prepared has nothing to fetch.
+    if (!is_executed) {
+        throw Php_Firebird_Exception(zend_ce_error, "Statement must be executed before fetching");
+    }
+
+    if (!is_select()) {
+        // Non-cursor statements expose their output message (RETURNING,
+        // EXECUTE PROCEDURE) as exactly one row, once per execute.
+        if (cursor_exhausted) return IStatus::RESULT_NO_DATA;
+        cursor_exhausted = true;
+        return IStatus::RESULT_OK;
+    }
+
+    // Exhausted, or closed with close_cursor()
+    if (cursor_exhausted || !cursor) return IStatus::RESULT_NO_DATA;
+
     auto fetch_res = cursor->fetchNext(&st, out_buffer);
-    if (fetch_res == IStatus::RESULT_NO_DATA) {
-        cursor->close(&st);
-        cursor->release();
-        cursor = nullptr;
+    if (fetch_res != IStatus::RESULT_OK) {
+        cursor_exhausted = true;
+        free_cursor();
     }
     return fetch_res;
 }
@@ -713,8 +758,41 @@ _sql_long:
 
 void Statement::execute()
 {
-    tra.execute_statement(get(), input_metadata, in_buffer, output_metadata, out_buffer);
-    query_statistics();
+    switch (info.statement_type) {
+        // Cursor statements. Firebird 5 also reports every multi-row DML RETURNING
+        // (UPDATE, DELETE, MERGE, UPDATE OR INSERT, INSERT ... SELECT) and EXECUTE
+        // BLOCK with outputs as select. The DML is applied when the cursor opens.
+        case isc_info_sql_stmt_select:
+        case isc_info_sql_stmt_select_for_upd:
+            open_cursor();
+            break;
+
+        // Single-message statements: any output (single-row INSERT ... RETURNING,
+        // EXECUTE PROCEDURE) lands in out_buffer and is fetched once
+        case isc_info_sql_stmt_insert:
+        case isc_info_sql_stmt_update:
+        case isc_info_sql_stmt_delete:
+        case isc_info_sql_stmt_exec_procedure:
+        case isc_info_sql_stmt_set_generator:
+        case isc_info_sql_stmt_ddl:             // also SET / ALTER SESSION management statements
+        case isc_info_sql_stmt_savepoint:
+        case isc_info_sql_stmt_start_trans:     // SET TRANSACTION: adopted by Transaction
+        case isc_info_sql_stmt_commit:
+        case isc_info_sql_stmt_rollback:
+            free_cursor();
+            tra.execute_statement(get(), input_metadata, in_buffer, output_metadata, out_buffer);
+            cursor_exhausted = false;
+            query_statistics();
+            break;
+
+        // isc_info_sql_stmt_get_segment / put_segment: embedded-SQL blob cursors,
+        // not produced by DSQL
+        default:
+            throw Php_Firebird_Exception(zend_ce_error,
+                "Unsupported statement type " + std::to_string(info.statement_type));
+    }
+
+    is_executed = true;
 }
 
 Statement::~Statement() noexcept
@@ -724,7 +802,7 @@ Statement::~Statement() noexcept
     int err = 0;
     try
     {
-        if (cursor) cursor->close(&st);
+        free_cursor();
         if (stmt) stmt->free(&st);
     }
     catch (...)

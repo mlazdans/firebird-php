@@ -45,8 +45,6 @@ typedef struct firebird_stmt {
     size_t sth;
     const firebird_stmt_info *info;
 
-    unsigned char did_fake_fetch, is_cursor_open, is_exhausted;
-
     zend_object std;
 } firebird_stmt;
 
@@ -89,7 +87,11 @@ private:
     void insert_alias(const char *alias);
     void alloc_ht_aliases();
     void alloc_ht_ind();
+    bool is_executed = false, cursor_exhausted = false;
+
     void query_statistics();
+    void free_cursor();
+    bool is_select() const;
 public:
     unsigned int in_buffer_size = 0, out_buffer_size = 0;
 

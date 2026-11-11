@@ -105,53 +105,12 @@ int FireBird_Statement_execute(zval *self, zval *bind_args, uint32_t num_bind_ar
 {
     firebird_stmt *stmt = get_firebird_stmt_from_zval(self);
 
-    // if (!stmt->sptr) {
-    //     zend_throw_exception_ex(spl_ce_RuntimeException, 0, "Attempt execute on freed statement");
-    //     return FAILURE;
-    // }
+    if (fbu_statement_bind(stmt->dbh, stmt->sth, bind_args, num_bind_args)) {
+        return FAILURE;
+    }
 
-    // FBDEBUG("FireBird_Statement_execute(%p) statement_type: %d", stmt->sptr, stmt->info->statement_type);
-    // FBDEBUG("   in_var_count: %d, out_vars_count: %d", stmt->info->in_vars_count, stmt->info->out_vars_count);
-
-    switch(stmt->info->statement_type) {
-        case isc_info_sql_stmt_select:
-        case isc_info_sql_stmt_select_for_upd: {
-            if (fbu_statement_bind(stmt->dbh, stmt->sth, bind_args, num_bind_args)) {
-                return FAILURE;
-            }
-
-            stmt->is_exhausted = 0;
-            stmt->did_fake_fetch = 0;
-        } break;
-
-        case isc_info_sql_stmt_set_generator:
-        case isc_info_sql_stmt_exec_procedure:
-        case isc_info_sql_stmt_insert:
-        case isc_info_sql_stmt_update:
-        case isc_info_sql_stmt_delete: {
-            if (fbu_statement_bind(stmt->dbh, stmt->sth, bind_args, num_bind_args)) {
-                return FAILURE;
-            }
-
-            if (fbu_statement_execute(stmt->dbh, stmt->sth)) {
-                return FAILURE;
-            }
-
-            stmt->is_exhausted = 0;
-            stmt->did_fake_fetch = 0;
-        } break;
-
-        case isc_info_sql_stmt_start_trans:
-        case isc_info_sql_stmt_commit:
-        case isc_info_sql_stmt_savepoint:
-        case isc_info_sql_stmt_ddl: {
-            if (fbu_statement_execute(stmt->dbh, stmt->sth)) {
-                return FAILURE;
-            }
-        } break;
-
-        default:
-            fbp_fatal("TODO: s->statement_type: %d", stmt->info->statement_type);
+    if (fbu_statement_execute(stmt->dbh, stmt->sth)) {
+        return FAILURE;
     }
 
     return SUCCESS;
@@ -318,63 +277,23 @@ void FireBird_Statement_fetch(zval *self, int flags, zval *return_value)
 {
     HashTable *ht = NULL;
     firebird_stmt *stmt = get_firebird_stmt_from_zval(self);
+    int istatus;
 
     FBDEBUG("%s(sth=%zu)", __func__,  stmt->sth);
 
-    switch (stmt->info->statement_type)
-    {
-        case isc_info_sql_stmt_select:
-        case isc_info_sql_stmt_select_for_upd: {
-            if (stmt->is_exhausted) {
-                RETURN_FALSE;
-            }
-
-            // TODO: throws?
-            if (!stmt->is_cursor_open) {
-                if (fbu_statement_open_cursor(stmt->dbh, stmt->sth)) {
-                    RETURN_FALSE;
-                }
-                stmt->is_cursor_open = 1;
-            }
-
-            int istatus;
-            if (fbu_statement_fetch_next(stmt->dbh, stmt->sth, &istatus)) {
-                RETURN_THROWS();
-            }
-
-            if (istatus == IStatus::RESULT_NO_DATA) {
-                stmt->is_cursor_open = 0; // Cursor is closed by fetch_next()
-                stmt->is_exhausted = 1;
-                RETURN_FALSE;
-            }
-
-            // TODO: istatus != IStatus::RESULT_OK
-            assert(istatus == IStatus::RESULT_OK);
-
-            if (istatus != IStatus::RESULT_OK) {
-                RETURN_THROWS();
-            }
-
-            fbu_statement_output_buffer_to_array(stmt->dbh, stmt->sth, flags, &ht);
-        } break;
-
-        // Simulate fetch for non-select queries. Just return what's in output buffer
-        default: {
-            if (!stmt->did_fake_fetch) {
-                stmt->did_fake_fetch = 1;
-
-                fbu_statement_output_buffer_to_array(stmt->dbh, stmt->sth, flags, &ht);
-            } else {
-                RETURN_FALSE;
-            }
-        } break;
+    if (fbu_statement_fetch_next(stmt->dbh, stmt->sth, &istatus)) {
+        RETURN_THROWS();
     }
 
-    if (ht) {
-        RETURN_ARR(ht);
-    } else {
+    if (istatus != IStatus::RESULT_OK) {
         RETURN_FALSE;
     }
+
+    if (fbu_statement_output_buffer_to_array(stmt->dbh, stmt->sth, flags, &ht)) {
+        RETURN_THROWS();
+    }
+
+    RETURN_ARR(ht);
 }
 
 }

@@ -54,7 +54,6 @@ int fbu_statement_get_info(size_t dbh, size_t sth, const firebird_stmt_info **in
 int fbu_statement_free(size_t dbh, size_t sth);
 int fbu_statement_prepare(size_t dbh, size_t sth, unsigned len_sql, const char *sql);
 int fbu_statement_bind(size_t dbh, size_t sth, zval *b_vars, unsigned int num_bind_args);
-int fbu_statement_open_cursor(size_t dbh, size_t sth);
 int fbu_statement_fetch_next(size_t dbh, size_t sth, int *istatus);
 int fbu_statement_output_buffer_to_array(size_t dbh, size_t sth, int flags, HashTable **ht);
 int fbu_statement_execute(size_t dbh, size_t sth);
