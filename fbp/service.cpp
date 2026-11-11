@@ -25,15 +25,14 @@ void Service::connect(zval *args)
         throw Php_Firebird_Exception(zend_ce_value_error, "Expected instanceof Service_Connect_Args");
     }
 
-    zval rv;
-    zval *service_name = PROP_GET(FireBird_Service_Connect_Args_ce, args, "service_name");
+    const char *service_name = fbu_read_required_string_prop(FireBird_Service_Connect_Args_ce, args, "service_name");
     IXpbBuilder* dpb = nullptr;
 
     // TODO: process other props
     dpb = util->getXpbBuilder(&st, IXpbBuilder::SPB_ATTACH, NULL, 0);
     fbu_xpb_insert_object(dpb, args, FireBird_Service_Connect_Args_ce, &fbp_service_connect_zmap);
 
-    srv = prov->attachServiceManager(&st, Z_STRVAL_P(service_name),
+    srv = prov->attachServiceManager(&st, service_name,
         dpb->getBufferLength(&st), dpb->getBuffer(&st));
 }
 

@@ -207,6 +207,22 @@ const char* fbu_get_sql_type_name(firebird_var *var, char *buf, size_t buf_size)
     }
 }
 
+// Reads a property that must hold a non-empty string, e.g. Connect_Args::$database.
+// Throws when it is unset or empty, instead of handing a NULL zval's garbage pointer
+// to Firebird.
+const char *fbu_read_required_string_prop(zend_class_entry *ce, zval *obj, const char *name)
+{
+    zval rv;
+    zval *val = zend_read_property(ce, Z_OBJ_P(obj), name, strlen(name), 1, &rv);
+
+    if (!val || Z_TYPE_P(val) != IS_STRING || !Z_STRLEN_P(val)) {
+        throw Php_Firebird_Exception(zend_ce_value_error,
+            std::string(ZSTR_VAL(ce->name)) + "::$" + name + " must be set");
+    }
+
+    return Z_STRVAL_P(val);
+}
+
 void fbu_xpb_insert_object(IXpbBuilder* xpb, zval *obj, zend_class_entry *ce,
     const firebird_xpb_zmap *xpb_zmap)
 {

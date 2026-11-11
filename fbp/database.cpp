@@ -30,17 +30,13 @@ void Database::connect(zval *args)
         throw Php_Firebird_Exception(zend_ce_value_error, "Expected instanceof Connect_Args");
     }
 
-    zval rv;
-    zval *database = PROP_GET(FireBird_Connect_Args_ce, args, "database");
+    const char *database = fbu_read_required_string_prop(FireBird_Connect_Args_ce, args, "database");
     IXpbBuilder* dpb = nullptr;
 
-    // TODO: process other props
     dpb = util->getXpbBuilder(&st, IXpbBuilder::DPB, NULL, 0);
-    // dpb->insertInt(&status, isc_dpb_page_size, 4 * 1024);
-    dpb->insertString(&st, isc_dpb_user_name, "sysdba");
-    dpb->insertString(&st, isc_dpb_password, "masterkey");
+    fbu_xpb_insert_object(dpb, args, FireBird_Connect_Args_ce, &fbp_database_connect_zmap);
 
-    att = prov->attachDatabase(&st, Z_STRVAL_P(database),
+    att = prov->attachDatabase(&st, database,
         dpb->getBufferLength(&st), dpb->getBuffer(&st));
 }
 
@@ -53,8 +49,7 @@ void Database::create(zval *args)
         throw Php_Firebird_Exception(zend_ce_value_error, "Expected instanceof Create_Args");
     }
 
-    zval rv;
-    zval *database = PROP_GET(FireBird_Create_Args_ce, args, "database");
+    const char *database = fbu_read_required_string_prop(FireBird_Create_Args_ce, args, "database");
     IXpbBuilder* dpb = nullptr;
 
     dpb = util->getXpbBuilder(&st, IXpbBuilder::DPB, NULL, 0);
@@ -63,7 +58,7 @@ void Database::create(zval *args)
     dpb->insertInt(&st, isc_dpb_sql_dialect, SQL_DIALECT_CURRENT);
     // fbp_dump_buffer(dpb->getBufferLength(&st), dpb->getBuffer(&st));
 
-    att = prov->createDatabase(&st, Z_STRVAL_P(database),
+    att = prov->createDatabase(&st, database,
         dpb->getBufferLength(&st), dpb->getBuffer(&st));
 }
 

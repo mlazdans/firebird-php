@@ -8,6 +8,8 @@
 #define STRNUM_PARSE_ERROR    1
 #define STRNUM_PARSE_OVERFLOW 2
 
+extern "C++" const char *fbu_read_required_string_prop(zend_class_entry *ce, zval *obj, const char *name);
+
 extern "C" {
 
 void fbu_handle_exception(const char *file, size_t line);
