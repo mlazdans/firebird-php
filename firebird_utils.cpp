@@ -288,29 +288,6 @@ unsigned fbu_get_client_version(void)
     return util->getClientVersion();
 }
 
-void fbu_init_date_object(const char *tzbuff, zval *o)
-{
-    zval tzo, tzo_arg;
-
-    php_date_instantiate(php_date_get_date_ce(), o);
-
-    if (tzbuff) {
-        ZVAL_STRING(&tzo_arg, tzbuff);
-        object_init_with_constructor(&tzo, php_date_get_timezone_ce(), 1, &tzo_arg, nullptr);
-        php_date_initialize(Z_PHPDATE_P(o), "", 0, NULL, &tzo, 0);
-        zval_ptr_dtor(&tzo_arg);
-        zval_ptr_dtor(&tzo);
-    } else {
-        php_date_initialize(Z_PHPDATE_P(o), "", 0, NULL, NULL, 0);
-    }
-
-    // zend_string *tt = php_format_date(ff, strlen(ff), ((ISC_TIME_TZ *)data)->utc_time, 0);
-    // php_date_time_set(&new_object, h, i, s, ms, return_value);
-    // php_date_initialize_from_ts_long(date_obj, 0, 0);
-}
-
-
-
 using namespace FBP;
 
 int fbu_is_valid_dbh(size_t dbh)

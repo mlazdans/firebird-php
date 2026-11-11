@@ -49,9 +49,6 @@ require_once('functions.inc');
     // Disabled. Now will throw
     // $t->query("INSERT into test3 (iter) values (?)", null);
 
-    /* if timefmt is not supported, suppress error here */
-    ini_set('firebird.timestampformat',"%m/%d/%Y %H:%M:%S");
-
     for($iter = 0; $iter < 10; $iter++){
         /* prepare data  */
         $v_char = rand_str(1000);
@@ -82,10 +79,10 @@ require_once('functions.inc');
             echo " in:  $v_char\n";
             echo " out: $row->V_CHAR\n";
         }
-        if($row->V_DATE != $v_date){
+        if($row->V_DATE->format('Y-m-d H:i:s') != $v_date){
             echo " DATE fail\n";
             echo " in:  $v_date\n";
-            echo " out: $row->V_DATE\n";
+            echo " out: " . $row->V_DATE->format('Y-m-d H:i:s') . "\n";
         }
         if($row->V_DECIMAL4_2 != $v_decimal4_2){
             echo " DECIMAL4_2 fail\n";

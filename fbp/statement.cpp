@@ -1,4 +1,5 @@
 #include <cfloat>
+#include <cinttypes>
 #include <cstdint>
 #include <string>
 #include <firebird/Interface.h>
@@ -14,10 +15,6 @@ extern "C" {
 #include "ext/date/php_date.h"
 #include "../firebird_utils.h"
 }
-
-#ifdef _MSC_VER
-#define timegm _mkgmtime
-#endif
 
 using namespace Firebird;
 
@@ -585,151 +582,169 @@ void Statement::output_buffer_to_array(int flags, HashTable **hash)
     zend_hash_internal_pointer_reset(*hash);
 }
 
+namespace {
+
+// UNIX time straight from the wire: ISC_DATE counts days from 1858-11-17, so day
+// 40587 is 1970-01-01, and ISC_TIME counts 1/10000 s
+int64_t isc_to_epoch(ISC_DATE date, ISC_TIME time)
+{
+    return (static_cast<int64_t>(date) - 40587) * 86400 + time / ISC_TIME_SECONDS_PRECISION;
+}
+
+} // anonymous namespace
+
+// Returns the scratch DateTime for a zone ("" means date.timezone), building it on
+// first use. Built once per zone: this is the only place a DateTimeZone is
+// constructed or "now" is parsed.
+zend_object *Statement::date_scratch_for(const char *zone)
+{
+    auto it = date_scratch.find(zone);
+    if (it != date_scratch.end()) return it->second;
+
+    zval tzo, dateo;
+    ZVAL_UNDEF(&tzo);
+
+    if (*zone) {
+        zval arg;
+        ZVAL_STRING(&arg, zone);
+        zend_result res = object_init_with_constructor(&tzo, php_date_get_timezone_ce(), 1, &arg, nullptr);
+        zval_ptr_dtor(&arg);
+        if (res == FAILURE || EG(exception)) {
+            if (EG(exception)) zend_clear_exception();
+            throw Php_Firebird_Exception(zend_ce_value_error,
+                std::string("Time zone '") + zone + "' is not known to PHP");
+        }
+    }
+
+    php_date_instantiate(php_date_get_date_ce(), &dateo);
+    bool ok = php_date_initialize(Z_PHPDATE_P(&dateo), "", 0, NULL, *zone ? &tzo : nullptr, 0);
+    zval_ptr_dtor(&tzo);
+
+    if (!ok) {
+        zval_ptr_dtor(&dateo);
+        throw Php_Firebird_Exception(zend_ce_error, "Could not create DateTime");
+    }
+
+    date_scratch.emplace(zone, Z_OBJ(dateo));
+    return Z_OBJ(dateo);
+}
+
+// Calls a DateTime method on obj and discards the result
+static void date_call(zend_object *obj, const char *name, uint32_t argc, zval *argv)
+{
+    auto fn = static_cast<zend_function *>(
+        zend_hash_str_find_ptr(&php_date_get_date_ce()->function_table, name, strlen(name)));
+    zval rv;
+    ZVAL_UNDEF(&rv);
+
+    zend_call_known_instance_method(fn, obj, &rv, argc, argv);
+    zval_ptr_dtor(&rv);
+
+    if (EG(exception)) {
+        zend_clear_exception();
+        throw Php_Firebird_Exception(zend_ce_error, std::string("DateTime::") + name + "() failed");
+    }
+}
+
+// Sets a DateTime value for a decoded date/time cell. The scratch object is updated
+// through DateTime's own methods, so PHP recomputes the offset and DST for that
+// date (setting the fields directly would keep the offset of "now"), then cloned.
+void Statement::make_date_obj(zval *val, unsigned type, unsigned y, unsigned mo, unsigned d,
+    unsigned h, unsigned mi, unsigned sec, unsigned frac, const char *zone, int64_t epoch)
+{
+    zend_object *scratch = date_scratch_for(zone);
+    php_date_obj *obj = php_date_obj_from_obj(scratch);
+    const unsigned usec = FB_FRACTIONS_TO_USEC(frac);
+
+    if (type == SQL_TIMESTAMP_TZ) {
+        // Exact instant: avoids guessing in the hour repeated when DST ends
+        zval arg;
+        ZVAL_LONG(&arg, epoch);
+        date_call(scratch, "settimestamp", 1, &arg);
+        obj->time->us = usec; // setTimestamp() clears it; the offset does not depend on it
+    } else {
+        // Wall-clock fields; TIME types are anchored at 1970-01-01
+        const bool has_date = type == SQL_TYPE_DATE || type == SQL_TIMESTAMP;
+        obj->time->y = has_date ? y : 1970;
+        obj->time->m = has_date ? mo : 1;
+        obj->time->d = has_date ? d : 1;
+
+        zval args[4];
+        ZVAL_LONG(&args[0], h);
+        ZVAL_LONG(&args[1], mi);
+        ZVAL_LONG(&args[2], sec);
+        ZVAL_LONG(&args[3], usec);
+        date_call(scratch, "settime", 4, args);
+    }
+
+    ZVAL_OBJ(val, scratch->handlers->clone_obj(scratch));
+}
+
 int Statement::var_zval(zval *val, unsigned int index, int flags)
 {
-    FBDEBUG("%s(om=%p, out_buffer=%p)", __func__, output_metadata, out_buffer);
+    FBDEBUG("%s(index=%u)", __func__, index);
     IUtil* util = master->getUtilInterface();
 
-    static ISC_INT64 const scales[] = { 1, 10, 100, 1000,
-        10000,
-        100000,
-        1000000,
-        10000000,
-        100000000,
-        1000000000,
-        LL_LIT(10000000000),
-        LL_LIT(100000000000),
-        LL_LIT(1000000000000),
-        LL_LIT(10000000000000),
-        LL_LIT(100000000000000),
-        LL_LIT(1000000000000000),
-        LL_LIT(10000000000000000),
-        LL_LIT(100000000000000000),
-        LL_LIT(1000000000000000000)
+    static const uint64_t scales[] = { 1, 10, 100, 1000, 10000, 100000, 1000000,
+        10000000, 100000000, 1000000000, 10000000000ULL, 100000000000ULL,
+        1000000000000ULL, 10000000000000ULL, 100000000000000ULL,
+        1000000000000000ULL, 10000000000000000ULL, 100000000000000000ULL,
+        1000000000000000000ULL
     };
 
-    auto nullind = *(int16_t*)(out_buffer + out_vars[index].null_offset);
+    const auto &var = out_vars[index];
+    auto nullind = *(int16_t*)(out_buffer + var.null_offset);
 
     if (nullind) {
         ZVAL_NULL(val);
         return SUCCESS;
     }
 
-    auto type = out_vars[index].type;
-    auto len = out_vars[index].length;
-    auto scale = out_vars[index].scale;
-    auto data = out_buffer + out_vars[index].offset;
+    auto type = var.type;
+    auto len = var.length;
+    auto scale = var.scale;
+    auto data = out_buffer + var.offset;
 
     char str_buf[255];
-    size_t str_len;
+    int64_t long_val;
 
-    zend_long long_val;
-
-    const char *t_format;
-    unsigned t_year, t_month, t_day, t_hours, t_minutes, t_seconds, t_fractions;
-    char t_zone_buff[40];
-    zval t_dateo;
-    php_date_obj *t_date_obj;
+    // Date/time columns: DateTime objects, or UNIX time for date-bearing types
+    // with FETCH_UNIXTIME
+    unsigned y = 0, mo = 0, d = 0, h = 0, mi = 0, sec = 0, frac = 0;
+    char zone[40] = {0};
+    int64_t epoch = 0;
+    const bool unixtime = (flags & FBP_FETCH_UNIXTIME) && type != SQL_TYPE_TIME && type != SQL_TIME_TZ;
 
     switch (type)
     {
-        default:
-            fbp_fatal("unhandled type: %d, field: %s", type, out_vars[index].alias);
-
         case SQL_VARYING:
             len = ((firebird_vary *) data)->vary_length;
             data = ((firebird_vary *) data)->vary_string;
-            /* no break */
+            // fall through
         case SQL_TEXT:
             ZVAL_STRINGL(val, (char*)data, len);
-            break;
+            return SUCCESS;
         case SQL_BOOLEAN:
             ZVAL_BOOL(val, *(FB_BOOLEAN *) data);
-            break;
-        case SQL_SHORT:
-            long_val = *(int16_t*) data;
-            goto _sql_long;
-        case SQL_LONG:
-            long_val = *(int32_t*) data;
-            goto _sql_long;
+            return SUCCESS;
         case SQL_INT128:
             util->getInt128(&st)->toString(&st, (FB_I128 *)data, scale, sizeof(str_buf), str_buf);
             ZVAL_STRING(val, str_buf);
-            break;
+            return SUCCESS;
         case SQL_DEC16:
             util->getDecFloat16(&st)->toString(&st, (FB_DEC16 *)data, sizeof(str_buf), str_buf);
             ZVAL_STRING(val, str_buf);
-            break;
+            return SUCCESS;
         case SQL_DEC34:
             util->getDecFloat34(&st)->toString(&st, (FB_DEC34 *)data, sizeof(str_buf), str_buf);
             ZVAL_STRING(val, str_buf);
-            break;
-        case SQL_TYPE_DATE:
-            t_format = "Y-m-d";
-            util->decodeDate(*(ISC_DATE *)data, &t_year, &t_month, &t_day);
-            t_hours = t_minutes = t_seconds = t_fractions = 0;
-            fbu_init_date_object(NULL, &t_dateo);
-            goto _set_datetime;
-        case SQL_TYPE_TIME:
-            t_format = "H:i:s";
-            util->decodeTime(*(ISC_TIME *)data, &t_hours, &t_minutes, &t_seconds, &t_fractions);
-            t_year = t_month = t_day = 0;
-            fbu_init_date_object(NULL, &t_dateo);
-            goto _set_datetime;
-        case SQL_TIME_TZ:
-            t_format = "H:i:s e";
-            util->decodeTimeTz(&st, (ISC_TIME_TZ *)data, &t_hours, &t_minutes, &t_seconds, &t_fractions,
-                sizeof(t_zone_buff), t_zone_buff);
-            t_year = t_month = t_day = 0;
-            fbu_init_date_object(t_zone_buff, &t_dateo);
-            goto _set_datetime;
-        case SQL_TIMESTAMP_TZ:
-            t_format = "Y-m-d H:i:s e";
-            util->decodeTimeStampTz(&st, (ISC_TIMESTAMP_TZ *)data, &t_year, &t_month, &t_day, &t_hours,
-                &t_minutes, &t_seconds, &t_fractions, sizeof(t_zone_buff), t_zone_buff);
-            fbu_init_date_object(t_zone_buff, &t_dateo);
-            goto _set_datetime;
-        case SQL_TIMESTAMP:
-            {
-                t_format = "Y-m-d H:i:s";
-                ISC_TIMESTAMP *ts = (ISC_TIMESTAMP *) data;
-                util->decodeDate(ts->timestamp_date, &t_year, &t_month, &t_day);
-                util->decodeTime(ts->timestamp_time, &t_hours, &t_minutes, &t_seconds, &t_fractions);
-                fbu_init_date_object(NULL, &t_dateo);
-            }
-
-_set_datetime:
-            t_date_obj = Z_PHPDATE_P(&t_dateo);
-            t_date_obj->time->y = t_year;
-            t_date_obj->time->m = t_month;
-            t_date_obj->time->d = t_day;
-            t_date_obj->time->h = t_hours;
-            t_date_obj->time->i = t_minutes;
-            t_date_obj->time->s = t_seconds;
-            t_date_obj->time->us = t_fractions;
-            t_date_obj->time->sse_uptodate = 0;
-
-            // efree(date_obj->time->tz_abbr);
-            // efree(date_obj->time);
-            if ((flags & FBP_FETCH_UNIXTIME) && !(type == SQL_TYPE_TIME || type == SQL_TIME_TZ)) {
-                struct tm tm_time = {0};
-                tm_time.tm_year = t_date_obj->time->y - 1900;  // years since 1900
-                tm_time.tm_mon  = t_date_obj->time->m - 1;     // 0-11
-                tm_time.tm_mday = t_date_obj->time->d;
-                tm_time.tm_hour = t_date_obj->time->h;
-                tm_time.tm_min  = t_date_obj->time->i;
-                tm_time.tm_sec  = t_date_obj->time->s;
-
-                ZVAL_LONG(val, timegm(&tm_time));
-            } else if (flags & FBP_FETCH_DATE_OBJ) {
-                ZVAL_COPY(val, &t_dateo);
-            } else {
-                ZVAL_STR(val, php_format_date_obj(t_format, strlen(t_format), t_date_obj));
-            }
-
-            zval_ptr_dtor(&t_dateo);
-            break;
-
+            return SUCCESS;
+        case SQL_FLOAT:
+            ZVAL_DOUBLE(val, *(float *) data);
+            return SUCCESS;
+        case SQL_DOUBLE:
+            ZVAL_DOUBLE(val, *(double *) data);
+            return SUCCESS;
         case SQL_BLOB:
             if (flags & FBP_FETCH_BLOB_TEXT) {
                 ZVAL_STR(val, tra.get_blob_contents((ISC_QUAD *)data));
@@ -737,56 +752,67 @@ _set_datetime:
                 object_init_ex(val, FireBird_Blob_Id_ce);
                 FireBird_Blob_Id___construct(val, *(ISC_QUAD *)data);
             }
-            break;
+            return SUCCESS;
 
-#if 0
-#if (SIZEOF_ZEND_LONG >= 8)
+        case SQL_SHORT:
+            long_val = *(int16_t*) data;
             goto _sql_long;
-#else
-            // TODO: 32-bit handling
-            if (scale == 0) {
-                l = slprintf(string_data, sizeof(string_data), "%" LL_MASK "d", *(ISC_INT64 *) data);
-                ZVAL_STRINGL(val,string_data,l);
-            } else {
-                ISC_INT64 n = *(ISC_INT64 *) data, f = scales[-scale];
-
-                if (n >= 0) {
-                    l = slprintf(string_data, sizeof(string_data), "%" LL_MASK "d.%0*" LL_MASK "d", n / f, -scale, n % f);
-                } else if (n <= -f) {
-                    l = slprintf(string_data, sizeof(string_data), "%" LL_MASK "d.%0*" LL_MASK "d", n / f, -scale, -n % f);
-                 } else {
-                    l = slprintf(string_data, sizeof(string_data), "-0.%0*" LL_MASK "d", -scale, -n % f);
-                }
-                ZVAL_STRINGL(val,string_data,l);
-            }
-            break;
-#endif
-#endif
-        case SQL_FLOAT:
-            ZVAL_DOUBLE(val, *(float *) data);
-            break;
-        case SQL_DOUBLE:
-            ZVAL_DOUBLE(val, *(double *) data);
-            break;
+        case SQL_LONG:
+            long_val = *(int32_t*) data;
+            goto _sql_long;
         case SQL_INT64:
             long_val = *(int64_t*) data;
 _sql_long:
             if (scale == 0) {
                 ZVAL_LONG(val, long_val);
             } else {
-                zend_long f = (zend_long) scales[-scale];
-
-                if (long_val >= 0) {
-                    str_len = slprintf(str_buf, sizeof(str_buf), ZEND_LONG_FMT ".%0*" ZEND_LONG_FMT_SPEC, long_val / f, -scale,  long_val % f);
-                } else if (long_val <= -f) {
-                    str_len = slprintf(str_buf, sizeof(str_buf), ZEND_LONG_FMT ".%0*" ZEND_LONG_FMT_SPEC, long_val / f, -scale,  -long_val % f);
-                } else {
-                    str_len = slprintf(str_buf, sizeof(str_buf), "-0.%0*" ZEND_LONG_FMT_SPEC, -scale, -long_val % f);
-                }
+                // Unsigned magnitude: -INT64_MIN does not fit int64_t
+                const uint64_t f = scales[-scale];
+                const uint64_t mag = long_val < 0 ? 0 - static_cast<uint64_t>(long_val) : static_cast<uint64_t>(long_val);
+                int str_len = snprintf(str_buf, sizeof(str_buf), "%s%" PRIu64 ".%0*" PRIu64,
+                    long_val < 0 ? "-" : "", mag / f, -scale, mag % f);
                 ZVAL_STRINGL(val, str_buf, str_len);
             }
+            return SUCCESS;
+
+        case SQL_TYPE_DATE:
+            epoch = isc_to_epoch(*(ISC_DATE *)data, 0);
+            if (!unixtime) util->decodeDate(*(ISC_DATE *)data, &y, &mo, &d);
             break;
-    } /* switch (type) */
+        case SQL_TYPE_TIME:
+            util->decodeTime(*(ISC_TIME *)data, &h, &mi, &sec, &frac);
+            break;
+        case SQL_TIME_TZ:
+            util->decodeTimeTz(&st, (ISC_TIME_TZ *)data, &h, &mi, &sec, &frac, sizeof(zone), zone);
+            break;
+        case SQL_TIMESTAMP: {
+            ISC_TIMESTAMP *ts = (ISC_TIMESTAMP *) data;
+            // Zone-less: treated as UTC
+            epoch = isc_to_epoch(ts->timestamp_date, ts->timestamp_time);
+            if (!unixtime) {
+                util->decodeDate(ts->timestamp_date, &y, &mo, &d);
+                util->decodeTime(ts->timestamp_time, &h, &mi, &sec, &frac);
+            }
+        } break;
+        case SQL_TIMESTAMP_TZ: {
+            ISC_TIMESTAMP_TZ *ts = (ISC_TIMESTAMP_TZ *) data;
+            // The stored instant is UTC already; the decoded fields are zone-local
+            epoch = isc_to_epoch(ts->utc_timestamp.timestamp_date, ts->utc_timestamp.timestamp_time);
+            if (!unixtime) {
+                util->decodeTimeStampTz(&st, ts, &y, &mo, &d, &h, &mi, &sec, &frac, sizeof(zone), zone);
+            }
+        } break;
+
+        default:
+            throw Php_Firebird_Exception(zend_ce_value_error,
+                fmt("Fetching SQL type %u (field %s) is not supported", type, out_vars[index].alias));
+    }
+
+    if (unixtime) {
+        ZVAL_LONG(val, epoch);
+    } else {
+        make_date_obj(val, type, y, mo, d, h, mi, sec, frac, zone, epoch);
+    }
 
     return SUCCESS;
 }
@@ -884,6 +910,9 @@ Statement::~Statement() noexcept
         zend_array_destroy(ht_ind);
         ht_ind = nullptr;
     }
+
+    for (auto &it: date_scratch) OBJ_RELEASE(it.second);
+    date_scratch.clear();
 
     if (info.sql) {
         efree((void *)info.sql);

@@ -24,9 +24,23 @@ Row data object(stdClass) {
   ["BOOL_1"]=>
   bool(true)
   ["DATE_1"]=>
-  string(10) "2025-11-06"
+  object(DateTime) {
+    ["date"]=>
+    string(26) "2025-11-06 00:00:00.000000"
+    ["timezone_type"]=>
+    int(3)
+    ["timezone"]=>
+    string(3) "UTC"
+  }
   ["TIME_1"]=>
-  string(8) "15:45:59"
+  object(DateTime) {
+    ["date"]=>
+    string(26) "1970-01-01 15:45:59.000000"
+    ["timezone_type"]=>
+    int(3)
+    ["timezone"]=>
+    string(3) "UTC"
+  }
   ["DECFLOAT_16"]=>
   string(17) "3.141592653589793"
   ["DECFLOAT_34"]=>
@@ -46,9 +60,23 @@ Row data object(stdClass) {
   ["SMALLINT_1"]=>
   int(1)
   ["TIME_TZ"]=>
-  string(20) "15:45:59 Europe/Riga"
+  object(DateTime) {
+    ["date"]=>
+    string(26) "1970-01-01 15:45:59.000000"
+    ["timezone_type"]=>
+    int(3)
+    ["timezone"]=>
+    string(11) "Europe/Riga"
+  }
   ["TIMESTAMP_TZ"]=>
-  string(31) "2025-11-06 15:45:59 Europe/Riga"
+  object(DateTime) {
+    ["date"]=>
+    string(26) "2025-11-06 15:45:59.000000"
+    ["timezone_type"]=>
+    int(3)
+    ["timezone"]=>
+    string(11) "Europe/Riga"
+  }
 }
 Row data object(stdClass) {
   ["ID"]=>
@@ -60,9 +88,23 @@ Row data object(stdClass) {
   ["BOOL_1"]=>
   bool(true)
   ["DATE_1"]=>
-  string(10) "2025-11-06"
+  object(DateTime) {
+    ["date"]=>
+    string(26) "2025-11-06 00:00:00.000000"
+    ["timezone_type"]=>
+    int(3)
+    ["timezone"]=>
+    string(3) "UTC"
+  }
   ["TIME_1"]=>
-  string(8) "15:45:59"
+  object(DateTime) {
+    ["date"]=>
+    string(26) "1970-01-01 15:45:59.000000"
+    ["timezone_type"]=>
+    int(3)
+    ["timezone"]=>
+    string(3) "UTC"
+  }
   ["DECFLOAT_16"]=>
   string(17) "3.141592653589793"
   ["DECFLOAT_34"]=>
@@ -82,9 +124,23 @@ Row data object(stdClass) {
   ["SMALLINT_1"]=>
   int(1)
   ["TIME_TZ"]=>
-  string(20) "15:45:59 Europe/Riga"
+  object(DateTime) {
+    ["date"]=>
+    string(26) "1970-01-01 15:45:59.000000"
+    ["timezone_type"]=>
+    int(3)
+    ["timezone"]=>
+    string(11) "Europe/Riga"
+  }
   ["TIMESTAMP_TZ"]=>
-  string(31) "2025-11-06 15:45:59 Europe/Riga"
+  object(DateTime) {
+    ["date"]=>
+    string(26) "2025-11-06 15:45:59.000000"
+    ["timezone_type"]=>
+    int(3)
+    ["timezone"]=>
+    string(11) "Europe/Riga"
+  }
 }
 
 Select DECFLOAT_34 where condition inline -------------------------------------

@@ -1,5 +1,5 @@
 --TEST--
-php-firebird: IBASE_UNIXTIME: ignore IBASE_UNIXTIME flag for TIME fields
+FETCH_UNIXTIME: TIME columns stay DateTime objects
 --SKIPIF--
 <?php include("skipif.inc"); ?>
 --FILE--
@@ -11,7 +11,6 @@ require_once('functions.inc');
 
 function test_time_unixtime(): void
 {
-    // ini_set("ibase.timeformat", "%H:%M:%S");
     $t = init_tmp_db()->start_transaction();
 
     $t->query("CREATE TABLE TTEST (
@@ -34,15 +33,36 @@ array(3) {
   ["ID"]=>
   int(1)
   ["T1"]=>
-  string(8) "15:45:59"
+  object(DateTime)#%d (3) {
+    ["date"]=>
+    string(26) "1970-01-01 15:45:59.000000"
+    ["timezone_type"]=>
+    int(3)
+    ["timezone"]=>
+    string(3) "UTC"
+  }
   ["T2"]=>
-  string(19) "2025-11-06 15:45:59"
+  object(DateTime)#%d (3) {
+    ["date"]=>
+    string(26) "2025-11-06 15:45:59.000000"
+    ["timezone_type"]=>
+    int(3)
+    ["timezone"]=>
+    string(3) "UTC"
+  }
 }
 array(3) {
   ["ID"]=>
   int(1)
   ["T1"]=>
-  string(8) "15:45:59"
+  object(DateTime)#%d (3) {
+    ["date"]=>
+    string(26) "1970-01-01 15:45:59.000000"
+    ["timezone_type"]=>
+    int(3)
+    ["timezone"]=>
+    string(3) "UTC"
+  }
   ["T2"]=>
   int(1762443959)
 }

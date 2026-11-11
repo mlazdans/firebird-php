@@ -41,7 +41,6 @@ require_once('functions.inc');
     $t->commit_ret();
 
     /* if timefmt not supported, hide error */
-    // ini_set('firebird.timestampformat',"%m/%d/%Y %H:%M:%S");
 
     echo "insert\n";
 
@@ -73,10 +72,10 @@ require_once('functions.inc');
             echo " in:  $v_char\n";
             echo " out: $row->V_CHAR\n";
         }
-        if($row->V_DATE != $v_date) {
+        if($row->V_DATE->format('Y-m-d H:i:s') != $v_date) {
             echo " DATE fail\n";
             echo " in:  $v_date\n";
-            echo " out: $row->V_DATE\n";
+            echo " out: " . $row->V_DATE->format('Y-m-d H:i:s') . "\n";
         }
         if($row->V_DECIMAL != $v_decimal) {
             echo " DECIMAL fail\n";

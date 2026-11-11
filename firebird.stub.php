@@ -14,18 +14,13 @@ namespace FireBird;
 const FETCH_BLOB_TEXT = UNKNOWN;
 
 /**
- * fetch to return date fields as UNIX timestamps
+ * fetch to return DATE, TIMESTAMP and TIMESTAMP WITH TIME ZONE columns as UNIX time
+ * instead of DateTime objects. Zone-less values are taken as UTC. TIME columns stay
+ * DateTime objects.
  * @var int
  * @cvalue FBP_FETCH_UNIXTIME
  */
 const FETCH_UNIXTIME = UNKNOWN;
-
-/**
- * fetch to return date/time fields as PHP DateTime objects
- * @var int
- * @cvalue FBP_FETCH_DATE_OBJ
- */
-const FETCH_DATE_OBJ = UNKNOWN;
 
 /**
  * fetch to return blob fields as Blob objects
@@ -348,7 +343,10 @@ class Statement
      *
      * Returns an object with the row information, false on error or null if there are no more rows
      *
-     * @see FETCH_BLOBS, FETCH_UNIXTIME
+     * Date/time columns are DateTime objects unless FETCH_UNIXTIME is given:
+     * zone-less values in date.timezone, TIME values on 1970-01-01.
+     *
+     * @see FETCH_BLOB_TEXT, FETCH_UNIXTIME
      * */
     public function fetch_object(int $flags = 0): object|false|null { die; }
 
@@ -357,7 +355,10 @@ class Statement
      *
      * Returns an array with the row information, false on error or null if there are no more rows
      *
-     * @see FETCH_BLOBS, FETCH_UNIXTIME
+     * Date/time columns are DateTime objects unless FETCH_UNIXTIME is given:
+     * zone-less values in date.timezone, TIME values on 1970-01-01.
+     *
+     * @see FETCH_BLOB_TEXT, FETCH_UNIXTIME
      * */
     public function fetch_array(int $flags = 0): array|false|null { die; }
 
@@ -366,7 +367,10 @@ class Statement
      *
      * Returns an array with the row information, false on error or null if there are no more rows
      *
-     * @see FETCH_BLOBS, FETCH_UNIXTIME
+     * Date/time columns are DateTime objects unless FETCH_UNIXTIME is given:
+     * zone-less values in date.timezone, TIME values on 1970-01-01.
+     *
+     * @see FETCH_BLOB_TEXT, FETCH_UNIXTIME
      * */
     public function fetch_row(int $flags = 0): array|false|null { die; }
     public function execute(mixed ...$bind_args): void { die; }

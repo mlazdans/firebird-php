@@ -1,5 +1,5 @@
 --TEST--
-IBASE_UNIXTIME: ignore IBASE_UNIXTIME flag for TIME_TZ fields
+FETCH_UNIXTIME: TIME WITH TIME ZONE columns stay DateTime objects
 --SKIPIF--
 <?php include("skipif.inc"); ?>
 --FILE--
@@ -31,15 +31,36 @@ array(3) {
   ["ID"]=>
   int(1)
   ["T1"]=>
-  string(20) "15:45:59 Europe/Riga"
+  object(DateTime)#%d (3) {
+    ["date"]=>
+    string(26) "1970-01-01 15:45:59.000000"
+    ["timezone_type"]=>
+    int(3)
+    ["timezone"]=>
+    string(11) "Europe/Riga"
+  }
   ["T2"]=>
-  string(31) "2025-11-06 15:45:59 Europe/Riga"
+  object(DateTime)#%d (3) {
+    ["date"]=>
+    string(26) "2025-11-06 15:45:59.000000"
+    ["timezone_type"]=>
+    int(3)
+    ["timezone"]=>
+    string(11) "Europe/Riga"
+  }
 }
 array(3) {
   ["ID"]=>
   int(1)
   ["T1"]=>
-  string(20) "15:45:59 Europe/Riga"
+  object(DateTime)#%d (3) {
+    ["date"]=>
+    string(26) "1970-01-01 15:45:59.000000"
+    ["timezone_type"]=>
+    int(3)
+    ["timezone"]=>
+    string(11) "Europe/Riga"
+  }
   ["T2"]=>
-  int(1762443959)
+  int(1762436759)
 }

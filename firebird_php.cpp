@@ -107,9 +107,6 @@ ZEND_INI_MH(OnUpdateDebug)
 /* {{{ startup, shutdown and info functions */
 PHP_INI_BEGIN()
     STD_PHP_INI_ENTRY("firebird.debug", "0", PHP_INI_ALL, OnUpdateDebug, debug, zend_firebird_globals, firebird_globals)
-    PHP_INI_ENTRY("firebird.timestampformat", FIREBIRD_DATE_FMT " " FIREBIRD_TIME_FMT, PHP_INI_ALL, NULL)
-    PHP_INI_ENTRY("firebird.dateformat", FIREBIRD_DATE_FMT, PHP_INI_ALL, NULL)
-    PHP_INI_ENTRY("firebird.timeformat", FIREBIRD_TIME_FMT, PHP_INI_ALL, NULL)
 PHP_INI_END()
 
 static PHP_GINIT_FUNCTION(firebird)

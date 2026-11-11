@@ -21,7 +21,6 @@ void fbu_xpb_insert_object(Firebird::IXpbBuilder* xpb, zval *obj, zend_class_ent
 unsigned fbu_get_client_version(void);
 
 const char* fbu_get_sql_type_name(firebird_var *var, char *buf, size_t buf_size);
-void fbu_init_date_object(const char *tzbuff, zval *o);
 
 int fbu_is_valid_dbh(size_t dbh);
 int fbu_is_valid_svh(size_t svh);

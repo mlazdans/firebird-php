@@ -23,8 +23,6 @@
 #define METADATALENGTH 63*4
 // #define TPB_MAX_SIZE (32)
 
-#define FIREBIRD_DATE_FMT "%Y-%m-%d"
-#define FIREBIRD_TIME_FMT "%H:%M:%S"
 
 namespace FBP {
     class Database;

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <map>
+#include <string>
 #include <firebird/Interface.h>
 
 #include "./base.hpp"
@@ -9,8 +11,6 @@
 
 #define FBP_FETCH_BLOB_TEXT (1<<0)
 #define FBP_FETCH_UNIXTIME  (1<<1)
-#define FBP_FETCH_DATE_OBJ  (1<<2)
-#define FBP_FETCH_BLOB_OBJ  (1<<3)
 #define FBP_FETCH_INDEXED   (1<<4)
 #define FBP_FETCH_HASHED    (1<<5)
 
@@ -91,6 +91,13 @@ private:
 
     void bind_datetime(zval *b_var, unsigned argn, const firebird_var &var,
         unsigned char *sqldata, const char *type_named);
+
+    // One DateTime per zone ("" for date.timezone), updated for each date/time
+    // cell and cloned for the value returned
+    std::map<std::string, zend_object*> date_scratch;
+    zend_object *date_scratch_for(const char *zone);
+    void make_date_obj(zval *val, unsigned type, unsigned y, unsigned mo, unsigned d,
+        unsigned h, unsigned mi, unsigned sec, unsigned frac, const char *zone, int64_t epoch);
 
     void query_statistics();
     void free_cursor();
