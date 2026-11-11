@@ -4,9 +4,9 @@
 #include "fbp/blob.hpp"
 #include "fbp/statement.hpp"
 
-#define STRNUM_PARSE_OK       0
-#define STRNUM_PARSE_ERROR    1
-#define STRNUM_PARSE_OVERFLOW 2
+// Firebird ISC_TIME sub-second unit is 1/10000 s (0..9999); PHP DateTime counts microseconds
+#define FB_FRACTIONS_TO_USEC(f) ((unsigned)(f) * 100)
+#define FB_USEC_TO_FRACTIONS(u) ((unsigned)(u) / 100)
 
 extern "C++" const char *fbu_read_required_string_prop(zend_class_entry *ce, zval *obj, const char *name);
 
@@ -21,8 +21,6 @@ void fbu_xpb_insert_object(Firebird::IXpbBuilder* xpb, zval *obj, zend_class_ent
 unsigned fbu_get_client_version(void);
 
 const char* fbu_get_sql_type_name(firebird_var *var, char *buf, size_t buf_size);
-int fbu_string_to_numeric(const char *s, size_t slen, int scale, uint64_t max,
-    int *sign, int *exp, uint64_t *res);
 void fbu_init_date_object(const char *tzbuff, zval *o);
 
 int fbu_is_valid_dbh(size_t dbh);

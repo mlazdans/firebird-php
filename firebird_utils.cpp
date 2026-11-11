@@ -281,61 +281,6 @@ void fbu_xpb_insert_object(IXpbBuilder* xpb, zval *obj, zend_class_entry *ce,
 
 extern "C" {
 
-// Parse NUMERIC() to signed int representation
-int fbu_string_to_numeric(const char *s, size_t slen, int scale, uint64_t max,
-    int *sign, int *exp, uint64_t *res)
-{
-    const char* p = s;
-    const char *end = s + slen;
-
-    *sign = *exp = *res = 0;
-
-    if (!slen) return STRNUM_PARSE_OK;
-
-    if (*p == '-') {
-        *sign = -1;
-        p++;
-    } else if (*p == '+') {
-        *sign = 1;
-        p++;
-    } else {
-        *sign = 1;
-    }
-
-    if (*sign == -1) max += 1;
-
-    int fraction = 0;
-    uint64_t &r = *res;
-    while (p < end) {
-        if (*p >= '0' && *p <= '9') {
-            r = r * 10 + (*p - '0');
-            p++;
-            if (fraction) {
-                scale++;
-                --*exp;
-            }
-        } else if (*p == '.') {
-            if (fraction) return STRNUM_PARSE_ERROR;
-            fraction = 1;
-            p++;
-            continue;
-        } else {
-            return STRNUM_PARSE_ERROR;
-        }
-
-        if (r > max) return STRNUM_PARSE_OVERFLOW;
-    }
-
-    while (scale < 0) {
-        r *= 10;
-        if (r > max) return STRNUM_PARSE_OVERFLOW;
-        scale++;
-        --*exp;
-    }
-
-    return STRNUM_PARSE_OK;
-}
-
 // Returns the client version. 0 bytes are minor version, 1 bytes are major version.
 unsigned fbu_get_client_version(void)
 {

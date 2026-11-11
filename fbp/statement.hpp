@@ -89,6 +89,9 @@ private:
     void alloc_ht_ind();
     bool is_executed = false, cursor_exhausted = false;
 
+    void bind_datetime(zval *b_var, unsigned argn, const firebird_var &var,
+        unsigned char *sqldata, const char *type_named);
+
     void query_statistics();
     void free_cursor();
     bool is_select() const;

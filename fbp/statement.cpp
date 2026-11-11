@@ -1,3 +1,5 @@
+#include <cfloat>
+#include <cstdint>
 #include <string>
 #include <firebird/Interface.h>
 
@@ -7,6 +9,8 @@
 #include "../firebird_php.hpp"
 
 extern "C" {
+#include "php_globals.h"
+#include "zend_smart_str.h"
 #include "ext/date/php_date.h"
 #include "../firebird_utils.h"
 }
@@ -87,279 +91,240 @@ void Statement::prepare(unsigned int len_sql, const char *sql)
     }
 }
 
+namespace {
+
+template <typename... Args>
+std::string fmt(const char *format, Args... args)
+{
+    char buf[512];
+    snprintf(buf, sizeof(buf), format, args...);
+    return std::string(buf);
+}
+
+// Holds a temporary string produced while converting one bind argument.
+struct StrGuard {
+    zend_string *s = nullptr;
+    ~StrGuard() { if (s) zend_string_release(s); }
+};
+
+// Doubles are formatted with serialize_precision (default -1: the shortest text that
+// reads back as the identical double), like var_export() and json_encode(). The
+// `precision` ini used by string casts keeps only 14 digits.
+zend_string *double_to_string(double d)
+{
+    smart_str str = {0};
+    smart_str_append_double(&str, d, (int)PG(serialize_precision), false);
+    return smart_str_extract(&str);
+}
+
+bool is_stringable(const zval *v)
+{
+    switch (Z_TYPE_P(v)) {
+        case IS_STRING: case IS_LONG: case IS_DOUBLE: case IS_TRUE: case IS_FALSE:
+            return true;
+        case IS_OBJECT:
+            return Z_OBJCE_P(v)->__tostring != nullptr;
+        default:
+            return false;
+    }
+}
+
+// Returns the string form of a scalar or Stringable. Only call after is_stringable().
+const zend_string *as_string(zval *v, StrGuard &guard)
+{
+    if (Z_TYPE_P(v) == IS_STRING) return Z_STR_P(v);
+    guard.s = Z_TYPE_P(v) == IS_DOUBLE ? double_to_string(Z_DVAL_P(v)) : zval_get_string(v);
+    return guard.s;
+}
+
+bool scale_int64(int64_t v, int scale, int64_t *out)
+{
+    for (int k = scale; k < 0; k++) {
+        if (v > INT64_MAX / 10 || v < INT64_MIN / 10) return false;
+        v *= 10;
+    }
+    *out = v;
+    return true;
+}
+
+// Firebird zone name for a timelib time: region id, or "+HH:MM" for offsets/abbreviations
+const char *zone_name(const timelib_time *t, char *buf, size_t buf_size)
+{
+    timelib_sll offset;
+
+    switch (t->zone_type) {
+        case TIMELIB_ZONETYPE_ID:
+            if (t->tz_info) return t->tz_info->name;
+            offset = 0;
+            break;
+        case TIMELIB_ZONETYPE_OFFSET:
+            offset = t->z;
+            break;
+        case TIMELIB_ZONETYPE_ABBR:
+            offset = t->z + t->dst * 3600;
+            break;
+        default:
+            offset = 0;
+    }
+
+    timelib_sll a = offset < 0 ? -offset : offset;
+    snprintf(buf, buf_size, "%c%02d:%02d", offset < 0 ? '-' : '+', (int)(a / 3600), (int)((a % 3600) / 60));
+
+    return buf;
+}
+
+} // anonymous namespace
+
 void Statement::bind(zval *b_vars, unsigned int num_bind_args)
 {
     FBDEBUG("%s(in_buffer=%p)", __func__, in_buffer);
     auto util = master->getUtilInterface();
 
-    char tmp_buf[256], type_buf[64];
-    struct tm t;
-    const char *tformat;
-    int64_t long_min, long_max;
-    zend_long long_val;
+    char type_buf[64];
 
     if (num_bind_args != info.in_vars_count) {
-        slprintf(tmp_buf, sizeof(tmp_buf), "Statement expects %d arguments, %d given",
-            info.in_vars_count, num_bind_args);
-
-        throw Php_Firebird_Exception(zend_ce_argument_count_error, std::string(tmp_buf));
+        throw Php_Firebird_Exception(zend_ce_argument_count_error,
+            fmt("Statement expects %u arguments, %u given", info.in_vars_count, num_bind_args));
     }
 
-    for (size_t i = 0; i < info.in_vars_count; ++i) {
+    for (unsigned int i = 0; i < info.in_vars_count; ++i) {
         zval *b_var = &b_vars[i];
+        ZVAL_DEREF(b_var);
 
-        auto sqlind = reinterpret_cast<short*>(in_buffer + in_vars[i].null_offset);
+        const unsigned argn = i + 1;
+        const auto &var = in_vars[i];
+        auto sqlind = reinterpret_cast<short*>(in_buffer + var.null_offset);
 
         if (Z_TYPE_P(b_var) == IS_NULL) {
             *sqlind = -1;
             continue;
         }
 
-        auto sqldata = in_buffer + in_vars[i].offset;
-        auto scale = in_vars[i].scale;
-        auto len_sqldata = in_vars[i].length;
-
-        auto type_named = fbu_get_sql_type_name(&in_vars[i], type_buf, sizeof(type_buf));
-
         *sqlind = 0;
 
-        auto sqltype = in_vars[i].type;
+        auto sqldata = in_buffer + var.offset;
+        const auto sqltype = var.type;
+        const auto scale = var.scale;
+        const auto type_named = fbu_get_sql_type_name(&in_vars[i], type_buf, sizeof(type_buf));
+        StrGuard tmp;
 
         FBDEBUG("sqltype: %s, sql buflen: %d, phptype: %s",
-            type_named, len_sqldata, zend_zval_type_name(b_var));
+            type_named, var.length, zend_zval_type_name(b_var));
 
-        // Init
-        long_min = long_max = 0;
-        switch (sqltype)
-        {
-            case SQL_SHORT:
-                long_min = INT16_MIN;
-                long_max = INT16_MAX;
-                break;
-            case SQL_LONG:
-                long_min = INT32_MIN;
-                long_max = INT32_MAX;
-                break;
-            case SQL_INT64:
-                long_min = INT64_MIN;
-                long_max = INT64_MAX;
-                break;
-        }
+        auto wrong_type = [&]() {
+            return Php_Firebird_Exception(zend_ce_type_error,
+                fmt("Argument %u: type mismatch '%s' to SQL type '%s'",
+                    argn, zend_zval_type_name(b_var), type_named));
+        };
 
-        // Perform PHP type conversions
-        switch (sqltype)
-        {
-            case SQL_FLOAT:
-            case SQL_DOUBLE:
-                switch (Z_TYPE_P(b_var))
-                {
-                    case IS_DOUBLE: break;
-                    case IS_STRING:
-                    case IS_LONG:
-                        convert_to_double(b_var);
-                        break;
-                    default: goto wrong_z_type;
-                }
-                break;
-
-            case SQL_TYPE_DATE:
-            case SQL_TIMESTAMP:
-            case SQL_TIMESTAMP_TZ:
-                switch (Z_TYPE_P(b_var))
-                {
-                    case IS_STRING: break;
-                    case IS_LONG:
-                        if (!php_gmtime_r(&Z_LVAL_P(b_var), &t)) {
-                            slprintf(tmp_buf, sizeof(tmp_buf), "Argument %d: could not parse timestamp", i);
-                            throw Php_Firebird_Exception(zend_ce_value_error, std::string(tmp_buf));
-                        }
-                        break;
-                    default: goto wrong_z_type;
-                }
-                break;
-
-            case SQL_TYPE_TIME:
-            case SQL_TIME_TZ:
-                if (Z_TYPE_P(b_var) != IS_STRING) goto wrong_z_type;
-                break;
-
-            case SQL_DEC16:
-            case SQL_DEC34:
-            case SQL_INT128:
-                switch (Z_TYPE_P(b_var))
-                {
-                    case IS_STRING: break;
-                    case IS_DOUBLE:
-                    case IS_LONG:
-                        convert_to_string(b_var);
-                        break;
-                    default: goto wrong_z_type;
-                }
+        switch (sqltype) {
+            case SQL_NULL:
+                // `? IS NULL`: only the indicator matters
                 break;
 
             case SQL_SHORT:
             case SQL_LONG:
-            case SQL_INT64:
-                if (!long_min || !long_max) {
-                    throw Php_Firebird_Exception(zend_ce_error, "BUG: unreachable");
-                }
+            case SQL_INT64: {
+                const int64_t lmin = sqltype == SQL_SHORT ? INT16_MIN : sqltype == SQL_LONG ? INT32_MIN : INT64_MIN;
+                const int64_t lmax = sqltype == SQL_SHORT ? INT16_MAX : sqltype == SQL_LONG ? INT32_MAX : INT64_MAX;
+                int64_t v;
+                bool fits;
 
-                if (scale != 0 && Z_TYPE_P(b_var) == IS_STRING) {
-                    uint64_t res;
-                    int sign, exp;
-
-                    FBDEBUG("type: %s; scale: %d; s: %s",
-                        type_named, scale, Z_STRVAL_P(b_var)
-                    );
-
-                    int parse_err = fbu_string_to_numeric(Z_STRVAL_P(b_var), Z_STRLEN_P(b_var),
-                        scale, long_max, &sign, &exp, &res);
-
-                    if (parse_err) {
-                        switch (parse_err)
-                        {
-                            case STRNUM_PARSE_OVERFLOW:
-                                slprintf(tmp_buf, sizeof(tmp_buf),
-                                    "Argument %d: %s value %zu out of range [%ld, %ld]",
-                                    i, type_named, res, long_min, long_max
-                                );
-                                break;
-                            default:
-                                slprintf(tmp_buf, sizeof(tmp_buf), "Argument %d: string parse error", i);
-                                break;
-                        }
-                        throw Php_Firebird_Exception(zend_ce_value_error, std::string(tmp_buf));
+                if (Z_TYPE_P(b_var) == IS_LONG) {
+                    fits = scale_int64(Z_LVAL_P(b_var), scale, &v);
+                } else if (Z_TYPE_P(b_var) == IS_DOUBLE || Z_TYPE_P(b_var) == IS_STRING) {
+                    if (Z_TYPE_P(b_var) == IS_DOUBLE && !zend_finite(Z_DVAL_P(b_var))) {
+                        throw Php_Firebird_Exception(zend_ce_value_error,
+                            fmt("Argument %u: cannot bind INF or NAN to %s", argn, type_named));
                     }
+                    // Firebird's own parser: rounds to the column scale, accepts exponents
+                    FB_I128 v128;
+                    util->getInt128(&st)->fromString(&st, scale, ZSTR_VAL(as_string(b_var, tmp)), &v128);
+                    v = static_cast<int64_t>(v128.fb_data[0]);
+                    fits = static_cast<int64_t>(v128.fb_data[1]) == (v < 0 ? -1 : 0);
+                } else {
+                    throw wrong_type();
+                }
 
-                    long_val = static_cast<zend_long>(sign < 0 ? -res : res);
+                if (!fits || v < lmin || v > lmax) {
+                    const zend_string *str = as_string(b_var, tmp);
+                    throw Php_Firebird_Exception(zend_ce_value_error,
+                        fmt("Argument %u: value %s is out of range for %s", argn, ZSTR_VAL(str), type_named));
+                }
 
-                    FBDEBUG("sign: %d; exp: %d; res: %zu; final val: %ld",
-                        sign, exp, res, long_val
-                    );
+                if (sqltype == SQL_SHORT) {
+                    *reinterpret_cast<int16_t*>(sqldata) = static_cast<int16_t>(v);
+                } else if (sqltype == SQL_LONG) {
+                    *reinterpret_cast<int32_t*>(sqldata) = static_cast<int32_t>(v);
+                } else {
+                    *reinterpret_cast<int64_t*>(sqldata) = v;
+                }
+            } break;
+
+            case SQL_FLOAT:
+            case SQL_DOUBLE: {
+                double d;
+
+                if (Z_TYPE_P(b_var) == IS_DOUBLE) {
+                    d = Z_DVAL_P(b_var);
                 } else if (Z_TYPE_P(b_var) == IS_LONG) {
-                    long_val = Z_LVAL_P(b_var);
-                    if (long_val < long_min || long_val > long_max) {
-                        slprintf(tmp_buf, sizeof(tmp_buf),
-                            "Argument %d: %s value %ld out of range [%d, %d]",
-                            i, type_named, long_val, long_min, long_max
-                        );
-                        throw Php_Firebird_Exception(zend_ce_value_error, std::string(tmp_buf));
+                    d = static_cast<double>(Z_LVAL_P(b_var));
+                } else if (Z_TYPE_P(b_var) == IS_STRING) {
+                    zend_long lval;
+                    auto t = is_numeric_string(Z_STRVAL_P(b_var), Z_STRLEN_P(b_var), &lval, &d, false);
+                    if (!t) {
+                        throw Php_Firebird_Exception(zend_ce_value_error,
+                            fmt("Argument %u: '%s' is not numeric", argn, Z_STRVAL_P(b_var)));
                     }
+                    if (t == IS_LONG) d = static_cast<double>(lval);
                 } else {
-                    goto wrong_z_type;
+                    throw wrong_type();
                 }
-                break;
 
-            case SQL_BOOLEAN: break;
-            case SQL_BLOB: break;
+                if (!zend_finite(d)) {
+                    throw Php_Firebird_Exception(zend_ce_value_error,
+                        fmt("Argument %u: cannot bind INF or NAN to %s", argn, type_named));
+                }
 
-            case SQL_TEXT:
-            case SQL_VARYING:
-                convert_to_string(b_var);
-                if (Z_STRLEN_P(b_var) > len_sqldata) {
-                    slprintf(tmp_buf, sizeof(tmp_buf),
-                        "Argument %d: string of size %d does not fit buffer of size %d",
-                        i, Z_STRLEN_P(b_var), len_sqldata
-                    );
-                    throw Php_Firebird_Exception(zend_ce_value_error, std::string(tmp_buf));
+                if (sqltype == SQL_FLOAT) {
+                    if (d > FLT_MAX || d < -FLT_MAX) {
+                        throw Php_Firebird_Exception(zend_ce_value_error,
+                            fmt("Argument %u: value %g is out of range for FLOAT", argn, d));
+                    }
+                    *reinterpret_cast<float*>(sqldata) = static_cast<float>(d);
+                } else {
+                    *reinterpret_cast<double*>(sqldata) = d;
                 }
-                break;
+            } break;
 
-            default:
-                fbp_fatal("Unhandled type check for sqltype: %s(%d)", type_named, sqltype);
-        }
-
-        // Populate metadata buffer
-        switch (sqltype)
-        {
-            case SQL_FLOAT:
-                *reinterpret_cast<float*>(sqldata) = static_cast<float>(Z_DVAL_P(b_var));
-                break;
-            case SQL_DOUBLE:
-                *reinterpret_cast<double*>(sqldata) = static_cast<double>(Z_DVAL_P(b_var));
-                break;
-            case SQL_TYPE_DATE:
-                switch (Z_TYPE_P(b_var))
-                {
-                    case IS_LONG:
-                        isc_encode_sql_date(&t, reinterpret_cast<ISC_DATE*>(sqldata));
-                        break;
-                    case IS_STRING:
-                        tformat = "Y-m-d";
-                        goto parse_datetime;
-                    default:
-                        throw Php_Firebird_Exception(zend_ce_error, "BUG: unreachable");
-                }
-                break;
-            case SQL_TIMESTAMP_TZ:
-                switch (Z_TYPE_P(b_var))
-                {
-                    case IS_LONG:
-                    {
-                        ISC_TIMESTAMP_TZ *ts = reinterpret_cast<ISC_TIMESTAMP_TZ*>(sqldata);
-                        isc_encode_sql_date(&t, &ts->utc_timestamp.timestamp_date);
-                        isc_encode_sql_time(&t, &ts->utc_timestamp.timestamp_time);
-                        ts->time_zone = 0;
-                    } break;
-                    case IS_STRING:
-                        tformat = "Y-m-d H:i:s e";
-                        goto parse_datetime;
-                    default:
-                        throw Php_Firebird_Exception(zend_ce_error, "BUG: unreachable");
-                }
-                break;
-            case SQL_TIMESTAMP:
-                switch (Z_TYPE_P(b_var))
-                {
-                    case IS_LONG:
-                    {
-                        ISC_TIMESTAMP *ts = reinterpret_cast<ISC_TIMESTAMP*>(sqldata);
-                        isc_encode_sql_date(&t, &ts->timestamp_date);
-                        isc_encode_sql_time(&t, &ts->timestamp_time);
-                    } break;
-                    case IS_STRING:
-                        tformat = "Y-m-d H:i:s";
-                        goto parse_datetime;
-                    default:
-                        throw Php_Firebird_Exception(zend_ce_error, "BUG: unreachable");
-                }
-                break;
-            case SQL_TYPE_TIME:
-                tformat = "H:i:s";
-                goto parse_datetime;
-            case SQL_TIME_TZ:
-                tformat = "H:i:s e";
-                goto parse_datetime;
-            case SQL_SHORT:
-                *reinterpret_cast<int16_t*>(sqldata) = static_cast<int16_t>(long_val);
-                break;
-            case SQL_LONG:
-                *reinterpret_cast<int32_t*>(sqldata) = static_cast<int32_t>(long_val);
-                break;
-            case SQL_INT64:
-                *reinterpret_cast<int64_t*>(sqldata) = static_cast<int64_t>(long_val);
-                break;
             case SQL_INT128:
-                util->getInt128(&st)->fromString(&st, scale, Z_STRVAL_P(b_var), reinterpret_cast<FB_I128*>(sqldata));
-                break;
             case SQL_DEC16:
-                util->getDecFloat16(&st)->fromString(&st, Z_STRVAL_P(b_var), reinterpret_cast<FB_DEC16*>(sqldata));
-                break;
-            case SQL_DEC34:
-                util->getDecFloat34(&st)->fromString(&st, Z_STRVAL_P(b_var), reinterpret_cast<FB_DEC34*>(sqldata));
-                break;
-
-            case SQL_BLOB:
-                ISC_QUAD bl_id;
-                if (Z_TYPE_P(b_var) == IS_OBJECT && Z_OBJCE_P(b_var) == FireBird_Blob_Id_ce) {
-                    bl_id = get_firebird_blob_id_from_zval(b_var)->bl_id;
-                } else if (Z_TYPE_P(b_var) == IS_OBJECT && Z_OBJCE_P(b_var) == FireBird_Blob_ce) {
-                    bl_id = get_firebird_blob_from_zval(b_var)->info->id;
-                } else {
-                    convert_to_string(b_var);
-                    bl_id = tra.create_blob_from_string(Z_STR_P(b_var));
+            case SQL_DEC34: {
+                if (Z_TYPE_P(b_var) != IS_STRING && Z_TYPE_P(b_var) != IS_LONG && Z_TYPE_P(b_var) != IS_DOUBLE) {
+                    throw wrong_type();
                 }
-                *reinterpret_cast<ISC_QUAD*>(sqldata) = static_cast<ISC_QUAD>(bl_id);
+                if (Z_TYPE_P(b_var) == IS_DOUBLE && !zend_finite(Z_DVAL_P(b_var))) {
+                    throw Php_Firebird_Exception(zend_ce_value_error,
+                        fmt("Argument %u: cannot bind INF or NAN to %s", argn, type_named));
+                }
+
+                const char *str = ZSTR_VAL(as_string(b_var, tmp));
+
+                if (sqltype == SQL_INT128) {
+                    util->getInt128(&st)->fromString(&st, scale, str, reinterpret_cast<FB_I128*>(sqldata));
+                } else if (sqltype == SQL_DEC16) {
+                    util->getDecFloat16(&st)->fromString(&st, str, reinterpret_cast<FB_DEC16*>(sqldata));
+                } else {
+                    util->getDecFloat34(&st)->fromString(&st, str, reinterpret_cast<FB_DEC34*>(sqldata));
+                }
+            } break;
+
+            case SQL_TYPE_DATE:
+            case SQL_TYPE_TIME:
+            case SQL_TIME_TZ:
+            case SQL_TIMESTAMP:
+            case SQL_TIMESTAMP_TZ:
+                bind_datetime(b_var, argn, var, sqldata, type_named);
                 break;
 
             case SQL_BOOLEAN:
@@ -368,89 +333,159 @@ void Statement::bind(zval *b_vars, unsigned int num_bind_args)
                 } else if (Z_TYPE_P(b_var) == IS_TRUE) {
                     *reinterpret_cast<FB_BOOLEAN*>(sqldata) = FB_TRUE;
                 } else {
-                    goto wrong_z_type;
+                    throw wrong_type();
                 }
                 break;
 
-            case SQL_ARRAY:
-                fbp_fatal("ARRAY type is not supported.");
-
-            case SQL_VARYING: {
-                auto buf = reinterpret_cast<firebird_vary*>(sqldata);
-                buf->vary_length = Z_STRLEN_P(b_var);
-                memcpy(buf->vary_string, Z_STRVAL_P(b_var), buf->vary_length);
-                // Z_STRVAL_P(b_var)[buf->vary_length] = '\0';
+            case SQL_BLOB: {
+                ISC_QUAD bl_id;
+                if (Z_TYPE_P(b_var) == IS_OBJECT && Z_OBJCE_P(b_var) == FireBird_Blob_Id_ce) {
+                    bl_id = get_firebird_blob_id_from_zval(b_var)->bl_id;
+                } else if (Z_TYPE_P(b_var) == IS_OBJECT && Z_OBJCE_P(b_var) == FireBird_Blob_ce) {
+                    bl_id = get_firebird_blob_from_zval(b_var)->info->id;
+                } else if (is_stringable(b_var)) {
+                    // The cast operates on a const view only: create_blob_from_string()
+                    // does not modify the string
+                    bl_id = tra.create_blob_from_string(const_cast<zend_string*>(as_string(b_var, tmp)));
+                } else {
+                    throw wrong_type();
+                }
+                *reinterpret_cast<ISC_QUAD*>(sqldata) = bl_id;
             } break;
 
             case SQL_TEXT:
-                memcpy(sqldata, Z_STRVAL_P(b_var), Z_STRLEN_P(b_var));
-                memset(&sqldata[Z_STRLEN_P(b_var)], ' ', len_sqldata - Z_STRLEN_P(b_var));
-                break;
+            case SQL_VARYING: {
+                if (!is_stringable(b_var)) {
+                    throw wrong_type();
+                }
+
+                const zend_string *str = as_string(b_var, tmp);
+
+                if (ZSTR_LEN(str) > var.length) {
+                    throw Php_Firebird_Exception(zend_ce_value_error,
+                        fmt("Argument %u: string of size %zu does not fit buffer of size %u",
+                            argn, ZSTR_LEN(str), var.length));
+                }
+
+                if (sqltype == SQL_VARYING) {
+                    auto buf = reinterpret_cast<firebird_vary*>(sqldata);
+                    buf->vary_length = static_cast<unsigned short>(ZSTR_LEN(str));
+                    memcpy(buf->vary_string, ZSTR_VAL(str), ZSTR_LEN(str));
+                } else {
+                    memcpy(sqldata, ZSTR_VAL(str), ZSTR_LEN(str));
+                    memset(&sqldata[ZSTR_LEN(str)], ' ', var.length - ZSTR_LEN(str));
+                }
+            } break;
+
+            case SQL_ARRAY:
+                throw Php_Firebird_Exception(zend_ce_value_error,
+                    fmt("Argument %u: ARRAY type is not supported", argn));
 
             default:
-                fbp_fatal("Unhandled sqltype: %d", sqltype);
+                throw Php_Firebird_Exception(zend_ce_value_error,
+                    fmt("Argument %u: binding SQL type %s (%u) is not supported", argn, type_named, sqltype));
+        }
+    }
+} // bind
 
-        } /* switch */
+// Binds an int (UNIX timestamp, date-bearing columns only), a string (any format
+// strtotime() understands, including fractions and zones) or a DateTimeInterface.
+void Statement::bind_datetime(zval *b_var, unsigned argn, const firebird_var &var,
+    unsigned char *sqldata, const char *type_named)
+{
+    auto util = master->getUtilInterface();
+    const auto sqltype = var.type;
+    const bool has_date = sqltype == SQL_TYPE_DATE || sqltype == SQL_TIMESTAMP || sqltype == SQL_TIMESTAMP_TZ;
 
-        continue;
+    if (Z_TYPE_P(b_var) == IS_LONG) {
+        if (!has_date) {
+            throw Php_Firebird_Exception(zend_ce_type_error,
+                fmt("Argument %u: type mismatch 'int' to SQL type '%s'", argn, type_named));
+        }
 
-wrong_z_type: {
-        slprintf(tmp_buf, sizeof(tmp_buf),
-            "Argument %d: type mismatch '%s' to SQL type '%s'", i,
-            zend_get_type_by_const(Z_TYPE_P(b_var)), type_named);
+        time_t tt = static_cast<time_t>(Z_LVAL_P(b_var));
+        struct tm t;
+        if (!php_gmtime_r(&tt, &t)) {
+            throw Php_Firebird_Exception(zend_ce_value_error,
+                fmt("Argument %u: could not convert timestamp " ZEND_LONG_FMT, argn, Z_LVAL_P(b_var)));
+        }
 
-        throw Php_Firebird_Exception(zend_ce_type_error, std::string(tmp_buf));
+        ISC_DATE date = util->encodeDate(t.tm_year + 1900, t.tm_mon + 1, t.tm_mday);
+        ISC_TIME time = util->encodeTime(t.tm_hour, t.tm_min, t.tm_sec, 0);
+
+        if (sqltype == SQL_TYPE_DATE) {
+            *reinterpret_cast<ISC_DATE*>(sqldata) = date;
+        } else if (sqltype == SQL_TIMESTAMP) {
+            auto ts = reinterpret_cast<ISC_TIMESTAMP*>(sqldata);
+            ts->timestamp_date = date;
+            ts->timestamp_time = time;
+        } else {
+            auto ts = reinterpret_cast<ISC_TIMESTAMP_TZ*>(sqldata);
+            ts->utc_timestamp.timestamp_date = date;
+            ts->utc_timestamp.timestamp_time = time;
+            ts->time_zone = 1439; // GMT: Firebird offset ids are minutes + 1439, so 0 means -23:59
+        }
+        return;
     }
 
-parse_datetime: {
-        zval dateo;
-        php_date_obj *obj;
+    zval dateo;
+    ZVAL_UNDEF(&dateo);
+    const timelib_time *t = nullptr;
 
+    if (Z_TYPE_P(b_var) == IS_OBJECT && instanceof_function(Z_OBJCE_P(b_var), php_date_get_interface_ce())) {
+        t = Z_PHPDATE_P(b_var)->time;
+        if (!t) {
+            throw Php_Firebird_Exception(zend_ce_value_error,
+                fmt("Argument %u: DateTime object is not initialized", argn));
+        }
+    } else if (Z_TYPE_P(b_var) == IS_STRING) {
         php_date_instantiate(php_date_get_date_ce(), &dateo);
-        obj = Z_PHPDATE_P(&dateo);
-
-        if (!php_date_initialize(obj, Z_STRVAL_P(b_var), Z_STRLEN_P(b_var), tformat, NULL, PHP_DATE_INIT_FORMAT)) {
-            slprintf(tmp_buf, sizeof(tmp_buf),
-                "Argument %d: parse date failed, "
-                "call date_get_last_errors() for more information",
-                i
-            );
-
+        if (!php_date_initialize(Z_PHPDATE_P(&dateo), Z_STRVAL_P(b_var), Z_STRLEN_P(b_var), NULL, NULL, 0)) {
             zval_ptr_dtor(&dateo);
-
-            throw Php_Firebird_Exception(zend_ce_type_error, std::string(tmp_buf));
+            throw Php_Firebird_Exception(zend_ce_value_error,
+                fmt("Argument %u: could not parse '%s' as %s", argn, Z_STRVAL_P(b_var), type_named));
         }
+        t = Z_PHPDATE_P(&dateo)->time;
+    } else {
+        throw Php_Firebird_Exception(zend_ce_type_error,
+            fmt("Argument %u: type mismatch '%s' to SQL type '%s'", argn, zend_zval_type_name(b_var), type_named));
+    }
 
-        if (sqltype == SQL_TIME_TZ) {
-            util->encodeTimeTz(&st, reinterpret_cast<ISC_TIME_TZ*>(sqldata),
-                obj->time->h, obj->time->i, obj->time->s, obj->time->us, obj->time->tz_info->name
-            );
-        } else if (sqltype == SQL_TYPE_TIME) {
-            *reinterpret_cast<ISC_TIME*>(sqldata) = util->encodeTime(
-                obj->time->h, obj->time->i, obj->time->s, obj->time->us
-            );
-        } else if (sqltype == SQL_TYPE_DATE) {
-            *reinterpret_cast<ISC_DATE*>(sqldata) = util->encodeDate(
-                obj->time->y, obj->time->m, obj->time->d
-            );
-        } else if (sqltype == SQL_TIMESTAMP) {
-            ISC_TIMESTAMP *ts = reinterpret_cast<ISC_TIMESTAMP*>(sqldata);
-            ts->timestamp_date = util->encodeDate(obj->time->y, obj->time->m, obj->time->d);
-            ts->timestamp_time = util->encodeTime(obj->time->h, obj->time->i, obj->time->s, obj->time->us);
-        } else if (sqltype == SQL_TIMESTAMP_TZ) {
+    // Copy what is needed before the temporary object goes away
+    const timelib_sll y = t->y, m = t->m, d = t->d;
+    const unsigned h = (unsigned)t->h, mi = (unsigned)t->i, sec = (unsigned)t->s;
+    const unsigned fractions = FB_USEC_TO_FRACTIONS(t->us);
+    char zone_buf[16];
+    std::string zone = zone_name(t, zone_buf, sizeof(zone_buf));
+
+    if (Z_TYPE(dateo) != IS_UNDEF) zval_ptr_dtor(&dateo);
+
+    if (has_date && (y < 1 || y > 9999)) {
+        throw Php_Firebird_Exception(zend_ce_value_error,
+            fmt("Argument %u: year %lld is out of range for %s", argn, (long long)y, type_named));
+    }
+
+    switch (sqltype) {
+        case SQL_TYPE_DATE:
+            *reinterpret_cast<ISC_DATE*>(sqldata) = util->encodeDate((unsigned)y, (unsigned)m, (unsigned)d);
+            break;
+        case SQL_TYPE_TIME:
+            *reinterpret_cast<ISC_TIME*>(sqldata) = util->encodeTime(h, mi, sec, fractions);
+            break;
+        case SQL_TIME_TZ:
+            util->encodeTimeTz(&st, reinterpret_cast<ISC_TIME_TZ*>(sqldata), h, mi, sec, fractions, zone.c_str());
+            break;
+        case SQL_TIMESTAMP: {
+            auto ts = reinterpret_cast<ISC_TIMESTAMP*>(sqldata);
+            ts->timestamp_date = util->encodeDate((unsigned)y, (unsigned)m, (unsigned)d);
+            ts->timestamp_time = util->encodeTime(h, mi, sec, fractions);
+        } break;
+        case SQL_TIMESTAMP_TZ:
             util->encodeTimeStampTz(&st, reinterpret_cast<ISC_TIMESTAMP_TZ*>(sqldata),
-                obj->time->y, obj->time->m, obj->time->d,
-                obj->time->h, obj->time->i, obj->time->s, obj->time->us,
-                obj->time->tz_info->name
-            );
-        } else {
-            throw Php_Firebird_Exception(zend_ce_error, "BUG: unreachable");
-        }
-
-        zval_ptr_dtor(&dateo);
-    } // parse_datetime:
-    } // for
-} // bind
+                (unsigned)y, (unsigned)m, (unsigned)d, h, mi, sec, fractions, zone.c_str());
+            break;
+    }
+}
 
 bool Statement::is_select() const
 {
