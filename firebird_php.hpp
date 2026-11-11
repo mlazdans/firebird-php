@@ -84,17 +84,19 @@ ZEND_TSRMLS_CACHE_EXTERN()
 
 #define update_err_props(status, _nd1, _nd2)
 
-#ifdef PHP_DEBUG
-#  ifdef PHP_WIN32
-#  define FBDEBUG(format, ...) if(FBG(debug))php_printf(format " (%s:%d)\n", ## __VA_ARGS__, __FILE__, __LINE__);
+#ifdef PHP_WIN32
 #  define FBDEBUG_NOFL(format, ...) if(FBG(debug))php_printf(format "\n", ## __VA_ARGS__);
+#  if PHP_DEBUG
+#    define FBDEBUG(format, ...) if(FBG(debug))php_printf(format " (%s:%d)\n", ## __VA_ARGS__, __FILE__, __LINE__);
+#  endif
 #else
-#  define FBDEBUG(format, ...) if(FBG(debug))php_printf(format " (%s:%d)\n" __VA_OPT__(,) __VA_ARGS__, __FILE__, __LINE__);
 #  define FBDEBUG_NOFL(format, ...) if(FBG(debug))php_printf(format "\n" __VA_OPT__(,) __VA_ARGS__);
+#  if PHP_DEBUG
+#    define FBDEBUG(format, ...) if(FBG(debug))php_printf(format " (%s:%d)\n" __VA_OPT__(,) __VA_ARGS__, __FILE__, __LINE__);
+#  endif
 #endif
-#else
-#define FBDEBUG(...)
-#define FBDEBUG_NOFL(...)
+#ifndef FBDEBUG
+#  define FBDEBUG FBDEBUG_NOFL
 #endif
 
 #define fbp_declare_object_accessor(strct)                    \
