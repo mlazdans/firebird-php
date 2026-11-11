@@ -66,7 +66,7 @@ require_once('functions.inc');
     query_bulk($t, $queries);
 
     $q = $t->query("SELECT BLOB_1 FROM $table");
-    fetch_and_print($q, \FireBird\FETCH_FETCH_BLOB_TEXT);
+    fetch_and_print($q, \FireBird\FETCH_BLOB_TEXT);
 
     $t->commit();
 

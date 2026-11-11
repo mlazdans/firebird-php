@@ -24,7 +24,7 @@ $args->password = "masterkey";
 $db = \FireBird\Database::connect($args);
 $t = $db->start_transaction();
 $q = $t->query("SELECT * FROM TEST_TABLE");
-while ($r = $q->fetch_object(\FireBird\FETCH_FETCH_BLOB_TEXT)) {
+while ($r = $q->fetch_object(\FireBird\FETCH_BLOB_TEXT)) {
     print_r($r);
 }
 ```

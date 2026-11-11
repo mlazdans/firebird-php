@@ -288,7 +288,7 @@ void FireBird_Statement_fetch(zval *self, int flags, zval *return_value)
     }
 
     if (istatus != IStatus::RESULT_OK) {
-        RETURN_FALSE;
+        RETURN_NULL();
     }
 
     if (fbu_statement_output_buffer_to_array(stmt->dbh, stmt->sth, flags, &ht)) {

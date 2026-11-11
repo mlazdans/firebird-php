@@ -71,13 +71,13 @@ require_once('functions.inc');
 re-execute an unfinished cursor with new parameters
 1
 int(3)
-bool(false)
+NULL
 execute after close_cursor()
 2
-bool(false)
+NULL
 2 3
-bool(false)
-bool(false)
+NULL
+NULL
 fetch before execute
 Statement must be executed before fetching
 Statement must be executed before fetching
@@ -88,7 +88,7 @@ array(1) {
   [0]=>
   int(10)
 }
-bool(false)
+NULL
 int(11)
 multi-row RETURNING runs at execute, not at first fetch
 int(101)

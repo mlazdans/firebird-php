@@ -31,7 +31,7 @@ require_once('functions.inc');
 
     $t->execute("SET TRANSACTION");
     $q = $t->query("SELECT BLOB_1 FROM $table");
-    fetch_and_print($q, \FireBird\FETCH_FETCH_BLOB_TEXT);
+    fetch_and_print($q, \FireBird\FETCH_BLOB_TEXT);
     $t->execute("COMMIT");
 
     // $builder = (new \FireBird\TBuilder)->read_only();

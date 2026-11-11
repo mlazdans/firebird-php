@@ -23,13 +23,6 @@ const FETCH_BLOB_TEXT = UNKNOWN;
 const FETCH_UNIXTIME = UNKNOWN;
 
 /**
- * fetch to return blob fields as Blob objects
- * @var int
- * @cvalue FBP_FETCH_BLOB_TEXT
- */
-const FETCH_FETCH_BLOB_TEXT = UNKNOWN;
-
-/**
  * Option to check if Used Blob->type is segmented.
  * @see Blob::$type
  * @var int
@@ -341,38 +334,38 @@ class Statement
     /**
      * Fetch row as object.
      *
-     * Returns an object with the row information, false on error or null if there are no more rows
-     *
+     * Returns an object with the row information, or null if there are no more rows.
      * Date/time columns are DateTime objects unless FETCH_UNIXTIME is given:
      * zone-less values in date.timezone, TIME values on 1970-01-01.
+     * Errors throw Fb_Exception.
      *
      * @see FETCH_BLOB_TEXT, FETCH_UNIXTIME
      * */
-    public function fetch_object(int $flags = 0): object|false|null { die; }
+    public function fetch_object(int $flags = 0): ?object { die; }
 
     /**
      * Fetch row as associative array.
      *
-     * Returns an array with the row information, false on error or null if there are no more rows
-     *
+     * Returns an array with the row information, or null if there are no more rows.
      * Date/time columns are DateTime objects unless FETCH_UNIXTIME is given:
      * zone-less values in date.timezone, TIME values on 1970-01-01.
+     * Errors throw Fb_Exception.
      *
      * @see FETCH_BLOB_TEXT, FETCH_UNIXTIME
      * */
-    public function fetch_array(int $flags = 0): array|false|null { die; }
+    public function fetch_array(int $flags = 0): ?array { die; }
 
     /**
      * Fetch row as indexed array.
      *
-     * Returns an array with the row information, false on error or null if there are no more rows
-     *
+     * Returns an array with the row information, or null if there are no more rows.
      * Date/time columns are DateTime objects unless FETCH_UNIXTIME is given:
      * zone-less values in date.timezone, TIME values on 1970-01-01.
+     * Errors throw Fb_Exception.
      *
      * @see FETCH_BLOB_TEXT, FETCH_UNIXTIME
      * */
-    public function fetch_row(int $flags = 0): array|false|null { die; }
+    public function fetch_row(int $flags = 0): ?array { die; }
     public function execute(mixed ...$bind_args): void { die; }
     public function close_cursor(): void { die; }
     public function free(): void { die; }
@@ -427,9 +420,9 @@ class Blob
     public function open(Blob_Id $id): void { die; }
     public function close(): void { die; }
     public function cancel(): void { die; }
-    public function get(int $max_len = 0): string|false { die; }
+    public function get(int $max_len = 0): string { die; }
     public function put(string $data): void { die; }
-    public function seek(int $offset, int $mode): int|false { die; }
+    public function seek(int $offset, int $mode): int { die; }
 }
 
 // TODO: Temp disable

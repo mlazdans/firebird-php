@@ -1,5 +1,5 @@
 /* This is a generated file, edit the .stub.php file instead.
- * Stub hash: 0b094a1be90a7669b3983b230d238f669583d914 */
+ * Stub hash: 2ac4d43f2ce2042b3dee8cca1e722cdf703e46bd */
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_get_client_version, 0, 0, IS_DOUBLE, 0)
 ZEND_END_ARG_INFO()
@@ -92,11 +92,11 @@ ZEND_END_ARG_INFO()
 
 #define arginfo_class_FireBird_Statement___construct arginfo_class_FireBird_Database___construct
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_class_FireBird_Statement_fetch_object, 0, 0, MAY_BE_OBJECT|MAY_BE_FALSE|MAY_BE_NULL)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_FireBird_Statement_fetch_object, 0, 0, IS_OBJECT, 1)
 	ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, flags, IS_LONG, 0, "0")
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_class_FireBird_Statement_fetch_array, 0, 0, MAY_BE_ARRAY|MAY_BE_FALSE|MAY_BE_NULL)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_FireBird_Statement_fetch_array, 0, 0, IS_ARRAY, 1)
 	ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, flags, IS_LONG, 0, "0")
 ZEND_END_ARG_INFO()
 
@@ -137,7 +137,7 @@ ZEND_END_ARG_INFO()
 
 #define arginfo_class_FireBird_Blob_cancel arginfo_class_FireBird_Database_disconnect
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_class_FireBird_Blob_get, 0, 0, MAY_BE_STRING|MAY_BE_FALSE)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_FireBird_Blob_get, 0, 0, IS_STRING, 0)
 	ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, max_len, IS_LONG, 0, "0")
 ZEND_END_ARG_INFO()
 
@@ -145,7 +145,7 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_FireBird_Blob_put, 0, 1, I
 	ZEND_ARG_TYPE_INFO(0, data, IS_STRING, 0)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_class_FireBird_Blob_seek, 0, 2, MAY_BE_LONG|MAY_BE_FALSE)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_FireBird_Blob_seek, 0, 2, IS_LONG, 0)
 	ZEND_ARG_TYPE_INFO(0, offset, IS_LONG, 0)
 	ZEND_ARG_TYPE_INFO(0, mode, IS_LONG, 0)
 ZEND_END_ARG_INFO()
@@ -390,7 +390,6 @@ static void register_firebird_symbols(int module_number)
 {
 	REGISTER_LONG_CONSTANT("FireBird\\FETCH_BLOB_TEXT", FBP_FETCH_BLOB_TEXT, CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("FireBird\\FETCH_UNIXTIME", FBP_FETCH_UNIXTIME, CONST_PERSISTENT);
-	REGISTER_LONG_CONSTANT("FireBird\\FETCH_FETCH_BLOB_TEXT", FBP_FETCH_BLOB_TEXT, CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("FireBird\\BLOB_TYPE_SEGMENTED", FBP_BLOB_TYPE_SEGMENTED, CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("FireBird\\BLOB_TYPE_STREAMED", FBP_BLOB_TYPE_STREAMED, CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("FireBird\\BLOB_SEEK_START", FBP_BLOB_SEEK_START, CONST_PERSISTENT);

@@ -54,7 +54,7 @@ require_once('functions.inc');
         $t = $db->start_transaction();
         $q = $t->query("SELECT BLOB_1 FROM TEST_001");
 
-        fetch_and_print($q, \FireBird\FETCH_FETCH_BLOB_TEXT);
+        fetch_and_print($q, \FireBird\FETCH_BLOB_TEXT);
 
         $q->free();
         $t->commit();
