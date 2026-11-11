@@ -865,7 +865,6 @@ Statement::~Statement() noexcept
 {
     FBDEBUG("~Statement(this=%p)", this);
 
-    int err = 0;
     try
     {
         free_cursor();
@@ -873,7 +872,7 @@ Statement::~Statement() noexcept
     }
     catch (...)
     {
-        err = 1;
+        fbu_report_exception_as_warning(__FILE__, __LINE__);
     }
 
     if (cursor) {
@@ -924,7 +923,6 @@ Statement::~Statement() noexcept
         info.sql = nullptr;
     }
 
-    if (err) fbu_handle_exception(__FILE__, __LINE__);
 }
 
 void Statement::insert_alias(const char *alias)

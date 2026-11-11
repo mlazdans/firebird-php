@@ -1,3 +1,4 @@
+#include <string>
 #include <vector>
 #include <memory>
 #include <firebird/Interface.h>
@@ -69,8 +70,36 @@ void Database::release_limbo()
     limbo_list.clear();
 }
 
+// Blobs and statements are closed before the attachment goes away; their destructors
+// need it.
+void Database::free_handles()
+{
+    bl_list.clear();
+    st_list.clear();
+}
+
+// Refuses while a transaction is active instead of letting Firebird refuse: a detach
+// that fails with "open transactions" still shuts the connection down, leaving the
+// transaction impossible to commit or roll back. Prepared (2PC) transactions are meant
+// to be left in limbo and do not count.
+void Database::check_no_active_transactions(const char *action)
+{
+    size_t active = 0;
+    for (auto &tr: tr_list) {
+        if (tr && tr->is_active()) active++;
+    }
+
+    if (active) {
+        throw Php_Firebird_Exception(zend_ce_error, std::string("Cannot ") + action + " with " +
+            std::to_string(active) + " active transaction(s): commit or roll back first");
+    }
+}
+
 void Database::disconnect()
 {
+    get();
+    check_no_active_transactions("disconnect");
+    free_handles();
     att->detach(&st);
     att->release();
     att = nullptr;
@@ -79,6 +108,9 @@ void Database::disconnect()
 
 void Database::drop()
 {
+    get();
+    check_no_active_transactions("drop database");
+    free_handles();
     att->dropDatabase(&st);
     att->release();
     att = nullptr;
@@ -89,18 +121,18 @@ Database::~Database()
 {
     FBDEBUG("~Database(this=%p)", this);
 
-    // Transactions before detach: active ones roll back, prepared ones move to
-    // limbo_list, which must still be alive (members are destroyed after this body)
+    // Children first: their destructors still need the attachment. Prepared
+    // transactions move to limbo_list, released after detach.
+    free_handles();
     tr_list.clear();
 
-    int err = 0;
     try
     {
         if (att) disconnect();
     }
     catch (...)
     {
-        err = 1;
+        fbu_report_exception_as_warning(__FILE__, __LINE__);
     }
 
     if (att) {
@@ -110,7 +142,6 @@ Database::~Database()
 
     release_limbo();
 
-    if (err) fbu_handle_exception(__FILE__, __LINE__);
 }
 
 size_t Database::transaction_init()

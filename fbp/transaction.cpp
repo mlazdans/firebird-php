@@ -146,14 +146,13 @@ Transaction::~Transaction()
         tra = nullptr;
     }
 
-    int err = 0;
     try
     {
         if (tra) tra->rollback(&st);
     }
     catch (...)
     {
-        err = 1;
+        fbu_report_exception_as_warning(__FILE__, __LINE__);
     }
 
     if (tra) {
@@ -161,7 +160,6 @@ Transaction::~Transaction()
         tra = nullptr;
     }
 
-    if (err) fbu_handle_exception(__FILE__, __LINE__);
 }
 
 void Transaction::commit()

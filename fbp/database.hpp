@@ -24,6 +24,8 @@ private:
     std::vector<std::unique_ptr<Statement>> st_list;
     std::vector<std::unique_ptr<Blob>> bl_list;
     std::vector<ITransaction*> limbo_list;
+    void free_handles();
+    void check_no_active_transactions(const char *action);
     void release_limbo();
 public:
     void keep_in_limbo(ITransaction *tra);

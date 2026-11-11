@@ -44,7 +44,6 @@ Service::~Service()
 {
     FBDEBUG("~Service(this=%p)", this);
 
-    int err = 0;
     try
     {
         // trans_list.clear();
@@ -52,7 +51,7 @@ Service::~Service()
     }
     catch (...)
     {
-        err = 1;
+        fbu_report_exception_as_warning(__FILE__, __LINE__);
     }
 
     if (srv) {
@@ -60,7 +59,6 @@ Service::~Service()
         srv = nullptr;
     }
 
-    if (err) fbu_handle_exception(__FILE__, __LINE__);
 }
 
 #define READ_SI_STRING(name)                                \

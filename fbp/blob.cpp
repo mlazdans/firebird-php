@@ -21,14 +21,13 @@ Blob::~Blob() noexcept
 {
     FBDEBUG("~Blob(this=%p)", this);
 
-    int err = 0;
     try
     {
         if (blob) blob->close(&st);
     }
     catch (...)
     {
-        err = 1;
+        fbu_report_exception_as_warning(__FILE__, __LINE__);
     }
 
     if (blob) {
@@ -36,7 +35,6 @@ Blob::~Blob() noexcept
         blob = nullptr;
     }
 
-    if (err) fbu_handle_exception(__FILE__, __LINE__);
 }
 
 ISC_QUAD Blob::create()

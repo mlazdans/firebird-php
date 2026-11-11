@@ -15,6 +15,7 @@ extern "C++" const char *fbu_read_required_string_prop(zend_class_entry *ce, zva
 extern "C" {
 
 void fbu_handle_exception(const char *file, size_t line);
+void fbu_report_exception_as_warning(const char *file, size_t line);
 void fbu_xpb_insert_object(Firebird::IXpbBuilder* xpb, zval *obj, zend_class_entry *ce,
     const firebird_xpb_zmap *xpb_zmap);
 

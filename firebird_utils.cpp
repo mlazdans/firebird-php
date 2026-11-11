@@ -38,6 +38,34 @@ static void fbu_copy_status(const ISC_STATUS* from, ISC_STATUS* to, size_t maxLe
     }
 }
 
+// Destructors run from free_obj or during request shutdown, where throwing a PHP
+// exception is unsafe (no stack frame at shutdown). Report the error as a warning.
+void fbu_report_exception_as_warning(const char *file, size_t line)
+{
+    auto eptr = std::current_exception();
+    if (!eptr) return;
+
+    std::string error_msg;
+    try {
+        std::rethrow_exception(eptr);
+    } catch (const FbException& e) {
+        char msg[1024];
+        fb_get_master_interface()->getUtilInterface()->formatStatus(msg, sizeof(msg), e.getStatus());
+        error_msg = msg;
+    } catch (const std::exception& e) {
+        error_msg = e.what();
+    } catch (...) {
+        error_msg = "Unhandled exception";
+    }
+
+#ifdef PHP_DEBUG
+    php_error_docref(NULL, E_WARNING, "%s (%s:%zu)", error_msg.c_str(), file, line);
+#else
+    (void)file; (void)line;
+    php_error_docref(NULL, E_WARNING, "%s", error_msg.c_str());
+#endif
+}
+
 void fbu_handle_exception(const char *file, size_t line)
 {
     auto eptr = std::current_exception();

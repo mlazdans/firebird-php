@@ -71,6 +71,8 @@ public:
     ~Transaction() noexcept;
     ITransaction *get();
     Database &get_database() { return dba; }
+    // Started and not yet committed, rolled back or prepared for two-phase commit
+    bool is_active() const { return tra && !is_prepared; }
     void set(ITransaction *tra);
     void start(const firebird_tbuilder *builder);
     void query_info();
