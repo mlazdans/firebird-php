@@ -135,7 +135,11 @@ void fbp_error_ex(long level, const char *, ...)
 #define fbp_notice(msg, ...)  fbp_error_ex(E_NOTICE,  msg " (%s:%d)\n" __VA_OPT__(,) __VA_ARGS__, __FILE__, __LINE__)
 #endif
 
-#define TODO(msg) fbp_fatal("TODO: " msg)
+// For stubbed methods: throw instead of aborting the request with E_ERROR
+#define TODO(msg) do {                                  \
+    zend_throw_error(NULL, "Not implemented: %s", msg); \
+    RETURN_THROWS();                                    \
+} while (0)
 
 typedef struct firebird_xpb_zmap {
     const uint8_t *tags;

@@ -117,7 +117,11 @@ zend_string *double_to_string(double d)
 bool is_stringable(const zval *v)
 {
     switch (Z_TYPE_P(v)) {
-        case IS_STRING: case IS_LONG: case IS_DOUBLE: case IS_TRUE: case IS_FALSE:
+        case IS_STRING:
+        case IS_LONG:
+        case IS_DOUBLE:
+        case IS_TRUE:
+        case IS_FALSE:
             return true;
         case IS_OBJECT:
             return Z_OBJCE_P(v)->__tostring != nullptr;
@@ -925,34 +929,22 @@ Statement::~Statement() noexcept
 
 }
 
+// Adds a unique key for a column: the alias itself, or ALIAS_01, ALIAS_02, ... for
+// duplicates, FIELD_01, ... for empty aliases.
 void Statement::insert_alias(const char *alias)
 {
-    char buf[METADATALENGTH + 3 + 1]; // _00 + \0
-    zval t2;
-    int i = 0;
-    char const *base = "FIELD"; /* use 'FIELD' if name is empty */
+    std::string key = alias;
+    const std::string base = *alias ? alias : "FIELD";
 
-    size_t alias_len = strlen(alias);
-    size_t alias_len_w_suff = alias_len + 3;
-
-    switch (*alias) {
-        void *p;
-
-        default:
-            i = 1;
-            base = alias;
-
-            while ((p = zend_symtable_str_find_ptr(ht_aliases, alias, alias_len)) != NULL) {
-        case '\0':
-                // TODO: i > 99?
-                snprintf(buf, sizeof(buf), "%s_%02d", base, i++);
-                alias = buf;
-                alias_len = alias_len_w_suff;
-            }
+    for (unsigned i = 1; key.empty() || zend_hash_str_exists(ht_aliases, key.data(), key.size()); i++) {
+        char suffix[16];
+        snprintf(suffix, sizeof(suffix), "_%02u", i);
+        key = base + suffix;
     }
 
+    zval t2;
     ZVAL_NULL(&t2);
-    zend_hash_str_add_new(ht_aliases, alias, alias_len, &t2);
+    zend_hash_str_add_new(ht_aliases, key.data(), key.size(), &t2);
 }
 
 void Statement::alloc_ht_aliases()

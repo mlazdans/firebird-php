@@ -47,9 +47,10 @@ static void _FireBird_Statement_fetch(INTERNAL_FUNCTION_PARAMETERS, int return_t
         Z_PARAM_LONG(flags)
     ZEND_PARSE_PARAMETERS_END();
 
-    // TODO: check flags == BLOB/UNIX, crash otherwise
+    // The row shape comes from the method, never from caller-supplied bits
+    flags &= ~(zend_long)(FBP_FETCH_INDEXED | FBP_FETCH_HASHED);
 
-    FireBird_Statement_fetch(ZEND_THIS, flags | return_type, return_value);
+    FireBird_Statement_fetch(ZEND_THIS, (int)flags | return_type, return_value);
 }
 
 PHP_METHOD(FireBird_Statement, fetch_row)

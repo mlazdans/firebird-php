@@ -489,10 +489,10 @@ ISC_INT64 fbp_call_error_handler(ISC_STATUS_ARRAY status, const char *file_name,
         //     update_ferr_props(FireBird_Error_ce, Z_OBJ(ferror_o), s, s_len, error_code, error_code_long);
         //     zend_hash_next_index_insert(ht_errors, &ferror_o);
         // } else {
-        //     fbp_error_ex(E_WARNING, "%s (%s:%d)\n", s, file_name, line_num);
+        //     fbp_error_ex(E_WARNING, "%s (%s:%zu)\n", s, file_name, line_num);
         //     // fbp_warning("%s", s);
         // }
-        fbp_error_ex(E_WARNING, "%s (%s:%d)\n", s, file_name, line_num);
+        fbp_error_ex(E_WARNING, "%s (%s:%zu)\n", s, file_name, line_num);
 
         errors_count++;
 
@@ -535,7 +535,7 @@ void fbp_status_error_ex(const ISC_STATUS *status, const char *file_name, size_t
     char msg[1024] = { 0 };
     fbp_get_status_err_msg(status, msg, sizeof(msg));
 #ifdef PHP_DEBUG
-    fbp_error_ex(E_WARNING, "firebird-php error: %s (%s:%d)\n", msg, file_name, line_num);
+    fbp_error_ex(E_WARNING, "firebird-php error: %s (%s:%zu)\n", msg, file_name, line_num);
 #else
     fbp_error_ex(E_WARNING, "firebird-php error: %s", msg);
 #endif

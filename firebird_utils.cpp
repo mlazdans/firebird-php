@@ -155,8 +155,12 @@ void fbu_handle_exception(const char *file, size_t line)
         free(symbols);
 #endif
     } catch (const Php_Firebird_Exception& error) {
-        // TODO: separate database exception from extension exception
+        // NOTE: error.ce (ValueError, TypeError, ...) is not used yet, see ISSUES.md
         error_msg = error.what();
+    } catch (const std::bad_alloc&) {
+        error_msg = "Out of memory";
+    } catch (const std::exception& e) {
+        error_msg = e.what();
     } catch (...) {
         error_msg = "Unhandled exception";
     }
@@ -198,40 +202,41 @@ const char* fbu_get_sql_type_name(firebird_var *var, char *buf, size_t buf_size)
             case SQL_LONG   : precision = 9; break;
             case SQL_INT64  : precision = 18; break;
             case SQL_INT128 : precision = 38; break;
-            default: fbp_fatal("BUG: unhandled type: %d with scale: %d", var->type, var->scale);
+            case SQL_DOUBLE : precision = 15; break; // dialect 1 NUMERIC
         }
 
-        slprintf(buf, buf_size, "NUMERIC(%d,%d)", precision, -var->scale);
-
-        return buf;
-    } else {
-        switch (var->type)
-        {
-            case SQL_TEXT:            return "CHAR";
-            case SQL_VARYING:         return "VARCHAR";
-            case SQL_SHORT:           return "SMALLINT";
-            case SQL_LONG:            return "INTEGER";
-            case SQL_INT64:           return "BIGINT";
-            case SQL_FLOAT:           return "FLOAT";
-            case SQL_DOUBLE:          return "DOUBLE PRECISION";
-            case SQL_DEC16:           return "DECFLOAT(16)";
-            case SQL_DEC34:           return "DECFLOAT(34)";
-            case SQL_INT128:          return "INT128";
-            case SQL_D_FLOAT:         return "D_FLOAT";
-            case SQL_TIMESTAMP:       return "TIMESTAMP";
-            case SQL_TIMESTAMP_TZ:    return "TIMESTAMP WITH TIME ZONE";
-            case SQL_TIMESTAMP_TZ_EX: return "EXTENDED TIMESTAMP WITH TIME ZONE";
-            case SQL_TYPE_DATE:       return "DATE";
-            case SQL_TYPE_TIME:       return "TIME";
-            case SQL_TIME_TZ:         return "TIME WITH TIME ZONE";
-            case SQL_TIME_TZ_EX:      return "EXTENDED TIME WITH TIME ZONE";
-            case SQL_BLOB:            return "BLOB";
-            case SQL_ARRAY:           return "ARRAY";
-            case SQL_QUAD:            return "QUAD";
-            case SQL_BOOLEAN:         return "BOOLEAN";
-            case SQL_NULL:            return "NULL";
-            default:                  return "UNKNOWN";
+        if (precision) {
+            slprintf(buf, buf_size, "NUMERIC(%d,%d)", precision, -var->scale);
+            return buf;
         }
+    }
+
+    switch (var->type)
+    {
+        case SQL_TEXT:            return "CHAR";
+        case SQL_VARYING:         return "VARCHAR";
+        case SQL_SHORT:           return "SMALLINT";
+        case SQL_LONG:            return "INTEGER";
+        case SQL_INT64:           return "BIGINT";
+        case SQL_FLOAT:           return "FLOAT";
+        case SQL_DOUBLE:          return "DOUBLE PRECISION";
+        case SQL_DEC16:           return "DECFLOAT(16)";
+        case SQL_DEC34:           return "DECFLOAT(34)";
+        case SQL_INT128:          return "INT128";
+        case SQL_D_FLOAT:         return "D_FLOAT";
+        case SQL_TIMESTAMP:       return "TIMESTAMP";
+        case SQL_TIMESTAMP_TZ:    return "TIMESTAMP WITH TIME ZONE";
+        case SQL_TIMESTAMP_TZ_EX: return "EXTENDED TIMESTAMP WITH TIME ZONE";
+        case SQL_TYPE_DATE:       return "DATE";
+        case SQL_TYPE_TIME:       return "TIME";
+        case SQL_TIME_TZ:         return "TIME WITH TIME ZONE";
+        case SQL_TIME_TZ_EX:      return "EXTENDED TIME WITH TIME ZONE";
+        case SQL_BLOB:            return "BLOB";
+        case SQL_ARRAY:           return "ARRAY";
+        case SQL_QUAD:            return "QUAD";
+        case SQL_BOOLEAN:         return "BOOLEAN";
+        case SQL_NULL:            return "NULL";
+        default:                  return "UNKNOWN";
     }
 }
 

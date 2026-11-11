@@ -123,7 +123,7 @@ PHP_METHOD(FireBird_TBuilder, dump_state)
     php_printf("  no_auto_undo: %d\n", b->no_auto_undo);
     php_printf("  isolation_mode: %d\n", b->isolation_mode);
     php_printf("  lock_timeout: %d\n", b->lock_timeout);
-    php_printf("  snapshot_at_number: %d\n", b->snapshot_at_number);
+    php_printf("  snapshot_at_number: %llu\n", (unsigned long long)b->snapshot_at_number);
 }
 
 static zend_object *FireBird_TBuilder_create_object(zend_class_entry *ce)

@@ -369,31 +369,24 @@ void register_FireBird_Blob_Id_object_handlers()
     FireBird_Blob_Id_object_handlers.free_obj = FireBird_Blob_Id_free_obj;
 }
 
+// Blob ids print as the quad's 8 bytes read as one 64-bit integer (the historical
+// format). memcpy instead of a pointer cast: the cast breaks strict aliasing at -O2.
 int fbp_blob_id_to_string(ISC_QUAD const qd, size_t buf_len, char *buf)
 {
-    /* shortcut for most common case */
-    if (sizeof(ISC_QUAD) == sizeof(ISC_UINT64)) {
-        return slprintf(buf, buf_len, "0x%0*" LL_MASK "x", 16, *(ISC_UINT64*)(void *) &qd);
-    } else {
-        ISC_UINT64 res = ((ISC_UINT64) qd.gds_quad_high << 0x20) | qd.gds_quad_low;
-        return slprintf(buf, buf_len, "0x%0*" LL_MASK "x", 16, res);
-    }
+    static_assert(sizeof(ISC_QUAD) == sizeof(ISC_UINT64), "ISC_QUAD must be 8 bytes");
+    ISC_UINT64 res;
+    memcpy(&res, &qd, sizeof(res));
+    return slprintf(buf, buf_len, "0x%0*" LL_MASK "x", 16, res);
 }
 
 int fbp_blob_id_to_quad(size_t id_len, char const *id, ISC_QUAD *qd)
 {
-    /* shortcut for most common case */
-    if (sizeof(ISC_QUAD) == sizeof(ISC_UINT64)) {
-        return sscanf(id, BLOB_ID_MASK, (ISC_UINT64 *) qd) > 0 ? SUCCESS : FAILURE;
-    } else {
-        ISC_UINT64 res;
-        if (sscanf(id, BLOB_ID_MASK, &res) > 0) {
-            qd->gds_quad_high = (ISC_LONG) (res >> 0x20);
-            qd->gds_quad_low = (ISC_LONG) (res & 0xFFFFFFFF);
-            return SUCCESS;
-        }
-        return FAILURE;
+    ISC_UINT64 res;
+    if (sscanf(id, BLOB_ID_MASK, &res) > 0) {
+        memcpy(qd, &res, sizeof(res));
+        return SUCCESS;
     }
+    return FAILURE;
 }
 
 #if 0

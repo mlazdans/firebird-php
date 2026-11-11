@@ -87,13 +87,13 @@ IXpbBuilder *Transaction::build_tpb(const firebird_tbuilder *builder)
     } else if (builder->isolation_mode == 1) {
         tpb->insertTag(&st, isc_tpb_concurrency);
         if (builder->snapshot_at_number) {
-            tpb->insertInt(&st, isc_tpb_at_snapshot_number, builder->snapshot_at_number);
+            tpb->insertBigInt(&st, isc_tpb_at_snapshot_number, builder->snapshot_at_number);
             // *p++ = isc_tpb_at_snapshot_number;
             // *p++ = sizeof(builder->snapshot_at_number);
             // fbp_store_portable_integer(p, builder->snapshot_at_number, sizeof(builder->snapshot_at_number));
             // p += sizeof(builder->snapshot_at_number);
             FBDEBUG_NOFL("  isolation_mode = isc_tpb_concurrency");
-            FBDEBUG_NOFL("                   isc_tpb_at_snapshot_number = %d", builder->snapshot_at_number);
+            FBDEBUG_NOFL("                   isc_tpb_at_snapshot_number = %llu", (unsigned long long)builder->snapshot_at_number);
         } else {
             FBDEBUG_NOFL("  isolation_mode = isc_tpb_concurrency");
         }
@@ -113,7 +113,7 @@ IXpbBuilder *Transaction::build_tpb(const firebird_tbuilder *builder)
         FBDEBUG_NOFL("  isolation_mode = isc_tpb_read_committed");
         FBDEBUG_NOFL("                   isc_tpb_read_consistency");
     } else {
-        fbp_fatal("BUG! unknown transaction isolation_mode: %d", builder->isolation_mode);
+        throw Php_Firebird_Exception(zend_ce_value_error, "BUG: unknown transaction isolation_mode");
     }
 
     if (builder->lock_timeout == 0) {
@@ -128,7 +128,7 @@ IXpbBuilder *Transaction::build_tpb(const firebird_tbuilder *builder)
         FBDEBUG_NOFL("  isc_tpb_wait");
         FBDEBUG_NOFL("    isc_tpb_lock_timeout = %d", builder->lock_timeout);
     } else {
-        fbp_fatal("BUG! invalid lock_timeout: %d", builder->lock_timeout);
+        throw Php_Firebird_Exception(zend_ce_value_error, "BUG: invalid lock_timeout");
     }
 
     return tpb.release();
