@@ -10,7 +10,7 @@ progress, and the API is not yet stable.
 
 Current development environment: PHP 8.4.4 NTS, Firebird 5.0.2, Debian 12 (64-bit).
 
-Currently supported PHP version: 8.4.x
+Currently supported PHP versions: 8.4, 8.5, 8.6
 
 # Some examples
 ```php

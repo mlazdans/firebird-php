@@ -112,7 +112,7 @@ static void FireBird_Event_free_obj(zend_object *obj)
 
 //     memcpy(&FireBird_Event_object_handlers, &std_object_handlers, sizeof(zend_object_handlers));
 
-//     FireBird_Event_object_handlers.offset = XtOffsetOf(firebird_event, std);
+//     FireBird_Event_object_handlers.offset = offsetof(firebird_event, std);
 //     FireBird_Event_object_handlers.free_obj = FireBird_Event_free_obj;
 // }
 

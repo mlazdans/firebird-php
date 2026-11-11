@@ -1,6 +1,7 @@
 #ifndef FIREBIRD_PHP_H
 #define FIREBIRD_PHP_H
 
+#include <cstddef>
 #include <vector>
 #include <memory>
 
@@ -103,7 +104,7 @@ ZEND_TSRMLS_CACHE_EXTERN()
 #define fbp_object_accessor(strct)                            \
     strct *get_ ##strct## _from_obj(const zend_object *obj) { \
         return obj ?                                          \
-            (strct*)((char*)(obj) - XtOffsetOf(strct, std)) : \
+            (strct*)((char*)(obj) - offsetof(strct, std)) : \
             NULL;                                             \
     }                                                         \
     strct *get_ ##strct## _from_zval(const zval *zv) {        \

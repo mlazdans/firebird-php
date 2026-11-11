@@ -544,7 +544,7 @@ void register_FireBird_Service_object_handlers()
 
     memcpy(&FireBird_Service_object_handlers, &std_object_handlers, sizeof(zend_object_handlers));
 
-    FireBird_Service_object_handlers.offset = XtOffsetOf(firebird_service, std);
+    FireBird_Service_object_handlers.offset = offsetof(firebird_service, std);
     FireBird_Service_object_handlers.free_obj = FireBird_Service_free_obj;
 }
 

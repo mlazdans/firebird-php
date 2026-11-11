@@ -240,7 +240,7 @@ void register_FireBird_Transaction_object_handlers()
 
     memcpy(&FireBird_Transaction_object_handlers, &std_object_handlers, sizeof(zend_object_handlers));
 
-    FireBird_Transaction_object_handlers.offset = XtOffsetOf(firebird_trans, std);
+    FireBird_Transaction_object_handlers.offset = offsetof(firebird_trans, std);
     FireBird_Transaction_object_handlers.free_obj = FireBird_Transaction_free_obj;
     FireBird_Transaction_object_handlers.read_property = FireBird_Transaction_read_property;
 }

@@ -347,7 +347,7 @@ void register_FireBird_Database_object_handlers() {
 
     memcpy(&FireBird_Database_object_handlers, &std_object_handlers, sizeof(zend_object_handlers));
 
-    FireBird_Database_object_handlers.offset = XtOffsetOf(firebird_db, std);
+    FireBird_Database_object_handlers.offset = offsetof(firebird_db, std);
     FireBird_Database_object_handlers.free_obj = FireBird_Database_free_obj;
 }
 }

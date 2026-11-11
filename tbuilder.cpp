@@ -179,7 +179,7 @@ void register_FireBird_TBuilder_object_handlers()
 
     memcpy(&FireBird_TBuilder_object_handlers, &std_object_handlers, sizeof(zend_object_handlers));
 
-    FireBird_TBuilder_object_handlers.offset = XtOffsetOf(firebird_tbuilder, std);
+    FireBird_TBuilder_object_handlers.offset = offsetof(firebird_tbuilder, std);
     FireBird_TBuilder_object_handlers.free_obj = FireBird_TBuilder_free_obj;
     FireBird_TBuilder_object_handlers.read_property = FireBird_TBuilder_read_property;
 }

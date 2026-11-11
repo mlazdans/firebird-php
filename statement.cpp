@@ -270,7 +270,7 @@ void register_FireBird_Statement_object_handlers()
 
     memcpy(&FireBird_Statement_object_handlers, &std_object_handlers, sizeof(zend_object_handlers));
 
-    FireBird_Statement_object_handlers.offset = XtOffsetOf(firebird_stmt, std);
+    FireBird_Statement_object_handlers.offset = offsetof(firebird_stmt, std);
     FireBird_Statement_object_handlers.free_obj = FireBird_Statement_free_obj;
     FireBird_Statement_object_handlers.read_property = FireBird_Statement_read_property;
 }

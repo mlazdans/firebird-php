@@ -353,7 +353,7 @@ void register_FireBird_Blob_object_handlers()
 
     memcpy(&FireBird_Blob_object_handlers, &std_object_handlers, sizeof(zend_object_handlers));
 
-    FireBird_Blob_object_handlers.offset = XtOffsetOf(firebird_blob, std);
+    FireBird_Blob_object_handlers.offset = offsetof(firebird_blob, std);
     FireBird_Blob_object_handlers.free_obj = FireBird_Blob_free_obj;
     FireBird_Blob_object_handlers.read_property = FireBird_Blob_read_property;
 }
@@ -365,7 +365,7 @@ void register_FireBird_Blob_Id_object_handlers()
 
     memcpy(&FireBird_Blob_Id_object_handlers, &std_object_handlers, sizeof(zend_object_handlers));
 
-    FireBird_Blob_Id_object_handlers.offset = XtOffsetOf(firebird_blob_id, std);
+    FireBird_Blob_Id_object_handlers.offset = offsetof(firebird_blob_id, std);
     FireBird_Blob_Id_object_handlers.free_obj = FireBird_Blob_Id_free_obj;
 }
 

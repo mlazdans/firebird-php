@@ -224,6 +224,6 @@ static void free_FireBird_Multi_Transaction(zend_object *obj)
 
 //     memcpy(&object_handlers__FireBird_Multi_Transaction_, &std_object_handlers, sizeof(zend_object_handlers));
 
-//     object_handlers__FireBird_Multi_Transaction_.offset = XtOffsetOf(firebird_multi_trans, std);
+//     object_handlers__FireBird_Multi_Transaction_.offset = offsetof(firebird_multi_trans, std);
 //     object_handlers__FireBird_Multi_Transaction_.free_obj = free_FireBird_Multi_Transaction;
 // }
