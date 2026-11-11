@@ -28,11 +28,10 @@ void Transaction::start(const firebird_tbuilder *builder)
         throw Php_Firebird_Exception(zend_ce_error, "Transaction already started");
     }
 
-    auto tpb = build_tpb(builder);
+    XpbBuilderPtr tpb(build_tpb(builder));
 
     if (tpb) {
         tra = dba.get()->startTransaction(&st, tpb->getBufferLength(&st), tpb->getBuffer(&st));
-        tpb->dispose();
     } else {
         tra = dba.get()->startTransaction(&st, 0, NULL);
     }
@@ -49,7 +48,7 @@ void Transaction::query_info()
 
         get()->getInfo(&st, sizeof(req), req, sizeof(resp), resp);
 
-        auto dpb = util->getXpbBuilder(&st, IXpbBuilder::INFO_RESPONSE, resp, sizeof(resp));
+        XpbBuilderPtr dpb(util->getXpbBuilder(&st, IXpbBuilder::INFO_RESPONSE, resp, sizeof(resp)));
         for (dpb->rewind(&st); !dpb->isEof(&st); dpb->moveNext(&st)) {
             auto tag = dpb->getTag(&st);
             if (tag == isc_info_tra_id) {
@@ -73,7 +72,7 @@ IXpbBuilder *Transaction::build_tpb(const firebird_tbuilder *builder)
     if (!builder) return nullptr;
 
     auto util = master->getUtilInterface();
-    auto tpb = util->getXpbBuilder(&st, IXpbBuilder::TPB, NULL, 0);
+    XpbBuilderPtr tpb(util->getXpbBuilder(&st, IXpbBuilder::TPB, NULL, 0));
 
     tpb->insertTag(&st, builder->read_only ? isc_tpb_read : isc_tpb_write);
 
@@ -132,7 +131,7 @@ IXpbBuilder *Transaction::build_tpb(const firebird_tbuilder *builder)
         fbp_fatal("BUG! invalid lock_timeout: %d", builder->lock_timeout);
     }
 
-    return tpb;
+    return tpb.release();
 }
 
 Transaction::~Transaction()
@@ -193,24 +192,37 @@ void Transaction::rollback_ret()
 
 zend_string* Transaction::get_blob_contents(ISC_QUAD *blob_id)
 {
-    auto blob = new Blob(*this);
-    blob->open(blob_id);
-    zend_string *ret;
-    blob->get_contents(0, &ret);
+    Blob blob(*this);
+    blob.open(blob_id);
 
-    delete blob;
+    zend_string *ret;
+    blob.get_contents(0, &ret);
+
+    try {
+        blob.close();
+    } catch (...) {
+        zend_string_release(ret);
+        throw;
+    }
 
     return ret;
 }
 
 ISC_QUAD Transaction::create_blob_from_string(zend_string *data)
 {
-    auto blob = new Blob(*this);
-    auto id = blob->create();
-    blob->put_contents(ZSTR_LEN(data), ZSTR_VAL(data));
-    blob->close();
+    Blob blob(*this);
+    auto id = blob.create();
 
-    delete blob;
+    try {
+        blob.put_contents(ZSTR_LEN(data), ZSTR_VAL(data));
+        blob.close();
+    } catch (...) {
+        // Do not leave a half-written blob to be committed by ~Blob's close()
+        if (blob.has_blob()) {
+            try { blob.cancel(); } catch (...) {}
+        }
+        throw;
+    }
 
     return id;
 }

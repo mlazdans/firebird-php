@@ -75,8 +75,6 @@ class Statement: Base
 {
     Statement(const Statement&) = delete;
     Statement& operator=(const Statement&) = delete;
-    Statement(Statement&&) = default;
-    Statement& operator=(Statement&&) = default;
 private:
     Transaction &tra;
     IStatement *stmt = nullptr;

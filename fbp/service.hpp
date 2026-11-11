@@ -47,8 +47,6 @@ class Service: Base
 {
     Service(const Service&) = delete;
     Service& operator=(const Service&) = delete;
-    Service(Service&&) = default;
-    Service& operator=(Service&&) = default;
 private:
     IService *srv = nullptr;
 public:

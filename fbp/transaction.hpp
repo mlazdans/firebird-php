@@ -61,8 +61,6 @@ class Transaction: Base
 {
     Transaction(const Transaction&) = delete;
     Transaction& operator=(const Transaction&) = delete;
-    Transaction(Transaction&&) = default;
-    Transaction& operator=(Transaction&&) = default;
 private:
     Database &dba;
     ITransaction *tra = nullptr;

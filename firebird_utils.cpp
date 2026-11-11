@@ -226,60 +226,55 @@ const char *fbu_read_required_string_prop(zend_class_entry *ce, zval *obj, const
 void fbu_xpb_insert_object(IXpbBuilder* xpb, zval *obj, zend_class_entry *ce,
     const firebird_xpb_zmap *xpb_zmap)
 {
-    zend_string *prop_name = NULL;
-    zend_property_info *prop_info = NULL;
-    zval rv, *val, *checkval;
-    int i;
-    ThrowStatusWrapper st(fb_get_master_interface()->getStatus());
+    FBP::ScopedStatus st;
 
     for (int i = 0; i < xpb_zmap->count; i++) {
-        prop_name = zend_string_init(xpb_zmap->names[i], strlen(xpb_zmap->names[i]), 1);
+        const char *name = xpb_zmap->names[i];
+        auto prop_info = static_cast<zend_property_info *>(
+            zend_hash_str_find_ptr(&ce->properties_info, name, strlen(name)));
 
-#ifdef PHP_DEBUG
-        if (!zend_hash_exists(&ce->properties_info, prop_name)) {
-            fbp_fatal("BUG! Property %s does not exist for %s::%s. Verify xpb_zmap",
-                xpb_zmap->names[i], ZSTR_VAL(ce->name), xpb_zmap->names[i]);
-            zend_string_release(prop_name);
-            continue;
-        }
-#endif
-
-        prop_info = zend_get_property_info(ce, prop_name, 0);
-        checkval = OBJ_PROP(Z_OBJ_P(obj), prop_info->offset);
-        if (Z_ISUNDEF_P(checkval)) {
-            FBDEBUG("property: %s is uninitialized", xpb_zmap->names[i]);
-            zend_string_release(prop_name);
-            continue;
+        if (!prop_info || (prop_info->flags & ZEND_ACC_STATIC)) {
+            throw Php_Firebird_Exception(zend_ce_error,
+                std::string("BUG: property ") + ZSTR_VAL(ce->name) + "::$" + name +
+                " does not exist. Verify xpb_zmap");
         }
 
-        val = zend_read_property_ex(ce, Z_OBJ_P(obj), prop_name, 0, &rv);
-        zend_string_release(prop_name);
+        // Typed properties without a default stay UNDEF until assigned: skip them
+        zval *val = OBJ_PROP(Z_OBJ_P(obj), prop_info->offset);
+        ZVAL_DEREF(val);
+        if (Z_ISUNDEF_P(val)) {
+            FBDEBUG("property: %s is uninitialized", name);
+            continue;
+        }
 
         switch (Z_TYPE_P(val)) {
             case IS_STRING:
-                FBDEBUG("property: %s is string: `%s`", xpb_zmap->names[i], Z_STRVAL_P(val));
-                // (StatusType* status, unsigned char tag, const char* str)
+                FBDEBUG("property: %s is string: `%s`", name, Z_STRVAL_P(val));
                 xpb->insertString(&st, xpb_zmap->tags[i], Z_STRVAL_P(val));
                 break;
             case IS_LONG:
-                FBDEBUG("property: %s is long: `%u`", xpb_zmap->names[i], Z_LVAL_P(val));
+                FBDEBUG("property: %s is long: `" ZEND_LONG_FMT "`", name, Z_LVAL_P(val));
+                if (Z_LVAL_P(val) < INT32_MIN || Z_LVAL_P(val) > INT32_MAX) {
+                    throw Php_Firebird_Exception(zend_ce_value_error,
+                        std::string(ZSTR_VAL(ce->name)) + "::$" + name + " is out of range");
+                }
                 xpb->insertInt(&st, xpb_zmap->tags[i], (int)Z_LVAL_P(val));
                 break;
             case IS_TRUE:
-                FBDEBUG("property: %s is true", xpb_zmap->names[i]);
+                FBDEBUG("property: %s is true", name);
                 xpb->insertInt(&st, xpb_zmap->tags[i], 1);
                 break;
             case IS_FALSE:
-                FBDEBUG("property: %s is false", xpb_zmap->names[i]);
+                FBDEBUG("property: %s is false", name);
                 xpb->insertInt(&st, xpb_zmap->tags[i], 0);
                 break;
             case IS_NULL:
-                FBDEBUG("property: %s is null", xpb_zmap->names[i]);
+                FBDEBUG("property: %s is null", name);
                 break;
             default:
-                fbp_fatal("BUG! Unhandled: type %s for property %s::%s",
-                    zend_get_type_by_const(Z_TYPE_P(val)), ZSTR_VAL(ce->name), xpb_zmap->names[i]);
-                break;
+                throw Php_Firebird_Exception(zend_ce_type_error,
+                    std::string("Unsupported type ") + zend_get_type_by_const(Z_TYPE_P(val)) +
+                    " for property " + ZSTR_VAL(ce->name) + "::$" + name);
         }
     }
 }

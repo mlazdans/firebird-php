@@ -26,11 +26,8 @@ void Service::connect(zval *args)
     }
 
     const char *service_name = fbu_read_required_string_prop(FireBird_Service_Connect_Args_ce, args, "service_name");
-    IXpbBuilder* dpb = nullptr;
-
-    // TODO: process other props
-    dpb = util->getXpbBuilder(&st, IXpbBuilder::SPB_ATTACH, NULL, 0);
-    fbu_xpb_insert_object(dpb, args, FireBird_Service_Connect_Args_ce, &fbp_service_connect_zmap);
+    XpbBuilderPtr dpb(util->getXpbBuilder(&st, IXpbBuilder::SPB_ATTACH, NULL, 0));
+    fbu_xpb_insert_object(dpb.get(), args, FireBird_Service_Connect_Args_ce, &fbp_service_connect_zmap);
 
     srv = prov->attachServiceManager(&st, service_name,
         dpb->getBufferLength(&st), dpb->getBuffer(&st));
@@ -94,8 +91,8 @@ void Service::get_info(zval *server_info)
     // unsigned receiveLength, const unsigned char* receiveItems, unsigned bufferLength, unsigned char* buffer)
     srv->query(&st, 0, NULL, sizeof(info_req), info_req, sizeof(info_resp), info_resp);
 
-    auto spb =  master->getUtilInterface()->getXpbBuilder(
-        &st, IXpbBuilder::SPB_RESPONSE, info_resp, sizeof(info_resp));
+    XpbBuilderPtr spb(master->getUtilInterface()->getXpbBuilder(
+        &st, IXpbBuilder::SPB_RESPONSE, info_resp, sizeof(info_resp)));
 
     for (spb->rewind(&st); !spb->isEof(&st); spb->moveNext(&st)) {
         auto tag = spb->getTag(&st);
@@ -212,16 +209,16 @@ void Service::modify_user(zval *user_info)
 
 void Service::add_or_modify_user(zval *user_info, const ISC_UCHAR tag)
 {
-    auto xpb = master->getUtilInterface()->getXpbBuilder(&st, IXpbBuilder::SPB_START, NULL, 0);
+    XpbBuilderPtr xpb(master->getUtilInterface()->getXpbBuilder(&st, IXpbBuilder::SPB_START, NULL, 0));
 
     xpb->insertTag(&st, tag);
-    fbu_xpb_insert_object(xpb, user_info, FireBird_User_Info_ce, &fbp_user_info_zmap);
+    fbu_xpb_insert_object(xpb.get(), user_info, FireBird_User_Info_ce, &fbp_user_info_zmap);
     srv->start(&st, xpb->getBufferLength(&st), xpb->getBuffer(&st));
 }
 
 void Service::delete_user(const char *username, size_t username_len)
 {
-    auto xpb = master->getUtilInterface()->getXpbBuilder(&st, IXpbBuilder::SPB_START, NULL, 0);
+    XpbBuilderPtr xpb(master->getUtilInterface()->getXpbBuilder(&st, IXpbBuilder::SPB_START, NULL, 0));
 
     xpb->insertTag(&st, isc_action_svc_delete_user);
     xpb->insertBytes(&st, isc_spb_sec_username, username, username_len);
@@ -236,7 +233,7 @@ void Service::get_db_info(zval *server_db_info)
 
     srv->query(&st, 0, NULL, sizeof(info_req), info_req, sizeof(info_resp), info_resp);
 
-    auto spb =  master->getUtilInterface()->getXpbBuilder(&st, IXpbBuilder::SPB_RESPONSE, info_resp, sizeof(info_resp));
+    XpbBuilderPtr spb(master->getUtilInterface()->getXpbBuilder(&st, IXpbBuilder::SPB_RESPONSE, info_resp, sizeof(info_resp)));
 
     zval databases;
     array_init(&databases);

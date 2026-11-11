@@ -31,23 +31,25 @@ void Statement::prepare(unsigned int len_sql, const char *sql)
             "BUG: statement already prepared or internal structure corrupted");
     }
 
-    IStatement *tmp = tra.prepare_statement(len_sql, sql);
+    // Owned from here on: if anything below throws, ~Statement frees it
+    stmt = tra.prepare_statement(len_sql, sql);
+    IStatement *tmp = stmt;
 
     info.statement_type = tmp->getType(&st);
 
     input_metadata = tmp->getInputMetadata(&st);
     info.in_vars_count = input_metadata->getCount(&st);
     in_buffer_size = input_metadata->getMessageLength(&st);
-    in_buffer = (unsigned char *)calloc(in_buffer_size, sizeof(*in_buffer));
+    in_buffer = static_cast<unsigned char *>(calloc(in_buffer_size ? in_buffer_size : 1, 1));
 
-    // TODO: alloc just before fetch?
     output_metadata = tmp->getOutputMetadata(&st);
     info.out_vars_count = output_metadata->getCount(&st);
     out_buffer_size = output_metadata->getMessageLength(&st);
-    out_buffer = (unsigned char *)calloc(out_buffer_size, sizeof(*out_buffer));
+    out_buffer = static_cast<unsigned char *>(calloc(out_buffer_size ? out_buffer_size : 1, 1));
 
-    // TODO: use standart alloc?
-    info.sql = estrdup(sql);
+    if (!in_buffer || !out_buffer) throw std::bad_alloc();
+
+    info.sql = estrndup(sql, len_sql);
     info.sql_len = len_sql;
 
     in_vars.resize(info.in_vars_count);
@@ -82,8 +84,6 @@ void Statement::prepare(unsigned int len_sql, const char *sql)
             output_metadata->getNullOffset(&st, index),
         };
     }
-
-    stmt = tmp;
 }
 
 void Statement::bind(zval *b_vars, unsigned int num_bind_args)
@@ -490,10 +490,16 @@ void Statement::output_buffer_to_array(int flags, HashTable **hash)
         throw Php_Firebird_Exception(zend_ce_error, "BUG: fetch method not set");
     }
 
-    for (unsigned int index = 0; index < info.out_vars_count; index++) {
-        result = zend_hash_get_current_data(*hash);
-        var_zval(result, index, flags);
-        zend_hash_move_forward(*hash);
+    try {
+        for (unsigned int index = 0; index < info.out_vars_count; index++) {
+            result = zend_hash_get_current_data(*hash);
+            var_zval(result, index, flags);
+            zend_hash_move_forward(*hash);
+        }
+    } catch (...) {
+        zend_array_destroy(*hash);
+        *hash = nullptr;
+        throw;
     }
 
     zend_hash_internal_pointer_reset(*hash);

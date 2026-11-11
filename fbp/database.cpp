@@ -31,10 +31,8 @@ void Database::connect(zval *args)
     }
 
     const char *database = fbu_read_required_string_prop(FireBird_Connect_Args_ce, args, "database");
-    IXpbBuilder* dpb = nullptr;
-
-    dpb = util->getXpbBuilder(&st, IXpbBuilder::DPB, NULL, 0);
-    fbu_xpb_insert_object(dpb, args, FireBird_Connect_Args_ce, &fbp_database_connect_zmap);
+    XpbBuilderPtr dpb(util->getXpbBuilder(&st, IXpbBuilder::DPB, NULL, 0));
+    fbu_xpb_insert_object(dpb.get(), args, FireBird_Connect_Args_ce, &fbp_database_connect_zmap);
 
     att = prov->attachDatabase(&st, database,
         dpb->getBufferLength(&st), dpb->getBuffer(&st));
@@ -50,10 +48,8 @@ void Database::create(zval *args)
     }
 
     const char *database = fbu_read_required_string_prop(FireBird_Create_Args_ce, args, "database");
-    IXpbBuilder* dpb = nullptr;
-
-    dpb = util->getXpbBuilder(&st, IXpbBuilder::DPB, NULL, 0);
-    fbu_xpb_insert_object(dpb, args, FireBird_Create_Args_ce, &fbp_database_create_zmap);
+    XpbBuilderPtr dpb(util->getXpbBuilder(&st, IXpbBuilder::DPB, NULL, 0));
+    fbu_xpb_insert_object(dpb.get(), args, FireBird_Create_Args_ce, &fbp_database_create_zmap);
 
     dpb->insertInt(&st, isc_dpb_sql_dialect, SQL_DIALECT_CURRENT);
     // fbp_dump_buffer(dpb->getBufferLength(&st), dpb->getBuffer(&st));
@@ -374,7 +370,7 @@ void Database::get_info(zval *db_info)
 
     unsigned char resp[1024] = { 0 };
     att->getInfo(&st, sizeof(req), req, sizeof(resp), resp);
-    auto b = master->getUtilInterface()->getXpbBuilder(&st, IXpbBuilder::INFO_RESPONSE, resp, sizeof(resp));
+    XpbBuilderPtr b(master->getUtilInterface()->getXpbBuilder(&st, IXpbBuilder::INFO_RESPONSE, resp, sizeof(resp)));
 
     fbp_dump_buffer(300, b->getBuffer(&st));
 
@@ -475,7 +471,7 @@ void Database::get_limbo_transactions(zval *tr_arr, short max_count)
     auto resp = (unsigned char *)emalloc(resp_capacity);
 
     att->getInfo(&st, sizeof(req), req, resp_capacity, resp);
-    auto b = master->getUtilInterface()->getXpbBuilder(&st, IXpbBuilder::INFO_RESPONSE, resp, resp_capacity);
+    XpbBuilderPtr b(master->getUtilInterface()->getXpbBuilder(&st, IXpbBuilder::INFO_RESPONSE, resp, resp_capacity));
 
     size_t limbo_count = 0;
     for (b->rewind(&st); !b->isEof(&st); b->moveNext(&st)) {

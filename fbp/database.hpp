@@ -18,8 +18,6 @@ class Blob;
 class Database: Base {
     Database(const Database&) = delete;
     Database& operator=(const Database&) = delete;
-    Database(Database&&) = default;
-    Database& operator=(Database&&) = default;
 private:
     IAttachment *att = nullptr;
     std::vector<std::unique_ptr<Transaction>> tr_list;

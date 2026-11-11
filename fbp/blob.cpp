@@ -114,7 +114,7 @@ void Blob::query_info()
 
     blob->getInfo(&st, sizeof(req), req, sizeof(resp), resp);
 
-    IXpbBuilder* b = util->getXpbBuilder(&st, IXpbBuilder::INFO_RESPONSE, resp, sizeof(resp));
+    XpbBuilderPtr b(util->getXpbBuilder(&st, IXpbBuilder::INFO_RESPONSE, resp, sizeof(resp)));
 
     for (b->rewind(&st); !b->isEof(&st); b->moveNext(&st)) {
         unsigned char tag = b->getTag(&st);
