@@ -3,8 +3,7 @@ ARG_WITH("firebird", "Include Firebird support. DIR is the Firebird base install
 if (PHP_FIREBIRD != "no") {
     if (
         CHECK_HEADER_ADD_INCLUDE("ibase.h", "CFLAGS_FIREBIRD", PHP_FIREBIRD + "\\include") && (
-            CHECK_LIB("fbclient_ms.lib", "firebird", PHP_FIREBIRD + "\\lib") ||
-            CHECK_LIB("gds32_ms.lib", "firebird", PHP_FIREBIRD + "\\lib")
+            CHECK_LIB("fbclient_ms.lib", "firebird", PHP_FIREBIRD + "\\lib")
         )
     ) {
         EXTENSION("firebird", "firebird_php.cpp database.cpp transaction.cpp statement.cpp blob.cpp service.cpp tbuilder.cpp firebird_utils.cpp fbp\\blob.cpp fbp\\database.cpp fbp\\service.cpp fbp\\statement.cpp fbp\\transaction.cpp", PHP_FIREBIRD_SHARED, "/DZEND_ENABLE_STATIC_TSRMLS_CACHE=1");

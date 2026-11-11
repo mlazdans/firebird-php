@@ -25,6 +25,10 @@ extern "C" {
 #include "firebird_utils.h"
 #include "firebird_arginfo.h"
 
+#if !defined(FB_API_VER) || FB_API_VER < 50
+#error "Firebird 5.0 or newer headers are required"
+#endif
+
 PHP_RINIT_FUNCTION(firebird)
 {
     // FBG(db_list) = new std::vector<std::unique_ptr<Database>>();
@@ -138,6 +142,15 @@ zend_class_entry *FireBird_User_Info_ce;
 
 PHP_MINIT_FUNCTION(firebird)
 {
+    // Interface release semantics (commit/close/detach do not release) and several
+    // info items need a Firebird 5 client. Older clients would double-release.
+    unsigned client_major = (fbu_get_client_version() >> 8) & 0xFF;
+    if (client_major < 5) {
+        php_error_docref(NULL, E_CORE_WARNING,
+            "firebird: fbclient %u.x is not supported, 5.0 or newer is required", client_major);
+        return FAILURE;
+    }
+
     REGISTER_INI_ENTRIES();
     register_firebird_symbols(module_number);
 
