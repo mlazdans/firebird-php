@@ -6,7 +6,7 @@
 
 #define PHP_FIREBIRD_VER_MAJOR 0
 #define PHP_FIREBIRD_VER_MINOR 0
-#define PHP_FIREBIRD_VER_REV 2
+#define PHP_FIREBIRD_VER_REV 3
 #define PHP_FIREBIRD_VER_PRE "-alpha"
 
 #define TO_STRING_(x) #x
