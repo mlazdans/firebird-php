@@ -16,6 +16,7 @@
 #include "fbp/statement.hpp"
 #include "fbp/blob.hpp"
 #include "firebird_php.hpp"
+#include "firebird_utils.h"
 
 extern "C" {
 #include "ibase.h"
@@ -23,7 +24,6 @@ extern "C" {
 #include "zend_exceptions.h"
 #include "ext/spl/spl_exceptions.h"
 #include "ext/date/php_date.h"
-#include "firebird_utils.h"
 }
 
 using namespace Firebird;

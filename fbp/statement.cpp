@@ -8,12 +8,12 @@
 #include "./database.hpp"
 #include "./statement.hpp"
 #include "../firebird_php.hpp"
+#include "../firebird_utils.h"
 
 extern "C" {
 #include "php_globals.h"
 #include "zend_smart_str.h"
 #include "ext/date/php_date.h"
-#include "../firebird_utils.h"
 }
 
 using namespace Firebird;

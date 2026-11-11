@@ -7,8 +7,9 @@
 #include "./blob.hpp"
 #include "../firebird_php.hpp"
 
-extern "C" {
 #include "../firebird_utils.h"
+
+extern "C" {
 #include "zend_exceptions.h"
 }
 

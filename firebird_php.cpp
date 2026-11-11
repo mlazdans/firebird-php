@@ -6,6 +6,7 @@
 #include "fbp/blob.hpp"
 #include "fbp/statement.hpp"
 #include "fbp/service.hpp"
+#include "firebird_utils.h"
 
 extern "C" {
 
@@ -23,7 +24,6 @@ extern "C" {
 #include "SAPI.h"
 #include "zend_interfaces.h"
 #include "zend_exceptions.h"
-#include "firebird_utils.h"
 #include "firebird_arginfo.h"
 
 #if !defined(FB_API_VER) || FB_API_VER < 50
