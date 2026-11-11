@@ -223,6 +223,12 @@ const char *fbu_read_required_string_prop(zend_class_entry *ce, zval *obj, const
     return Z_STRVAL_P(val);
 }
 
+// The Database behind a handle, or nullptr when the handle is not (or no longer) valid
+FBP::Database *fbu_get_database(size_t dbh)
+{
+    return fbu_is_valid_dbh(dbh) ? FBG(db_list)[dbh - 1].get() : nullptr;
+}
+
 void fbu_xpb_insert_object(IXpbBuilder* xpb, zval *obj, zend_class_entry *ce,
     const firebird_xpb_zmap *xpb_zmap)
 {
@@ -327,6 +333,16 @@ int fbu_is_valid_trh(size_t dbh, size_t trh)
 {
     try {
         get_db(dbh)->get_transaction(trh);
+        return 1;
+    } catch(...) {
+        return 0;
+    }
+}
+
+int fbu_is_valid_blh(size_t dbh, size_t blh)
+{
+    try {
+        get_db(dbh)->get_blob(blh);
         return 1;
     } catch(...) {
         return 0;

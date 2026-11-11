@@ -16,20 +16,14 @@ int FireBird_Blob___construct(zval *self, zval *Transaction)
     firebird_blob *blob = get_firebird_blob_from_zval(self);
 
     size_t blh;
-    const firebird_blob_info *info;
 
     if (fbu_blob_init(tr->dbh, tr->trh, &blh)) {
-        return FAILURE;
-    }
-
-    if (fbu_blob_get_info(tr->dbh, blh, &info)) {
         return FAILURE;
     }
 
     blob->blh = blh;
     blob->dbh = tr->dbh;
     blob->trh = tr->trh;
-    blob->info = info;
 
     PROP_SET(FireBird_Blob_ce, self, "transaction", Transaction);
 
@@ -183,11 +177,17 @@ PHP_METHOD(FireBird_Blob, create)
 
 PHP_METHOD(FireBird_Blob, id)
 {
-    object_init_ex(return_value, FireBird_Blob_Id_ce);
-    firebird_blob_id *blob_id = get_firebird_blob_id_from_zval(return_value);
+    ZEND_PARSE_PARAMETERS_NONE();
 
     firebird_blob *blob = get_firebird_blob_from_zval(ZEND_THIS);
-    blob_id->bl_id = blob->info->id;
+    const firebird_blob_info *info;
+
+    if (fbu_blob_get_info(blob->dbh, blob->blh, &info)) {
+        RETURN_THROWS();
+    }
+
+    object_init_ex(return_value, FireBird_Blob_Id_ce);
+    get_firebird_blob_id_from_zval(return_value)->bl_id = info->id;
 }
 
 int FireBird_Blob_seek(zval *self, int mode, int offset, int *new_offset)
@@ -236,8 +236,8 @@ static void FireBird_Blob_free_obj(zend_object *obj)
 
     FBDEBUG("~%s(blob=%p)", __func__, blob);
 
-    if (fbu_blob_free(blob->dbh, blob->blh)) {
-        // TODO: throws?
+    if (fbu_is_valid_blh(blob->dbh, blob->blh)) {
+        fbu_blob_free(blob->dbh, blob->blh);
     }
 
     blob->blh = 0;
@@ -309,36 +309,42 @@ PHP_METHOD(FireBird_Blob_Id, from_str)
 static zval* FireBird_Blob_read_property(zend_object *obj, zend_string *name, int type,
     void **cache_slot, zval *rv)
 {
+    bool is_virtual =
+        zend_string_equals_literal(name, "num_segments") ||
+        zend_string_equals_literal(name, "max_segment") ||
+        zend_string_equals_literal(name, "total_length") ||
+        zend_string_equals_literal(name, "type") ||
+        zend_string_equals_literal(name, "position") ||
+        zend_string_equals_literal(name, "is_writable");
+
+    if (!is_virtual) {
+        return zend_std_read_property(obj, name, type, cache_slot, rv);
+    }
+
+    // Looked up on every read, see FireBird_Statement_read_property()
     firebird_blob *blob = get_firebird_blob_from_obj(obj);
+    const firebird_blob_info *info;
+
+    if (fbu_blob_get_info(blob->dbh, blob->blh, &info)) {
+        return &EG(uninitialized_zval);
+    }
 
     if (zend_string_equals_literal(name, "num_segments")) {
-        ZVAL_LONG(rv, blob->info->num_segments);
-        return rv;
-    }
-    if (zend_string_equals_literal(name, "max_segment")) {
-        ZVAL_LONG(rv, blob->info->max_segment);
-        return rv;
-    }
-    if (zend_string_equals_literal(name, "total_length")) {
-        ZVAL_LONG(rv, blob->info->total_length);
-        return rv;
-    }
-    if (zend_string_equals_literal(name, "type")) {
-        ZVAL_LONG(rv, blob->info->type);
-        return rv;
-    }
-    if (zend_string_equals_literal(name, "position")) {
-        ZVAL_LONG(rv, blob->info->position);
-        return rv;
-    }
-    if (zend_string_equals_literal(name, "is_writable")) {
-        ZVAL_BOOL(rv, blob->info->is_writable);
-        return rv;
+        ZVAL_LONG(rv, info->num_segments);
+    } else if (zend_string_equals_literal(name, "max_segment")) {
+        ZVAL_LONG(rv, info->max_segment);
+    } else if (zend_string_equals_literal(name, "total_length")) {
+        ZVAL_LONG(rv, info->total_length);
+    } else if (zend_string_equals_literal(name, "type")) {
+        ZVAL_LONG(rv, info->type);
+    } else if (zend_string_equals_literal(name, "position")) {
+        ZVAL_LONG(rv, info->position);
+    } else {
+        ZVAL_BOOL(rv, info->is_writable);
     }
 
-    return zend_std_read_property(obj, name, type, cache_slot, rv);
+    return rv;
 }
-
 
 void register_FireBird_Blob_object_handlers()
 {

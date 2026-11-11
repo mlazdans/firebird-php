@@ -43,7 +43,6 @@ typedef struct firebird_stmt {
     size_t dbh;
     size_t trh;
     size_t sth;
-    const firebird_stmt_info *info;
 
     zend_object std;
 } firebird_stmt;

@@ -8,6 +8,8 @@
 #define FB_FRACTIONS_TO_USEC(f) ((unsigned)(f) * 100)
 #define FB_USEC_TO_FRACTIONS(u) ((unsigned)(u) / 100)
 
+namespace FBP { class Database; }
+extern "C++" FBP::Database *fbu_get_database(size_t dbh);
 extern "C++" const char *fbu_read_required_string_prop(zend_class_entry *ce, zval *obj, const char *name);
 
 extern "C" {
@@ -26,6 +28,7 @@ int fbu_is_valid_dbh(size_t dbh);
 int fbu_is_valid_svh(size_t svh);
 int fbu_is_valid_trh(size_t dbh, size_t trh);
 int fbu_is_valid_sth(size_t dbh, size_t sth);
+int fbu_is_valid_blh(size_t dbh, size_t blh);
 
 int fbu_database_init(size_t *dbh);
 int fbu_database_free(size_t dbh);

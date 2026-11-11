@@ -339,7 +339,12 @@ void Statement::bind(zval *b_vars, unsigned int num_bind_args)
                 if (Z_TYPE_P(b_var) == IS_OBJECT && Z_OBJCE_P(b_var) == FireBird_Blob_Id_ce) {
                     bl_id = get_firebird_blob_id_from_zval(b_var)->bl_id;
                 } else if (Z_TYPE_P(b_var) == IS_OBJECT && Z_OBJCE_P(b_var) == FireBird_Blob_ce) {
-                    bl_id = get_firebird_blob_from_zval(b_var)->info->id;
+                    auto blob = get_firebird_blob_from_zval(b_var);
+                    if (fbu_get_database(blob->dbh) != &tra.get_database()) {
+                        throw Php_Firebird_Exception(zend_ce_value_error,
+                            fmt("Argument %u: Blob belongs to a different or closed database", argn));
+                    }
+                    bl_id = tra.get_database().get_blob(blob->blh)->get_info()->id;
                 } else if (is_stringable(b_var)) {
                     // The cast operates on a const view only: create_blob_from_string()
                     // does not modify the string

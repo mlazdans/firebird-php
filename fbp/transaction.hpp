@@ -70,6 +70,7 @@ public:
     Transaction(Database &dba);
     ~Transaction() noexcept;
     ITransaction *get();
+    Database &get_database() { return dba; }
     void set(ITransaction *tra);
     void start(const firebird_tbuilder *builder);
     void query_info();

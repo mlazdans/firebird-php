@@ -35,7 +35,6 @@ typedef struct firebird_blob {
     size_t dbh;
     size_t trh;
     size_t blh;
-    const firebird_blob_info *info;
 
     zend_object std;
 } firebird_blob;

@@ -20,20 +20,14 @@ int FireBird_Statement___construct(zval *self, zval *transaction)
     firebird_trans *tr = get_firebird_trans_from_zval(transaction);
 
     size_t sth;
-    const firebird_stmt_info *info;
 
     if (fbu_statement_init(tr->dbh, tr->trh, &sth)) {
-        return FAILURE;
-    }
-
-    if (fbu_statement_get_info(tr->dbh, sth, &info)) {
         return FAILURE;
     }
 
     stmt->sth = sth;
     stmt->dbh = tr->dbh;
     stmt->trh = tr->trh;
-    stmt->info = info;
 
     PROP_SET(FireBird_Statement_ce, self, "transaction", transaction);
 
@@ -227,38 +221,45 @@ static void FireBird_Statement_free_obj(zend_object *obj)
 static zval* FireBird_Statement_read_property(zend_object *obj, zend_string *name, int type,
     void **cache_slot, zval *rv)
 {
+    bool is_virtual =
+        zend_string_equals_literal(name, "name") ||
+        zend_string_equals_literal(name, "in_vars_count") ||
+        zend_string_equals_literal(name, "out_vars_count") ||
+        zend_string_equals_literal(name, "insert_count") ||
+        zend_string_equals_literal(name, "update_count") ||
+        zend_string_equals_literal(name, "delete_count") ||
+        zend_string_equals_literal(name, "affected_count");
+
+    if (!is_virtual) {
+        return zend_std_read_property(obj, name, type, cache_slot, rv);
+    }
+
+    // Looked up on every read: the C++ object is gone once the statement is freed or
+    // its database disconnected, and get_info() then throws instead of reading freed memory
     firebird_stmt *stmt = get_firebird_stmt_from_obj(obj);
+    const firebird_stmt_info *info;
+
+    if (fbu_statement_get_info(stmt->dbh, stmt->sth, &info)) {
+        return &EG(uninitialized_zval);
+    }
 
     if (zend_string_equals_literal(name, "name")) {
-        ZVAL_STRING(rv, stmt->info->name);
-        return rv;
-    }
-    if (zend_string_equals_literal(name, "in_vars_count")) {
-        ZVAL_LONG(rv, stmt->info->in_vars_count);
-        return rv;
-    }
-    if (zend_string_equals_literal(name, "out_vars_count")) {
-        ZVAL_LONG(rv, stmt->info->out_vars_count);
-        return rv;
-    }
-    if (zend_string_equals_literal(name, "insert_count")) {
-        ZVAL_LONG(rv, stmt->info->insert_count);
-        return rv;
-    }
-    if (zend_string_equals_literal(name, "update_count")) {
-        ZVAL_LONG(rv, stmt->info->update_count);
-        return rv;
-    }
-    if (zend_string_equals_literal(name, "delete_count")) {
-        ZVAL_LONG(rv, stmt->info->delete_count);
-        return rv;
-    }
-    if (zend_string_equals_literal(name, "affected_count")) {
-        ZVAL_LONG(rv, stmt->info->affected_count);
-        return rv;
+        ZVAL_STRING(rv, info->name ? info->name : "");
+    } else if (zend_string_equals_literal(name, "in_vars_count")) {
+        ZVAL_LONG(rv, info->in_vars_count);
+    } else if (zend_string_equals_literal(name, "out_vars_count")) {
+        ZVAL_LONG(rv, info->out_vars_count);
+    } else if (zend_string_equals_literal(name, "insert_count")) {
+        ZVAL_LONG(rv, info->insert_count);
+    } else if (zend_string_equals_literal(name, "update_count")) {
+        ZVAL_LONG(rv, info->update_count);
+    } else if (zend_string_equals_literal(name, "delete_count")) {
+        ZVAL_LONG(rv, info->delete_count);
+    } else {
+        ZVAL_LONG(rv, info->affected_count);
     }
 
-    return zend_std_read_property(obj, name, type, cache_slot, rv);
+    return rv;
 }
 
 void register_FireBird_Statement_object_handlers()
