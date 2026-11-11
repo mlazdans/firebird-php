@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vector>
 #include <firebird/Interface.h>
 
 #include "./base.hpp"
@@ -52,7 +53,7 @@ private:
 public:
     Service();
     ~Service();
-    // IService *get();
+    IService *get();
     void connect(zval *args);
     void disconnect();
     void get_info(zval *server_info);

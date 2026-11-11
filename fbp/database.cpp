@@ -335,7 +335,7 @@ void Database::get_info(zval *db_info)
         // isc_info_active_transactions         List of active transactions
         // isc_info_active_tran_count           Same loops isc_info_active_transactions but just retuns count
 
-        isc_info_creation_date,
+        fb_info_creation_timestamp_tz,
         isc_info_db_file_size,
         // fb_info_page_contents                Reads raw pages?
 
@@ -400,28 +400,32 @@ void Database::get_info(zval *db_info)
     };
 
     unsigned char resp[1024] = { 0 };
-    att->getInfo(&st, sizeof(req), req, sizeof(resp), resp);
+    get()->getInfo(&st, sizeof(req), req, sizeof(resp), resp);
     XpbBuilderPtr b(master->getUtilInterface()->getXpbBuilder(&st, IXpbBuilder::INFO_RESPONSE, resp, sizeof(resp)));
 
-    fbp_dump_buffer(300, b->getBuffer(&st));
-
-    int pos = 0;
     for (b->rewind(&st); !b->isEof(&st); b->moveNext(&st)) {
         auto tag = b->getTag(&st);
         auto len = b->getLength(&st);
 
-        php_printf("tag=%d / 0x%x, pos=%d\n", tag, tag, pos);
-
         if (tag == isc_info_end) break;
+        if (tag == isc_info_truncated) {
+            throw Php_Firebird_Exception(zend_ce_error, "BUG: database info response truncated");
+        }
 
         switch(tag) {
             case isc_info_isc_version     : READ_STRING_ARRAY("isc_version"); break;
             case isc_info_firebird_version: READ_STRING_ARRAY("firebird_version"); break;
 
-            case isc_info_creation_date: {
-                struct tm t;
-                isc_decode_timestamp((ISC_TIMESTAMP *) b->getBytes(&st), &t);
-                zend_update_property_long(FireBird_Db_Info_ce, Z_OBJ_P(db_info), "creation_date", sizeof("creation_date") - 1, mktime(&t));
+            case fb_info_creation_timestamp_tz: {
+                // UTC instant first: ISC_DATE counts days from 1858-11-17 (40587 days
+                // before the epoch), ISC_TIME 1/10000 s. isc_info_creation_date is
+                // server-local time and cannot be converted reliably on the client.
+                ISC_TIMESTAMP_TZ ts;
+                if (len < sizeof(ts.utc_timestamp)) break;
+                memcpy(&ts.utc_timestamp, b->getBytes(&st), sizeof(ts.utc_timestamp));
+                zend_long epoch = (static_cast<zend_long>(ts.utc_timestamp.timestamp_date) - 40587) * 86400 +
+                    ts.utc_timestamp.timestamp_time / ISC_TIME_SECONDS_PRECISION;
+                zend_update_property_long(FireBird_Db_Info_ce, Z_OBJ_P(db_info), "creation_date", sizeof("creation_date") - 1, epoch);
             } break;
 
             // case isc_info_limbo: {
@@ -464,7 +468,7 @@ void Database::get_info(zval *db_info)
             case isc_info_oldest_active       : READ_BIGINT("oldest_active"); break;
             case isc_info_oldest_snapshot     : READ_BIGINT("oldest_snapshot"); break;
             case isc_info_next_transaction    : READ_BIGINT("next_transaction"); break;
-            case isc_info_db_file_size        : READ_BIGINT("db_file_size"); // always 0 for me break;
+            case isc_info_db_file_size        : READ_BIGINT("db_file_size"); break; // 0 unless the database has secondary files
             case fb_info_pages_used           : READ_BIGINT("pages_used"); break;
             case fb_info_pages_free           : READ_BIGINT("pages_free"); break;
             case fb_info_ses_idle_timeout_db  : READ_BIGINT("ses_idle_timeout_db"); break;
@@ -487,10 +491,10 @@ void Database::get_info(zval *db_info)
             case fb_info_parallel_workers     : READ_BIGINT("parallel_workers"); break;
 
             default:
-                fbp_fatal("BUG! Unhandled DB info tag: %d at pos: %d", tag, pos);
+                // Unknown to this build (e.g. a newer server): ignore
+                FBDEBUG("Unhandled DB info tag: %d", tag);
                 break;
         }
-        pos += 3 + b->getLength(&st);
     }
 }
 
@@ -498,34 +502,22 @@ void Database::get_limbo_transactions(zval *tr_arr, short max_count)
 {
     const unsigned char req[] = { isc_info_limbo };
 
-    size_t resp_capacity = TRANS_ID_SIZE * max_count;
-    auto resp = (unsigned char *)emalloc(resp_capacity);
+    // Each id is tag + 2 length bytes + up to 8 bytes; one more byte for isc_info_end.
+    // A truncated response simply yields the ids that fit.
+    std::vector<unsigned char> resp(11 * static_cast<size_t>(max_count) + 1);
 
-    att->getInfo(&st, sizeof(req), req, resp_capacity, resp);
-    XpbBuilderPtr b(master->getUtilInterface()->getXpbBuilder(&st, IXpbBuilder::INFO_RESPONSE, resp, resp_capacity));
+    get()->getInfo(&st, sizeof(req), req, resp.size(), resp.data());
+    XpbBuilderPtr b(master->getUtilInterface()->getXpbBuilder(&st, IXpbBuilder::INFO_RESPONSE, resp.data(), resp.size()));
 
-    size_t limbo_count = 0;
-    for (b->rewind(&st); !b->isEof(&st); b->moveNext(&st)) {
+    short limbo_count = 0;
+    for (b->rewind(&st); !b->isEof(&st) && limbo_count < max_count; b->moveNext(&st)) {
         auto tag = b->getTag(&st);
 
-        if (tag == isc_info_end) break;
+        if (tag != isc_info_limbo) break; // isc_info_end or isc_info_truncated
 
-        switch(tag) {
-            case isc_info_limbo: {
-                if(limbo_count++ < max_count) {
-                    add_next_index_long(tr_arr, b->getBigInt(&st));
-                } else {
-                    goto finish_with_limbo;
-                }
-            } break;
-
-            default:
-                fbp_fatal("BUG! Unhandled DB info tag: %d", tag);
-                break;
-        }
+        add_next_index_long(tr_arr, b->getBigInt(&st));
+        limbo_count++;
     }
-finish_with_limbo:
-    efree(resp);
 }
 
 } // namespace

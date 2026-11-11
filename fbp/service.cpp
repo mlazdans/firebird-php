@@ -2,6 +2,7 @@
 #include <memory>
 #include <firebird/Interface.h>
 #include <stdint.h>
+#include <string>
 
 #include "./base.hpp"
 #include "./service.hpp"
@@ -33,9 +34,15 @@ void Service::connect(zval *args)
         dpb->getBufferLength(&st), dpb->getBuffer(&st));
 }
 
+IService *Service::get()
+{
+    if (srv) return srv;
+    throw Php_Firebird_Exception(zend_ce_error, "Service is not connected");
+}
+
 void Service::disconnect()
 {
-    srv->detach(&st);
+    get()->detach(&st);
     srv->release();
     srv = nullptr;
 }
@@ -87,7 +94,7 @@ void Service::get_info(zval *server_info)
 
     // query(StatusType* status, unsigned sendLength, const unsigned char* sendItems,
     // unsigned receiveLength, const unsigned char* receiveItems, unsigned bufferLength, unsigned char* buffer)
-    srv->query(&st, 0, NULL, sizeof(info_req), info_req, sizeof(info_resp), info_resp);
+    get()->query(&st, 0, NULL, sizeof(info_req), info_req, sizeof(info_resp), info_resp);
 
     XpbBuilderPtr spb(master->getUtilInterface()->getXpbBuilder(
         &st, IXpbBuilder::SPB_RESPONSE, info_resp, sizeof(info_resp)));
@@ -108,91 +115,96 @@ void Service::get_info(zval *server_info)
             READ_SI_STRING(get_env_msg);
             READ_SI_STRING(user_dbpath);
             default:
-                fbp_fatal("BUG! Unhandled isc_info_svc tag: %d", tag);
+                FBDEBUG("Unhandled isc_info_svc tag: %d", tag); // newer server: ignore
+                break;
         }
     }
 }
 
-#define READ_UI_STRING(name)                          \
-    isc_spb_sec_##name: {                             \
-        len = isc_portable_integer(p, 2); p += 2;     \
-        zend_update_property_stringl(                 \
-            FireBird_User_Info_ce, Z_OBJ(user_info),  \
-             #name, sizeof(#name) - 1, (char *)p, len \
-        );                                            \
-        p += len;                                     \
-    } break
-
-#define READ_UI_LONG(name)                           \
-    isc_spb_sec_##name: {                            \
-        len = 4;                                     \
-        zend_update_property_long(                   \
-            FireBird_User_Info_ce, Z_OBJ(user_info), \
-            #name, sizeof(#name) - 1,                \
-            isc_portable_integer(p, len)             \
-        );                                           \
-        p += len;                                    \
-    } break
-
 void Service::get_users(zval *users)
 {
     const unsigned char req[] = { isc_info_svc_get_users };
-    unsigned char resp[1024] = { 0 };
-
     const unsigned char send[] = { isc_info_svc_timeout, 10, 0, 0, 0 };
     const unsigned char action[] = { isc_action_svc_display_user_adm };
 
-    srv->start(&st, sizeof(action), action);
-    srv->query(&st, sizeof(send), send, sizeof(req), req, sizeof(resp), resp);
+    std::vector<unsigned char> resp;
 
-    auto p = resp;
-    auto end = p + sizeof(resp);
+    // Restart the action with a bigger buffer until the whole list fits
+    for (size_t size = 16 * 1024; ; size *= 4) {
+        if (size > 16 * 1024 * 1024) {
+            throw Php_Firebird_Exception(zend_ce_error, "User list does not fit in 16 MB");
+        }
 
-    if (*p++ != isc_info_svc_get_users) {
-        fbp_fatal("BUG! Expected isc_info_svc_get_users but got: %d", *p);
+        resp.assign(size, 0);
+        get()->start(&st, sizeof(action), action);
+        get()->query(&st, sizeof(send), send, sizeof(req), req, resp.size(), resp.data());
+
+        if (resp[0] != isc_info_svc_get_users) {
+            if (resp[0] == isc_info_truncated) continue;
+            throw Php_Firebird_Exception(zend_ce_error,
+                "Unexpected service response tag: " + std::to_string(resp[0]));
+        }
+
+        size_t block_len = isc_portable_integer(&resp[1], 2);
+        if (3 + block_len < resp.size() && resp[3 + block_len] != isc_info_truncated) break;
     }
-    auto resp_len = isc_portable_integer(p, 2); p += 2;
 
+    const unsigned char *p = &resp[3];
+    const unsigned char *end = p + isc_portable_integer(&resp[1], 2);
     zval user_info;
-    ISC_INT64 len, total_len = 0;
-    unsigned char tag;
+    ZVAL_UNDEF(&user_info);
 
-    for (;;) {
-        tag = *p++;
+    auto bad = [&]() {
+        zval_ptr_dtor(&user_info);
+        return Php_Firebird_Exception(zend_ce_error, "Malformed user list in service response");
+    };
 
-        // Assuming isc_spb_sec_username is always first tag in user info
-        if (tag == isc_spb_sec_username || tag == isc_info_end) {
-            if (Z_TYPE(user_info) == IS_OBJECT) {
-                add_next_index_zval(users, &user_info);
-            }
-        }
+    while (p < end) {
+        const unsigned char tag = *p++;
 
-        if (tag == isc_spb_sec_username) {
-            object_init_ex(&user_info, FireBird_User_Info_ce);
-        }
+        switch (tag) {
+            case isc_spb_sec_username:
+            case isc_spb_sec_firstname:
+            case isc_spb_sec_middlename:
+            case isc_spb_sec_lastname: {
+                if (end - p < 2) throw bad();
+                size_t len = isc_portable_integer(p, 2); p += 2;
+                if (static_cast<size_t>(end - p) < len) throw bad();
 
-        if (tag == isc_info_end) {
-            break;
-        }
+                if (tag == isc_spb_sec_username) {
+                    // Username starts a new record
+                    if (Z_TYPE(user_info) == IS_OBJECT) add_next_index_zval(users, &user_info);
+                    object_init_ex(&user_info, FireBird_User_Info_ce);
+                } else if (Z_TYPE(user_info) != IS_OBJECT) {
+                    throw bad();
+                }
 
-        // TODO: isc_info_truncated
-        switch(tag)
-        {
-            case READ_UI_STRING(username);
-            case READ_UI_STRING(firstname);
-            case READ_UI_STRING(middlename);
-            case READ_UI_STRING(lastname);
-            case READ_UI_LONG(admin);
+                const char *name = tag == isc_spb_sec_username ? "username" :
+                    tag == isc_spb_sec_firstname ? "firstname" :
+                    tag == isc_spb_sec_middlename ? "middlename" : "lastname";
+                zend_update_property_stringl(FireBird_User_Info_ce, Z_OBJ(user_info),
+                    name, strlen(name), reinterpret_cast<const char *>(p), len);
+                p += len;
+            } break;
+
+            case isc_spb_sec_admin:
             case isc_spb_sec_userid:
-            case isc_spb_sec_groupid:
+            case isc_spb_sec_groupid: {
+                if (end - p < 4) throw bad();
+                if (tag == isc_spb_sec_admin) {
+                    if (Z_TYPE(user_info) != IS_OBJECT) throw bad();
+                    zend_update_property_bool(FireBird_User_Info_ce, Z_OBJ(user_info),
+                        "admin", sizeof("admin") - 1, isc_portable_integer(p, 4) != 0);
+                }
                 p += 4;
-                break;
+            } break;
+
             default:
-                fbp_fatal("BUG! Unhandled isc_info_svc tag: %d", tag);
+                throw bad();
         }
     }
 
-    return;
+    if (Z_TYPE(user_info) == IS_OBJECT) add_next_index_zval(users, &user_info);
 }
 
 void Service::add_user(zval *user_info)
@@ -211,7 +223,7 @@ void Service::add_or_modify_user(zval *user_info, const ISC_UCHAR tag)
 
     xpb->insertTag(&st, tag);
     fbu_xpb_insert_object(xpb.get(), user_info, FireBird_User_Info_ce, &fbp_user_info_zmap);
-    srv->start(&st, xpb->getBufferLength(&st), xpb->getBuffer(&st));
+    get()->start(&st, xpb->getBufferLength(&st), xpb->getBuffer(&st));
 }
 
 void Service::delete_user(const char *username, size_t username_len)
@@ -220,7 +232,7 @@ void Service::delete_user(const char *username, size_t username_len)
 
     xpb->insertTag(&st, isc_action_svc_delete_user);
     xpb->insertBytes(&st, isc_spb_sec_username, username, username_len);
-    srv->start(&st, xpb->getBufferLength(&st), xpb->getBuffer(&st));
+    get()->start(&st, xpb->getBufferLength(&st), xpb->getBuffer(&st));
 }
 
 void Service::get_db_info(zval *server_db_info)
@@ -229,7 +241,7 @@ void Service::get_db_info(zval *server_db_info)
     const unsigned char info_req[] = { isc_info_svc_svr_db_info };
     unsigned char info_resp[1024] = { 0 };
 
-    srv->query(&st, 0, NULL, sizeof(info_req), info_req, sizeof(info_resp), info_resp);
+    get()->query(&st, 0, NULL, sizeof(info_req), info_req, sizeof(info_resp), info_resp);
 
     XpbBuilderPtr spb(master->getUtilInterface()->getXpbBuilder(&st, IXpbBuilder::SPB_RESPONSE, info_resp, sizeof(info_resp)));
 
@@ -257,7 +269,8 @@ void Service::get_db_info(zval *server_db_info)
                 add_next_index_stringl(&databases, (char *)spb->getBytes(&st), spb->getLength(&st));
                 break;
             default:
-                fbp_fatal("BUG! Unhandled isc_info_svc tag: %d", tag);
+                FBDEBUG("Unhandled isc_info_svc tag: %d", tag); // newer server: ignore
+                break;
         }
     }
 

@@ -34,7 +34,7 @@ typedef struct firebird_stmt_info {
     unsigned int sql_len;
 
     const char *name;
-    ISC_ULONG insert_count, update_count, delete_count, select_count, affected_count;
+    ISC_UINT64 insert_count, update_count, delete_count, select_count, affected_count;
 
     unsigned int in_vars_count, out_vars_count;
 } firebird_stmt_info;

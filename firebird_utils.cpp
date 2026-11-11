@@ -104,7 +104,7 @@ void fbu_handle_exception(const char *file, size_t line)
 
         fb_sqlstate(sqlstate, status->getErrors());
         zend_update_property_stringl(FireBird_Fb_Exception_ce,
-            Z_OBJ(ex), "sqlstate", sizeof("sqlstate") - 1, sqlstate, sizeof(sqlstate));
+            Z_OBJ(ex), "sqlstate", sizeof("sqlstate") - 1, sqlstate, strnlen(sqlstate, sizeof(sqlstate)));
 
         for (int i = 0; i < 2; ++i)
         {

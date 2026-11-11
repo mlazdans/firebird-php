@@ -991,30 +991,33 @@ void Statement::query_statistics()
 
     get()->getInfo(&st, sizeof(req), req, sizeof(resp), resp);
 
-    const ISC_UCHAR* p = resp;
+    // isc_info_sql_records, 2-byte length, then { item, 2-byte length, value } entries
+    if (resp[0] != isc_info_sql_records) return;
 
-    if (resp[0] == isc_info_sql_records) {
-        p += 3; // Skip current + length. Otherwise expect isc_info_end
-    }
+    const ISC_UCHAR *p = resp + 3;
+    const ISC_UCHAR *end = resp + std::min<size_t>(3 + isc_portable_integer(resp + 1, 2), sizeof(resp));
 
-    while ((*p != isc_info_end) && (p - (const ISC_UCHAR *)&resp < sizeof(resp)))
-    {
-        const ISC_UCHAR count_is = *p++;
-        const ISC_SHORT len = isc_portable_integer(p, 2); p += 2;
-        const ISC_ULONG count = isc_portable_integer(p, len); p += len;
-        switch(count_is) {
+    while (p + 3 <= end && *p != isc_info_end) {
+        const ISC_UCHAR item = *p++;
+        const unsigned len = static_cast<unsigned>(isc_portable_integer(p, 2)); p += 2;
+        if (len > 8 || p + len > end) break;
+        const ISC_UINT64 count = static_cast<ISC_UINT64>(isc_portable_integer(p, len)); p += len;
+
+        switch (item) {
             case isc_info_req_insert_count: info.insert_count += count; break;
             case isc_info_req_update_count: info.update_count += count; break;
             case isc_info_req_delete_count: info.delete_count += count; break;
             case isc_info_req_select_count: info.select_count += count; break;
             default:
-                fbp_fatal("BUG: unrecognized isc_dsql_sql_info item: %d with value: %d", count_is, count);
+                // Not sent by Firebird 5, which only reports the four counts above.
+                // Each item carries its length, so an unknown one is skipped safely.
                 break;
         }
     }
 
-    FBDEBUG("%s\n  insert_count=%d, update_count=%d, delete_count=%d, select_count=%d",
-        __func__, info.insert_count, info.update_count, info.delete_count, info.select_count);
+    FBDEBUG("%s: insert_count=%llu, update_count=%llu, delete_count=%llu, select_count=%llu", __func__,
+        (unsigned long long)info.insert_count, (unsigned long long)info.update_count,
+        (unsigned long long)info.delete_count, (unsigned long long)info.select_count);
 
     info.affected_count = info.insert_count + info.update_count + info.delete_count;
 }
