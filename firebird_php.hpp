@@ -5,6 +5,8 @@
 #include <vector>
 #include <memory>
 
+#include "fbp/handle_list.hpp"
+
 #define PHP_FIREBIRD_VER_MAJOR 0
 #define PHP_FIREBIRD_VER_MINOR 0
 #define PHP_FIREBIRD_VER_REV 3
@@ -62,8 +64,8 @@ PHP_MINFO_FUNCTION(firebird);
 ZEND_BEGIN_MODULE_GLOBALS(firebird)
     // ISC_STATUS_ARRAY status;
     bool debug;
-    std::vector<std::unique_ptr<FBP::Database>> db_list;
-    std::vector<std::unique_ptr<FBP::Service>> sv_list;
+    FBP::Handle_List<FBP::Database> db_list;
+    FBP::Handle_List<FBP::Service> sv_list;
     // int has_error_handler;
     // zend_fcall_info error_fci;
     // zend_fcall_info_cache error_fcc;

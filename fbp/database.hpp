@@ -5,6 +5,7 @@
 #include <firebird/Interface.h>
 
 #include "./base.hpp"
+#include "./handle_list.hpp"
 #include "./transaction.hpp"
 
 using namespace Firebird;
@@ -20,9 +21,9 @@ class Database: Base {
     Database& operator=(const Database&) = delete;
 private:
     IAttachment *att = nullptr;
-    std::vector<std::unique_ptr<Transaction>> tr_list;
-    std::vector<std::unique_ptr<Statement>> st_list;
-    std::vector<std::unique_ptr<Blob>> bl_list;
+    Handle_List<Transaction> tr_list;
+    Handle_List<Statement> st_list;
+    Handle_List<Blob> bl_list;
     std::vector<ITransaction*> limbo_list;
     void free_handles();
     void check_no_active_transactions(const char *action);

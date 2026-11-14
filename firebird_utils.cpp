@@ -259,7 +259,7 @@ const char *fbu_read_required_string_prop(zend_class_entry *ce, zval *obj, const
 // The Database behind a handle, or nullptr when the handle is not (or no longer) valid
 FBP::Database *fbu_get_database(size_t dbh)
 {
-    return fbu_is_valid_dbh(dbh) ? FBG(db_list)[dbh - 1].get() : nullptr;
+    return fbu_is_valid_dbh(dbh) ? FBG(db_list).get(dbh).get() : nullptr;
 }
 
 void fbu_xpb_insert_object(IXpbBuilder* xpb, zval *obj, zend_class_entry *ce,
@@ -331,14 +331,14 @@ using namespace FBP;
 
 int fbu_is_valid_dbh(size_t dbh)
 {
-    return (dbh && dbh <= FBG(db_list).size() && FBG(db_list)[dbh - 1]);
+    return FBG(db_list).is_valid(dbh);
 }
 
 static inline std::unique_ptr<Database>& get_db_ptr(std::size_t h, const char *file_name, size_t line_num)
 noexcept(false)
 {
     if (fbu_is_valid_dbh(h)) {
-        return FBG(db_list)[h - 1];
+        return FBG(db_list).get(h);
     } else {
         throw Php_Firebird_Exception(zend_ce_error, "Invalid database handle");
     }
@@ -346,14 +346,14 @@ noexcept(false)
 
 int fbu_is_valid_svh(size_t svh)
 {
-    return (svh && svh <= FBG(sv_list).size() && FBG(sv_list)[svh - 1]);
+    return FBG(sv_list).is_valid(svh);
 }
 
 static inline std::unique_ptr<Service>& get_sv_ptr(std::size_t h, const char *file_name, size_t line_num)
 noexcept(false)
 {
     if (fbu_is_valid_svh(h)) {
-        return FBG(sv_list)[h - 1];
+        return FBG(sv_list).get(h);
     } else {
         throw Php_Firebird_Exception(zend_ce_error, "Invalid service manager handle");
     }
@@ -396,8 +396,7 @@ int fbu_database_init(size_t *dbh)
 {
     FBDEBUG("%s()", __func__);
     fbu_ex_wrap_start();
-        FBG(db_list).emplace_back(new Database());
-        *dbh = FBG(db_list).size();
+        *dbh = FBG(db_list).emplace();
         FBDEBUG("    dbh=%zu", *dbh);
     fbu_ex_wrap_end();
 }
@@ -423,7 +422,7 @@ int fbu_database_disconnect(size_t dbh)
     FBDEBUG("%s(dbh=%zu)", __func__, dbh);
     fbu_ex_wrap_start();
         get_db(dbh)->disconnect();
-        get_db(dbh).reset();
+        FBG(db_list).free(dbh);
     fbu_ex_wrap_end();
 }
 
@@ -432,7 +431,7 @@ int fbu_database_drop(size_t dbh)
     FBDEBUG("%s(dbh=%zu)", __func__, dbh);
     fbu_ex_wrap_start();
         get_db(dbh)->drop();
-        get_db(dbh).reset();
+        FBG(db_list).free(dbh);
     fbu_ex_wrap_end();
 }
 
@@ -448,7 +447,8 @@ int fbu_database_free(size_t dbh)
 {
     FBDEBUG("%s(dbh=%zu)", __func__, dbh);
     fbu_ex_wrap_start();
-        get_db(dbh).reset();
+        get_db(dbh);
+        FBG(db_list).free(dbh);
     fbu_ex_wrap_end();
 }
 
@@ -696,8 +696,7 @@ int fbu_service_init(size_t *svh)
 {
     FBDEBUG("%s()", __func__);
     fbu_ex_wrap_start();
-        FBG(sv_list).emplace_back(new Service());
-        *svh = FBG(sv_list).size();
+        *svh = FBG(sv_list).emplace();
         FBDEBUG("    svh=%zu", *svh);
     fbu_ex_wrap_end();
 }
@@ -706,7 +705,8 @@ int fbu_service_free(size_t svh)
 {
     FBDEBUG("%s(svh=%zu)", __func__, svh);
     fbu_ex_wrap_start();
-        get_sv(svh).reset();
+        get_sv(svh);
+        FBG(sv_list).free(svh);
     fbu_ex_wrap_end();
 }
 
@@ -723,7 +723,7 @@ int fbu_service_disconnect(size_t svh)
     FBDEBUG("%s(svh=%zu)", __func__, svh);
     fbu_ex_wrap_start();
         get_sv(svh)->disconnect();
-        get_sv(svh).reset();
+        FBG(sv_list).free(svh);
     fbu_ex_wrap_end();
 }
 

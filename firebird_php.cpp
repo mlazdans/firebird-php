@@ -125,8 +125,8 @@ static PHP_GINIT_FUNCTION(firebird)
     // ZTS globals are raw TSRM memory: construct the C++ containers in place.
     // Without ZTS the globals are a static object the compiler constructs (and
     // destroys at exit) itself.
-    new (&firebird_globals->db_list) std::vector<std::unique_ptr<FBP::Database>>();
-    new (&firebird_globals->sv_list) std::vector<std::unique_ptr<FBP::Service>>();
+    new (&firebird_globals->db_list) FBP::Handle_List<FBP::Database>();
+    new (&firebird_globals->sv_list) FBP::Handle_List<FBP::Service>();
 #endif
 
     firebird_globals->debug = false;
@@ -138,8 +138,8 @@ static PHP_GINIT_FUNCTION(firebird)
 static PHP_GSHUTDOWN_FUNCTION(firebird)
 {
 #ifdef ZTS
-    using db_list_t = std::vector<std::unique_ptr<FBP::Database>>;
-    using sv_list_t = std::vector<std::unique_ptr<FBP::Service>>;
+    using db_list_t = FBP::Handle_List<FBP::Database>;
+    using sv_list_t = FBP::Handle_List<FBP::Service>;
 
     // Emptied in RSHUTDOWN already; only the storage remains
     firebird_globals->db_list.~db_list_t();

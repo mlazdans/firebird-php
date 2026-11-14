@@ -85,9 +85,9 @@ void Database::free_handles()
 void Database::check_no_active_transactions(const char *action)
 {
     size_t active = 0;
-    for (auto &tr: tr_list) {
-        if (tr && tr->is_active()) active++;
-    }
+    tr_list.for_each([&](Transaction &tr) {
+        if (tr.is_active()) active++;
+    });
 
     if (active) {
         throw Php_Firebird_Exception(zend_ce_error, std::string("Cannot ") + action + " with " +
@@ -146,73 +146,72 @@ Database::~Database()
 
 size_t Database::transaction_init()
 {
-    tr_list.emplace_back(new Transaction(*this));
-    return tr_list.size();
+    return tr_list.emplace(*this);
 }
 
 size_t Database::transaction_reconnect(ISC_ULONG tr_id)
 {
-    auto tr = new Transaction(*this);
+    std::unique_ptr<Transaction> tr(new Transaction(*this));
     tr->set(att->reconnectTransaction(&st, sizeof(tr_id), (const unsigned char*)&tr_id));
     tr->query_info();
 
-    tr_list.emplace_back(tr);
-    return tr_list.size();
+    return tr_list.add(std::move(tr));
 }
 
 void Database::transaction_free(size_t trh)
 {
-    get_transaction(trh).reset();
+    get_transaction(trh);
+    tr_list.free(trh);
 }
 
 std::unique_ptr<Transaction> &Database::get_transaction(size_t trh)
 {
-    FBDEBUG("Database::get_transaction(trh=%lu, tr_list.size=%lu)", trh, tr_list.size());
-    if (!trh || trh > tr_list.size() || !tr_list[trh - 1]) {
+    FBDEBUG("Database::get_transaction(trh=%zu)", trh);
+    if (!tr_list.is_valid(trh)) {
         throw Php_Firebird_Exception(zend_ce_error, "Invalid transaction handle");
     }
 
-    return tr_list[trh - 1];
+    return tr_list.get(trh);
 }
 
 size_t Database::statement_init()
 {
-    st_list.emplace_back(new Statement(*this));
-    return st_list.size();
+    return st_list.emplace(*this);
 }
 
 size_t Database::blob_init(size_t trh)
 {
-    bl_list.emplace_back(new Blob(*get_transaction(trh)));
-    return bl_list.size();
+    return bl_list.emplace(*get_transaction(trh));
 }
 
 void Database::statement_free(size_t sth)
 {
-    get_statement(sth).reset();
+    get_statement(sth);
+    st_list.free(sth);
 }
 
 std::unique_ptr<Statement> &Database::get_statement(size_t sth)
 {
-    if (!sth || sth > st_list.size() || !st_list[sth - 1]) {
+    if (!st_list.is_valid(sth)) {
         throw Php_Firebird_Exception(zend_ce_error, "Invalid statement handle");
     }
 
-    return st_list[sth - 1];
+    return st_list.get(sth);
 }
 
 std::unique_ptr<Blob> &Database::get_blob(size_t blh)
 {
-    if (!blh || blh > bl_list.size() || !bl_list[blh - 1]) {
+    if (!bl_list.is_valid(blh)) {
         throw Php_Firebird_Exception(zend_ce_error, "Invalid blob handle");
     }
 
-    return bl_list[blh - 1];
+    return bl_list.get(blh);
 }
 
 void Database::blob_free(size_t blh)
 {
-    get_blob(blh).reset();
+    get_blob(blh);
+    bl_list.free(blh);
 }
 
 IAttachment *Database::get()
