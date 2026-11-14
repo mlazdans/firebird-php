@@ -94,7 +94,7 @@ public:
         IMessageMetadata* output_metadata, void* out_buffer);
     IResultSet *open_cursor(IStatement *statement,
         IMessageMetadata* input_metadata, void* in_buffer,
-        IMessageMetadata* output_metadata);
+        IMessageMetadata* output_metadata, unsigned flags = 0);
 
     void finalize(int mode);
     void prepare();

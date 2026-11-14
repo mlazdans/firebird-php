@@ -28,7 +28,7 @@ int FireBird_Statement___construct(zval *self, zval *database)
     stmt->sth = sth;
     stmt->dbh = db->dbh;
 
-    PROP_SET(FireBird_Statement_ce, self, "database", database);
+    PROP_SET(Z_OBJCE_P(self), self, "database", database);
 
     return SUCCESS;
 }
@@ -328,6 +328,199 @@ void register_FireBird_Statement_object_handlers()
     FireBird_Statement_object_handlers.free_obj = FireBird_Statement_free_obj;
     FireBird_Statement_object_handlers.read_property = FireBird_Statement_read_property;
     FireBird_Statement_object_handlers.get_gc = FireBird_Statement_get_gc;
+}
+
+// Scrollable_Cursor: same firebird_stmt object and FBP::Statement underneath
+
+static zend_object_handlers FireBird_Scrollable_Cursor_object_handlers;
+
+int FireBird_Scrollable_Cursor_prepare(zval *self, zval *database, zval *transaction, zend_string *sql)
+{
+    if (
+        FireBird_Statement___construct(self, database) ||
+        FireBird_Statement_prepare(self, transaction, sql)
+    ) {
+        return FAILURE;
+    }
+
+    firebird_stmt *stmt = get_firebird_stmt_from_zval(self);
+
+    if (fbu_statement_set_scrollable(stmt->dbh, stmt->sth)) {
+        return FAILURE;
+    }
+
+    return SUCCESS;
+}
+
+PHP_METHOD(FireBird_Scrollable_Cursor, __construct)
+{
+}
+
+PHP_METHOD(FireBird_Scrollable_Cursor, execute)
+{
+    zval *transaction;
+    zval *bind_args;
+    uint32_t num_bind_args;
+
+    ZEND_PARSE_PARAMETERS_START(1, -1)
+        Z_PARAM_OBJECT_OF_CLASS(transaction, FireBird_Transaction_ce)
+        Z_PARAM_OPTIONAL
+        Z_PARAM_VARIADIC('+', bind_args, num_bind_args)
+    ZEND_PARSE_PARAMETERS_END();
+
+    if (FireBird_Statement_execute(ZEND_THIS, transaction, bind_args, num_bind_args)) {
+        RETURN_THROWS();
+    }
+}
+
+static void _FireBird_Scrollable_Cursor_fetch(zval *self, int direction, zend_long position, zend_long flags,
+    zval *return_value)
+{
+    firebird_stmt *stmt = get_firebird_stmt_from_zval(self);
+    HashTable *ht = NULL;
+    int istatus;
+
+    if (position < INT_MIN || position > INT_MAX) {
+        zend_argument_value_error(1, "must be between %d and %d", INT_MIN, INT_MAX);
+        RETURN_THROWS();
+    }
+
+    flags &= ~(zend_long)(FBP_FETCH_INDEXED | FBP_FETCH_HASHED);
+
+    if (fbu_statement_fetch_scroll(stmt->dbh, stmt->sth, direction, (int)position, &istatus)) {
+        RETURN_THROWS();
+    }
+
+    if (istatus != IStatus::RESULT_OK) {
+        RETURN_NULL();
+    }
+
+    if (fbu_statement_output_buffer_to_array(stmt->dbh, stmt->sth, (int)flags | FBP_FETCH_HASHED, &ht)) {
+        RETURN_THROWS();
+    }
+
+    RETVAL_ARR(ht);
+    convert_to_object(return_value);
+}
+
+static void _FireBird_Scrollable_Cursor_fetch_dir(INTERNAL_FUNCTION_PARAMETERS, int direction)
+{
+    zend_long flags = 0;
+
+    ZEND_PARSE_PARAMETERS_START(0, 1)
+        Z_PARAM_OPTIONAL
+        Z_PARAM_LONG(flags)
+    ZEND_PARSE_PARAMETERS_END();
+
+    _FireBird_Scrollable_Cursor_fetch(ZEND_THIS, direction, 0, flags, return_value);
+}
+
+static void _FireBird_Scrollable_Cursor_fetch_pos(INTERNAL_FUNCTION_PARAMETERS, int direction)
+{
+    zend_long position, flags = 0;
+
+    ZEND_PARSE_PARAMETERS_START(1, 2)
+        Z_PARAM_LONG(position)
+        Z_PARAM_OPTIONAL
+        Z_PARAM_LONG(flags)
+    ZEND_PARSE_PARAMETERS_END();
+
+    _FireBird_Scrollable_Cursor_fetch(ZEND_THIS, direction, position, flags, return_value);
+}
+
+PHP_METHOD(FireBird_Scrollable_Cursor, fetch_next)
+{
+    _FireBird_Scrollable_Cursor_fetch_dir(INTERNAL_FUNCTION_PARAM_PASSTHRU, FBP_SCROLL_NEXT);
+}
+
+PHP_METHOD(FireBird_Scrollable_Cursor, fetch_prior)
+{
+    _FireBird_Scrollable_Cursor_fetch_dir(INTERNAL_FUNCTION_PARAM_PASSTHRU, FBP_SCROLL_PRIOR);
+}
+
+PHP_METHOD(FireBird_Scrollable_Cursor, fetch_first)
+{
+    _FireBird_Scrollable_Cursor_fetch_dir(INTERNAL_FUNCTION_PARAM_PASSTHRU, FBP_SCROLL_FIRST);
+}
+
+PHP_METHOD(FireBird_Scrollable_Cursor, fetch_last)
+{
+    _FireBird_Scrollable_Cursor_fetch_dir(INTERNAL_FUNCTION_PARAM_PASSTHRU, FBP_SCROLL_LAST);
+}
+
+PHP_METHOD(FireBird_Scrollable_Cursor, fetch_absolute)
+{
+    _FireBird_Scrollable_Cursor_fetch_pos(INTERNAL_FUNCTION_PARAM_PASSTHRU, FBP_SCROLL_ABSOLUTE);
+}
+
+PHP_METHOD(FireBird_Scrollable_Cursor, fetch_relative)
+{
+    _FireBird_Scrollable_Cursor_fetch_pos(INTERNAL_FUNCTION_PARAM_PASSTHRU, FBP_SCROLL_RELATIVE);
+}
+
+PHP_METHOD(FireBird_Scrollable_Cursor, is_bof)
+{
+    ZEND_PARSE_PARAMETERS_NONE();
+
+    firebird_stmt *stmt = get_firebird_stmt_from_zval(ZEND_THIS);
+    bool result;
+
+    if (fbu_statement_is_bof(stmt->dbh, stmt->sth, &result)) {
+        RETURN_THROWS();
+    }
+
+    RETURN_BOOL(result);
+}
+
+PHP_METHOD(FireBird_Scrollable_Cursor, is_eof)
+{
+    ZEND_PARSE_PARAMETERS_NONE();
+
+    firebird_stmt *stmt = get_firebird_stmt_from_zval(ZEND_THIS);
+    bool result;
+
+    if (fbu_statement_is_eof(stmt->dbh, stmt->sth, &result)) {
+        RETURN_THROWS();
+    }
+
+    RETURN_BOOL(result);
+}
+
+PHP_METHOD(FireBird_Scrollable_Cursor, count)
+{
+    ZEND_PARSE_PARAMETERS_NONE();
+
+    firebird_stmt *stmt = get_firebird_stmt_from_zval(ZEND_THIS);
+    ISC_INT64 count;
+
+    if (fbu_statement_record_count(stmt->dbh, stmt->sth, &count)) {
+        RETURN_THROWS();
+    }
+
+    RETURN_LONG((zend_long)count);
+}
+
+PHP_METHOD(FireBird_Scrollable_Cursor, close)
+{
+    ZEND_PARSE_PARAMETERS_NONE();
+
+    firebird_stmt *stmt = get_firebird_stmt_from_zval(ZEND_THIS);
+
+    if (fbu_statement_close_cursor(stmt->dbh, stmt->sth)) {
+        RETURN_THROWS();
+    }
+}
+
+void register_FireBird_Scrollable_Cursor_object_handlers()
+{
+    FireBird_Scrollable_Cursor_ce->default_object_handlers = &FireBird_Scrollable_Cursor_object_handlers;
+    FireBird_Scrollable_Cursor_ce->create_object = FireBird_Statement_create_object;
+
+    memcpy(&FireBird_Scrollable_Cursor_object_handlers, &std_object_handlers, sizeof(zend_object_handlers));
+
+    FireBird_Scrollable_Cursor_object_handlers.offset = offsetof(firebird_stmt, std);
+    FireBird_Scrollable_Cursor_object_handlers.free_obj = FireBird_Statement_free_obj;
+    FireBird_Scrollable_Cursor_object_handlers.get_gc = FireBird_Statement_get_gc;
 }
 
 void FireBird_Statement_fetch(zval *self, int flags, zval *return_value)

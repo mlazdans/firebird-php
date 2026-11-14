@@ -524,7 +524,9 @@ void Statement::open_cursor(Transaction &tra)
 {
     free_cursor();
     cursor_exhausted = false;
-    cursor = tra.open_cursor(get(), input_metadata, in_buffer, output_metadata);
+    scroll_fetched = false;
+    cursor = tra.open_cursor(get(), input_metadata, in_buffer, output_metadata,
+        scrollable ? IStatement::CURSOR_TYPE_SCROLLABLE : 0);
 }
 
 Transaction &Statement::get_executed_transaction()
@@ -1022,6 +1024,86 @@ IStatement *Statement::get()
         return stmt;
     }
     throw Php_Firebird_Exception(zend_ce_error, "Invalid statement pointer");
+}
+
+// Only cursor statements can scroll. Called after prepare(), before the first execute().
+void Statement::set_scrollable()
+{
+    if (!has_cursor) {
+        const ISC_STATUS err[] = { isc_arg_gds, isc_no_cursor, isc_arg_end };
+        throw FbException(&st, err);
+    }
+    scrollable = true;
+}
+
+// Unlike get_cursor(), this reports a not executed or closed cursor the way Firebird does
+IResultSet *Statement::get_open_cursor()
+{
+    if (!cursor) {
+        const ISC_STATUS err[] = { isc_arg_gds, isc_dsql_cursor_not_open, isc_arg_end };
+        throw FbException(&st, err);
+    }
+    return cursor;
+}
+
+// The cursor stays open past either end, so the caller can scroll back
+int Statement::fetch_scroll(int direction, int position)
+{
+    auto c = get_open_cursor();
+    scroll_fetched = true;
+
+    switch (direction) {
+        case FBP_SCROLL_NEXT:     return c->fetchNext(&st, out_buffer);
+        case FBP_SCROLL_PRIOR:    return c->fetchPrior(&st, out_buffer);
+        case FBP_SCROLL_FIRST:    return c->fetchFirst(&st, out_buffer);
+        case FBP_SCROLL_LAST:     return c->fetchLast(&st, out_buffer);
+        case FBP_SCROLL_ABSOLUTE: return c->fetchAbsolute(&st, position, out_buffer);
+        case FBP_SCROLL_RELATIVE: return c->fetchRelative(&st, position, out_buffer);
+    }
+
+    throw Php_Firebird_Exception(zend_ce_error, "BUG: unknown fetch direction " + std::to_string(direction));
+}
+
+bool Statement::is_bof()
+{
+    return get_open_cursor()->isBof(&st);
+}
+
+bool Statement::is_eof()
+{
+    return get_open_cursor()->isEof(&st);
+}
+
+// The server reads the rest of the result into its scrollable cursor cache to count it
+ISC_INT64 Statement::record_count()
+{
+    const unsigned char req[] = { IResultSet::INF_RECORD_COUNT, isc_info_end };
+    unsigned char resp[32] = { 0 };
+
+    auto c = get_open_cursor();
+
+    // Firebird 5.0.3 remote server bug: the output format arrives with the first fetch,
+    // and rows cached by INF_RECORD_COUNT before that fail with "Data type unknown".
+    // Deliver it with a fetch, then go back before the first row.
+    if (!scroll_fetched) {
+        c->fetchFirst(&st, out_buffer);
+        c->fetchAbsolute(&st, 0, out_buffer);
+        scroll_fetched = true;
+    }
+
+    c->getInfo(&st, sizeof(req), req, sizeof(resp), resp);
+
+    // INF_RECORD_COUNT, 2-byte length, value
+    if (resp[0] != IResultSet::INF_RECORD_COUNT) {
+        throw Php_Firebird_Exception(zend_ce_error, "Unexpected response to INF_RECORD_COUNT");
+    }
+
+    const unsigned len = static_cast<unsigned>(isc_portable_integer(resp + 1, 2));
+    if (len > 8 || 3 + len > sizeof(resp)) {
+        throw Php_Firebird_Exception(zend_ce_error, "Unexpected response to INF_RECORD_COUNT");
+    }
+
+    return isc_portable_integer(resp + 3, len);
 }
 
 IResultSet *Statement::get_cursor()

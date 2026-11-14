@@ -199,6 +199,11 @@ class Database
     public function prepare(Transaction $tr, string $sql): Statement { die; }
 
     /**
+     * @throws Fb_Exception
+     */
+    public function prepare_scrollable_cursor(Transaction $tr, string $sql): Scrollable_Cursor { die; }
+
+    /**
      * Wrapper around new Transaction($this);
      * @throws Fb_Exception
      */
@@ -298,6 +303,18 @@ class Transaction
     public function rollback_ret(): void { die; }
     public function query(string $sql, mixed ...$bind_args): Statement { die; }
     public function prepare(string $sql): Statement { die; }
+
+    /**
+     * Prepares and opens a scrollable cursor. Only for statements that return
+     * a cursor: SELECT, EXECUTE BLOCK with SUSPEND, multi-row DML RETURNING.
+     * @throws Fb_Exception
+     */
+    public function open_scrollable_cursor(string $sql, mixed ...$bind_args): Scrollable_Cursor { die; }
+
+    /**
+     * @throws Fb_Exception
+     */
+    public function prepare_scrollable_cursor(string $sql): Scrollable_Cursor { die; }
     public function open_blob(Blob_Id $id): Blob { die; }
     public function create_blob(): Blob { die; }
 
@@ -403,6 +420,45 @@ class Statement
      *
      * */
     public function set_name(string $name): bool { die; }
+}
+
+/**
+ * Server caches fetched rows, so it can scroll in both directions. Fetch
+ * methods return null when positioned before the first or after the last row,
+ * the cursor stays open.
+ *
+ * TODO: fetch_row/fetch_array style
+ *
+ * @see FETCH_BLOB_TEXT, FETCH_UNIXTIME for $flags
+ */
+class Scrollable_Cursor
+{
+    public readonly Database $database;
+
+    private function __construct() {}
+
+    /**
+     * (Re)opens the cursor in the given transaction.
+     * @throws Fb_Exception
+     */
+    public function execute(Transaction $tr, mixed ...$bind_args): void { die; }
+
+    public function fetch_next(int $flags = 0): ?object { die; }
+    public function fetch_prior(int $flags = 0): ?object { die; }
+    public function fetch_first(int $flags = 0): ?object { die; }
+    public function fetch_last(int $flags = 0): ?object { die; }
+
+    /** 1-based, negative counts from the end, 0 positions before the first row */
+    public function fetch_absolute(int $position, int $flags = 0): ?object { die; }
+    public function fetch_relative(int $offset, int $flags = 0): ?object { die; }
+
+    public function is_bof(): bool { die; }
+    public function is_eof(): bool { die; }
+
+    /** Server reads the whole result to count it */
+    public function count(): int { die; }
+
+    public function close(): void { die; }
 }
 
 class Blob

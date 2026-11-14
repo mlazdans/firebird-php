@@ -594,6 +594,46 @@ int fbu_statement_close_cursor(size_t dbh, size_t sth)
     fbu_ex_wrap_end();
 }
 
+int fbu_statement_set_scrollable(size_t dbh, size_t sth)
+{
+    FBDEBUG("%s(dbh=%zu, sth=%zu)", __func__, dbh, sth);
+    fbu_ex_wrap_start();
+        get_db(dbh)->get_statement(sth)->set_scrollable();
+    fbu_ex_wrap_end();
+}
+
+int fbu_statement_fetch_scroll(size_t dbh, size_t sth, int direction, int position, int *istatus)
+{
+    FBDEBUG("%s(dbh=%zu, sth=%zu, direction=%d, position=%d)", __func__, dbh, sth, direction, position);
+    fbu_ex_wrap_start();
+        *istatus = get_db(dbh)->get_statement(sth)->fetch_scroll(direction, position);
+    fbu_ex_wrap_end();
+}
+
+int fbu_statement_is_bof(size_t dbh, size_t sth, bool *result)
+{
+    FBDEBUG("%s(dbh=%zu, sth=%zu)", __func__, dbh, sth);
+    fbu_ex_wrap_start();
+        *result = get_db(dbh)->get_statement(sth)->is_bof();
+    fbu_ex_wrap_end();
+}
+
+int fbu_statement_is_eof(size_t dbh, size_t sth, bool *result)
+{
+    FBDEBUG("%s(dbh=%zu, sth=%zu)", __func__, dbh, sth);
+    fbu_ex_wrap_start();
+        *result = get_db(dbh)->get_statement(sth)->is_eof();
+    fbu_ex_wrap_end();
+}
+
+int fbu_statement_record_count(size_t dbh, size_t sth, ISC_INT64 *count)
+{
+    FBDEBUG("%s(dbh=%zu, sth=%zu)", __func__, dbh, sth);
+    fbu_ex_wrap_start();
+        *count = get_db(dbh)->get_statement(sth)->record_count();
+    fbu_ex_wrap_end();
+}
+
 int fbu_statement_get_var_info(size_t dbh, size_t sth, int in, unsigned int index, zval *var_info)
 {
     FBDEBUG("%s(dbh=%zu, sth=%zu)", __func__, dbh, sth);

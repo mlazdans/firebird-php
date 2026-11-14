@@ -146,6 +146,7 @@ zend_class_entry *FireBird_Db_Info_ce;
 zend_class_entry *FireBird_Connect_Args_ce;
 zend_class_entry *FireBird_Create_Args_ce;
 zend_class_entry *FireBird_Statement_ce;
+zend_class_entry *FireBird_Scrollable_Cursor_ce;
 zend_class_entry *FireBird_Blob_ce;
 zend_class_entry *FireBird_Blob_Id_ce;
 zend_class_entry *FireBird_Fb_Exception_ce;
@@ -188,6 +189,9 @@ PHP_MINIT_FUNCTION(firebird)
 
     FireBird_Statement_ce = register_class_FireBird_Statement();
     register_FireBird_Statement_object_handlers();
+
+    FireBird_Scrollable_Cursor_ce = register_class_FireBird_Scrollable_Cursor();
+    register_FireBird_Scrollable_Cursor_object_handlers();
 
     FireBird_Blob_ce = register_class_FireBird_Blob();
     register_FireBird_Blob_object_handlers();

@@ -272,6 +272,23 @@ PHP_METHOD(FireBird_Database, prepare)
     }
 }
 
+PHP_METHOD(FireBird_Database, prepare_scrollable_cursor)
+{
+    zval *transaction;
+    zend_string *sql;
+
+    ZEND_PARSE_PARAMETERS_START(2, 2)
+        Z_PARAM_OBJECT_OF_CLASS(transaction, FireBird_Transaction_ce)
+        Z_PARAM_STR(sql)
+    ZEND_PARSE_PARAMETERS_END();
+
+    object_init_ex(return_value, FireBird_Scrollable_Cursor_ce);
+
+    if (FireBird_Scrollable_Cursor_prepare(return_value, ZEND_THIS, transaction, sql)) {
+        RETURN_THROWS();
+    }
+}
+
 PHP_METHOD(FireBird_Database, disconnect)
 {
     ZEND_PARSE_PARAMETERS_NONE();

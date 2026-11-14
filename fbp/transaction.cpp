@@ -276,9 +276,9 @@ void Transaction::execute_statement(IStatement *statement,
 
 IResultSet *Transaction::open_cursor(IStatement *statement,
     IMessageMetadata* input_metadata, void* in_buffer,
-    IMessageMetadata* output_metadata)
+    IMessageMetadata* output_metadata, unsigned flags)
 {
-    return statement->openCursor(&st, tra, input_metadata, in_buffer, output_metadata, 0);
+    return statement->openCursor(&st, tra, input_metadata, in_buffer, output_metadata, flags);
 }
 
 ITransaction *Transaction::get()

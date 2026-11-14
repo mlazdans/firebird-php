@@ -1,5 +1,5 @@
 /* This is a generated file, edit the .stub.php file instead.
- * Stub hash: 2b7b99426880ce825b9047d358d59c07a3722065 */
+ * Stub hash: 1e2c390e37bd2fd3baa8434953edfbe183693b9f */
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_get_client_version, 0, 0, IS_DOUBLE, 0)
 ZEND_END_ARG_INFO()
@@ -29,6 +29,11 @@ ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_class_FireBird_Database_start_tra
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_class_FireBird_Database_prepare, 0, 2, FireBird\\Statement, 0)
+	ZEND_ARG_OBJ_INFO(0, tr, FireBird\\Transaction, 0)
+	ZEND_ARG_TYPE_INFO(0, sql, IS_STRING, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_class_FireBird_Database_prepare_scrollable_cursor, 0, 2, FireBird\\Scrollable_Cursor, 0)
 	ZEND_ARG_OBJ_INFO(0, tr, FireBird\\Transaction, 0)
 	ZEND_ARG_TYPE_INFO(0, sql, IS_STRING, 0)
 ZEND_END_ARG_INFO()
@@ -82,6 +87,15 @@ ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_class_FireBird_Transaction_prepar
 	ZEND_ARG_TYPE_INFO(0, sql, IS_STRING, 0)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_class_FireBird_Transaction_open_scrollable_cursor, 0, 1, FireBird\\Scrollable_Cursor, 0)
+	ZEND_ARG_TYPE_INFO(0, sql, IS_STRING, 0)
+	ZEND_ARG_VARIADIC_TYPE_INFO(0, bind_args, IS_MIXED, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_class_FireBird_Transaction_prepare_scrollable_cursor, 0, 1, FireBird\\Scrollable_Cursor, 0)
+	ZEND_ARG_TYPE_INFO(0, sql, IS_STRING, 0)
+ZEND_END_ARG_INFO()
+
 ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_class_FireBird_Transaction_open_blob, 0, 1, FireBird\\Blob, 0)
 	ZEND_ARG_OBJ_INFO(0, id, FireBird\\Blob_Id, 0)
 ZEND_END_ARG_INFO()
@@ -125,6 +139,37 @@ ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_FireBird_Statement_set_name, 0, 1, _IS_BOOL, 0)
 	ZEND_ARG_TYPE_INFO(0, name, IS_STRING, 0)
 ZEND_END_ARG_INFO()
+
+#define arginfo_class_FireBird_Scrollable_Cursor___construct arginfo_class_FireBird_Database___construct
+
+#define arginfo_class_FireBird_Scrollable_Cursor_execute arginfo_class_FireBird_Statement_execute
+
+#define arginfo_class_FireBird_Scrollable_Cursor_fetch_next arginfo_class_FireBird_Statement_fetch_object
+
+#define arginfo_class_FireBird_Scrollable_Cursor_fetch_prior arginfo_class_FireBird_Statement_fetch_object
+
+#define arginfo_class_FireBird_Scrollable_Cursor_fetch_first arginfo_class_FireBird_Statement_fetch_object
+
+#define arginfo_class_FireBird_Scrollable_Cursor_fetch_last arginfo_class_FireBird_Statement_fetch_object
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_FireBird_Scrollable_Cursor_fetch_absolute, 0, 1, IS_OBJECT, 1)
+	ZEND_ARG_TYPE_INFO(0, position, IS_LONG, 0)
+	ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, flags, IS_LONG, 0, "0")
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_FireBird_Scrollable_Cursor_fetch_relative, 0, 1, IS_OBJECT, 1)
+	ZEND_ARG_TYPE_INFO(0, offset, IS_LONG, 0)
+	ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, flags, IS_LONG, 0, "0")
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_FireBird_Scrollable_Cursor_is_bof, 0, 0, _IS_BOOL, 0)
+ZEND_END_ARG_INFO()
+
+#define arginfo_class_FireBird_Scrollable_Cursor_is_eof arginfo_class_FireBird_Scrollable_Cursor_is_bof
+
+#define arginfo_class_FireBird_Scrollable_Cursor_count arginfo_FireBird_get_client_major_version
+
+#define arginfo_class_FireBird_Scrollable_Cursor_close arginfo_class_FireBird_Database_disconnect
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_class_FireBird_Blob___construct, 0, 0, 1)
 	ZEND_ARG_OBJ_INFO(0, tr, FireBird\\Transaction, 0)
@@ -230,6 +275,7 @@ ZEND_METHOD(FireBird_Database, create);
 ZEND_METHOD(FireBird_Database, execute_create);
 ZEND_METHOD(FireBird_Database, start_transaction);
 ZEND_METHOD(FireBird_Database, prepare);
+ZEND_METHOD(FireBird_Database, prepare_scrollable_cursor);
 ZEND_METHOD(FireBird_Database, new_transaction);
 ZEND_METHOD(FireBird_Database, get_info);
 ZEND_METHOD(FireBird_Database, disconnect);
@@ -245,6 +291,8 @@ ZEND_METHOD(FireBird_Transaction, rollback);
 ZEND_METHOD(FireBird_Transaction, rollback_ret);
 ZEND_METHOD(FireBird_Transaction, query);
 ZEND_METHOD(FireBird_Transaction, prepare);
+ZEND_METHOD(FireBird_Transaction, open_scrollable_cursor);
+ZEND_METHOD(FireBird_Transaction, prepare_scrollable_cursor);
 ZEND_METHOD(FireBird_Transaction, open_blob);
 ZEND_METHOD(FireBird_Transaction, create_blob);
 ZEND_METHOD(FireBird_Transaction, execute);
@@ -259,6 +307,18 @@ ZEND_METHOD(FireBird_Statement, free);
 ZEND_METHOD(FireBird_Statement, get_var_info_in);
 ZEND_METHOD(FireBird_Statement, get_var_info_out);
 ZEND_METHOD(FireBird_Statement, set_name);
+ZEND_METHOD(FireBird_Scrollable_Cursor, __construct);
+ZEND_METHOD(FireBird_Scrollable_Cursor, execute);
+ZEND_METHOD(FireBird_Scrollable_Cursor, fetch_next);
+ZEND_METHOD(FireBird_Scrollable_Cursor, fetch_prior);
+ZEND_METHOD(FireBird_Scrollable_Cursor, fetch_first);
+ZEND_METHOD(FireBird_Scrollable_Cursor, fetch_last);
+ZEND_METHOD(FireBird_Scrollable_Cursor, fetch_absolute);
+ZEND_METHOD(FireBird_Scrollable_Cursor, fetch_relative);
+ZEND_METHOD(FireBird_Scrollable_Cursor, is_bof);
+ZEND_METHOD(FireBird_Scrollable_Cursor, is_eof);
+ZEND_METHOD(FireBird_Scrollable_Cursor, count);
+ZEND_METHOD(FireBird_Scrollable_Cursor, close);
 ZEND_METHOD(FireBird_Blob, __construct);
 ZEND_METHOD(FireBird_Blob, id);
 ZEND_METHOD(FireBird_Blob, create);
@@ -306,6 +366,7 @@ static const zend_function_entry class_FireBird_Database_methods[] = {
 	ZEND_ME(FireBird_Database, execute_create, arginfo_class_FireBird_Database_execute_create, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
 	ZEND_ME(FireBird_Database, start_transaction, arginfo_class_FireBird_Database_start_transaction, ZEND_ACC_PUBLIC)
 	ZEND_ME(FireBird_Database, prepare, arginfo_class_FireBird_Database_prepare, ZEND_ACC_PUBLIC)
+	ZEND_ME(FireBird_Database, prepare_scrollable_cursor, arginfo_class_FireBird_Database_prepare_scrollable_cursor, ZEND_ACC_PUBLIC)
 	ZEND_ME(FireBird_Database, new_transaction, arginfo_class_FireBird_Database_new_transaction, ZEND_ACC_PUBLIC)
 	ZEND_ME(FireBird_Database, get_info, arginfo_class_FireBird_Database_get_info, ZEND_ACC_PUBLIC)
 	ZEND_ME(FireBird_Database, disconnect, arginfo_class_FireBird_Database_disconnect, ZEND_ACC_PUBLIC)
@@ -325,6 +386,8 @@ static const zend_function_entry class_FireBird_Transaction_methods[] = {
 	ZEND_ME(FireBird_Transaction, rollback_ret, arginfo_class_FireBird_Transaction_rollback_ret, ZEND_ACC_PUBLIC)
 	ZEND_ME(FireBird_Transaction, query, arginfo_class_FireBird_Transaction_query, ZEND_ACC_PUBLIC)
 	ZEND_ME(FireBird_Transaction, prepare, arginfo_class_FireBird_Transaction_prepare, ZEND_ACC_PUBLIC)
+	ZEND_ME(FireBird_Transaction, open_scrollable_cursor, arginfo_class_FireBird_Transaction_open_scrollable_cursor, ZEND_ACC_PUBLIC)
+	ZEND_ME(FireBird_Transaction, prepare_scrollable_cursor, arginfo_class_FireBird_Transaction_prepare_scrollable_cursor, ZEND_ACC_PUBLIC)
 	ZEND_ME(FireBird_Transaction, open_blob, arginfo_class_FireBird_Transaction_open_blob, ZEND_ACC_PUBLIC)
 	ZEND_ME(FireBird_Transaction, create_blob, arginfo_class_FireBird_Transaction_create_blob, ZEND_ACC_PUBLIC)
 	ZEND_ME(FireBird_Transaction, execute, arginfo_class_FireBird_Transaction_execute, ZEND_ACC_PUBLIC)
@@ -343,6 +406,22 @@ static const zend_function_entry class_FireBird_Statement_methods[] = {
 	ZEND_ME(FireBird_Statement, get_var_info_in, arginfo_class_FireBird_Statement_get_var_info_in, ZEND_ACC_PUBLIC)
 	ZEND_ME(FireBird_Statement, get_var_info_out, arginfo_class_FireBird_Statement_get_var_info_out, ZEND_ACC_PUBLIC)
 	ZEND_ME(FireBird_Statement, set_name, arginfo_class_FireBird_Statement_set_name, ZEND_ACC_PUBLIC)
+	ZEND_FE_END
+};
+
+static const zend_function_entry class_FireBird_Scrollable_Cursor_methods[] = {
+	ZEND_ME(FireBird_Scrollable_Cursor, __construct, arginfo_class_FireBird_Scrollable_Cursor___construct, ZEND_ACC_PRIVATE)
+	ZEND_ME(FireBird_Scrollable_Cursor, execute, arginfo_class_FireBird_Scrollable_Cursor_execute, ZEND_ACC_PUBLIC)
+	ZEND_ME(FireBird_Scrollable_Cursor, fetch_next, arginfo_class_FireBird_Scrollable_Cursor_fetch_next, ZEND_ACC_PUBLIC)
+	ZEND_ME(FireBird_Scrollable_Cursor, fetch_prior, arginfo_class_FireBird_Scrollable_Cursor_fetch_prior, ZEND_ACC_PUBLIC)
+	ZEND_ME(FireBird_Scrollable_Cursor, fetch_first, arginfo_class_FireBird_Scrollable_Cursor_fetch_first, ZEND_ACC_PUBLIC)
+	ZEND_ME(FireBird_Scrollable_Cursor, fetch_last, arginfo_class_FireBird_Scrollable_Cursor_fetch_last, ZEND_ACC_PUBLIC)
+	ZEND_ME(FireBird_Scrollable_Cursor, fetch_absolute, arginfo_class_FireBird_Scrollable_Cursor_fetch_absolute, ZEND_ACC_PUBLIC)
+	ZEND_ME(FireBird_Scrollable_Cursor, fetch_relative, arginfo_class_FireBird_Scrollable_Cursor_fetch_relative, ZEND_ACC_PUBLIC)
+	ZEND_ME(FireBird_Scrollable_Cursor, is_bof, arginfo_class_FireBird_Scrollable_Cursor_is_bof, ZEND_ACC_PUBLIC)
+	ZEND_ME(FireBird_Scrollable_Cursor, is_eof, arginfo_class_FireBird_Scrollable_Cursor_is_eof, ZEND_ACC_PUBLIC)
+	ZEND_ME(FireBird_Scrollable_Cursor, count, arginfo_class_FireBird_Scrollable_Cursor_count, ZEND_ACC_PUBLIC)
+	ZEND_ME(FireBird_Scrollable_Cursor, close, arginfo_class_FireBird_Scrollable_Cursor_close, ZEND_ACC_PUBLIC)
 	ZEND_FE_END
 };
 
@@ -499,6 +578,23 @@ static zend_class_entry *register_class_FireBird_Statement(void)
 	zend_string *property_affected_count_name = zend_string_init("affected_count", sizeof("affected_count") - 1, true);
 	zend_declare_typed_property(class_entry, property_affected_count_name, &property_affected_count_default_value, ZEND_ACC_PUBLIC|ZEND_ACC_READONLY|ZEND_ACC_VIRTUAL, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_LONG));
 	zend_string_release_ex(property_affected_count_name, true);
+
+	zval property_database_default_value;
+	ZVAL_UNDEF(&property_database_default_value);
+	zend_string *property_database_name = zend_string_init("database", sizeof("database") - 1, true);
+	zend_string *property_database_class_FireBird_Database = zend_string_init("FireBird\\Database", sizeof("FireBird\\Database")-1, 1);
+	zend_declare_typed_property(class_entry, property_database_name, &property_database_default_value, ZEND_ACC_PUBLIC|ZEND_ACC_READONLY, NULL, (zend_type) ZEND_TYPE_INIT_CLASS(property_database_class_FireBird_Database, 0, 0));
+	zend_string_release_ex(property_database_name, true);
+
+	return class_entry;
+}
+
+static zend_class_entry *register_class_FireBird_Scrollable_Cursor(void)
+{
+	zend_class_entry ce, *class_entry;
+
+	INIT_NS_CLASS_ENTRY(ce, "FireBird", "Scrollable_Cursor", class_FireBird_Scrollable_Cursor_methods);
+	class_entry = zend_register_internal_class_with_flags(&ce, NULL, 0);
 
 	zval property_database_default_value;
 	ZVAL_UNDEF(&property_database_default_value);

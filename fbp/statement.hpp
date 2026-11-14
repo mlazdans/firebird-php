@@ -14,6 +14,16 @@
 #define FBP_FETCH_INDEXED   (1<<4)
 #define FBP_FETCH_HASHED    (1<<5)
 
+// Scrollable_Cursor fetch directions
+enum {
+    FBP_SCROLL_NEXT,
+    FBP_SCROLL_PRIOR,
+    FBP_SCROLL_FIRST,
+    FBP_SCROLL_LAST,
+    FBP_SCROLL_ABSOLUTE,
+    FBP_SCROLL_RELATIVE,
+};
+
 extern "C" {
 typedef struct firebird_var {
     const char *field;
@@ -58,6 +68,8 @@ int FireBird_Statement_prepare(zval *self, zval *transaction, zend_string *sql);
 int FireBird_Statement_execute(zval *self, zval *transaction, zval *bind_args, uint32_t num_bind_args);
 void FireBird_Statement_fetch(zval *self, int flags, zval *return_value);
 void register_FireBird_Statement_object_handlers();
+int FireBird_Scrollable_Cursor_prepare(zval *self, zval *database, zval *transaction, zend_string *sql);
+void register_FireBird_Scrollable_Cursor_object_handlers();
 
 }
 
@@ -87,7 +99,7 @@ private:
     void insert_alias(const char *alias);
     void alloc_ht_aliases();
     void alloc_ht_ind();
-    bool is_executed = false, cursor_exhausted = false;
+    bool is_executed = false, cursor_exhausted = false, scrollable = false, scroll_fetched = false;
     bool has_cursor = false;
 
     void bind_datetime(zval *b_var, unsigned argn, const firebird_var &var,
@@ -119,6 +131,13 @@ public:
     const firebird_stmt_info *get_info();
     IStatement *get();
     IResultSet *get_cursor();
+    IResultSet *get_open_cursor();
+
+    void set_scrollable();
+    int fetch_scroll(int direction, int position);
+    bool is_bof();
+    bool is_eof();
+    ISC_INT64 record_count();
     void get_var_info(int in, unsigned int index, zval *var_info);
 };
 

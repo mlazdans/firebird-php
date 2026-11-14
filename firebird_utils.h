@@ -59,6 +59,11 @@ int fbu_statement_fetch_next(size_t dbh, size_t sth, int *istatus);
 int fbu_statement_output_buffer_to_array(size_t dbh, size_t sth, int flags, HashTable **ht);
 int fbu_statement_execute(size_t dbh, size_t sth, size_t trh);
 int fbu_statement_close_cursor(size_t dbh, size_t sth);
+int fbu_statement_set_scrollable(size_t dbh, size_t sth);
+int fbu_statement_fetch_scroll(size_t dbh, size_t sth, int direction, int position, int *istatus);
+int fbu_statement_is_bof(size_t dbh, size_t sth, bool *result);
+int fbu_statement_is_eof(size_t dbh, size_t sth, bool *result);
+int fbu_statement_record_count(size_t dbh, size_t sth, ISC_INT64 *count);
 int fbu_statement_get_var_info(size_t dbh, size_t sth, int in, unsigned int index, zval *var_info);
 
 int fbu_blob_init(size_t dbh, size_t trh, size_t *blh);

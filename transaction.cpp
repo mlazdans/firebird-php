@@ -147,6 +147,49 @@ PHP_METHOD(FireBird_Transaction, query)
     }
 }
 
+PHP_METHOD(FireBird_Transaction, prepare_scrollable_cursor)
+{
+    zend_string *sql;
+
+    ZEND_PARSE_PARAMETERS_START(1, 1)
+        Z_PARAM_STR(sql)
+    ZEND_PARSE_PARAMETERS_END();
+
+    zval rv;
+    zval *database = PROP_GET(FireBird_Transaction_ce, ZEND_THIS, "database");
+
+    object_init_ex(return_value, FireBird_Scrollable_Cursor_ce);
+
+    if (FireBird_Scrollable_Cursor_prepare(return_value, database, ZEND_THIS, sql)) {
+        RETURN_THROWS();
+    }
+}
+
+PHP_METHOD(FireBird_Transaction, open_scrollable_cursor)
+{
+    zval *bind_args;
+    uint32_t num_bind_args;
+    zend_string *sql;
+
+    ZEND_PARSE_PARAMETERS_START(1, -1)
+        Z_PARAM_STR(sql)
+        Z_PARAM_OPTIONAL
+        Z_PARAM_VARIADIC('+', bind_args, num_bind_args)
+    ZEND_PARSE_PARAMETERS_END();
+
+    zval rv;
+    zval *database = PROP_GET(FireBird_Transaction_ce, ZEND_THIS, "database");
+
+    object_init_ex(return_value, FireBird_Scrollable_Cursor_ce);
+
+    if (
+        FireBird_Scrollable_Cursor_prepare(return_value, database, ZEND_THIS, sql) ||
+        FireBird_Statement_execute(return_value, ZEND_THIS, bind_args, num_bind_args)
+    ) {
+        RETURN_THROWS();
+    }
+}
+
 PHP_METHOD(FireBird_Transaction, execute)
 {
     zend_string *sql;

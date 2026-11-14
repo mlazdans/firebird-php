@@ -175,6 +175,7 @@ extern zend_class_entry *FireBird_Db_Info_ce;
 extern zend_class_entry *FireBird_Connect_Args_ce;
 extern zend_class_entry *FireBird_Create_Args_ce;
 extern zend_class_entry *FireBird_Statement_ce;
+extern zend_class_entry *FireBird_Scrollable_Cursor_ce;
 extern zend_class_entry *FireBird_Blob_ce;
 extern zend_class_entry *FireBird_Blob_Id_ce;
 extern zend_class_entry *FireBird_Fb_Exception_ce;
