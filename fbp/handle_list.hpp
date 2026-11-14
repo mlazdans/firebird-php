@@ -64,12 +64,6 @@ public:
         return (gen_bits(slots[idx].gen) << IDX_BITS) | (idx + 1);
     }
 
-    template <typename... Args>
-    size_t emplace(Args&&... args)
-    {
-        return add(std::unique_ptr<T>(new T(std::forward<Args>(args)...)));
-    }
-
     bool is_valid(size_t h) { return find(h) != nullptr; }
 
     // Caller checks is_valid() first

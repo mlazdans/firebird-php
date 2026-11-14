@@ -144,12 +144,12 @@ Database::~Database()
 
 size_t Database::transaction_init()
 {
-    return tr_list.emplace(*this);
+    return tr_list.add(std::make_unique<Transaction>(*this));
 }
 
 size_t Database::transaction_reconnect(ISC_ULONG tr_id)
 {
-    std::unique_ptr<Transaction> tr(new Transaction(*this));
+    auto tr = std::make_unique<Transaction>(*this);
     tr->set(att->reconnectTransaction(&st, sizeof(tr_id), (const unsigned char*)&tr_id));
     tr->query_info();
 
@@ -174,12 +174,12 @@ std::unique_ptr<Transaction> &Database::get_transaction(size_t trh)
 
 size_t Database::statement_init()
 {
-    return st_list.emplace(*this);
+    return st_list.add(std::make_unique<Statement>(*this));
 }
 
 size_t Database::blob_init(size_t trh)
 {
-    return bl_list.emplace(*get_transaction(trh));
+    return bl_list.add(std::make_unique<Blob>(*get_transaction(trh)));
 }
 
 void Database::statement_free(size_t sth)

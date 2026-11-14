@@ -116,7 +116,7 @@ struct StrGuard {
 // `precision` ini used by string casts keeps only 14 digits.
 zend_string *double_to_string(double d)
 {
-    smart_str str = {0};
+    smart_str str = {};
     smart_str_append_double(&str, d, (int)PG(serialize_precision), false);
     return smart_str_extract(&str);
 }

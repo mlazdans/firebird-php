@@ -116,10 +116,6 @@ ZEND_TSRMLS_CACHE_EXTERN()
             get_ ##strct## _from_obj(Z_OBJ_P(zv)) : NULL;     \
     }
 
-// #define THIS_SET(prop, val) \
-//     zend_update_property(Z_OBJCE_P(ZEND_THIS), Z_OBJ_P(ZEND_THIS), prop, sizeof(prop) - 1, val)
-// #define THIS_GET(prop) \
-//     zend_read_property(Z_OBJCE_P(ZEND_THIS), Z_OBJ_P(ZEND_THIS), prop, sizeof(prop) - 1, 0, &rv)
 #define PROP_GET(ce, zval_obj, prop) \
     zend_read_property(ce, Z_OBJ_P(zval_obj), prop, sizeof(prop) - 1, 0, &rv)
 #define PROP_SET(ce, zval_obj, prop, val) \

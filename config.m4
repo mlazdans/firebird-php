@@ -44,7 +44,7 @@ if test "$PHP_FIREBIRD" != "no"; then
   PHP_SUBST(FIREBIRD_SHARED_LIBADD)
 
   PHP_REQUIRE_CXX()
-  PHP_CXX_COMPILE_STDCXX([11], [mandatory], [PHP_FIREBIRD_STDCXX])
+  PHP_CXX_COMPILE_STDCXX([17], [mandatory], [PHP_FIREBIRD_STDCXX])
 
   PHP_FIREBIRD_CXX_SOURCES="firebird_php.cpp database.cpp transaction.cpp statement.cpp blob.cpp service.cpp tbuilder.cpp firebird_utils.cpp fbp/*cpp"
 

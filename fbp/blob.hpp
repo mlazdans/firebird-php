@@ -80,7 +80,7 @@ class Blob: Base
 private:
     Transaction &tra;
     IBlob *blob = nullptr;
-    firebird_blob_info info = {0};
+    firebird_blob_info info = {};
 private:
     void query_info();
 public:

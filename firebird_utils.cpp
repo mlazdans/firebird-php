@@ -28,16 +28,6 @@ extern "C" {
 
 using namespace Firebird;
 
-static void fbu_copy_status(const ISC_STATUS* from, ISC_STATUS* to, size_t maxLength)
-{
-    for(size_t i=0; i < maxLength; ++i) {
-        memcpy(to + i, from + i, sizeof(ISC_STATUS));
-        if (from[i] == isc_arg_end) {
-            break;
-        }
-    }
-}
-
 // Destructors run from free_obj or during request shutdown, where throwing a PHP
 // exception is unsafe (no stack frame at shutdown). Report the error as a warning.
 void fbu_report_exception_as_warning(const char *file, size_t line)
@@ -86,7 +76,7 @@ void fbu_handle_exception(const char *file, size_t line)
     try {
         std::rethrow_exception(eptr);
     } catch (const FbException& e) {
-        zval rv, errors, ferror_item;
+        zval errors, ferror_item;
         HashTable *ht_errors;
 
         array_init(&errors);
@@ -396,7 +386,7 @@ int fbu_database_init(size_t *dbh)
 {
     FBDEBUG("%s()", __func__);
     fbu_ex_wrap_start();
-        *dbh = FBG(db_list).emplace();
+        *dbh = FBG(db_list).add(std::make_unique<FBP::Database>());
         FBDEBUG("    dbh=%zu", *dbh);
     fbu_ex_wrap_end();
 }
@@ -696,7 +686,7 @@ int fbu_service_init(size_t *svh)
 {
     FBDEBUG("%s()", __func__);
     fbu_ex_wrap_start();
-        *svh = FBG(sv_list).emplace();
+        *svh = FBG(sv_list).add(std::make_unique<FBP::Service>());
         FBDEBUG("    svh=%zu", *svh);
     fbu_ex_wrap_end();
 }

@@ -80,7 +80,7 @@ private:
     IMessageMetadata *input_metadata = nullptr, *output_metadata = nullptr;
     unsigned char *in_buffer = nullptr, *out_buffer = nullptr;
     HashTable *ht_aliases = nullptr, *ht_ind = nullptr;
-    firebird_stmt_info info = {0};
+    firebird_stmt_info info = {};
     std::vector<firebird_var> in_vars;
     std::vector<firebird_var> out_vars;
 

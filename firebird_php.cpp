@@ -73,19 +73,6 @@ ZEND_TSRMLS_CACHE_DEFINE()
 ZEND_GET_MODULE(firebird)
 #endif
 
-/* TODO this function should be part of either Zend or PHP API */
-static PHP_INI_DISP(php_firebird_password_displayer_cb)
-{
-    if ((type == PHP_INI_DISPLAY_ORIG && ini_entry->orig_value)
-            || (type == PHP_INI_DISPLAY_ACTIVE && ini_entry->value)) {
-        PUTS("********");
-    } else if (!sapi_module.phpinfo_as_text) {
-        PUTS("<i>no value</i>");
-    } else {
-        PUTS("no value");
-    }
-}
-
 #define PUTS_TP(str) do {       \
     if(has_puts) {              \
         PUTS(" | ");            \
@@ -446,88 +433,12 @@ ISC_INT64 fbp_update_err_props_ex(ISC_STATUS_ARRAY status, zend_class_entry *ce,
 
     return error_code_long;
 }
-#endif
 
 #define UPD_CODES() \
     error_code = isc_sqlcode(&pstatus[0]); \
     error_code_long = isc_portable_integer((const ISC_UCHAR*)(&pstatus[1]), 4)
 
-ISC_INT64 fbp_call_error_handler(ISC_STATUS_ARRAY status, const char *file_name, size_t line_num)
-{
-    if (!(status[0] == 1 && status[1])){
-        return 0;
-    }
-
-    char sqlstate[6];  // SQLSTATE codes are 5 characters + 1 for null terminator
-    char msg[1024] = { 0 };
-    char *s = msg;
-
-    zval rv, errors, hash_entry, ferror_o;
-    HashTable *ht_errors;
-    int errors_count = 0;
-
-    const ISC_STATUS* pstatus = status;
-    ISC_LONG error_code = 0, s_len = 0;
-    ISC_INT64 error_code_long = 0;
-
-    array_init_size(&errors, 20);
-    ht_errors = Z_ARRVAL(errors);
-
-    UPD_CODES();
-
-    do {
-        if (!(s - msg < sizeof(msg) && (s_len = fb_interpret(s, sizeof(msg) - (s - msg), &pstatus)))) {
-            break;
-        }
-
-        if((&pstatus[0])[0]) {
-            UPD_CODES();
-        }
-
-        // if(FBG(has_error_handler)){
-        //     object_init_ex(&ferror_o, FireBird_Error_ce);
-        //     update_ferr_props(FireBird_Error_ce, Z_OBJ(ferror_o), s, s_len, error_code, error_code_long);
-        //     zend_hash_next_index_insert(ht_errors, &ferror_o);
-        // } else {
-        //     fbp_error_ex(E_WARNING, "%s (%s:%zu)\n", s, file_name, line_num);
-        //     // fbp_warning("%s", s);
-        // }
-        fbp_error_ex(E_WARNING, "%s (%s:%zu)\n", s, file_name, line_num);
-
-        errors_count++;
-
-        s += s_len;
-        *s++ = '\n';
-    } while(1);
-
-    if(errors_count <= 0) {
-        zval_ptr_dtor(&errors);
-        return 0;
-    }
-
-    // if(FBG(has_error_handler)){
-    // }
-
-    // update_ferr_props(ce, Z_OBJ_P(obj), msg, s - msg - 1, error_code, error_code_long);
-
-    // zend_update_property_string(ce, Z_OBJ_P(obj), "error_file", sizeof("error_file") - 1, zend_get_executed_filename());
-    // zend_update_property_long(ce, Z_OBJ_P(obj), "error_lineno", sizeof("error_lineno") - 1, zend_get_executed_lineno());
-
-    // zend_update_property(ce, Z_OBJ_P(obj), "errors", sizeof("errors") - 1, &errors);
-    zval_ptr_dtor(&errors);
-
-// #ifdef PHP_DEBUG
-//     char *line;
-//     size_t line_len = spprintf(&line, 0, "%s:%d", file_name, line_num);
-//     zend_update_property_stringl(ce, Z_OBJ_P(obj), "ext_error_line", sizeof("ext_error_line") - 1, line, line_len);
-//     efree(line);
-// #endif
-
-//     fb_sqlstate(sqlstate, status);
-//     zend_update_property_string(ce, Z_OBJ_P(obj), "sqlstate", sizeof("sqlstate") - 1, sqlstate);
-    return error_code_long;
-}
-
+#endif
 
 // Use this when object is beeing destroyed but some clean-up errors happen
 void fbp_status_error_ex(const ISC_STATUS *status, const char *file_name, size_t line_num)

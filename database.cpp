@@ -142,13 +142,6 @@ PHP_METHOD(FireBird_Database, execute_create)
     }
 }
 
-static firebird_db *FireBird_Database_get_db_or_throw(zval *dbobj)
-{
-    firebird_db *db = get_firebird_db_from_zval(dbobj);
-
-    return db;
-}
-
 PHP_METHOD(FireBird_Database, drop)
 {
     ZEND_PARSE_PARAMETERS_NONE();
