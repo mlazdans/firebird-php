@@ -15,7 +15,7 @@ function test_max_len_table(string $table, int $MAX_LEN, int $CHAR_LEN)
     $fields_str = join('" INTEGER,"', $fields);
     $create_sql = sprintf('CREATE TABLE "%s" ("%s" INTEGER)', $table, $fields_str);
 
-    $t->query($create_sql);
+    $t->execute($create_sql);
     $t->commit_ret();
 
     $data = []; foreach($fields as $f)$data[$f] = ++$c;
@@ -37,7 +37,7 @@ function test_fields25(\FireBird\Transaction $t): void
     $t->query(file_get_contents(__DIR__."/001-FIELDS25.sql"));
     $t->commit_ret();
 
-    $t->query("INSERT INTO FIELDS25 (ID) VALUES (1)");
+    $t->execute("INSERT INTO FIELDS25 (ID) VALUES (1)");
     $q = $t->query("SELECT * FROM FIELDS25");
 
     for($i = 0; $i < $q->out_vars_count; $i++){

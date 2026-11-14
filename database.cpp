@@ -246,7 +246,7 @@ PHP_METHOD(FireBird_Database, start_transaction)
 
     ZEND_PARSE_PARAMETERS_START(0, 1)
         Z_PARAM_OPTIONAL
-        Z_PARAM_OBJECT_OF_CLASS(builder, FireBird_TBuilder_ce)
+        Z_PARAM_OBJECT_OF_CLASS(builder, FireBird_Transaction_Builder_ce)
     ZEND_PARSE_PARAMETERS_END();
 
     FBDEBUG("%s(builder=%p)", __func__, builder);
@@ -255,6 +255,25 @@ PHP_METHOD(FireBird_Database, start_transaction)
 
     if (FireBird_Transaction___construct(return_value, ZEND_THIS) ||
         FireBird_Transaction_start(return_value, builder)
+    ) {
+        RETURN_THROWS();
+    }
+}
+
+PHP_METHOD(FireBird_Database, prepare)
+{
+    zval *transaction;
+    zend_string *sql;
+
+    ZEND_PARSE_PARAMETERS_START(2, 2)
+        Z_PARAM_OBJECT_OF_CLASS(transaction, FireBird_Transaction_ce)
+        Z_PARAM_STR(sql)
+    ZEND_PARSE_PARAMETERS_END();
+
+    object_init_ex(return_value, FireBird_Statement_ce);
+
+    if (FireBird_Statement___construct(return_value, ZEND_THIS) ||
+        FireBird_Statement_prepare(return_value, transaction, sql)
     ) {
         RETURN_THROWS();
     }

@@ -152,7 +152,7 @@ static PHP_GSHUTDOWN_FUNCTION(firebird)
 zend_class_entry *FireBird_Fb_Error_ce;
 zend_class_entry *FireBird_Var_Info_ce;
 zend_class_entry *FireBird_Event_ce;
-zend_class_entry *FireBird_TBuilder_ce;
+zend_class_entry *FireBird_Transaction_Builder_ce;
 zend_class_entry *FireBird_Transaction_ce;
 zend_class_entry *FireBird_Database_ce;
 zend_class_entry *FireBird_Db_Info_ce;
@@ -190,8 +190,8 @@ PHP_MINIT_FUNCTION(firebird)
     FireBird_Connect_Args_ce = register_class_FireBird_Connect_Args();
     FireBird_Create_Args_ce = register_class_FireBird_Create_Args();
 
-    FireBird_TBuilder_ce = register_class_FireBird_TBuilder();
-    register_FireBird_TBuilder_object_handlers();
+    FireBird_Transaction_Builder_ce = register_class_FireBird_Transaction_Builder();
+    register_FireBird_Transaction_Builder_object_handlers();
 
     FireBird_Database_ce = register_class_FireBird_Database();
     register_FireBird_Database_object_handlers();
@@ -333,7 +333,7 @@ PHP_FUNCTION(FireBird_set_error_handler)
     // ZEND_PARSE_PARAMETERS_START(1, 2)
     //     Z_PARAM_OBJECT_OF_CLASS(Database, FireBird_Database_ce)
     //     Z_PARAM_OPTIONAL
-    //     Z_PARAM_OBJECT_OF_CLASS(Builder, FireBird_TBuilder_ce)
+    //     Z_PARAM_OBJECT_OF_CLASS(Builder, FireBird_Transaction_Builder_ce)
     // ZEND_PARSE_PARAMETERS_END();
 }
 #endif

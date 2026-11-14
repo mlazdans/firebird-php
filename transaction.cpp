@@ -61,7 +61,7 @@ PHP_METHOD(FireBird_Transaction, start)
 
     ZEND_PARSE_PARAMETERS_START(0, 1)
         Z_PARAM_OPTIONAL
-        Z_PARAM_OBJECT_OF_CLASS(builder, FireBird_TBuilder_ce)
+        Z_PARAM_OBJECT_OF_CLASS(builder, FireBird_Transaction_Builder_ce)
     ZEND_PARSE_PARAMETERS_END();
 
     FBDEBUG("%s(builder=%p)", __func__, builder);
@@ -108,10 +108,14 @@ PHP_METHOD(FireBird_Transaction, prepare)
         Z_PARAM_STR(sql)
     ZEND_PARSE_PARAMETERS_END();
 
+    zval rv;
+    zval *database = PROP_GET(FireBird_Transaction_ce, ZEND_THIS, "database");
+
     object_init_ex(return_value, FireBird_Statement_ce);
+
     if (
-        FireBird_Statement___construct(return_value, ZEND_THIS) ||
-        FireBird_Statement_prepare(return_value, sql)
+        FireBird_Statement___construct(return_value, database) ||
+        FireBird_Statement_prepare(return_value, ZEND_THIS, sql)
     ) {
         RETURN_THROWS();
     }
@@ -129,11 +133,15 @@ PHP_METHOD(FireBird_Transaction, query)
         Z_PARAM_VARIADIC('+', bind_args, num_bind_args)
     ZEND_PARSE_PARAMETERS_END();
 
+    zval rv;
+    zval *database = PROP_GET(FireBird_Transaction_ce, ZEND_THIS, "database");
+
     object_init_ex(return_value, FireBird_Statement_ce);
+
     if (
-        FireBird_Statement___construct(return_value, ZEND_THIS) ||
-        FireBird_Statement_prepare(return_value, sql) ||
-        FireBird_Statement_execute(return_value, bind_args, num_bind_args)
+        FireBird_Statement___construct(return_value, database) ||
+        FireBird_Statement_prepare(return_value, ZEND_THIS, sql) ||
+        FireBird_Statement_execute(return_value, ZEND_THIS, bind_args, num_bind_args)
     ) {
         RETURN_THROWS();
     }

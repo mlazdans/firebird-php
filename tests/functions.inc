@@ -205,7 +205,7 @@ function init_tmp_db(string $charset = "", bool $drop = true, bool $init_default
         // Init db for php-firebird
         $t->execute("CREATE TABLE TEST1 (I INTEGER, C VARCHAR(100))");
         $t->commit_ret();
-        $t->query("INSERT INTO TEST1(I, C) VALUES(1, 'test table not created with isql')");
+        $t->execute("INSERT INTO TEST1(I, C) VALUES(1, 'test table not created with isql')");
 
         exec_from_file_ddl($t, "001-TEST_001.sql"); // TODO: sync Pi defaults
         exec_from_file_ddl($t, "001-FIELDS25.sql"); // TODO: sync Pi defaults
@@ -354,11 +354,11 @@ function query_bulk(\FireBird\Transaction $t, array $queries): void
     foreach($queries as $query_tuple) {
         if(is_array($query_tuple)) {
             [$sql, $bind_args] = $query_tuple;
+            $t->query($sql, ...$bind_args);
         } else {
             $sql = $query_tuple;
-            $bind_args = [];
+            $t->execute($sql);
         }
-        $t->query($sql, ...$bind_args);
     }
 }
 
@@ -400,7 +400,7 @@ function unstrip_fb_specials(array &$data)
     }
 }
 
-function cmp_builder(\FireBird\TBuilder $b, array $mon_row, bool $is_ReadConsistency_enabled): bool
+function cmp_builder(\FireBird\Transaction_Builder $b, array $mon_row, bool $is_ReadConsistency_enabled): bool
 {
     /** @var Mon_Transaction $m */
     $m = (object)$mon_row;
@@ -443,9 +443,9 @@ function cmp_builder(\FireBird\TBuilder $b, array $mon_row, bool $is_ReadConsist
     return $error;
 }
 
-function random_builder(): \FireBird\TBuilder
+function random_builder(): \FireBird\Transaction_Builder
 {
-    $b = new \FireBird\TBuilder;
+    $b = new \FireBird\Transaction_Builder;
 
     if(rand(0, 1))$b->read_only();
     if(rand(0, 1))$b->ignore_limbo();

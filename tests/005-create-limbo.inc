@@ -2,7 +2,7 @@
 
 namespace FireBirdTests;
 
-require_once('functions.inc');
+require_once(__DIR__.'/functions.inc');
 
 (function() {
     $share_path = sys_get_temp_dir().DIRECTORY_SEPARATOR."firebird-php-005-db.txt";
@@ -38,14 +38,11 @@ require_once('functions.inc');
         } catch (\FireBird\Fb_Exception) {
         }
 
-        if($p = $t->prepare("INSERT INTO TEST_001 (BLOB_1) VALUES (?)")) {
-            try {
-                if($p->execute("Hello from prepare after 2pc transaction $t->id")) {
-                    die2("No prepare after prepare_2pc should happen!");
-                }
-            } catch (\FireBird\Fb_Exception) {
-            }
-            $p->free();
+        try {
+            $p = $t->prepare("INSERT INTO TEST_001 (BLOB_1) VALUES (?)");
+            $p->execute($t, "Hello from prepare after 2pc transaction $t->id");
+            die2("No prepare after prepare_2pc should happen!");
+        } catch (\FireBird\Fb_Exception) {
         }
 
         return $t->id;

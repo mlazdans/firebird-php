@@ -129,7 +129,7 @@ require_once('functions.inc');
         $v_varchar = rand_str(10000);
 
         /* clear table*/
-        $t->query("DELETE from test6");
+        $t->execute("DELETE from test6");
 
         /* make one record */
         $t->query("INSERT into test6
@@ -163,7 +163,7 @@ require_once('functions.inc');
     $query = $t->prepare("INSERT into test6 (v_integer) values (?)");
 
     for($i = 0; $i < 10; $i++) {
-        $query->execute($i);
+        $query->execute($t, $i);
     }
 
     out_table($t, "test6");
@@ -177,19 +177,19 @@ require_once('functions.inc');
     $low_border = 2;
     $high_border = 6;
 
-    $query->execute($low_border, $high_border);
+    $query->execute($t, $low_border, $high_border);
     out_result($query, "test6");
     // $query->free() or print_error_and_die("free", $query);
 
     $low_border = 0;
     $high_border = 4;
-    $query->execute($low_border, $high_border);
+    $query->execute($t, $low_border, $high_border);
     out_result($query, "test6");
     // $query->free() or print_error_and_die("free", $query);
 
     // TODO: Mismatched types
     // $query->execute("5", 7.499) or print_error_and_die("execute", $query);
-    $query->execute(5, 7);
+    $query->execute($t, 5, 7);
     out_result($query, "test6");
 
     $query->free();

@@ -280,12 +280,6 @@ IResultSet *Transaction::open_cursor(IStatement *statement,
     return statement->openCursor(&st, tra, input_metadata, in_buffer, output_metadata, 0);
 }
 
-IStatement* Transaction::prepare_statement(unsigned int len_sql, const char *sql)
-{
-    return dba.get()->prepare(&st, tra, len_sql, sql, SQL_DIALECT_CURRENT,
-        IStatement::PREPARE_PREFETCH_METADATA);
-}
-
 ITransaction *Transaction::get()
 {
     FBDEBUG("Transaction::get()=%p", tra);

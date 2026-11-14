@@ -67,7 +67,7 @@ PHP_METHOD(FireBird_Multi_Transaction, add_db)
     ZEND_PARSE_PARAMETERS_START(1, 2)
         Z_PARAM_OBJECT_OF_CLASS(Database, FireBird_Database_ce)
         Z_PARAM_OPTIONAL
-        Z_PARAM_OBJECT_OF_CLASS(Builder, FireBird_TBuilder_ce)
+        Z_PARAM_OBJECT_OF_CLASS(Builder, FireBird_Transaction_Builder_ce)
     ZEND_PARSE_PARAMETERS_END();
 
     FireBird_Multi_Transaction_add_db(ZEND_THIS, Database, Builder, return_value);
@@ -213,7 +213,7 @@ static void free_FireBird_Multi_Transaction(zend_object *obj)
 //     FireBird_Multi_Transaction_ce = zend_register_internal_class(&tmp_ce);
 
 //     // DECLARE_PROP_OBJ(FireBird_Multi_Transaction_ce, database, FireBird\\Database, ZEND_ACC_PROTECTED_SET);
-//     // DECLARE_PROP_OBJ(FireBird_Multi_Transaction_ce, builder, FireBird\\TBuilder, ZEND_ACC_PROTECTED_SET);
+//     // DECLARE_PROP_OBJ(FireBird_Multi_Transaction_ce, builder, FireBird\\Transaction_Builder, ZEND_ACC_PROTECTED_SET);
 //     DECLARE_PROP_LONG(FireBird_Multi_Transaction_ce, id, ZEND_ACC_PROTECTED_SET);
 //     DECLARE_ERR_PROPS(FireBird_Multi_Transaction_ce);
 

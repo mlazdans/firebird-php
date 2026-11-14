@@ -191,10 +191,12 @@ class Database
     static public function execute_create(string $sql): Database { die; }
 
     /**
-     * Wrapper around (new Transaction($this))->start(?TBuilder $tb = null);
+     * Wrapper around (new Transaction($this))->start(?Transaction_Builder $tb = null);
      * @throws Fb_Exception
      */
-    public function start_transaction(?TBuilder $tb = null): Transaction { die; }
+    public function start_transaction(?Transaction_Builder $tb = null): Transaction { die; }
+
+    public function prepare(Transaction $tr, string $sql): Statement { die; }
 
     /**
      * Wrapper around new Transaction($this);
@@ -266,7 +268,7 @@ class Database
 //      * multi transaction commit/rollback.
 //      *
 //      * */
-//     public function add_db(Database $database, ?TBuilder $builder = null): Transaction { die; }
+//     public function add_db(Database $database, ?Transaction_Builder $builder = null): Transaction { die; }
 
 //     public function start(): bool { die; }
 //     public function commit(): bool { die; }
@@ -289,7 +291,7 @@ class Transaction
     public readonly Database $database;
 
     public function __construct(Database $database) {}
-    public function start(?TBuilder $builder = null): void { die; }
+    public function start(?Transaction_Builder $builder = null): void { die; }
     public function commit(): void { die; }
     public function commit_ret(): void { die; }
     public function rollback(): void { die; }
@@ -327,7 +329,7 @@ class Statement
     /** @virtual */
     public readonly int $affected_count; // insert + update + delete
 
-    public readonly Transaction $transaction;
+    public readonly Database $database;
 
     private function __construct() {}
 
@@ -366,7 +368,12 @@ class Statement
      * @see FETCH_BLOB_TEXT, FETCH_UNIXTIME
      * */
     public function fetch_row(int $flags = 0): ?array { die; }
-    public function execute(mixed ...$bind_args): void { die; }
+    /**
+     * IStatement::execute() / openCursor() in the given transaction. Rows
+     * fetched afterwards belong to it.
+     * @throws Fb_Exception
+     */
+    public function execute(Transaction $tr, mixed ...$bind_args): void { die; }
     public function close_cursor(): void { die; }
     public function free(): void { die; }
 
@@ -509,7 +516,7 @@ class Service
 /**
  * Transaction builder
  */
-class TBuilder
+class Transaction_Builder
 {
     /** @virtual */
     public readonly bool $is_read_only;
@@ -526,17 +533,17 @@ class TBuilder
     /** @virtual */
     public readonly int $snapshot_at_number;
 
-    public function read_only(bool $enable = true): TBuilder { die; }
-    public function ignore_limbo(bool $enable = true): TBuilder { die; }
-    public function auto_commit(bool $enable = true): TBuilder { die; }
-    public function no_auto_undo(bool $enable = true): TBuilder { die; }
+    public function read_only(bool $enable = true): Transaction_Builder { die; }
+    public function ignore_limbo(bool $enable = true): Transaction_Builder { die; }
+    public function auto_commit(bool $enable = true): Transaction_Builder { die; }
+    public function no_auto_undo(bool $enable = true): Transaction_Builder { die; }
 
     /**
      * Lock resolution mode (WAIT, NO WAIT) with an optional LOCK TIMEOUT specification
      *
      * @param int $lock_timeout -1 wait forever (default), 0 no wait, 1-32767 sets lock timeout in seconds
      */
-    public function wait(int $lock_timeout = -1): TBuilder { die; }
+    public function wait(int $lock_timeout = -1): Transaction_Builder { die; }
 
     // | RESTART REQUESTS // The exact semantics and effects of this clause are not clear, and we recommend you do not use this clause.
 
@@ -545,11 +552,11 @@ class TBuilder
     /**
      * Isolation Level SNAPSHOT - the default level. Also known as "concurrency"
      */
-    public function isolation_snapshot(int $at_number = 0): TBuilder { die; }
-    public function isolation_snapshot_table_stability(): TBuilder { die; }
-    public function isolation_read_committed_record_version(): TBuilder { die; }
-    public function isolation_read_committed_no_record_version(): TBuilder { die; }
-    public function isolation_read_committed_read_consistency(): TBuilder { die; }
+    public function isolation_snapshot(int $at_number = 0): Transaction_Builder { die; }
+    public function isolation_snapshot_table_stability(): Transaction_Builder { die; }
+    public function isolation_read_committed_record_version(): Transaction_Builder { die; }
+    public function isolation_read_committed_no_record_version(): Transaction_Builder { die; }
+    public function isolation_read_committed_read_consistency(): Transaction_Builder { die; }
     public function dump_state(): void {}
 }
 

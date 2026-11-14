@@ -170,7 +170,7 @@ static_assert(                                             \
 extern zend_class_entry *FireBird_Fb_Error_ce;
 extern zend_class_entry *FireBird_Var_Info_ce;
 extern zend_class_entry *FireBird_Event_ce;
-extern zend_class_entry *FireBird_TBuilder_ce;
+extern zend_class_entry *FireBird_Transaction_Builder_ce;
 extern zend_class_entry *FireBird_Transaction_ce;
 extern zend_class_entry *FireBird_Database_ce;
 extern zend_class_entry *FireBird_Db_Info_ce;

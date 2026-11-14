@@ -20,21 +20,28 @@ using namespace Firebird;
 
 namespace FBP {
 
-Statement::Statement(Transaction &tra)
-    : tra{tra}
+Statement::Statement(Database &dba)
+    : dba{dba}
 {
-    FBDEBUG("new Statement(tra=%p)=%p", PTR(tra), PTR(*this));
+    FBDEBUG("new Statement(dba=%p)=%p", PTR(dba), PTR(*this));
 }
 
-void Statement::prepare(unsigned int len_sql, const char *sql)
+void Statement::prepare(size_t trh, unsigned int len_sql, const char *sql)
 {
     if (stmt) {
         throw Php_Firebird_Exception(zend_ce_error,
             "BUG: statement already prepared or internal structure corrupted");
     }
 
+    auto &tra = *dba.get_transaction(trh);
+    if (!tra.is_active()) {
+        const ISC_STATUS err[] = { isc_arg_gds, isc_bad_trans_handle, isc_arg_end };
+        throw FbException(&st, err);
+    }
+
     // Owned from here on: if anything below throws, ~Statement frees it
-    stmt = tra.prepare_statement(len_sql, sql);
+    stmt = dba.get()->prepare(&st, tra.get(), len_sql, sql, SQL_DIALECT_CURRENT,
+        IStatement::PREPARE_PREFETCH_METADATA);
     IStatement *tmp = stmt;
 
     info.statement_type = tmp->getType(&st);
@@ -176,9 +183,10 @@ const char *zone_name(const timelib_time *t, char *buf, size_t buf_size)
 
 } // anonymous namespace
 
-void Statement::bind(zval *b_vars, unsigned int num_bind_args)
+void Statement::bind(size_t trh, zval *b_vars, unsigned int num_bind_args)
 {
     FBDEBUG("%s(in_buffer=%p)", __func__, in_buffer);
+    auto &tra = *dba.get_transaction(trh);
     auto util = master->getUtilInterface();
 
     char type_buf[64];
@@ -344,11 +352,11 @@ void Statement::bind(zval *b_vars, unsigned int num_bind_args)
                     bl_id = get_firebird_blob_id_from_zval(b_var)->bl_id;
                 } else if (Z_TYPE_P(b_var) == IS_OBJECT && Z_OBJCE_P(b_var) == FireBird_Blob_ce) {
                     auto blob = get_firebird_blob_from_zval(b_var);
-                    if (fbu_get_database(blob->dbh) != &tra.get_database()) {
+                    if (fbu_get_database(blob->dbh) != &dba) {
                         throw Php_Firebird_Exception(zend_ce_value_error,
                             fmt("Argument %u: Blob belongs to a different or closed database", argn));
                     }
-                    bl_id = tra.get_database().get_blob(blob->blh)->get_info()->id;
+                    bl_id = dba.get_blob(blob->blh)->get_info()->id;
                 } else if (is_stringable(b_var)) {
                     // The cast operates on a const view only: create_blob_from_string()
                     // does not modify the string
@@ -518,11 +526,19 @@ void Statement::free_cursor()
 }
 
 // Opens a fresh cursor over the currently bound input, replacing any previous one.
-void Statement::open_cursor()
+void Statement::open_cursor(Transaction &tra)
 {
     free_cursor();
     cursor_exhausted = false;
     cursor = tra.open_cursor(get(), input_metadata, in_buffer, output_metadata);
+}
+
+Transaction &Statement::get_executed_transaction()
+{
+    if (!executed_trh) {
+        throw Php_Firebird_Exception(zend_ce_error, "BUG: statement expected to be executed before reading blob contents");
+    }
+    return *dba.get_transaction(executed_trh);
 }
 
 void Statement::close_cursor()
@@ -540,7 +556,8 @@ int Statement::fetch_next()
     // openCursor(), or the output message of IStatement::execute()). A statement
     // that was only prepared has nothing to fetch.
     if (!is_executed) {
-        throw Php_Firebird_Exception(zend_ce_error, "Statement must be executed before fetching");
+        const ISC_STATUS err[] = { isc_arg_gds, isc_dsql_cursor_not_open, isc_arg_end };
+        throw FbException(&st, err);
     }
 
     if (!is_select()) {
@@ -756,7 +773,7 @@ int Statement::var_zval(zval *val, unsigned int index, int flags)
             return SUCCESS;
         case SQL_BLOB:
             if (flags & FBP_FETCH_BLOB_TEXT) {
-                ZVAL_STR(val, tra.get_blob_contents((ISC_QUAD *)data));
+                ZVAL_STR(val, get_executed_transaction().get_blob_contents((ISC_QUAD *)data));
             } else {
                 object_init_ex(val, FireBird_Blob_Id_ce);
                 FireBird_Blob_Id___construct(val, *(ISC_QUAD *)data);
@@ -826,15 +843,17 @@ _sql_long:
     return SUCCESS;
 }
 
-void Statement::execute()
+void Statement::execute(size_t trh)
 {
+    auto &tra = *dba.get_transaction(trh);
+
     switch (info.statement_type) {
         // Cursor statements. Firebird 5 also reports every multi-row DML RETURNING
         // (UPDATE, DELETE, MERGE, UPDATE OR INSERT, INSERT ... SELECT) and EXECUTE
         // BLOCK with outputs as select. The DML is applied when the cursor opens.
         case isc_info_sql_stmt_select:
         case isc_info_sql_stmt_select_for_upd:
-            open_cursor();
+            open_cursor(tra);
             break;
 
         // Single-message statements: any output (single-row INSERT ... RETURNING,
@@ -863,6 +882,7 @@ void Statement::execute()
     }
 
     is_executed = true;
+    executed_trh = trh;
 }
 
 Statement::~Statement() noexcept

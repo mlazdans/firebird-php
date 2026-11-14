@@ -41,9 +41,8 @@ typedef struct firebird_stmt_info {
 
 typedef struct firebird_stmt {
     size_t dbh;
-    size_t trh;
     size_t sth;
-
+    zend_object *executed_tra;
     zend_object std;
 } firebird_stmt;
 
@@ -54,9 +53,9 @@ typedef struct firebird_vary {
     unsigned char vary_string[1];
 } firebird_vary;
 
-int FireBird_Statement___construct(zval *self, zval *transaction);
-int FireBird_Statement_prepare(zval *self, zend_string *sql);
-int FireBird_Statement_execute(zval *self, zval *bind_args, uint32_t num_bind_args);
+int FireBird_Statement___construct(zval *self, zval *database);
+int FireBird_Statement_prepare(zval *self, zval *transaction, zend_string *sql);
+int FireBird_Statement_execute(zval *self, zval *transaction, zval *bind_args, uint32_t num_bind_args);
 void FireBird_Statement_fetch(zval *self, int flags, zval *return_value);
 void register_FireBird_Statement_object_handlers();
 
@@ -66,6 +65,7 @@ using namespace Firebird;
 
 namespace FBP {
 
+class Database;
 class Transaction;
 
 class Statement: Base
@@ -73,7 +73,8 @@ class Statement: Base
     Statement(const Statement&) = delete;
     Statement& operator=(const Statement&) = delete;
 private:
-    Transaction &tra;
+    Database &dba;
+    size_t executed_trh = 0;
     IStatement *stmt = nullptr;
     IResultSet *cursor = nullptr;
     IMessageMetadata *input_metadata = nullptr, *output_metadata = nullptr;
@@ -99,21 +100,22 @@ private:
         unsigned h, unsigned mi, unsigned sec, unsigned frac, const char *zone, int64_t epoch);
 
     void query_statistics();
+    void open_cursor(Transaction &tra);
     void free_cursor();
     bool is_select() const;
+    Transaction &get_executed_transaction();
 public:
     unsigned int in_buffer_size = 0, out_buffer_size = 0;
 
-    Statement(Transaction &tra);
+    Statement(Database &dba);
     ~Statement() noexcept;
-    void prepare(unsigned int len_sql, const char *sql);
-    void bind(zval *b_vars, unsigned int num_bind_args);
-    void open_cursor();
+    void prepare(size_t trh, unsigned int len_sql, const char *sql);
+    void bind(size_t trh, zval *b_vars, unsigned int num_bind_args);
     void close_cursor();
     int fetch_next();
     void output_buffer_to_array(int flags, HashTable **hash);
     int var_zval(zval *val, unsigned int index, int flags);
-    void execute();
+    void execute(size_t trh);
     const firebird_stmt_info *get_info();
     IStatement *get();
     IResultSet *get_cursor();

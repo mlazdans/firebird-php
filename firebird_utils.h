@@ -50,14 +50,14 @@ int fbu_transaction_finalize(size_t dbh, size_t trh, int mode);
 int fbu_transaction_execute(size_t dbh, size_t trh, size_t len_sql, const char *sql);
 int fbu_transaction_prepare(size_t dbh, size_t trh);
 
-int fbu_statement_init(size_t dbh, size_t trh, size_t *sth);
+int fbu_statement_init(size_t dbh, size_t *sth);
 int fbu_statement_get_info(size_t dbh, size_t sth, const firebird_stmt_info **info);
 int fbu_statement_free(size_t dbh, size_t sth);
-int fbu_statement_prepare(size_t dbh, size_t sth, unsigned len_sql, const char *sql);
-int fbu_statement_bind(size_t dbh, size_t sth, zval *b_vars, unsigned int num_bind_args);
+int fbu_statement_prepare(size_t dbh, size_t sth, size_t trh, unsigned len_sql, const char *sql);
+int fbu_statement_bind(size_t dbh, size_t sth, size_t trh, zval *b_vars, unsigned int num_bind_args);
 int fbu_statement_fetch_next(size_t dbh, size_t sth, int *istatus);
 int fbu_statement_output_buffer_to_array(size_t dbh, size_t sth, int flags, HashTable **ht);
-int fbu_statement_execute(size_t dbh, size_t sth);
+int fbu_statement_execute(size_t dbh, size_t sth, size_t trh);
 int fbu_statement_close_cursor(size_t dbh, size_t sth);
 int fbu_statement_get_var_info(size_t dbh, size_t sth, int in, unsigned int index, zval *var_info);
 

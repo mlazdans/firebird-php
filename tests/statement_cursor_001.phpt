@@ -18,17 +18,17 @@ require_once('functions.inc');
     $q = $t->prepare("SELECT ID FROM CUR WHERE ID >= ? ORDER BY ID");
 
     print "re-execute an unfinished cursor with new parameters\n";
-    $q->execute(1);
+    $q->execute($t, 1);
     echo $q->fetch_row()[0], "\n";
-    $q->execute(3);
+    $q->execute($t, 3);
     var_dump($q->fetch_row()[0], $q->fetch_row());
 
     print "execute after close_cursor()\n";
-    $q->execute(2);
+    $q->execute($t, 2);
     echo $q->fetch_row()[0], "\n";
     $q->close_cursor();
     var_dump($q->fetch_row());
-    $q->execute(2);
+    $q->execute($t, 2);
     echo $q->fetch_row()[0], " ", $q->fetch_row()[0], "\n";
     var_dump($q->fetch_row(), $q->fetch_row());
 
@@ -47,13 +47,13 @@ require_once('functions.inc');
         }
     }
     $q3 = $t->prepare("SELECT COUNT(*) FROM CUR");
-    $q3->execute();
+    $q3->execute($t);
     echo $q3->fetch_row()[0], "\n";
 
     print "RETURNING is fetched once per execute\n";
-    $q4->execute(10);
+    $q4->execute($t, 10);
     var_dump($q4->fetch_row(), $q4->fetch_row());
-    $q4->execute(11);
+    $q4->execute($t, 11);
     var_dump($q4->fetch_row()[0]);
 
     print "multi-row RETURNING runs at execute, not at first fetch\n";
@@ -61,7 +61,7 @@ require_once('functions.inc');
     var_dump($t->query("SELECT MIN(ID) FROM CUR")->fetch_row()[0]);
 
     print "SQL ROLLBACK\n";
-    $t->query("ROLLBACK");
+    $t->execute("ROLLBACK");
     $t->start();
     var_dump($t->query("SELECT COUNT(*) FROM CUR")->fetch_row()[0]);
     $t->commit();
@@ -79,9 +79,9 @@ NULL
 NULL
 NULL
 fetch before execute
-Statement must be executed before fetching
-Statement must be executed before fetching
-Statement must be executed before fetching
+Cursor is not open
+Cursor is not open
+Cursor is not open
 3
 RETURNING is fetched once per execute
 array(1) {

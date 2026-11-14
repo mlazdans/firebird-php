@@ -175,9 +175,9 @@ std::unique_ptr<Transaction> &Database::get_transaction(size_t trh)
     return tr_list[trh - 1];
 }
 
-size_t Database::statement_init(size_t trh)
+size_t Database::statement_init()
 {
-    st_list.emplace_back(new Statement(*get_transaction(trh)));
+    st_list.emplace_back(new Statement(*this));
     return st_list.size();
 }
 

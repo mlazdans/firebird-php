@@ -12,31 +12,33 @@ require_once('functions.inc');
 (function(){
     $t = init_tmp_db()->start_transaction();
 
-    $t->query(
-    "CREATE OR ALTER PROCEDURE GET_5_RECORDS(ARG INTEGER)
-    RETURNS (N INTEGER, RESULT INTEGER)
-    AS
-    DECLARE VARIABLE I INTEGER;
-    BEGIN
-        I = 1;
-        WHILE (:I <= 5) DO BEGIN
-            N = :I;
-            RESULT = :ARG + :I;
-            I = :I + 1;
-            SUSPEND;
-        END
-    END");
+    $t->execute(<<<SQL
+      CREATE OR ALTER PROCEDURE GET_5_RECORDS(ARG INTEGER)
+      RETURNS (N INTEGER, RESULT INTEGER)
+      AS
+      DECLARE VARIABLE I INTEGER;
+      BEGIN
+          I = 1;
+          WHILE (:I <= 5) DO BEGIN
+              N = :I;
+              RESULT = :ARG + :I;
+              I = :I + 1;
+              SUSPEND;
+          END
+      END
+      SQL
+    );
 
     $q = $t->prepare("EXECUTE PROCEDURE GET_5_RECORDS(?)");
 
-    $q->execute(1); dump_rows($q);
-    $q->execute(10); dump_rows($q);
+    $q->execute($t, 1); dump_rows($q);
+    $q->execute($t, 10); dump_rows($q);
 
     print "------------------\n";
 
     $q = $t->prepare("SELECT * FROM GET_5_RECORDS(?)");
-    $q->execute(1); dump_rows($q);
-    $q->execute(10); dump_rows($q);
+    $q->execute($t, 1); dump_rows($q);
+    $q->execute($t, 10); dump_rows($q);
 })();
 
 ?>

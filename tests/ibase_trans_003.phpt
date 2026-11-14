@@ -12,13 +12,14 @@ require_once('functions.inc');
 (function(){
     $db = init_tmp_db();
 
-    $b = new \FireBird\TBuilder;
+    $b = new \FireBird\Transaction_Builder;
     $b->read_only(true);
 
     $t = $db->start_transaction($b);
 
     try {
-        $t->query("INSERT INTO test1 VALUES(1, 2)") or die("Could not insert");
+        $t->execute("INSERT INTO test1 VALUES(1, 2)");
+        die("Could insert");
     } catch (\FireBird\Fb_Exception $e) {
         die("Could not insert");
     }

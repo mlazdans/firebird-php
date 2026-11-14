@@ -43,7 +43,7 @@ public:
 
     size_t transaction_init();
     size_t transaction_reconnect(ISC_ULONG tr_id);
-    size_t statement_init(size_t trh);
+    size_t statement_init();
     size_t blob_init(size_t trh);
     void transaction_free(size_t trh);
     void statement_free(size_t sth);

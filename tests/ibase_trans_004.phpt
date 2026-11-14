@@ -11,7 +11,7 @@ require_once('functions.inc');
 
 (function() {
     $t = init_tmp_db()->start_transaction();
-    $t->query("COMMIT");
+    $t->execute("COMMIT");
     dump_rows($t->query("SELECT * FROM TEST1"));
 })();
 

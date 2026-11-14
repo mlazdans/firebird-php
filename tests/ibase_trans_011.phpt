@@ -11,9 +11,9 @@ require_once('functions.inc');
 
 (function() {
     $t = init_tmp_db()->new_transaction();
-    $t->query("SET TRANSACTION");
-    $t->query("COMMIT");
-    $t->query("COMMIT");
+    $t->execute("SET TRANSACTION");
+    $t->execute("COMMIT");
+    $t->execute("COMMIT");
 })();
 
 ?>

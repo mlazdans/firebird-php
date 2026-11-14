@@ -95,7 +95,6 @@ public:
     IResultSet *open_cursor(IStatement *statement,
         IMessageMetadata* input_metadata, void* in_buffer,
         IMessageMetadata* output_metadata);
-    IStatement* prepare_statement(unsigned int len_sql, const char *sql);
 
     void finalize(int mode);
     void prepare();
@@ -126,6 +125,6 @@ fbp_declare_object_accessor(firebird_trans);
 int FireBird_Transaction___construct(zval *self, zval *database);
 int FireBird_Transaction_start(zval *self, zval *builder);
 void register_FireBird_Transaction_object_handlers();
-void register_FireBird_TBuilder_object_handlers();
+void register_FireBird_Transaction_Builder_object_handlers();
 
 }

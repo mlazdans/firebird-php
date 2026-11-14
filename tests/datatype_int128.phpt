@@ -18,15 +18,17 @@ require_once('functions.inc');
 (function(){
     $t = init_tmp_db()->start_transaction();
 
-    $t->query(
-        "CREATE TABLE TEST_DT (
+    $t->execute(<<<SQL
+        CREATE TABLE TEST_DT (
             V_INT128 INT128 NOT NULL
-         )");
+         )
+        SQL
+    );
     $t->commit_ret();
 
-    $t->query("INSERT INTO TEST_DT (V_INT128) VALUES (1234)");
-    $t->query("INSERT INTO TEST_DT (V_INT128) VALUES (-170141183460469231731687303715884105728)");
-    $t->query("INSERT INTO TEST_DT (V_INT128) VALUES (170141183460469231731687303715884105727)");
+    $t->execute("INSERT INTO TEST_DT (V_INT128) VALUES (1234)");
+    $t->execute("INSERT INTO TEST_DT (V_INT128) VALUES (-170141183460469231731687303715884105728)");
+    $t->execute("INSERT INTO TEST_DT (V_INT128) VALUES (170141183460469231731687303715884105727)");
 
     $sql = 'SELECT * FROM TEST_DT';
     $query = $t->query($sql);

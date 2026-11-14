@@ -532,11 +532,11 @@ int fbu_transaction_prepare(size_t dbh, size_t trh)
     fbu_ex_wrap_end();
 }
 
-int fbu_statement_init(size_t dbh, size_t trh, size_t *sth)
+int fbu_statement_init(size_t dbh, size_t *sth)
 {
-    FBDEBUG("%s(dbh=%zu, trh=%zu)", __func__, dbh, trh);
+    FBDEBUG("%s(dbh=%zu)", __func__, dbh);
     fbu_ex_wrap_start();
-        *sth = get_db(dbh)->statement_init(trh);
+        *sth = get_db(dbh)->statement_init();
     fbu_ex_wrap_end();
 }
 
@@ -556,19 +556,19 @@ int fbu_statement_free(size_t dbh, size_t sth)
     fbu_ex_wrap_end();
 }
 
-int fbu_statement_prepare(size_t dbh, size_t sth, unsigned len_sql, const char *sql)
+int fbu_statement_prepare(size_t dbh, size_t sth, size_t trh, unsigned len_sql, const char *sql)
 {
-    FBDEBUG("%s(dbh=%zu, sth=%zu)", __func__, dbh, sth);
+    FBDEBUG("%s(dbh=%zu, sth=%zu, trh=%zu)", __func__, dbh, sth, trh);
     fbu_ex_wrap_start();
-        get_db(dbh)->get_statement(sth)->prepare(len_sql, sql);
+        get_db(dbh)->get_statement(sth)->prepare(trh, len_sql, sql);
     fbu_ex_wrap_end();
 }
 
-int fbu_statement_bind(size_t dbh, size_t sth, zval *b_vars, unsigned int num_bind_args)
+int fbu_statement_bind(size_t dbh, size_t sth, size_t trh, zval *b_vars, unsigned int num_bind_args)
 {
-    FBDEBUG("%s(dbh=%zu, sth=%zu)", __func__, dbh, sth);
+    FBDEBUG("%s(dbh=%zu, sth=%zu, trh=%zu)", __func__, dbh, sth, trh);
     fbu_ex_wrap_start();
-        get_db(dbh)->get_statement(sth)->bind(b_vars, num_bind_args);
+        get_db(dbh)->get_statement(sth)->bind(trh, b_vars, num_bind_args);
     fbu_ex_wrap_end();
 }
 
@@ -588,11 +588,11 @@ int fbu_statement_output_buffer_to_array(size_t dbh, size_t sth, int flags, Hash
     fbu_ex_wrap_end();
 }
 
-int fbu_statement_execute(size_t dbh, size_t sth)
+int fbu_statement_execute(size_t dbh, size_t sth, size_t trh)
 {
-    FBDEBUG("%s(dbh=%zu, sth=%zu)", __func__, dbh, sth);
+    FBDEBUG("%s(dbh=%zu, sth=%zu, trh=%zu)", __func__, dbh, sth, trh);
     fbu_ex_wrap_start();
-        get_db(dbh)->get_statement(sth)->execute();
+        get_db(dbh)->get_statement(sth)->execute(trh);
     fbu_ex_wrap_end();
 }
 

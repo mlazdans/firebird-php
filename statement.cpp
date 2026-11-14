@@ -14,24 +14,37 @@ extern "C" {
 fbp_object_accessor(firebird_stmt);
 static zend_object_handlers FireBird_Statement_object_handlers;
 
-int FireBird_Statement___construct(zval *self, zval *transaction)
+int FireBird_Statement___construct(zval *self, zval *database)
 {
     firebird_stmt *stmt = get_firebird_stmt_from_zval(self);
-    firebird_trans *tr = get_firebird_trans_from_zval(transaction);
+    firebird_db *db = get_firebird_db_from_zval(database);
 
     size_t sth;
 
-    if (fbu_statement_init(tr->dbh, tr->trh, &sth)) {
+    if (fbu_statement_init(db->dbh, &sth)) {
         return FAILURE;
     }
 
     stmt->sth = sth;
-    stmt->dbh = tr->dbh;
-    stmt->trh = tr->trh;
+    stmt->dbh = db->dbh;
 
-    PROP_SET(FireBird_Statement_ce, self, "transaction", transaction);
+    PROP_SET(FireBird_Statement_ce, self, "database", database);
 
     return SUCCESS;
+}
+
+// Handles index the statement's own database, so a transaction of another one
+// would resolve to an unrelated (or no) transaction
+static firebird_trans *get_stmt_trans(firebird_stmt *stmt, zval *transaction)
+{
+    firebird_trans *tr = get_firebird_trans_from_zval(transaction);
+
+    if (tr->dbh != stmt->dbh) {
+        zend_value_error("Transaction belongs to a different database than the statement");
+        return NULL;
+    }
+
+    return tr;
 }
 
 PHP_METHOD(FireBird_Statement, __construct)
@@ -96,16 +109,29 @@ PHP_METHOD(FireBird_Statement, free)
     stmt->sth = 0;
 }
 
-int FireBird_Statement_execute(zval *self, zval *bind_args, uint32_t num_bind_args)
+int FireBird_Statement_execute(zval *self, zval *transaction, zval *bind_args, uint32_t num_bind_args)
 {
     firebird_stmt *stmt = get_firebird_stmt_from_zval(self);
+    firebird_trans *tr = get_stmt_trans(stmt, transaction);
 
-    if (fbu_statement_bind(stmt->dbh, stmt->sth, bind_args, num_bind_args)) {
+    if (!tr) {
         return FAILURE;
     }
 
-    if (fbu_statement_execute(stmt->dbh, stmt->sth)) {
+    if (fbu_statement_bind(stmt->dbh, stmt->sth, tr->trh, bind_args, num_bind_args)) {
         return FAILURE;
+    }
+
+    if (fbu_statement_execute(stmt->dbh, stmt->sth, tr->trh)) {
+        return FAILURE;
+    }
+
+    // Rows fetched from now on belong to this transaction: keep it alive
+    zend_object *old = stmt->executed_tra;
+    stmt->executed_tra = Z_OBJ_P(transaction);
+    GC_ADDREF(stmt->executed_tra);
+    if (old) {
+        OBJ_RELEASE(old);
     }
 
     return SUCCESS;
@@ -113,24 +139,31 @@ int FireBird_Statement_execute(zval *self, zval *bind_args, uint32_t num_bind_ar
 
 PHP_METHOD(FireBird_Statement, execute)
 {
+    zval *transaction;
     zval *bind_args;
     uint32_t num_bind_args;
 
-    ZEND_PARSE_PARAMETERS_START(0, -1)
+    ZEND_PARSE_PARAMETERS_START(1, -1)
+        Z_PARAM_OBJECT_OF_CLASS(transaction, FireBird_Transaction_ce)
         Z_PARAM_OPTIONAL
         Z_PARAM_VARIADIC('+', bind_args, num_bind_args)
     ZEND_PARSE_PARAMETERS_END();
 
-    if (FireBird_Statement_execute(ZEND_THIS, bind_args, num_bind_args)) {
+    if (FireBird_Statement_execute(ZEND_THIS, transaction, bind_args, num_bind_args)) {
         RETURN_THROWS();
     }
 }
 
-int FireBird_Statement_prepare(zval *self, zend_string *sql)
+int FireBird_Statement_prepare(zval *self, zval *transaction, zend_string *sql)
 {
     firebird_stmt *stmt = get_firebird_stmt_from_zval(self);
+    firebird_trans *tr = get_stmt_trans(stmt, transaction);
 
-    if (fbu_statement_prepare(stmt->dbh, stmt->sth, ZSTR_LEN(sql), ZSTR_VAL(sql))) {
+    if (!tr) {
+        return FAILURE;
+    }
+
+    if (fbu_statement_prepare(stmt->dbh, stmt->sth, tr->trh, ZSTR_LEN(sql), ZSTR_VAL(sql))) {
         return FAILURE;
     }
 
@@ -216,7 +249,28 @@ static void FireBird_Statement_free_obj(zend_object *obj)
         fbu_statement_free(stmt->dbh, stmt->sth);
     }
 
+    // After the statement: its cursor is closed while the transaction still exists
+    if (stmt->executed_tra) {
+        OBJ_RELEASE(stmt->executed_tra);
+        stmt->executed_tra = NULL;
+    }
+
     zend_object_std_dtor(&stmt->std);
+}
+
+static HashTable *FireBird_Statement_get_gc(zend_object *obj, zval **table, int *n)
+{
+    firebird_stmt *stmt = get_firebird_stmt_from_obj(obj);
+
+    if (!stmt->executed_tra) {
+        return zend_std_get_gc(obj, table, n);
+    }
+
+    zend_get_gc_buffer *buf = zend_get_gc_buffer_create();
+    zend_get_gc_buffer_add_obj(buf, stmt->executed_tra);
+    zend_get_gc_buffer_use(buf, table, n);
+
+    return zend_std_get_properties(obj);
 }
 
 static zval* FireBird_Statement_read_property(zend_object *obj, zend_string *name, int type,
@@ -273,6 +327,7 @@ void register_FireBird_Statement_object_handlers()
     FireBird_Statement_object_handlers.offset = offsetof(firebird_stmt, std);
     FireBird_Statement_object_handlers.free_obj = FireBird_Statement_free_obj;
     FireBird_Statement_object_handlers.read_property = FireBird_Statement_read_property;
+    FireBird_Statement_object_handlers.get_gc = FireBird_Statement_get_gc;
 }
 
 void FireBird_Statement_fetch(zval *self, int flags, zval *return_value)

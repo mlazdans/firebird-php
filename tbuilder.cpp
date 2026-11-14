@@ -8,7 +8,7 @@ extern "C" {
 #include "zend_exceptions.h"
 #include "zend_attributes.h"
 
-static zend_object_handlers FireBird_TBuilder_object_handlers;
+static zend_object_handlers FireBird_Transaction_Builder_object_handlers;
 
 #define tbuilder_update_flag(name) do {             \
     zend_bool enable = true;                        \
@@ -29,33 +29,33 @@ static zend_object_handlers FireBird_TBuilder_object_handlers;
     builder->snapshot_at_number = 0;                \
     RETVAL_OBJ_COPY(Z_OBJ_P(ZEND_THIS))
 
-PHP_METHOD(FireBird_TBuilder, __construct)
+PHP_METHOD(FireBird_Transaction_Builder, __construct)
 {
     tbuilder_update_isolation_mode(1);
     builder->lock_timeout = -1;
 }
 
-PHP_METHOD(FireBird_TBuilder, read_only)
+PHP_METHOD(FireBird_Transaction_Builder, read_only)
 {
     tbuilder_update_flag(read_only);
 }
 
-PHP_METHOD(FireBird_TBuilder, ignore_limbo)
+PHP_METHOD(FireBird_Transaction_Builder, ignore_limbo)
 {
     tbuilder_update_flag(ignore_limbo);
 }
 
-PHP_METHOD(FireBird_TBuilder, auto_commit)
+PHP_METHOD(FireBird_Transaction_Builder, auto_commit)
 {
     tbuilder_update_flag(auto_commit);
 }
 
-PHP_METHOD(FireBird_TBuilder, no_auto_undo)
+PHP_METHOD(FireBird_Transaction_Builder, no_auto_undo)
 {
     tbuilder_update_flag(no_auto_undo);
 }
 
-PHP_METHOD(FireBird_TBuilder, wait)
+PHP_METHOD(FireBird_Transaction_Builder, wait)
 {
     zend_long lock_timeout = -1;
 
@@ -75,13 +75,13 @@ PHP_METHOD(FireBird_TBuilder, wait)
     RETVAL_OBJ_COPY(Z_OBJ_P(ZEND_THIS));
 }
 
-PHP_METHOD(FireBird_TBuilder, isolation_snapshot_table_stability)
+PHP_METHOD(FireBird_Transaction_Builder, isolation_snapshot_table_stability)
 {
     ZEND_PARSE_PARAMETERS_NONE();
     tbuilder_update_isolation_mode(0);
 }
 
-PHP_METHOD(FireBird_TBuilder, isolation_snapshot)
+PHP_METHOD(FireBird_Transaction_Builder, isolation_snapshot)
 {
     zend_long snapshot_at_number = 0;
     ZEND_PARSE_PARAMETERS_START(0, 1)
@@ -93,30 +93,30 @@ PHP_METHOD(FireBird_TBuilder, isolation_snapshot)
     builder->snapshot_at_number = snapshot_at_number;
 }
 
-PHP_METHOD(FireBird_TBuilder, isolation_read_committed_record_version)
+PHP_METHOD(FireBird_Transaction_Builder, isolation_read_committed_record_version)
 {
     ZEND_PARSE_PARAMETERS_NONE();
     tbuilder_update_isolation_mode(2);
 }
 
-PHP_METHOD(FireBird_TBuilder, isolation_read_committed_no_record_version)
+PHP_METHOD(FireBird_Transaction_Builder, isolation_read_committed_no_record_version)
 {
     ZEND_PARSE_PARAMETERS_NONE();
     tbuilder_update_isolation_mode(3);
 }
 
-PHP_METHOD(FireBird_TBuilder, isolation_read_committed_read_consistency)
+PHP_METHOD(FireBird_Transaction_Builder, isolation_read_committed_read_consistency)
 {
     ZEND_PARSE_PARAMETERS_NONE();
     tbuilder_update_isolation_mode(4);
 }
 
-PHP_METHOD(FireBird_TBuilder, dump_state)
+PHP_METHOD(FireBird_Transaction_Builder, dump_state)
 {
     ZEND_PARSE_PARAMETERS_NONE();
     firebird_tbuilder *b = get_firebird_tbuilder_from_zval(ZEND_THIS);
 
-    php_printf("TBuilder::dump_state\n");
+    php_printf("Transaction_Builder::dump_state\n");
     php_printf("  read_only: %d\n", b->read_only);
     php_printf("  ignore_limbo: %d\n", b->ignore_limbo);
     php_printf("  auto_commit: %d\n", b->auto_commit);
@@ -126,7 +126,7 @@ PHP_METHOD(FireBird_TBuilder, dump_state)
     php_printf("  snapshot_at_number: %llu\n", (unsigned long long)b->snapshot_at_number);
 }
 
-static zend_object *FireBird_TBuilder_create_object(zend_class_entry *ce)
+static zend_object *FireBird_Transaction_Builder_create_object(zend_class_entry *ce)
 {
     firebird_tbuilder *builder = (firebird_tbuilder *)zend_object_alloc(sizeof(firebird_tbuilder), ce);
 
@@ -138,7 +138,7 @@ static zend_object *FireBird_TBuilder_create_object(zend_class_entry *ce)
     return &builder->std;
 }
 
-static void FireBird_TBuilder_free_obj(zend_object *obj)
+static void FireBird_Transaction_Builder_free_obj(zend_object *obj)
 {
     firebird_tbuilder *builder = get_firebird_tbuilder_from_obj(obj);
 
@@ -147,7 +147,7 @@ static void FireBird_TBuilder_free_obj(zend_object *obj)
     zend_object_std_dtor(&builder->std);
 }
 
-static zval *FireBird_TBuilder_read_property(zend_object *obj, zend_string *name, int type, void **cache_slot, zval *rv)
+static zval *FireBird_Transaction_Builder_read_property(zend_object *obj, zend_string *name, int type, void **cache_slot, zval *rv)
 {
     firebird_tbuilder *b = get_firebird_tbuilder_from_obj(obj);
 
@@ -172,16 +172,16 @@ static zval *FireBird_TBuilder_read_property(zend_object *obj, zend_string *name
     return rv;
 }
 
-void register_FireBird_TBuilder_object_handlers()
+void register_FireBird_Transaction_Builder_object_handlers()
 {
-    FireBird_TBuilder_ce->default_object_handlers = &FireBird_TBuilder_object_handlers;
-    FireBird_TBuilder_ce->create_object = FireBird_TBuilder_create_object;
+    FireBird_Transaction_Builder_ce->default_object_handlers = &FireBird_Transaction_Builder_object_handlers;
+    FireBird_Transaction_Builder_ce->create_object = FireBird_Transaction_Builder_create_object;
 
-    memcpy(&FireBird_TBuilder_object_handlers, &std_object_handlers, sizeof(zend_object_handlers));
+    memcpy(&FireBird_Transaction_Builder_object_handlers, &std_object_handlers, sizeof(zend_object_handlers));
 
-    FireBird_TBuilder_object_handlers.offset = offsetof(firebird_tbuilder, std);
-    FireBird_TBuilder_object_handlers.free_obj = FireBird_TBuilder_free_obj;
-    FireBird_TBuilder_object_handlers.read_property = FireBird_TBuilder_read_property;
+    FireBird_Transaction_Builder_object_handlers.offset = offsetof(firebird_tbuilder, std);
+    FireBird_Transaction_Builder_object_handlers.free_obj = FireBird_Transaction_Builder_free_obj;
+    FireBird_Transaction_Builder_object_handlers.read_property = FireBird_Transaction_Builder_read_property;
 }
 
 }

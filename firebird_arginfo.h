@@ -1,5 +1,5 @@
 /* This is a generated file, edit the .stub.php file instead.
- * Stub hash: 2ac4d43f2ce2042b3dee8cca1e722cdf703e46bd */
+ * Stub hash: 2b7b99426880ce825b9047d358d59c07a3722065 */
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_get_client_version, 0, 0, IS_DOUBLE, 0)
 ZEND_END_ARG_INFO()
@@ -25,7 +25,12 @@ ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_class_FireBird_Database_execute_c
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_class_FireBird_Database_start_transaction, 0, 0, FireBird\\Transaction, 0)
-	ZEND_ARG_OBJ_INFO_WITH_DEFAULT_VALUE(0, tb, FireBird\\TBuilder, 1, "null")
+	ZEND_ARG_OBJ_INFO_WITH_DEFAULT_VALUE(0, tb, FireBird\\Transaction_Builder, 1, "null")
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_class_FireBird_Database_prepare, 0, 2, FireBird\\Statement, 0)
+	ZEND_ARG_OBJ_INFO(0, tr, FireBird\\Transaction, 0)
+	ZEND_ARG_TYPE_INFO(0, sql, IS_STRING, 0)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_class_FireBird_Database_new_transaction, 0, 0, FireBird\\Transaction, 0)
@@ -57,7 +62,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_class_FireBird_Transaction___construct, 0, 0, 1)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_FireBird_Transaction_start, 0, 0, IS_VOID, 0)
-	ZEND_ARG_OBJ_INFO_WITH_DEFAULT_VALUE(0, builder, FireBird\\TBuilder, 1, "null")
+	ZEND_ARG_OBJ_INFO_WITH_DEFAULT_VALUE(0, builder, FireBird\\Transaction_Builder, 1, "null")
 ZEND_END_ARG_INFO()
 
 #define arginfo_class_FireBird_Transaction_commit arginfo_class_FireBird_Database_disconnect
@@ -102,7 +107,8 @@ ZEND_END_ARG_INFO()
 
 #define arginfo_class_FireBird_Statement_fetch_row arginfo_class_FireBird_Statement_fetch_array
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_FireBird_Statement_execute, 0, 0, IS_VOID, 0)
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_FireBird_Statement_execute, 0, 1, IS_VOID, 0)
+	ZEND_ARG_OBJ_INFO(0, tr, FireBird\\Transaction, 0)
 	ZEND_ARG_VARIADIC_TYPE_INFO(0, bind_args, IS_MIXED, 0)
 ZEND_END_ARG_INFO()
 
@@ -177,34 +183,34 @@ ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_FireBird_Service_delete_us
 	ZEND_ARG_TYPE_INFO(0, username, IS_STRING, 0)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_class_FireBird_TBuilder_read_only, 0, 0, FireBird\\TBuilder, 0)
+ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_class_FireBird_Transaction_Builder_read_only, 0, 0, FireBird\\Transaction_Builder, 0)
 	ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, enable, _IS_BOOL, 0, "true")
 ZEND_END_ARG_INFO()
 
-#define arginfo_class_FireBird_TBuilder_ignore_limbo arginfo_class_FireBird_TBuilder_read_only
+#define arginfo_class_FireBird_Transaction_Builder_ignore_limbo arginfo_class_FireBird_Transaction_Builder_read_only
 
-#define arginfo_class_FireBird_TBuilder_auto_commit arginfo_class_FireBird_TBuilder_read_only
+#define arginfo_class_FireBird_Transaction_Builder_auto_commit arginfo_class_FireBird_Transaction_Builder_read_only
 
-#define arginfo_class_FireBird_TBuilder_no_auto_undo arginfo_class_FireBird_TBuilder_read_only
+#define arginfo_class_FireBird_Transaction_Builder_no_auto_undo arginfo_class_FireBird_Transaction_Builder_read_only
 
-ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_class_FireBird_TBuilder_wait, 0, 0, FireBird\\TBuilder, 0)
+ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_class_FireBird_Transaction_Builder_wait, 0, 0, FireBird\\Transaction_Builder, 0)
 	ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, lock_timeout, IS_LONG, 0, "-1")
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_class_FireBird_TBuilder_isolation_snapshot, 0, 0, FireBird\\TBuilder, 0)
+ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_class_FireBird_Transaction_Builder_isolation_snapshot, 0, 0, FireBird\\Transaction_Builder, 0)
 	ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, at_number, IS_LONG, 0, "0")
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_class_FireBird_TBuilder_isolation_snapshot_table_stability, 0, 0, FireBird\\TBuilder, 0)
+ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_class_FireBird_Transaction_Builder_isolation_snapshot_table_stability, 0, 0, FireBird\\Transaction_Builder, 0)
 ZEND_END_ARG_INFO()
 
-#define arginfo_class_FireBird_TBuilder_isolation_read_committed_record_version arginfo_class_FireBird_TBuilder_isolation_snapshot_table_stability
+#define arginfo_class_FireBird_Transaction_Builder_isolation_read_committed_record_version arginfo_class_FireBird_Transaction_Builder_isolation_snapshot_table_stability
 
-#define arginfo_class_FireBird_TBuilder_isolation_read_committed_no_record_version arginfo_class_FireBird_TBuilder_isolation_snapshot_table_stability
+#define arginfo_class_FireBird_Transaction_Builder_isolation_read_committed_no_record_version arginfo_class_FireBird_Transaction_Builder_isolation_snapshot_table_stability
 
-#define arginfo_class_FireBird_TBuilder_isolation_read_committed_read_consistency arginfo_class_FireBird_TBuilder_isolation_snapshot_table_stability
+#define arginfo_class_FireBird_Transaction_Builder_isolation_read_committed_read_consistency arginfo_class_FireBird_Transaction_Builder_isolation_snapshot_table_stability
 
-#define arginfo_class_FireBird_TBuilder_dump_state arginfo_class_FireBird_Database_disconnect
+#define arginfo_class_FireBird_Transaction_Builder_dump_state arginfo_class_FireBird_Database_disconnect
 
 #define arginfo_class_FireBird_Blob_Id___construct arginfo_class_FireBird_Database___construct
 
@@ -223,6 +229,7 @@ ZEND_METHOD(FireBird_Database, connect);
 ZEND_METHOD(FireBird_Database, create);
 ZEND_METHOD(FireBird_Database, execute_create);
 ZEND_METHOD(FireBird_Database, start_transaction);
+ZEND_METHOD(FireBird_Database, prepare);
 ZEND_METHOD(FireBird_Database, new_transaction);
 ZEND_METHOD(FireBird_Database, get_info);
 ZEND_METHOD(FireBird_Database, disconnect);
@@ -270,17 +277,17 @@ ZEND_METHOD(FireBird_Service, get_users);
 ZEND_METHOD(FireBird_Service, add_user);
 ZEND_METHOD(FireBird_Service, modify_user);
 ZEND_METHOD(FireBird_Service, delete_user);
-ZEND_METHOD(FireBird_TBuilder, read_only);
-ZEND_METHOD(FireBird_TBuilder, ignore_limbo);
-ZEND_METHOD(FireBird_TBuilder, auto_commit);
-ZEND_METHOD(FireBird_TBuilder, no_auto_undo);
-ZEND_METHOD(FireBird_TBuilder, wait);
-ZEND_METHOD(FireBird_TBuilder, isolation_snapshot);
-ZEND_METHOD(FireBird_TBuilder, isolation_snapshot_table_stability);
-ZEND_METHOD(FireBird_TBuilder, isolation_read_committed_record_version);
-ZEND_METHOD(FireBird_TBuilder, isolation_read_committed_no_record_version);
-ZEND_METHOD(FireBird_TBuilder, isolation_read_committed_read_consistency);
-ZEND_METHOD(FireBird_TBuilder, dump_state);
+ZEND_METHOD(FireBird_Transaction_Builder, read_only);
+ZEND_METHOD(FireBird_Transaction_Builder, ignore_limbo);
+ZEND_METHOD(FireBird_Transaction_Builder, auto_commit);
+ZEND_METHOD(FireBird_Transaction_Builder, no_auto_undo);
+ZEND_METHOD(FireBird_Transaction_Builder, wait);
+ZEND_METHOD(FireBird_Transaction_Builder, isolation_snapshot);
+ZEND_METHOD(FireBird_Transaction_Builder, isolation_snapshot_table_stability);
+ZEND_METHOD(FireBird_Transaction_Builder, isolation_read_committed_record_version);
+ZEND_METHOD(FireBird_Transaction_Builder, isolation_read_committed_no_record_version);
+ZEND_METHOD(FireBird_Transaction_Builder, isolation_read_committed_read_consistency);
+ZEND_METHOD(FireBird_Transaction_Builder, dump_state);
 ZEND_METHOD(FireBird_Blob_Id, __construct);
 ZEND_METHOD(FireBird_Blob_Id, __toString);
 ZEND_METHOD(FireBird_Blob_Id, from_str);
@@ -298,6 +305,7 @@ static const zend_function_entry class_FireBird_Database_methods[] = {
 	ZEND_ME(FireBird_Database, create, arginfo_class_FireBird_Database_create, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
 	ZEND_ME(FireBird_Database, execute_create, arginfo_class_FireBird_Database_execute_create, ZEND_ACC_PUBLIC|ZEND_ACC_STATIC)
 	ZEND_ME(FireBird_Database, start_transaction, arginfo_class_FireBird_Database_start_transaction, ZEND_ACC_PUBLIC)
+	ZEND_ME(FireBird_Database, prepare, arginfo_class_FireBird_Database_prepare, ZEND_ACC_PUBLIC)
 	ZEND_ME(FireBird_Database, new_transaction, arginfo_class_FireBird_Database_new_transaction, ZEND_ACC_PUBLIC)
 	ZEND_ME(FireBird_Database, get_info, arginfo_class_FireBird_Database_get_info, ZEND_ACC_PUBLIC)
 	ZEND_ME(FireBird_Database, disconnect, arginfo_class_FireBird_Database_disconnect, ZEND_ACC_PUBLIC)
@@ -364,18 +372,18 @@ static const zend_function_entry class_FireBird_Service_methods[] = {
 	ZEND_FE_END
 };
 
-static const zend_function_entry class_FireBird_TBuilder_methods[] = {
-	ZEND_ME(FireBird_TBuilder, read_only, arginfo_class_FireBird_TBuilder_read_only, ZEND_ACC_PUBLIC)
-	ZEND_ME(FireBird_TBuilder, ignore_limbo, arginfo_class_FireBird_TBuilder_ignore_limbo, ZEND_ACC_PUBLIC)
-	ZEND_ME(FireBird_TBuilder, auto_commit, arginfo_class_FireBird_TBuilder_auto_commit, ZEND_ACC_PUBLIC)
-	ZEND_ME(FireBird_TBuilder, no_auto_undo, arginfo_class_FireBird_TBuilder_no_auto_undo, ZEND_ACC_PUBLIC)
-	ZEND_ME(FireBird_TBuilder, wait, arginfo_class_FireBird_TBuilder_wait, ZEND_ACC_PUBLIC)
-	ZEND_ME(FireBird_TBuilder, isolation_snapshot, arginfo_class_FireBird_TBuilder_isolation_snapshot, ZEND_ACC_PUBLIC)
-	ZEND_ME(FireBird_TBuilder, isolation_snapshot_table_stability, arginfo_class_FireBird_TBuilder_isolation_snapshot_table_stability, ZEND_ACC_PUBLIC)
-	ZEND_ME(FireBird_TBuilder, isolation_read_committed_record_version, arginfo_class_FireBird_TBuilder_isolation_read_committed_record_version, ZEND_ACC_PUBLIC)
-	ZEND_ME(FireBird_TBuilder, isolation_read_committed_no_record_version, arginfo_class_FireBird_TBuilder_isolation_read_committed_no_record_version, ZEND_ACC_PUBLIC)
-	ZEND_ME(FireBird_TBuilder, isolation_read_committed_read_consistency, arginfo_class_FireBird_TBuilder_isolation_read_committed_read_consistency, ZEND_ACC_PUBLIC)
-	ZEND_ME(FireBird_TBuilder, dump_state, arginfo_class_FireBird_TBuilder_dump_state, ZEND_ACC_PUBLIC)
+static const zend_function_entry class_FireBird_Transaction_Builder_methods[] = {
+	ZEND_ME(FireBird_Transaction_Builder, read_only, arginfo_class_FireBird_Transaction_Builder_read_only, ZEND_ACC_PUBLIC)
+	ZEND_ME(FireBird_Transaction_Builder, ignore_limbo, arginfo_class_FireBird_Transaction_Builder_ignore_limbo, ZEND_ACC_PUBLIC)
+	ZEND_ME(FireBird_Transaction_Builder, auto_commit, arginfo_class_FireBird_Transaction_Builder_auto_commit, ZEND_ACC_PUBLIC)
+	ZEND_ME(FireBird_Transaction_Builder, no_auto_undo, arginfo_class_FireBird_Transaction_Builder_no_auto_undo, ZEND_ACC_PUBLIC)
+	ZEND_ME(FireBird_Transaction_Builder, wait, arginfo_class_FireBird_Transaction_Builder_wait, ZEND_ACC_PUBLIC)
+	ZEND_ME(FireBird_Transaction_Builder, isolation_snapshot, arginfo_class_FireBird_Transaction_Builder_isolation_snapshot, ZEND_ACC_PUBLIC)
+	ZEND_ME(FireBird_Transaction_Builder, isolation_snapshot_table_stability, arginfo_class_FireBird_Transaction_Builder_isolation_snapshot_table_stability, ZEND_ACC_PUBLIC)
+	ZEND_ME(FireBird_Transaction_Builder, isolation_read_committed_record_version, arginfo_class_FireBird_Transaction_Builder_isolation_read_committed_record_version, ZEND_ACC_PUBLIC)
+	ZEND_ME(FireBird_Transaction_Builder, isolation_read_committed_no_record_version, arginfo_class_FireBird_Transaction_Builder_isolation_read_committed_no_record_version, ZEND_ACC_PUBLIC)
+	ZEND_ME(FireBird_Transaction_Builder, isolation_read_committed_read_consistency, arginfo_class_FireBird_Transaction_Builder_isolation_read_committed_read_consistency, ZEND_ACC_PUBLIC)
+	ZEND_ME(FireBird_Transaction_Builder, dump_state, arginfo_class_FireBird_Transaction_Builder_dump_state, ZEND_ACC_PUBLIC)
 	ZEND_FE_END
 };
 
@@ -492,12 +500,12 @@ static zend_class_entry *register_class_FireBird_Statement(void)
 	zend_declare_typed_property(class_entry, property_affected_count_name, &property_affected_count_default_value, ZEND_ACC_PUBLIC|ZEND_ACC_READONLY|ZEND_ACC_VIRTUAL, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_LONG));
 	zend_string_release_ex(property_affected_count_name, true);
 
-	zval property_transaction_default_value;
-	ZVAL_UNDEF(&property_transaction_default_value);
-	zend_string *property_transaction_name = zend_string_init("transaction", sizeof("transaction") - 1, true);
-	zend_string *property_transaction_class_FireBird_Transaction = zend_string_init("FireBird\\Transaction", sizeof("FireBird\\Transaction")-1, 1);
-	zend_declare_typed_property(class_entry, property_transaction_name, &property_transaction_default_value, ZEND_ACC_PUBLIC|ZEND_ACC_READONLY, NULL, (zend_type) ZEND_TYPE_INIT_CLASS(property_transaction_class_FireBird_Transaction, 0, 0));
-	zend_string_release_ex(property_transaction_name, true);
+	zval property_database_default_value;
+	ZVAL_UNDEF(&property_database_default_value);
+	zend_string *property_database_name = zend_string_init("database", sizeof("database") - 1, true);
+	zend_string *property_database_class_FireBird_Database = zend_string_init("FireBird\\Database", sizeof("FireBird\\Database")-1, 1);
+	zend_declare_typed_property(class_entry, property_database_name, &property_database_default_value, ZEND_ACC_PUBLIC|ZEND_ACC_READONLY, NULL, (zend_type) ZEND_TYPE_INIT_CLASS(property_database_class_FireBird_Database, 0, 0));
+	zend_string_release_ex(property_database_name, true);
 
 	return class_entry;
 }
@@ -568,11 +576,11 @@ static zend_class_entry *register_class_FireBird_Service(void)
 	return class_entry;
 }
 
-static zend_class_entry *register_class_FireBird_TBuilder(void)
+static zend_class_entry *register_class_FireBird_Transaction_Builder(void)
 {
 	zend_class_entry ce, *class_entry;
 
-	INIT_NS_CLASS_ENTRY(ce, "FireBird", "TBuilder", class_FireBird_TBuilder_methods);
+	INIT_NS_CLASS_ENTRY(ce, "FireBird", "Transaction_Builder", class_FireBird_Transaction_Builder_methods);
 	class_entry = zend_register_internal_class_with_flags(&ce, NULL, 0);
 
 	zval property_is_read_only_default_value;
