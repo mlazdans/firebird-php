@@ -45,6 +45,7 @@ void Statement::prepare(size_t trh, unsigned int len_sql, const char *sql)
     IStatement *tmp = stmt;
 
     info.statement_type = tmp->getType(&st);
+    has_cursor = tmp->getFlags(&st) & IStatement::FLAG_HAS_CURSOR;
 
     input_metadata = tmp->getInputMetadata(&st);
     info.in_vars_count = input_metadata->getCount(&st);
@@ -501,12 +502,6 @@ void Statement::bind_datetime(zval *b_var, unsigned argn, const firebird_var &va
     }
 }
 
-bool Statement::is_select() const
-{
-    return info.statement_type == isc_info_sql_stmt_select ||
-        info.statement_type == isc_info_sql_stmt_select_for_upd;
-}
-
 // Closes the cursor, if any. The interface is released even when close() fails, and
 // the member is cleared first so a throw never leaves it dangling.
 void Statement::free_cursor()
@@ -559,7 +554,7 @@ int Statement::fetch_next()
         throw FbException(&st, err);
     }
 
-    if (!is_select()) {
+    if (!has_cursor) {
         // Non-cursor statements expose their output message (RETURNING,
         // EXECUTE PROCEDURE) as exactly one row, once per execute.
         if (cursor_exhausted) return IStatus::RESULT_NO_DATA;
@@ -846,38 +841,17 @@ void Statement::execute(size_t trh)
 {
     auto &tra = *dba.get_transaction(trh);
 
-    switch (info.statement_type) {
-        // Cursor statements. Firebird 5 also reports every multi-row DML RETURNING
-        // (UPDATE, DELETE, MERGE, UPDATE OR INSERT, INSERT ... SELECT) and EXECUTE
-        // BLOCK with outputs as select. The DML is applied when the cursor opens.
-        case isc_info_sql_stmt_select:
-        case isc_info_sql_stmt_select_for_upd:
-            open_cursor(tra);
-            break;
-
-        // Single-message statements: any output (single-row INSERT ... RETURNING,
-        // EXECUTE PROCEDURE) lands in out_buffer and is fetched once
-        case isc_info_sql_stmt_insert:
-        case isc_info_sql_stmt_update:
-        case isc_info_sql_stmt_delete:
-        case isc_info_sql_stmt_exec_procedure:
-        case isc_info_sql_stmt_set_generator:
-        case isc_info_sql_stmt_ddl:             // also SET / ALTER SESSION management statements
-        case isc_info_sql_stmt_savepoint:
-        case isc_info_sql_stmt_start_trans:     // SET TRANSACTION: adopted by Transaction
-        case isc_info_sql_stmt_commit:
-        case isc_info_sql_stmt_rollback:
-            free_cursor();
-            tra.execute_statement(get(), input_metadata, in_buffer, output_metadata, out_buffer);
-            cursor_exhausted = false;
-            query_statistics();
-            break;
-
-        // isc_info_sql_stmt_get_segment / put_segment: embedded-SQL blob cursors,
-        // not produced by DSQL
-        default:
-            throw Php_Firebird_Exception(zend_ce_error,
-                "Unsupported statement type " + std::to_string(info.statement_type));
+    // As isc_dsql_execute() does. FLAG_HAS_CURSOR covers SELECT, multi-row DML
+    // RETURNING and EXECUTE BLOCK with outputs; the DML is applied when the cursor opens.
+    if (has_cursor) {
+        open_cursor(tra);
+    } else {
+        // Any output (single-row INSERT ... RETURNING, EXECUTE PROCEDURE) lands in
+        // out_buffer and is fetched once. SET TRANSACTION is adopted by Transaction.
+        free_cursor();
+        tra.execute_statement(get(), input_metadata, in_buffer, output_metadata, out_buffer);
+        cursor_exhausted = false;
+        query_statistics();
     }
 
     is_executed = true;
