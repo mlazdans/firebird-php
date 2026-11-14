@@ -19,7 +19,7 @@ Service::Service()
 void Service::connect(zval *args)
 {
     auto util = master->getUtilInterface();
-    auto prov = master->getDispatcher();
+    ReleasePtr<IProvider> prov(master->getDispatcher());
 
     // TODO: create normal C struct
     if (!args || Z_TYPE_P(args) != IS_OBJECT || Z_OBJCE_P(args) != FireBird_Service_Connect_Args_ce) {
@@ -43,7 +43,6 @@ IService *Service::get()
 void Service::disconnect()
 {
     get()->detach(&st);
-    srv->release();
     srv = nullptr;
 }
 

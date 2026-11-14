@@ -149,7 +149,10 @@ Transaction::~Transaction()
 
     try
     {
-        if (tra) tra->rollback(&st);
+        if (tra) {
+            tra->rollback(&st);
+            tra = nullptr;
+        }
     }
     catch (...)
     {
@@ -166,7 +169,6 @@ Transaction::~Transaction()
 void Transaction::commit()
 {
     get()->commit(&st);
-    tra->release();
     tra = nullptr;
     is_prepared = false;
 }
@@ -179,7 +181,6 @@ void Transaction::commit_ret()
 void Transaction::rollback()
 {
     get()->rollback(&st);
-    tra->release();
     tra = nullptr;
     is_prepared = false;
 }
@@ -230,7 +231,7 @@ ITransaction *Transaction::execute(unsigned len_sql, const char *sql)
 {
     // FBDEBUG("Transaction::execute(dba=%p)", dba);
 
-    // TODO: release old?
+    // On a change Firebird has released the old interface already
     auto new_tra = dba.get()->execute(&st, tra, len_sql, sql, SQL_DIALECT_CURRENT, NULL, NULL, NULL, NULL);
 
     if (new_tra != tra) {

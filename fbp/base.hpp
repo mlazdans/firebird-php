@@ -33,6 +33,18 @@ struct XpbBuilderDeleter {
 };
 using XpbBuilderPtr = std::unique_ptr<IXpbBuilder, XpbBuilderDeleter>;
 
+// Owns one reference to a reference-counted interface (IProvider, ...)
+struct ReleaseDeleter {
+    template <typename T>
+    void operator()(T *p) const noexcept { if (p) p->release(); }
+};
+template <typename T>
+using ReleasePtr = std::unique_ptr<T, ReleaseDeleter>;
+
+// Note: close(), free(), detach(), dropDatabase(), commit(), rollback() and cancel()
+// release the interface themselves on success. Only call release() after them when
+// they fail.
+
 // A standalone status for code outside Base-derived classes. Disposed on scope exit.
 class ScopedStatus: public ThrowStatusWrapper
 {

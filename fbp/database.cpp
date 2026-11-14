@@ -24,7 +24,7 @@ Database::Database()
 void Database::connect(zval *args)
 {
     auto util = master->getUtilInterface();
-    auto prov = master->getDispatcher();
+    ReleasePtr<IProvider> prov(master->getDispatcher());
 
     // TODO: create normal C struct
     if (!args || Z_TYPE_P(args) != IS_OBJECT || Z_OBJCE_P(args) != FireBird_Connect_Args_ce) {
@@ -42,7 +42,7 @@ void Database::connect(zval *args)
 void Database::create(zval *args)
 {
     auto util = master->getUtilInterface();
-    auto prov = master->getDispatcher();
+    ReleasePtr<IProvider> prov(master->getDispatcher());
 
     if (!args || Z_TYPE_P(args) != IS_OBJECT || Z_OBJCE_P(args) != FireBird_Create_Args_ce) {
         throw Php_Firebird_Exception(zend_ce_value_error, "Expected instanceof Create_Args");
@@ -101,7 +101,6 @@ void Database::disconnect()
     check_no_active_transactions("disconnect");
     free_handles();
     att->detach(&st);
-    att->release();
     att = nullptr;
     release_limbo();
 }
@@ -112,7 +111,6 @@ void Database::drop()
     check_no_active_transactions("drop database");
     free_handles();
     att->dropDatabase(&st);
-    att->release();
     att = nullptr;
     release_limbo();
 }

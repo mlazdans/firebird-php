@@ -23,7 +23,10 @@ Blob::~Blob() noexcept
 
     try
     {
-        if (blob) blob->close(&st);
+        if (blob) {
+            blob->close(&st);
+            blob = nullptr;
+        }
     }
     catch (...)
     {
@@ -162,14 +165,12 @@ const firebird_blob_info *Blob::get_info()
 void Blob::close()
 {
     get()->close(&st);
-    blob->release();
     blob = nullptr;
 }
 
 void Blob::cancel()
 {
     get()->cancel(&st);
-    blob->release();
     blob = nullptr;
 }
 

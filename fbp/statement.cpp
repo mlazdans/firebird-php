@@ -507,8 +507,8 @@ bool Statement::is_select() const
         info.statement_type == isc_info_sql_stmt_select_for_upd;
 }
 
-// Closes and releases the cursor, if any. The interface is released even when
-// close() fails, and the member is cleared first so a throw never leaves it dangling.
+// Closes the cursor, if any. The interface is released even when close() fails, and
+// the member is cleared first so a throw never leaves it dangling.
 void Statement::free_cursor()
 {
     if (!cursor) return;
@@ -522,7 +522,6 @@ void Statement::free_cursor()
         c->release();
         throw;
     }
-    c->release();
 }
 
 // Opens a fresh cursor over the currently bound input, replacing any previous one.
@@ -892,7 +891,10 @@ Statement::~Statement() noexcept
     try
     {
         free_cursor();
-        if (stmt) stmt->free(&st);
+        if (stmt) {
+            stmt->free(&st);
+            stmt = nullptr;
+        }
     }
     catch (...)
     {
