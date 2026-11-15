@@ -137,7 +137,7 @@ public:
     bool is_bof();
     bool is_eof();
     ISC_INT64 record_count();
-    void get_var_info(int in, unsigned int index, zval *var_info);
+    void get_var_info(int in, zend_long index, zval *var_info);
 };
 
 }

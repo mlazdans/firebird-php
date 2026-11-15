@@ -168,13 +168,13 @@ void fbu_handle_exception(const char *file, size_t line)
 
         if (state & IStatus::STATE_ERRORS) {
             error_msg = fbu_status_items(status->getErrors(), &items, &code);
-                } else {
+        } else {
             array_init(&items);
         }
 
         if (state & IStatus::STATE_WARNINGS) {
             fbu_status_items(status->getWarnings(), &warnings, nullptr);
-                    } else {
+        } else {
             array_init(&warnings);
         }
 
@@ -688,7 +688,7 @@ int fbu_statement_record_count(size_t dbh, size_t sth, ISC_INT64 *count)
     fbu_ex_wrap_end();
 }
 
-int fbu_statement_get_var_info(size_t dbh, size_t sth, int in, unsigned int index, zval *var_info)
+int fbu_statement_get_var_info(size_t dbh, size_t sth, int in, zend_long index, zval *var_info)
 {
     FBDEBUG("%s(dbh=%zu, sth=%zu)", __func__, dbh, sth);
     fbu_ex_wrap_start();
