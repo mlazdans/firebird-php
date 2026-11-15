@@ -21,7 +21,6 @@ void Service::connect(zval *args)
     auto util = master->getUtilInterface();
     ReleasePtr<IProvider> prov(master->getDispatcher());
 
-    // TODO: create normal C struct
     if (!args || Z_TYPE_P(args) != IS_OBJECT || Z_OBJCE_P(args) != FireBird_Service_Connect_Args_ce) {
         throw Php_Firebird_Exception(zend_ce_value_error, "Expected instanceof Service_Connect_Args");
     }
