@@ -26,10 +26,6 @@ void Database::connect(zval *args)
     auto util = master->getUtilInterface();
     ReleasePtr<IProvider> prov(master->getDispatcher());
 
-    if (!args || Z_TYPE_P(args) != IS_OBJECT || Z_OBJCE_P(args) != FireBird_Connect_Args_ce) {
-        throw Php_Firebird_Exception(FireBird_Fb_Logic_Exception_ce, "Expected instanceof Connect_Args");
-    }
-
     const char *database = fbu_read_required_string_prop(FireBird_Connect_Args_ce, args, "database");
     XpbBuilderPtr dpb(util->getXpbBuilder(&st, IXpbBuilder::DPB, NULL, 0));
     fbu_xpb_insert_object(dpb.get(), args, FireBird_Connect_Args_ce, &fbp_database_connect_zmap);
@@ -42,10 +38,6 @@ void Database::create(zval *args)
 {
     auto util = master->getUtilInterface();
     ReleasePtr<IProvider> prov(master->getDispatcher());
-
-    if (!args || Z_TYPE_P(args) != IS_OBJECT || Z_OBJCE_P(args) != FireBird_Create_Args_ce) {
-        throw Php_Firebird_Exception(FireBird_Fb_Logic_Exception_ce, "Expected instanceof Create_Args");
-    }
 
     const char *database = fbu_read_required_string_prop(FireBird_Create_Args_ce, args, "database");
     XpbBuilderPtr dpb(util->getXpbBuilder(&st, IXpbBuilder::DPB, NULL, 0));

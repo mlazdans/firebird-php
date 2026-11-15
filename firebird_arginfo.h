@@ -1,5 +1,5 @@
 /* This is a generated file, edit the .stub.php file instead.
- * Stub hash: 56cc76951d395b6834d52ea317416eb21bbe804d */
+ * Stub hash: b91da86e0c42621464da61d7e3448d46d972a64a */
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_get_client_version, 0, 0, IS_DOUBLE, 0)
 ZEND_END_ARG_INFO()
@@ -1164,7 +1164,7 @@ static zend_class_entry *register_class_FireBird_Connect_Args(void)
 	zend_class_entry ce, *class_entry;
 
 	INIT_NS_CLASS_ENTRY(ce, "FireBird", "Connect_Args", NULL);
-	class_entry = zend_register_internal_class_with_flags(&ce, NULL, 0);
+	class_entry = zend_register_internal_class_with_flags(&ce, NULL, ZEND_ACC_FINAL);
 
 	zval property_database_default_value;
 	ZVAL_UNDEF(&property_database_default_value);
@@ -1216,7 +1216,7 @@ static zend_class_entry *register_class_FireBird_Create_Args(void)
 	zend_class_entry ce, *class_entry;
 
 	INIT_NS_CLASS_ENTRY(ce, "FireBird", "Create_Args", NULL);
-	class_entry = zend_register_internal_class_with_flags(&ce, NULL, 0);
+	class_entry = zend_register_internal_class_with_flags(&ce, NULL, ZEND_ACC_FINAL);
 
 	zval property_database_default_value;
 	ZVAL_UNDEF(&property_database_default_value);
@@ -1286,7 +1286,7 @@ static zend_class_entry *register_class_FireBird_Service_Connect_Args(void)
 	zend_class_entry ce, *class_entry;
 
 	INIT_NS_CLASS_ENTRY(ce, "FireBird", "Service_Connect_Args", NULL);
-	class_entry = zend_register_internal_class_with_flags(&ce, NULL, 0);
+	class_entry = zend_register_internal_class_with_flags(&ce, NULL, ZEND_ACC_FINAL);
 
 	zval property_service_name_default_value;
 	ZVAL_UNDEF(&property_service_name_default_value);

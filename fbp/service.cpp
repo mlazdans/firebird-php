@@ -21,10 +21,6 @@ void Service::connect(zval *args)
     auto util = master->getUtilInterface();
     ReleasePtr<IProvider> prov(master->getDispatcher());
 
-    if (!args || Z_TYPE_P(args) != IS_OBJECT || Z_OBJCE_P(args) != FireBird_Service_Connect_Args_ce) {
-        throw Php_Firebird_Exception(FireBird_Fb_Logic_Exception_ce, "Expected instanceof Service_Connect_Args");
-    }
-
     const char *service_name = fbu_read_required_string_prop(FireBird_Service_Connect_Args_ce, args, "service_name");
     XpbBuilderPtr dpb(util->getXpbBuilder(&st, IXpbBuilder::SPB_ATTACH, NULL, 0));
     fbu_xpb_insert_object(dpb.get(), args, FireBird_Service_Connect_Args_ce, &fbp_service_connect_zmap);

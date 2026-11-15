@@ -741,7 +741,7 @@ class Blob_Id
     public static function from_str(string $id): Blob_Id { die; }
 }
 
-class Connect_Args
+final class Connect_Args
 {
     public string $database;
     public string $user_name;
@@ -752,7 +752,7 @@ class Connect_Args
     public int $timeout;
 }
 
-class Create_Args
+final class Create_Args
 {
     public string $database;
     public string $user_name;
@@ -766,7 +766,7 @@ class Create_Args
     public int $timeout;
 }
 
-class Service_Connect_Args
+final class Service_Connect_Args
 {
     public string $service_name;
     public string $user_name;
