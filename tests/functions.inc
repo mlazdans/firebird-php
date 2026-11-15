@@ -141,7 +141,6 @@ function rand_number($len , $prec = -1, $sign = 1)
 function load_file_or_die(string $path): string
 {
     if (!is_file($path)) die2("ERROR: file not found $path");
-    if (!is_readable($path)) die2("ERROR: file is not readable $path");
     if (false === ($data = file_get_contents($path))) die2("ERROR: could not load file $path");
 
     return $data;
