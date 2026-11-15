@@ -31,7 +31,7 @@ static zend_object_handlers FireBird_Transaction_Builder_object_handlers;
 
 PHP_METHOD(FireBird_Transaction_Builder, __construct)
 {
-    tbuilder_update_isolation_mode(1);
+    tbuilder_update_isolation_mode(FBP_ISOLATION_CONCURRENCY);
     builder->lock_timeout = -1;
 }
 
@@ -78,7 +78,7 @@ PHP_METHOD(FireBird_Transaction_Builder, wait)
 PHP_METHOD(FireBird_Transaction_Builder, isolation_snapshot_table_stability)
 {
     ZEND_PARSE_PARAMETERS_NONE();
-    tbuilder_update_isolation_mode(0);
+    tbuilder_update_isolation_mode(FBP_ISOLATION_CONSISTENCY);
 }
 
 PHP_METHOD(FireBird_Transaction_Builder, isolation_snapshot)
@@ -89,26 +89,26 @@ PHP_METHOD(FireBird_Transaction_Builder, isolation_snapshot)
         Z_PARAM_LONG(snapshot_at_number)
     ZEND_PARSE_PARAMETERS_END();
 
-    tbuilder_update_isolation_mode(1);
+    tbuilder_update_isolation_mode(FBP_ISOLATION_CONCURRENCY);
     builder->snapshot_at_number = snapshot_at_number;
 }
 
 PHP_METHOD(FireBird_Transaction_Builder, isolation_read_committed_record_version)
 {
     ZEND_PARSE_PARAMETERS_NONE();
-    tbuilder_update_isolation_mode(2);
+    tbuilder_update_isolation_mode(FBP_ISOLATION_RC_REC_VERSION);
 }
 
 PHP_METHOD(FireBird_Transaction_Builder, isolation_read_committed_no_record_version)
 {
     ZEND_PARSE_PARAMETERS_NONE();
-    tbuilder_update_isolation_mode(3);
+    tbuilder_update_isolation_mode(FBP_ISOLATION_RC_NO_REC_VERSION);
 }
 
 PHP_METHOD(FireBird_Transaction_Builder, isolation_read_committed_read_consistency)
 {
     ZEND_PARSE_PARAMETERS_NONE();
-    tbuilder_update_isolation_mode(4);
+    tbuilder_update_isolation_mode(FBP_ISOLATION_RC_READ_CONSISTENCY);
 }
 
 PHP_METHOD(FireBird_Transaction_Builder, dump_state)

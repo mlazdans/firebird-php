@@ -81,11 +81,12 @@ IXpbBuilder *Transaction::build_tpb(const firebird_tbuilder *builder)
     if (builder->auto_commit) tpb->insertTag(&st, isc_tpb_autocommit);
     if (builder->no_auto_undo) tpb->insertTag(&st, isc_tpb_no_auto_undo);
 
-    // TODO: switch
-    if (builder->isolation_mode == 0) {
+    switch (builder->isolation_mode) {
+    case FBP_ISOLATION_CONSISTENCY:
         FBDEBUG_NOFL("  isolation_mode = isc_tpb_consistency");
         tpb->insertTag(&st, isc_tpb_consistency);
-    } else if (builder->isolation_mode == 1) {
+        break;
+    case FBP_ISOLATION_CONCURRENCY:
         tpb->insertTag(&st, isc_tpb_concurrency);
         if (builder->snapshot_at_number) {
             tpb->insertBigInt(&st, isc_tpb_at_snapshot_number, builder->snapshot_at_number);
@@ -98,23 +99,25 @@ IXpbBuilder *Transaction::build_tpb(const firebird_tbuilder *builder)
         } else {
             FBDEBUG_NOFL("  isolation_mode = isc_tpb_concurrency");
         }
-    } else if (builder->isolation_mode == 2) {
+        break;
+    case FBP_ISOLATION_RC_REC_VERSION:
         tpb->insertTag(&st, isc_tpb_read_committed);
         tpb->insertTag(&st, isc_tpb_rec_version);
         FBDEBUG_NOFL("  isolation_mode = isc_tpb_read_committed");
         FBDEBUG_NOFL("                   isc_tpb_rec_version");
-    } else if (builder->isolation_mode == 3) {
+        break;
+    case FBP_ISOLATION_RC_NO_REC_VERSION:
         tpb->insertTag(&st, isc_tpb_read_committed);
         tpb->insertTag(&st, isc_tpb_no_rec_version);
         FBDEBUG_NOFL("  isolation_mode = isc_tpb_read_committed");
         FBDEBUG_NOFL("                   isc_tpb_no_rec_version");
-    } else if (builder->isolation_mode == 4) {
+        break;
+    case FBP_ISOLATION_RC_READ_CONSISTENCY:
         tpb->insertTag(&st, isc_tpb_read_committed);
         tpb->insertTag(&st, isc_tpb_read_consistency);
         FBDEBUG_NOFL("  isolation_mode = isc_tpb_read_committed");
         FBDEBUG_NOFL("                   isc_tpb_read_consistency");
-    } else {
-        throw Php_Firebird_Exception(zend_ce_value_error, "BUG: unknown transaction isolation_mode");
+        break;
     }
 
     if (builder->lock_timeout == 0) {

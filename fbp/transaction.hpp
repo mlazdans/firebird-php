@@ -12,18 +12,19 @@
 
 extern "C" {
 
+// Same values as MON$TRANSACTIONS.MON$ISOLATION_MODE
+enum fbp_isolation_mode {
+    FBP_ISOLATION_CONSISTENCY = 0,          // consistency (snapshot table stability)
+    FBP_ISOLATION_CONCURRENCY = 1,          // concurrency (snapshot)
+    FBP_ISOLATION_RC_REC_VERSION = 2,       // read committed record version
+    FBP_ISOLATION_RC_NO_REC_VERSION = 3,    // read committed no record version
+    FBP_ISOLATION_RC_READ_CONSISTENCY = 4   // read committed read consistency
+};
+
 typedef struct firebird_tbuilder {
     char read_only, ignore_limbo, auto_commit, no_auto_undo;
 
-    /**
-     * Isolation mode (level):
-     * 0 - consistency (snapshot table stability)
-     * 1 - concurrency (snapshot)
-     * 2 - read committed record version
-     * 3 - read committed no record version
-     * 4 - read committed read consistency
-     */
-    char isolation_mode;
+    fbp_isolation_mode isolation_mode;
     ISC_SHORT lock_timeout;
     ISC_UINT64 snapshot_at_number;
 
