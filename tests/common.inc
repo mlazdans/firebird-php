@@ -71,3 +71,14 @@ function test_fields40(\FireBird\Transaction $t): void
         printf("%s/%s/%d\n", $info->field, $info->type_str, $info->length);
     }
 }
+
+function test_field_defaults(\FireBird\Transaction $t, string $table): void
+{
+    $t->query(file_get_contents(__DIR__."/001-$table.sql"));
+    $t->commit_ret();
+
+    $t->query("INSERT INTO $table (ID) VALUES (1)");
+    $row = $t->query("SELECT * FROM $table")->fetch_array(\FireBird\FETCH_BLOB_TEXT);
+
+    var_bin($row);
+}

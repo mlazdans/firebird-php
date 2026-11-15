@@ -207,8 +207,8 @@ function init_tmp_db(string $charset = "", bool $drop = true, bool $init_default
         $t->commit_ret();
         $t->execute("INSERT INTO TEST1(I, C) VALUES(1, 'test table not created with isql')");
 
-        exec_from_file_ddl($t, "001-TEST_001.sql"); // TODO: sync Pi defaults
-        exec_from_file_ddl($t, "001-FIELDS25.sql"); // TODO: sync Pi defaults
+        exec_from_file_ddl($t, "001-TEST_001.sql");
+        exec_from_file_ddl($t, "001-FIELDS25.sql");
         $t->commit();
     }
 
@@ -237,27 +237,30 @@ function init_tmp_db(string $charset = "", bool $drop = true, bool $init_default
 }
 
 function var_bin(mixed $v): void {
+    $replace = function(mixed $v) use (&$replace): mixed {
+        if (is_string($v)) return replace_binary($v);
+        if (is_array($v)) return array_map($replace, $v);
+        return $v;
+    };
+
     ob_start();
-    var_dump($v);
+    var_dump($replace($v));
     $buff = ob_get_clean();
 
-    $buff = replace_binary($buff);
+    // $buff = replace_binary($buff);
     $buff = preg_replace(["/object\((.*)\)#\d+ \(\d+\) \{/m"], ["object($1) {"], $buff);
 
     print $buff;
 }
 
+// Invalid UTF-8 or control characters: every byte as \xNN
 function replace_binary(string $data): string
 {
-    $buff = preg_replace_callback(
-        '/[^[:print:]\s\n]/u',
-        function ($match) {
-            return sprintf("\\x%02X", ord($match[0]));
-        },
-        $data
-    );
+    if (preg_match('//u', $data) && !preg_match('/[\x00-\x1F\x7F]/', $data)) {
+        return $data;
+    }
 
-    return $buff ?? $data;
+    return implode(array_map(fn($c) => sprintf("\\x%02X", ord($c)), str_split($data)));
 }
 
 function run_tests(\FireBird\Transaction $t, array $select_tests): array|false
