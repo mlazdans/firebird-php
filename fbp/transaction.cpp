@@ -24,7 +24,6 @@ Transaction::Transaction(Database &dba): dba{dba}
 
 void Transaction::start(const firebird_tbuilder *builder)
 {
-    // TODO: check if already started
     if (tra) {
         throw Php_Firebird_Exception(zend_ce_error, "Transaction already started");
     }

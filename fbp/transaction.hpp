@@ -49,15 +49,6 @@ class Database;
 class Statement;
 class Blob;
 
-// TODO: continue experiments
-// struct ITransactionRelease {
-//     void operator()(ITransaction* t) const noexcept {
-//         if (t) t->release();
-//     }
-// };
-
-// using ITransactionPtr = std::unique_ptr<ITransaction, ITransactionRelease>;
-
 class Transaction: Base
 {
     Transaction(const Transaction&) = delete;
