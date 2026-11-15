@@ -82,10 +82,10 @@ int fbu_blob_put(size_t dbh, size_t blh, size_t buf_size, const char *buf);
 int fbu_blob_seek(size_t dbh, size_t blh, int mode, int offset, int *new_offset);
 
 int fbu_service_init(size_t *svh);
-int fbu_service_get_users(size_t svh, zval *users);
-int fbu_service_add_user(size_t svh, zval *user_info);
-int fbu_service_modify_user(size_t svh, zval *user_info);
-int fbu_service_delete_user(size_t svh, const char *username, size_t username_len);
+// int fbu_service_get_users(size_t svh, zval *users); // disabled, see Service::get_users() in fbp/service.cpp
+// int fbu_service_add_user(size_t svh, zval *user_info);
+// int fbu_service_modify_user(size_t svh, zval *user_info);
+// int fbu_service_delete_user(size_t svh, const char *username, size_t username_len);
 int fbu_service_get_db_info(size_t svh, zval *server_db_info);
 int fbu_service_free(size_t svh);
 int fbu_service_disconnect(size_t svh);

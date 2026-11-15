@@ -37,15 +37,15 @@ require_once('functions.inc');
     print "--- limbo list\n";
     var_dump($db->get_limbo_transactions(1));
 
-    print "--- service users\n";
-    $args = new \FireBird\Service_Connect_Args;
-    $args->service_name = Config::$host . ":service_mgr";
-    $args->user_name = Config::$user_name;
-    $args->password = Config::$password;
-    $svc = \FireBird\Service::connect($args);
-    $names = array_map(fn($u) => $u->username, $svc->get_users());
-    var_dump(in_array("SYSDBA", $names, true));
-    $svc->disconnect();
+    // print "--- service users\n";
+    // $args = new \FireBird\Service_Connect_Args;
+    // $args->service_name = Config::$host . ":service_mgr";
+    // $args->user_name = Config::$user_name;
+    // $args->password = Config::$password;
+    // $svc = \FireBird\Service::connect($args);
+    // $names = array_map(fn($u) => $u->username, $svc->get_users());
+    // var_dump(in_array("SYSDBA", $names, true));
+    // $svc->disconnect();
 
     $t->commit();
 })();
@@ -65,5 +65,3 @@ int(2)
 --- limbo list
 array(0) {
 }
---- service users
-bool(true)

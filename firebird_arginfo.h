@@ -1,5 +1,5 @@
 /* This is a generated file, edit the .stub.php file instead.
- * Stub hash: cf0982e559623edcf1cd867b6e034d67164bd904 */
+ * Stub hash: 56cc76951d395b6834d52ea317416eb21bbe804d */
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_get_client_version, 0, 0, IS_DOUBLE, 0)
 ZEND_END_ARG_INFO()
@@ -215,19 +215,6 @@ ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_class_FireBird_Service_get_db_info, 0, 0, FireBird\\Server_Db_Info, 0)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_FireBird_Service_get_users, 0, 0, IS_ARRAY, 0)
-ZEND_END_ARG_INFO()
-
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_FireBird_Service_add_user, 0, 1, IS_VOID, 0)
-	ZEND_ARG_OBJ_INFO(0, user_info, FireBird\\\125ser_Info, 0)
-ZEND_END_ARG_INFO()
-
-#define arginfo_class_FireBird_Service_modify_user arginfo_class_FireBird_Service_add_user
-
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_FireBird_Service_delete_user, 0, 1, IS_VOID, 0)
-	ZEND_ARG_TYPE_INFO(0, username, IS_STRING, 0)
-ZEND_END_ARG_INFO()
-
 ZEND_BEGIN_ARG_WITH_RETURN_OBJ_INFO_EX(arginfo_class_FireBird_Transaction_Builder_read_only, 0, 0, FireBird\\Transaction_Builder, 0)
 	ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, enable, _IS_BOOL, 0, "true")
 ZEND_END_ARG_INFO()
@@ -333,10 +320,6 @@ ZEND_METHOD(FireBird_Service, connect);
 ZEND_METHOD(FireBird_Service, disconnect);
 ZEND_METHOD(FireBird_Service, get_server_info);
 ZEND_METHOD(FireBird_Service, get_db_info);
-ZEND_METHOD(FireBird_Service, get_users);
-ZEND_METHOD(FireBird_Service, add_user);
-ZEND_METHOD(FireBird_Service, modify_user);
-ZEND_METHOD(FireBird_Service, delete_user);
 ZEND_METHOD(FireBird_Transaction_Builder, read_only);
 ZEND_METHOD(FireBird_Transaction_Builder, ignore_limbo);
 ZEND_METHOD(FireBird_Transaction_Builder, auto_commit);
@@ -444,10 +427,6 @@ static const zend_function_entry class_FireBird_Service_methods[] = {
 	ZEND_ME(FireBird_Service, disconnect, arginfo_class_FireBird_Service_disconnect, ZEND_ACC_PUBLIC)
 	ZEND_ME(FireBird_Service, get_server_info, arginfo_class_FireBird_Service_get_server_info, ZEND_ACC_PUBLIC)
 	ZEND_ME(FireBird_Service, get_db_info, arginfo_class_FireBird_Service_get_db_info, ZEND_ACC_PUBLIC)
-	ZEND_ME(FireBird_Service, get_users, arginfo_class_FireBird_Service_get_users, ZEND_ACC_PUBLIC)
-	ZEND_ME(FireBird_Service, add_user, arginfo_class_FireBird_Service_add_user, ZEND_ACC_PUBLIC)
-	ZEND_ME(FireBird_Service, modify_user, arginfo_class_FireBird_Service_modify_user, ZEND_ACC_PUBLIC)
-	ZEND_ME(FireBird_Service, delete_user, arginfo_class_FireBird_Service_delete_user, ZEND_ACC_PUBLIC)
 	ZEND_FE_END
 };
 
@@ -794,52 +773,6 @@ static zend_class_entry *register_class_FireBird_Server_Db_Info(void)
 	zend_string *property_databases_name = zend_string_init("databases", sizeof("databases") - 1, true);
 	zend_declare_typed_property(class_entry, property_databases_name, &property_databases_default_value, ZEND_ACC_PUBLIC, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_ARRAY));
 	zend_string_release_ex(property_databases_name, true);
-
-	return class_entry;
-}
-
-static zend_class_entry *register_class_FireBird_User_Info(void)
-{
-	zend_class_entry ce, *class_entry;
-
-	INIT_NS_CLASS_ENTRY(ce, "FireBird", "User_Info", NULL);
-	class_entry = zend_register_internal_class_with_flags(&ce, NULL, 0);
-
-	zval property_username_default_value;
-	ZVAL_UNDEF(&property_username_default_value);
-	zend_string *property_username_name = zend_string_init("username", sizeof("username") - 1, true);
-	zend_declare_typed_property(class_entry, property_username_name, &property_username_default_value, ZEND_ACC_PUBLIC, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_STRING));
-	zend_string_release_ex(property_username_name, true);
-
-	zval property_firstname_default_value;
-	ZVAL_UNDEF(&property_firstname_default_value);
-	zend_string *property_firstname_name = zend_string_init("firstname", sizeof("firstname") - 1, true);
-	zend_declare_typed_property(class_entry, property_firstname_name, &property_firstname_default_value, ZEND_ACC_PUBLIC, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_STRING));
-	zend_string_release_ex(property_firstname_name, true);
-
-	zval property_middlename_default_value;
-	ZVAL_UNDEF(&property_middlename_default_value);
-	zend_string *property_middlename_name = zend_string_init("middlename", sizeof("middlename") - 1, true);
-	zend_declare_typed_property(class_entry, property_middlename_name, &property_middlename_default_value, ZEND_ACC_PUBLIC, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_STRING));
-	zend_string_release_ex(property_middlename_name, true);
-
-	zval property_lastname_default_value;
-	ZVAL_UNDEF(&property_lastname_default_value);
-	zend_string *property_lastname_name = zend_string_init("lastname", sizeof("lastname") - 1, true);
-	zend_declare_typed_property(class_entry, property_lastname_name, &property_lastname_default_value, ZEND_ACC_PUBLIC, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_STRING));
-	zend_string_release_ex(property_lastname_name, true);
-
-	zval property_password_default_value;
-	ZVAL_UNDEF(&property_password_default_value);
-	zend_string *property_password_name = zend_string_init("password", sizeof("password") - 1, true);
-	zend_declare_typed_property(class_entry, property_password_name, &property_password_default_value, ZEND_ACC_PUBLIC, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_STRING));
-	zend_string_release_ex(property_password_name, true);
-
-	zval property_admin_default_value;
-	ZVAL_UNDEF(&property_admin_default_value);
-	zend_string *property_admin_name = zend_string_init("admin", sizeof("admin") - 1, true);
-	zend_declare_typed_property(class_entry, property_admin_name, &property_admin_default_value, ZEND_ACC_PUBLIC, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_BOOL));
-	zend_string_release_ex(property_admin_name, true);
 
 	return class_entry;
 }

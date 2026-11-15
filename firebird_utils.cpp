@@ -819,6 +819,8 @@ int fbu_service_get_server_info(size_t svh, zval *Server_Info)
     fbu_ex_wrap_end();
 }
 
+// User management disabled, see Service::get_users() in fbp/service.cpp
+#if 0
 int fbu_service_get_users(size_t svh, zval *users)
 {
     FBDEBUG("%s(svh=%zu)", __func__, svh);
@@ -826,7 +828,6 @@ int fbu_service_get_users(size_t svh, zval *users)
         get_sv(svh)->get_users(users);
     fbu_ex_wrap_end();
 }
-
 int fbu_service_add_user(size_t svh, zval *user_info)
 {
     FBDEBUG("%s(svh=%zu)", __func__, svh);
@@ -850,6 +851,8 @@ int fbu_service_delete_user(size_t svh, const char *username, size_t username_le
         get_sv(svh)->delete_user(username, username_len);
     fbu_ex_wrap_end();
 }
+
+#endif
 
 int fbu_service_get_db_info(size_t svh, zval *server_db_info)
 {

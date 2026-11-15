@@ -509,13 +509,16 @@ class Service
     public function get_server_info(): Server_Info { die; }
     public function get_db_info(): Server_Db_Info { die; }
 
-    /**
-     * @return User_Info[]
-     */
-    public function get_users(): array { die; }
-    public function add_user(User_Info $user_info): void { die; }
-    public function modify_user(User_Info $user_info): void { die; }
-    public function delete_user(string $username): void { die; }
+    // Disabled: user management through the Services API is deprecated (no multiple security
+    // databases, default user manager plugin only; listing limited to 64 KB).
+    // Use SQL: SELECT ... FROM SEC$USERS, CREATE / ALTER / DROP USER
+    // /**
+    //  * @return User_Info[]
+    //  */
+    // public function get_users(): array { die; }
+    // public function add_user(User_Info $user_info): void { die; }
+    // public function modify_user(User_Info $user_info): void { die; }
+    // public function delete_user(string $username): void { die; }
 
     // Temp disabled
     // public function backup(string $dbname, string $bkp_file, int $options = 0): void { die; }
@@ -635,15 +638,16 @@ class Server_Db_Info
     public array $databases;
 }
 
-class User_Info
-{
-    public string $username;
-    public string $firstname;
-    public string $middlename;
-    public string $lastname;
-    public string $password;   // Not set, only when create/modify user
-    public bool $admin;
-}
+// Disabled with Service user management
+// class User_Info
+// {
+//     public string $username;
+//     public string $firstname;
+//     public string $middlename;
+//     public string $lastname;
+//     public string $password;   // Not set, only when create/modify user
+//     public bool $admin;
+// }
 
 /**
  * One entry of the status Firebird returned with an error.

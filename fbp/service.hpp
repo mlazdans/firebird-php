@@ -34,7 +34,7 @@ fbp_declare_object_accessor(firebird_service);
 
 extern firebird_xpb_zmap fbp_service_connect_zmap;
 extern firebird_xpb_zmap fbp_server_info_zmap;
-extern firebird_xpb_zmap fbp_user_info_zmap;
+// extern firebird_xpb_zmap fbp_user_info_zmap;
 
 void register_FireBird_Service_object_handlers();
 
@@ -57,11 +57,11 @@ public:
     void connect(zval *args);
     void disconnect();
     void get_info(zval *server_info);
-    void get_users(zval *users);
-    void add_user(zval *user_info);
-    void modify_user(zval *user_info);
-    void add_or_modify_user(zval *user_info, const ISC_UCHAR tag);
-    void delete_user(const char *username, size_t username_len);
+    // void get_users(zval *users);
+    // void add_user(zval *user_info);
+    // void modify_user(zval *user_info);
+    // void add_or_modify_user(zval *user_info, const ISC_UCHAR tag);
+    // void delete_user(const char *username, size_t username_len);
     void get_db_info(zval *server_db_info);
 };
 

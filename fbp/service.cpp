@@ -119,6 +119,13 @@ void Service::get_info(zval *server_info)
     }
 }
 
+// Disabled: managing users through the Services API is deprecated since Firebird 3
+// (doc/sql.extensions/README.user_management): no multiple security databases, and
+// only the default user manager plugin can be used (no USING PLUGIN). Listing is also
+// limited to 64 KB per service info item (2-byte length, INF_put_item() truncates
+// above MAX_USHORT), so a longer list can not be read by enlarging the buffer.
+// Use SQL instead: SELECT ... FROM SEC$USERS, CREATE / ALTER / DROP USER.
+#if 0
 void Service::get_users(zval *users)
 {
     const unsigned char req[] = { isc_info_svc_get_users };
@@ -130,7 +137,7 @@ void Service::get_users(zval *users)
     // Restart the action with a bigger buffer until the whole list fits
     for (size_t size = 16 * 1024; ; size *= 4) {
         if (size > 16 * 1024 * 1024) {
-            throw Php_Firebird_Exception(zend_ce_error, "User list does not fit in 16 MB");
+            throw Php_Firebird_Exception(FireBird_Fb_Exception_ce, "User list does not fit in 16 MB");
         }
 
         resp.assign(size, 0);
@@ -139,7 +146,7 @@ void Service::get_users(zval *users)
 
         if (resp[0] != isc_info_svc_get_users) {
             if (resp[0] == isc_info_truncated) continue;
-            throw Php_Firebird_Exception(zend_ce_error,
+            throw Php_Firebird_Exception(FireBird_Fb_Exception_ce,
                 "Unexpected service response tag: " + std::to_string(resp[0]));
         }
 
@@ -154,7 +161,7 @@ void Service::get_users(zval *users)
 
     auto bad = [&]() {
         zval_ptr_dtor(&user_info);
-        return Php_Firebird_Exception(zend_ce_error, "Malformed user list in service response");
+        return Php_Firebird_Exception(FireBird_Fb_Exception_ce, "Malformed user list in service response");
     };
 
     while (p < end) {
@@ -204,7 +211,6 @@ void Service::get_users(zval *users)
 
     if (Z_TYPE(user_info) == IS_OBJECT) add_next_index_zval(users, &user_info);
 }
-
 void Service::add_user(zval *user_info)
 {
     add_or_modify_user(user_info, isc_action_svc_add_user);
@@ -232,6 +238,8 @@ void Service::delete_user(const char *username, size_t username_len)
     xpb->insertBytes(&st, isc_spb_sec_username, username, username_len);
     get()->start(&st, xpb->getBufferLength(&st), xpb->getBuffer(&st));
 }
+
+#endif
 
 void Service::get_db_info(zval *server_db_info)
 {

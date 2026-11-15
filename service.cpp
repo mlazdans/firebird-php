@@ -24,6 +24,8 @@ firebird_xpb_zmap fbp_service_connect_zmap XPB_ZMAP_INIT(
     fbp_service_connect_ztypes
 );
 
+// User management disabled, see Service::get_users() in fbp/service.cpp
+#if 0
 constexpr uint8_t fbp_user_info_tags[] {
     isc_spb_sec_username, isc_spb_sec_password, isc_spb_sec_firstname, isc_spb_sec_middlename,
     isc_spb_sec_lastname, isc_spb_sec_admin
@@ -41,6 +43,7 @@ firebird_xpb_zmap fbp_user_info_zmap XPB_ZMAP_INIT(
     fbp_user_info_names,
     fbp_user_info_ztypes
 );
+#endif
 
 PHP_METHOD(FireBird_Service, __construct)
 {
@@ -102,6 +105,8 @@ PHP_METHOD(FireBird_Service, get_db_info)
     }
 }
 
+// User management disabled, see Service::get_users() in fbp/service.cpp
+#if 0
 PHP_METHOD(FireBird_Service, get_users)
 {
     ZEND_PARSE_PARAMETERS_NONE();
@@ -113,7 +118,6 @@ PHP_METHOD(FireBird_Service, get_users)
         RETURN_THROWS();
     }
 }
-
 PHP_METHOD(FireBird_Service, add_user)
 {
     zval *ui = NULL;
@@ -157,6 +161,8 @@ PHP_METHOD(FireBird_Service, delete_user)
         RETURN_THROWS();
     }
 }
+
+#endif
 
 PHP_METHOD(FireBird_Service, backup)
 {

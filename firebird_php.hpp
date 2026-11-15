@@ -185,7 +185,7 @@ extern zend_class_entry *FireBird_Service_ce;
 extern zend_class_entry *FireBird_Service_Connect_Args_ce;
 extern zend_class_entry *FireBird_Server_Info_ce;
 extern zend_class_entry *FireBird_Server_Db_Info_ce;
-extern zend_class_entry *FireBird_User_Info_ce;
+// extern zend_class_entry *FireBird_User_Info_ce;
 
 void fbp_dump_buffer(int len, const unsigned char *buffer);
 void fbp_dump_buffer_raw(int len, const unsigned char *buffer);

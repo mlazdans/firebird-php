@@ -157,7 +157,7 @@ zend_class_entry *FireBird_Service_ce;
 zend_class_entry *FireBird_Service_Connect_Args_ce;
 zend_class_entry *FireBird_Server_Info_ce;
 zend_class_entry *FireBird_Server_Db_Info_ce;
-zend_class_entry *FireBird_User_Info_ce;
+// zend_class_entry *FireBird_User_Info_ce;
 
 PHP_MINIT_FUNCTION(firebird)
 {
@@ -213,7 +213,7 @@ PHP_MINIT_FUNCTION(firebird)
     FireBird_Service_Connect_Args_ce = register_class_FireBird_Service_Connect_Args();
     FireBird_Server_Info_ce = register_class_FireBird_Server_Info();
     FireBird_Server_Db_Info_ce = register_class_FireBird_Server_Db_Info();
-    FireBird_User_Info_ce = register_class_FireBird_User_Info();
+    // FireBird_User_Info_ce = register_class_FireBird_User_Info();
     FireBird_Db_Info_ce = register_class_FireBird_Db_Info();
     FireBird_Var_Info_ce = register_class_FireBird_Var_Info();
 
