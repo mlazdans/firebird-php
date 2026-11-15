@@ -1,5 +1,6 @@
 #include "firebird_php.hpp"
 #include "fbp/transaction.hpp"
+#include "firebird_utils.h"
 
 extern "C" {
 #include <ibase.h>
@@ -65,7 +66,7 @@ PHP_METHOD(FireBird_Transaction_Builder, wait)
     ZEND_PARSE_PARAMETERS_END();
 
     if (lock_timeout < -1 || lock_timeout > 0x7FFF) {
-        zend_throw_exception_ex(zend_ce_value_error, 0, "lock_timeout argument must be between -1 and %d", 0x7FFF);
+        FBU_THROW(FireBird_Fb_Value_Exception_ce, "lock_timeout argument must be between -1 and %d", 0x7FFF);
         RETURN_THROWS();
     }
 

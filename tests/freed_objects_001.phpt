@@ -44,8 +44,8 @@ string(0) ""
 int(1)
 bool(true)
 bool(true)
-Statement::$out_vars_count: Invalid database handle
-Statement::$name: Invalid database handle
-Transaction::$id: Invalid database handle
-Blob::$total_length: Invalid database handle
-Blob::id(): Invalid database handle
+Statement::$out_vars_count: invalid database handle (no active connection)
+Statement::$name: invalid database handle (no active connection)
+Transaction::$id: invalid database handle (no active connection)
+Blob::$total_length: invalid database handle (no active connection)
+Blob::id(): invalid database handle (no active connection)

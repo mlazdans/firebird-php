@@ -23,7 +23,7 @@ require_once('functions.inc');
     print "--- SQLSTATE is five characters\n";
     try {
         $t->query("SELECT * FROM NO_SUCH_TABLE");
-    } catch (\FireBird\Fb_Exception $e) {
+    } catch (\FireBird\Fb_Server_Exception $e) {
         var_dump($e->sqlstate);
     }
 

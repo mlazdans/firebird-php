@@ -1,5 +1,5 @@
 /* This is a generated file, edit the .stub.php file instead.
- * Stub hash: 1e2c390e37bd2fd3baa8434953edfbe183693b9f */
+ * Stub hash: cf0982e559623edcf1cd867b6e034d67164bd904 */
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_get_client_version, 0, 0, IS_DOUBLE, 0)
 ZEND_END_ARG_INFO()
@@ -844,30 +844,20 @@ static zend_class_entry *register_class_FireBird_User_Info(void)
 	return class_entry;
 }
 
-static zend_class_entry *register_class_FireBird_Fb_Error(void)
+static zend_class_entry *register_class_FireBird_Fb_Status_Item(void)
 {
 	zend_class_entry ce, *class_entry;
 
-	INIT_NS_CLASS_ENTRY(ce, "FireBird", "Fb_Error", NULL);
-	class_entry = zend_register_internal_class_with_flags(&ce, NULL, 0);
+	INIT_NS_CLASS_ENTRY(ce, "FireBird", "Fb_Status_Item", NULL);
+	class_entry = zend_register_internal_class_with_flags(&ce, NULL, ZEND_ACC_FINAL);
 
-	zval property_error_msg_default_value;
-	ZVAL_UNDEF(&property_error_msg_default_value);
-	zend_string *property_error_msg_name = zend_string_init("error_msg", sizeof("error_msg") - 1, true);
-	zend_declare_typed_property(class_entry, property_error_msg_name, &property_error_msg_default_value, ZEND_ACC_PUBLIC|ZEND_ACC_READONLY, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_STRING));
-	zend_string_release_ex(property_error_msg_name, true);
+	zval property_code_default_value;
+	ZVAL_UNDEF(&property_code_default_value);
+	zend_declare_typed_property(class_entry, ZSTR_KNOWN(ZEND_STR_CODE), &property_code_default_value, ZEND_ACC_PUBLIC|ZEND_ACC_READONLY, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_LONG));
 
-	zval property_error_code_default_value;
-	ZVAL_UNDEF(&property_error_code_default_value);
-	zend_string *property_error_code_name = zend_string_init("error_code", sizeof("error_code") - 1, true);
-	zend_declare_typed_property(class_entry, property_error_code_name, &property_error_code_default_value, ZEND_ACC_PUBLIC|ZEND_ACC_READONLY, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_LONG));
-	zend_string_release_ex(property_error_code_name, true);
-
-	zval property_error_code_long_default_value;
-	ZVAL_UNDEF(&property_error_code_long_default_value);
-	zend_string *property_error_code_long_name = zend_string_init("error_code_long", sizeof("error_code_long") - 1, true);
-	zend_declare_typed_property(class_entry, property_error_code_long_name, &property_error_code_long_default_value, ZEND_ACC_PUBLIC|ZEND_ACC_READONLY, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_LONG));
-	zend_string_release_ex(property_error_code_long_name, true);
+	zval property_message_default_value;
+	ZVAL_UNDEF(&property_message_default_value);
+	zend_declare_typed_property(class_entry, ZSTR_KNOWN(ZEND_STR_MESSAGE), &property_message_default_value, ZEND_ACC_PUBLIC|ZEND_ACC_READONLY, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_STRING));
 
 	return class_entry;
 }
@@ -1391,19 +1381,7 @@ static zend_class_entry *register_class_FireBird_Fb_Exception(zend_class_entry *
 	zend_class_entry ce, *class_entry;
 
 	INIT_NS_CLASS_ENTRY(ce, "FireBird", "Fb_Exception", NULL);
-	class_entry = zend_register_internal_class_with_flags(&ce, class_entry_Exception, ZEND_ACC_FINAL);
-
-	zval property_sqlstate_default_value;
-	ZVAL_UNDEF(&property_sqlstate_default_value);
-	zend_string *property_sqlstate_name = zend_string_init("sqlstate", sizeof("sqlstate") - 1, true);
-	zend_declare_typed_property(class_entry, property_sqlstate_name, &property_sqlstate_default_value, ZEND_ACC_PUBLIC|ZEND_ACC_READONLY, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_STRING));
-	zend_string_release_ex(property_sqlstate_name, true);
-
-	zval property_errors_default_value;
-	ZVAL_UNDEF(&property_errors_default_value);
-	zend_string *property_errors_name = zend_string_init("errors", sizeof("errors") - 1, true);
-	zend_declare_typed_property(class_entry, property_errors_name, &property_errors_default_value, ZEND_ACC_PUBLIC|ZEND_ACC_READONLY, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_ARRAY));
-	zend_string_release_ex(property_errors_name, true);
+	class_entry = zend_register_internal_class_with_flags(&ce, class_entry_Exception, 0);
 
 	zval property_file_ext_default_value;
 	ZVAL_UNDEF(&property_file_ext_default_value);
@@ -1416,6 +1394,54 @@ static zend_class_entry *register_class_FireBird_Fb_Exception(zend_class_entry *
 	zend_string *property_line_ext_name = zend_string_init("line_ext", sizeof("line_ext") - 1, true);
 	zend_declare_typed_property(class_entry, property_line_ext_name, &property_line_ext_default_value, ZEND_ACC_PUBLIC|ZEND_ACC_READONLY, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_LONG));
 	zend_string_release_ex(property_line_ext_name, true);
+
+	return class_entry;
+}
+
+static zend_class_entry *register_class_FireBird_Fb_Value_Exception(zend_class_entry *class_entry_FireBird_Fb_Exception)
+{
+	zend_class_entry ce, *class_entry;
+
+	INIT_NS_CLASS_ENTRY(ce, "FireBird", "Fb_Value_Exception", NULL);
+	class_entry = zend_register_internal_class_with_flags(&ce, class_entry_FireBird_Fb_Exception, ZEND_ACC_FINAL);
+
+	return class_entry;
+}
+
+static zend_class_entry *register_class_FireBird_Fb_Logic_Exception(zend_class_entry *class_entry_FireBird_Fb_Exception)
+{
+	zend_class_entry ce, *class_entry;
+
+	INIT_NS_CLASS_ENTRY(ce, "FireBird", "Fb_Logic_Exception", NULL);
+	class_entry = zend_register_internal_class_with_flags(&ce, class_entry_FireBird_Fb_Exception, ZEND_ACC_FINAL);
+
+	return class_entry;
+}
+
+static zend_class_entry *register_class_FireBird_Fb_Server_Exception(zend_class_entry *class_entry_FireBird_Fb_Exception)
+{
+	zend_class_entry ce, *class_entry;
+
+	INIT_NS_CLASS_ENTRY(ce, "FireBird", "Fb_Server_Exception", NULL);
+	class_entry = zend_register_internal_class_with_flags(&ce, class_entry_FireBird_Fb_Exception, ZEND_ACC_FINAL);
+
+	zval property_sqlstate_default_value;
+	ZVAL_UNDEF(&property_sqlstate_default_value);
+	zend_string *property_sqlstate_name = zend_string_init("sqlstate", sizeof("sqlstate") - 1, true);
+	zend_declare_typed_property(class_entry, property_sqlstate_name, &property_sqlstate_default_value, ZEND_ACC_PUBLIC|ZEND_ACC_READONLY, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_STRING));
+	zend_string_release_ex(property_sqlstate_name, true);
+
+	zval property_status_default_value;
+	ZVAL_UNDEF(&property_status_default_value);
+	zend_string *property_status_name = zend_string_init("status", sizeof("status") - 1, true);
+	zend_declare_typed_property(class_entry, property_status_name, &property_status_default_value, ZEND_ACC_PUBLIC|ZEND_ACC_READONLY, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_ARRAY));
+	zend_string_release_ex(property_status_name, true);
+
+	zval property_warnings_default_value;
+	ZVAL_UNDEF(&property_warnings_default_value);
+	zend_string *property_warnings_name = zend_string_init("warnings", sizeof("warnings") - 1, true);
+	zend_declare_typed_property(class_entry, property_warnings_name, &property_warnings_default_value, ZEND_ACC_PUBLIC|ZEND_ACC_READONLY, NULL, (zend_type) ZEND_TYPE_INIT_MASK(MAY_BE_ARRAY));
+	zend_string_release_ex(property_warnings_name, true);
 
 	return class_entry;
 }

@@ -645,11 +645,14 @@ class User_Info
     public bool $admin;
 }
 
-class Fb_Error
+/**
+ * One entry of the status Firebird returned with an error.
+ */
+final class Fb_Status_Item
 {
-    public readonly string $error_msg;
-    public readonly int $error_code;
-    public readonly int $error_code_long;
+    /** Firebird error code, e.g. 335544665 (isc_unique_key_violation). 0 for OS and pre-formatted messages */
+    public readonly int $code;
+    public readonly string $message;
 }
 
 class Db_Info
@@ -766,10 +769,36 @@ class Service_Connect_Args
     public string $password;
 }
 
-final class Fb_Exception extends \Exception
+class Fb_Exception extends \Exception
 {
-    public readonly string $sqlstate;
-    public readonly array $errors;
     public readonly string $file_ext;
     public readonly int $line_ext;
+}
+
+/**
+ * A value was rejected before reaching the server: wrong type or out of range.
+ */
+final class Fb_Value_Exception extends Fb_Exception {}
+
+/**
+ * Wrong call: invalid or closed object, wrong order or state, objects from different connections.
+ */
+final class Fb_Logic_Exception extends Fb_Exception {}
+
+/**
+ * Error returned by Firebird. $code is the first Firebird error code.
+ */
+final class Fb_Server_Exception extends Fb_Exception
+{
+    /**
+     * Five characters: SQL class (2) and subclass (3), e.g. "23000".
+     * @link https://firebirdsql.org/file/documentation/html/en/refdocs/fblangref50/firebird-50-language-reference.html#fblangref50-appx02-sqlstates
+     */
+    public readonly string $sqlstate;
+
+    /** @var Fb_Status_Item[] */
+    public readonly array $status;
+
+    /** @var Fb_Status_Item[] */
+    public readonly array $warnings;
 }

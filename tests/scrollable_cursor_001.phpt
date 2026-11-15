@@ -101,12 +101,12 @@ relative 1: {"ID":5,"NAME":"n5"}
 count: 5
 next after count: null
 close: ok
-fetch after close: FireBird\Fb_Exception: Cursor is not open
-close again: FireBird\Fb_Exception: Invalid cursor pointer
-abs out of int: ValueError: FireBird\Scrollable_Cursor::fetch_absolute(): Argument #1 ($position) must be between -2147483648 and 2147483647
+fetch after close: FireBird\Fb_Logic_Exception: Cursor is not open
+close again: FireBird\Fb_Logic_Exception: Attempt to reclose a closed cursor
+abs out of int: FireBird\Fb_Value_Exception: FireBird\Scrollable_Cursor::fetch_absolute(): Argument #1 ($position) must be between -2147483648 and 2147483647
 -- prepared, reexecute
-fetch before execute: FireBird\Fb_Exception: Cursor is not open
-bof before execute: FireBird\Fb_Exception: Cursor is not open
+fetch before execute: FireBird\Fb_Logic_Exception: Cursor is not open
+bof before execute: FireBird\Fb_Logic_Exception: Cursor is not open
 count 2: 2
 last: {"ID":2}
 count 4: 4
@@ -117,12 +117,12 @@ selectable proc: {"I":4}
 function: {"U":"N2"}
 exec block: {"X":8}
 update returning: {"ID":4,"NAME":"n4x"}
-insert values returning: FireBird\Fb_Exception: Cannot open cursor for non-SELECT statement
-execute procedure: FireBird\Fb_Exception: Cannot open cursor for non-SELECT statement
-plain insert: FireBird\Fb_Exception: Cannot open cursor for non-SELECT statement
+insert values returning: FireBird\Fb_Logic_Exception: Cannot open cursor for non-SELECT statement
+execute procedure: FireBird\Fb_Logic_Exception: Cannot open cursor for non-SELECT statement
+plain insert: FireBird\Fb_Logic_Exception: Cannot open cursor for non-SELECT statement
 blob text: {"B":"blob5"}
 blob after prior: {"B":"blob4"}
-wrong db tr: ValueError: Transaction belongs to a different database than the statement
+wrong db tr: FireBird\Fb_Logic_Exception: Transaction belongs to a different database than the statement
 new direct: Error: Call to private FireBird\Scrollable_Cursor::__construct() from global scope
-fetch after tr gone: FireBird\Fb_Exception: Cursor is not open
+fetch after tr gone: FireBird\Fb_Logic_Exception: Cursor is not open
 done

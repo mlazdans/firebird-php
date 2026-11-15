@@ -17,6 +17,10 @@ void fbu_xpb_insert_object(Firebird::IXpbBuilder* xpb, zval *obj, zend_class_ent
 extern "C" {
 
 void fbu_handle_exception(const char *file, size_t line);
+// Throws ce (Fb_Exception or a subclass) from PHP glue code
+void fbu_throw(zend_class_entry *ce, const char *file, size_t line, const char *format, ...)
+    ZEND_ATTRIBUTE_FORMAT(printf, 4, 5);
+#define FBU_THROW(ce, ...) fbu_throw(ce, __FILE__, __LINE__, __VA_ARGS__)
 void fbu_report_exception_as_warning(const char *file, size_t line);
 
 #include <ibase.h>

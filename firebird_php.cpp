@@ -136,7 +136,7 @@ static PHP_GSHUTDOWN_FUNCTION(firebird)
 #endif
 }
 
-zend_class_entry *FireBird_Fb_Error_ce;
+zend_class_entry *FireBird_Fb_Status_Item_ce;
 zend_class_entry *FireBird_Var_Info_ce;
 zend_class_entry *FireBird_Event_ce;
 zend_class_entry *FireBird_Transaction_Builder_ce;
@@ -150,6 +150,9 @@ zend_class_entry *FireBird_Scrollable_Cursor_ce;
 zend_class_entry *FireBird_Blob_ce;
 zend_class_entry *FireBird_Blob_Id_ce;
 zend_class_entry *FireBird_Fb_Exception_ce;
+zend_class_entry *FireBird_Fb_Value_Exception_ce;
+zend_class_entry *FireBird_Fb_Logic_Exception_ce;
+zend_class_entry *FireBird_Fb_Server_Exception_ce;
 zend_class_entry *FireBird_Service_ce;
 zend_class_entry *FireBird_Service_Connect_Args_ce;
 zend_class_entry *FireBird_Server_Info_ce;
@@ -174,7 +177,7 @@ PHP_MINIT_FUNCTION(firebird)
     // firebird replaces some signals at runtime, suppress warnings.
     SIGG(check) = 0;
 #endif
-    FireBird_Fb_Error_ce = register_class_FireBird_Fb_Error();
+    FireBird_Fb_Status_Item_ce = register_class_FireBird_Fb_Status_Item();
     FireBird_Connect_Args_ce = register_class_FireBird_Connect_Args();
     FireBird_Create_Args_ce = register_class_FireBird_Create_Args();
 
@@ -200,6 +203,9 @@ PHP_MINIT_FUNCTION(firebird)
     register_FireBird_Blob_Id_object_handlers();
 
     FireBird_Fb_Exception_ce = register_class_FireBird_Fb_Exception(zend_ce_exception);
+    FireBird_Fb_Value_Exception_ce = register_class_FireBird_Fb_Value_Exception(FireBird_Fb_Exception_ce);
+    FireBird_Fb_Logic_Exception_ce = register_class_FireBird_Fb_Logic_Exception(FireBird_Fb_Exception_ce);
+    FireBird_Fb_Server_Exception_ce = register_class_FireBird_Fb_Server_Exception(FireBird_Fb_Exception_ce);
 
     FireBird_Service_ce = register_class_FireBird_Service();
     register_FireBird_Service_object_handlers();

@@ -27,7 +27,7 @@ void Database::connect(zval *args)
     ReleasePtr<IProvider> prov(master->getDispatcher());
 
     if (!args || Z_TYPE_P(args) != IS_OBJECT || Z_OBJCE_P(args) != FireBird_Connect_Args_ce) {
-        throw Php_Firebird_Exception(zend_ce_value_error, "Expected instanceof Connect_Args");
+        throw Php_Firebird_Exception(FireBird_Fb_Logic_Exception_ce, "Expected instanceof Connect_Args");
     }
 
     const char *database = fbu_read_required_string_prop(FireBird_Connect_Args_ce, args, "database");
@@ -44,7 +44,7 @@ void Database::create(zval *args)
     ReleasePtr<IProvider> prov(master->getDispatcher());
 
     if (!args || Z_TYPE_P(args) != IS_OBJECT || Z_OBJCE_P(args) != FireBird_Create_Args_ce) {
-        throw Php_Firebird_Exception(zend_ce_value_error, "Expected instanceof Create_Args");
+        throw Php_Firebird_Exception(FireBird_Fb_Logic_Exception_ce, "Expected instanceof Create_Args");
     }
 
     const char *database = fbu_read_required_string_prop(FireBird_Create_Args_ce, args, "database");
@@ -89,7 +89,7 @@ void Database::check_no_active_transactions(const char *action)
     });
 
     if (active) {
-        throw Php_Firebird_Exception(zend_ce_error, std::string("Cannot ") + action + " with " +
+        throw Php_Firebird_Exception(FireBird_Fb_Logic_Exception_ce, std::string("Cannot ") + action + " with " +
             std::to_string(active) + " active transaction(s): commit or roll back first");
     }
 }
@@ -165,7 +165,7 @@ std::unique_ptr<Transaction> &Database::get_transaction(size_t trh)
 {
     FBDEBUG("Database::get_transaction(trh=%zu)", trh);
     if (!tr_list.is_valid(trh)) {
-        throw Php_Firebird_Exception(zend_ce_error, "Invalid transaction handle");
+        throw Php_Firebird_Exception(FireBird_Fb_Logic_Exception_ce, isc_bad_trans_handle);
     }
 
     return tr_list.get(trh);
@@ -190,7 +190,7 @@ void Database::statement_free(size_t sth)
 std::unique_ptr<Statement> &Database::get_statement(size_t sth)
 {
     if (!st_list.is_valid(sth)) {
-        throw Php_Firebird_Exception(zend_ce_error, "Invalid statement handle");
+        throw Php_Firebird_Exception(FireBird_Fb_Logic_Exception_ce, isc_bad_stmt_handle);
     }
 
     return st_list.get(sth);
@@ -199,7 +199,7 @@ std::unique_ptr<Statement> &Database::get_statement(size_t sth)
 std::unique_ptr<Blob> &Database::get_blob(size_t blh)
 {
     if (!bl_list.is_valid(blh)) {
-        throw Php_Firebird_Exception(zend_ce_error, "Invalid blob handle");
+        throw Php_Firebird_Exception(FireBird_Fb_Logic_Exception_ce, isc_bad_segstr_handle);
     }
 
     return bl_list.get(blh);
@@ -217,13 +217,13 @@ IAttachment *Database::get()
     if (att) {
         return att;
     }
-    throw Php_Firebird_Exception(zend_ce_error, "Invalid database pointer");
+    throw Php_Firebird_Exception(FireBird_Fb_Logic_Exception_ce, isc_bad_db_handle);
 }
 
 void Database::execute_create(unsigned int len_sql, const char *sql)
 {
     if (att) {
-        throw Php_Firebird_Exception(zend_ce_value_error, "Database already initialized");
+        throw Php_Firebird_Exception(FireBird_Fb_Logic_Exception_ce, "Database already initialized");
     }
 
     auto util = master->getUtilInterface();
@@ -405,7 +405,7 @@ void Database::get_info(zval *db_info)
 
         if (tag == isc_info_end) break;
         if (tag == isc_info_truncated) {
-            throw Php_Firebird_Exception(zend_ce_error, "BUG: database info response truncated");
+            throw Php_Firebird_Exception(FireBird_Fb_Exception_ce, "BUG: database info response truncated");
         }
 
         switch(tag) {

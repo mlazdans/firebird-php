@@ -29,14 +29,13 @@ Statement::Statement(Database &dba)
 void Statement::prepare(size_t trh, unsigned int len_sql, const char *sql)
 {
     if (stmt) {
-        throw Php_Firebird_Exception(zend_ce_error,
+        throw Php_Firebird_Exception(FireBird_Fb_Exception_ce,
             "BUG: statement already prepared or internal structure corrupted");
     }
 
     auto &tra = *dba.get_transaction(trh);
     if (!tra.is_active()) {
-        const ISC_STATUS err[] = { isc_arg_gds, isc_bad_trans_handle, isc_arg_end };
-        throw FbException(&st, err);
+        throw Php_Firebird_Exception(FireBird_Fb_Logic_Exception_ce, isc_bad_trans_handle);
     }
 
     // Owned from here on: if anything below throws, ~Statement frees it
@@ -193,7 +192,7 @@ void Statement::bind(size_t trh, zval *b_vars, unsigned int num_bind_args)
     char type_buf[64];
 
     if (num_bind_args != info.in_vars_count) {
-        throw Php_Firebird_Exception(zend_ce_argument_count_error,
+        throw Php_Firebird_Exception(FireBird_Fb_Logic_Exception_ce,
             fmt("Statement expects %u arguments, %u given", info.in_vars_count, num_bind_args));
     }
 
@@ -222,7 +221,7 @@ void Statement::bind(size_t trh, zval *b_vars, unsigned int num_bind_args)
             type_named, var.length, zend_zval_type_name(b_var));
 
         auto wrong_type = [&]() {
-            return Php_Firebird_Exception(zend_ce_type_error,
+            return Php_Firebird_Exception(FireBird_Fb_Value_Exception_ce,
                 fmt("Argument %u: type mismatch '%s' to SQL type '%s'",
                     argn, zend_zval_type_name(b_var), type_named));
         };
@@ -244,7 +243,7 @@ void Statement::bind(size_t trh, zval *b_vars, unsigned int num_bind_args)
                     fits = scale_int64(Z_LVAL_P(b_var), scale, &v);
                 } else if (Z_TYPE_P(b_var) == IS_DOUBLE || Z_TYPE_P(b_var) == IS_STRING) {
                     if (Z_TYPE_P(b_var) == IS_DOUBLE && !zend_finite(Z_DVAL_P(b_var))) {
-                        throw Php_Firebird_Exception(zend_ce_value_error,
+                        throw Php_Firebird_Exception(FireBird_Fb_Value_Exception_ce,
                             fmt("Argument %u: cannot bind INF or NAN to %s", argn, type_named));
                     }
                     // Firebird's own parser: rounds to the column scale, accepts exponents
@@ -258,7 +257,7 @@ void Statement::bind(size_t trh, zval *b_vars, unsigned int num_bind_args)
 
                 if (!fits || v < lmin || v > lmax) {
                     const zend_string *str = as_string(b_var, tmp);
-                    throw Php_Firebird_Exception(zend_ce_value_error,
+                    throw Php_Firebird_Exception(FireBird_Fb_Value_Exception_ce,
                         fmt("Argument %u: value %s is out of range for %s", argn, ZSTR_VAL(str), type_named));
                 }
 
@@ -283,7 +282,7 @@ void Statement::bind(size_t trh, zval *b_vars, unsigned int num_bind_args)
                     zend_long lval;
                     auto t = is_numeric_string(Z_STRVAL_P(b_var), Z_STRLEN_P(b_var), &lval, &d, false);
                     if (!t) {
-                        throw Php_Firebird_Exception(zend_ce_value_error,
+                        throw Php_Firebird_Exception(FireBird_Fb_Value_Exception_ce,
                             fmt("Argument %u: '%s' is not numeric", argn, Z_STRVAL_P(b_var)));
                     }
                     if (t == IS_LONG) d = static_cast<double>(lval);
@@ -292,13 +291,13 @@ void Statement::bind(size_t trh, zval *b_vars, unsigned int num_bind_args)
                 }
 
                 if (!zend_finite(d)) {
-                    throw Php_Firebird_Exception(zend_ce_value_error,
+                    throw Php_Firebird_Exception(FireBird_Fb_Value_Exception_ce,
                         fmt("Argument %u: cannot bind INF or NAN to %s", argn, type_named));
                 }
 
                 if (sqltype == SQL_FLOAT) {
                     if (d > FLT_MAX || d < -FLT_MAX) {
-                        throw Php_Firebird_Exception(zend_ce_value_error,
+                        throw Php_Firebird_Exception(FireBird_Fb_Value_Exception_ce,
                             fmt("Argument %u: value %g is out of range for FLOAT", argn, d));
                     }
                     *reinterpret_cast<float*>(sqldata) = static_cast<float>(d);
@@ -314,7 +313,7 @@ void Statement::bind(size_t trh, zval *b_vars, unsigned int num_bind_args)
                     throw wrong_type();
                 }
                 if (Z_TYPE_P(b_var) == IS_DOUBLE && !zend_finite(Z_DVAL_P(b_var))) {
-                    throw Php_Firebird_Exception(zend_ce_value_error,
+                    throw Php_Firebird_Exception(FireBird_Fb_Value_Exception_ce,
                         fmt("Argument %u: cannot bind INF or NAN to %s", argn, type_named));
                 }
 
@@ -354,7 +353,7 @@ void Statement::bind(size_t trh, zval *b_vars, unsigned int num_bind_args)
                 } else if (Z_TYPE_P(b_var) == IS_OBJECT && Z_OBJCE_P(b_var) == FireBird_Blob_ce) {
                     auto blob = get_firebird_blob_from_zval(b_var);
                     if (fbu_get_database(blob->dbh) != &dba) {
-                        throw Php_Firebird_Exception(zend_ce_value_error,
+                        throw Php_Firebird_Exception(FireBird_Fb_Logic_Exception_ce,
                             fmt("Argument %u: Blob belongs to a different or closed database", argn));
                     }
                     bl_id = dba.get_blob(blob->blh)->get_info()->id;
@@ -377,7 +376,7 @@ void Statement::bind(size_t trh, zval *b_vars, unsigned int num_bind_args)
                 const zend_string *str = as_string(b_var, tmp);
 
                 if (ZSTR_LEN(str) > var.length) {
-                    throw Php_Firebird_Exception(zend_ce_value_error,
+                    throw Php_Firebird_Exception(FireBird_Fb_Value_Exception_ce,
                         fmt("Argument %u: string of size %zu does not fit buffer of size %u",
                             argn, ZSTR_LEN(str), var.length));
                 }
@@ -393,11 +392,11 @@ void Statement::bind(size_t trh, zval *b_vars, unsigned int num_bind_args)
             } break;
 
             case SQL_ARRAY:
-                throw Php_Firebird_Exception(zend_ce_value_error,
+                throw Php_Firebird_Exception(FireBird_Fb_Value_Exception_ce,
                     fmt("Argument %u: ARRAY type is not supported", argn));
 
             default:
-                throw Php_Firebird_Exception(zend_ce_value_error,
+                throw Php_Firebird_Exception(FireBird_Fb_Value_Exception_ce,
                     fmt("Argument %u: binding SQL type %s (%u) is not supported", argn, type_named, sqltype));
         }
     }
@@ -414,14 +413,14 @@ void Statement::bind_datetime(zval *b_var, unsigned argn, const firebird_var &va
 
     if (Z_TYPE_P(b_var) == IS_LONG) {
         if (!has_date) {
-            throw Php_Firebird_Exception(zend_ce_type_error,
+            throw Php_Firebird_Exception(FireBird_Fb_Value_Exception_ce,
                 fmt("Argument %u: type mismatch 'int' to SQL type '%s'", argn, type_named));
         }
 
         time_t tt = static_cast<time_t>(Z_LVAL_P(b_var));
         struct tm t;
         if (!php_gmtime_r(&tt, &t)) {
-            throw Php_Firebird_Exception(zend_ce_value_error,
+            throw Php_Firebird_Exception(FireBird_Fb_Value_Exception_ce,
                 fmt("Argument %u: could not convert timestamp " ZEND_LONG_FMT, argn, Z_LVAL_P(b_var)));
         }
 
@@ -450,19 +449,19 @@ void Statement::bind_datetime(zval *b_var, unsigned argn, const firebird_var &va
     if (Z_TYPE_P(b_var) == IS_OBJECT && instanceof_function(Z_OBJCE_P(b_var), php_date_get_interface_ce())) {
         t = Z_PHPDATE_P(b_var)->time;
         if (!t) {
-            throw Php_Firebird_Exception(zend_ce_value_error,
+            throw Php_Firebird_Exception(FireBird_Fb_Value_Exception_ce,
                 fmt("Argument %u: DateTime object is not initialized", argn));
         }
     } else if (Z_TYPE_P(b_var) == IS_STRING) {
         php_date_instantiate(php_date_get_date_ce(), &dateo);
         if (!php_date_initialize(Z_PHPDATE_P(&dateo), Z_STRVAL_P(b_var), Z_STRLEN_P(b_var), NULL, NULL, 0)) {
             zval_ptr_dtor(&dateo);
-            throw Php_Firebird_Exception(zend_ce_value_error,
+            throw Php_Firebird_Exception(FireBird_Fb_Value_Exception_ce,
                 fmt("Argument %u: could not parse '%s' as %s", argn, Z_STRVAL_P(b_var), type_named));
         }
         t = Z_PHPDATE_P(&dateo)->time;
     } else {
-        throw Php_Firebird_Exception(zend_ce_type_error,
+        throw Php_Firebird_Exception(FireBird_Fb_Value_Exception_ce,
             fmt("Argument %u: type mismatch '%s' to SQL type '%s'", argn, zend_zval_type_name(b_var), type_named));
     }
 
@@ -476,7 +475,7 @@ void Statement::bind_datetime(zval *b_var, unsigned argn, const firebird_var &va
     if (Z_TYPE(dateo) != IS_UNDEF) zval_ptr_dtor(&dateo);
 
     if (has_date && (y < 1 || y > 9999)) {
-        throw Php_Firebird_Exception(zend_ce_value_error,
+        throw Php_Firebird_Exception(FireBird_Fb_Value_Exception_ce,
             fmt("Argument %u: year %lld is out of range for %s", argn, (long long)y, type_named));
     }
 
@@ -532,14 +531,16 @@ void Statement::open_cursor(Transaction &tra)
 Transaction &Statement::get_executed_transaction()
 {
     if (!executed_trh) {
-        throw Php_Firebird_Exception(zend_ce_error, "BUG: statement expected to be executed before reading blob contents");
+        throw Php_Firebird_Exception(FireBird_Fb_Exception_ce, "BUG: statement expected to be executed before reading blob contents");
     }
     return *dba.get_transaction(executed_trh);
 }
 
 void Statement::close_cursor()
 {
-    get_cursor();
+    if (!cursor) {
+        throw Php_Firebird_Exception(FireBird_Fb_Logic_Exception_ce, isc_dsql_cursor_close_err);
+    }
     cursor_exhausted = true;
     free_cursor();
 }
@@ -552,8 +553,7 @@ int Statement::fetch_next()
     // openCursor(), or the output message of IStatement::execute()). A statement
     // that was only prepared has nothing to fetch.
     if (!is_executed) {
-        const ISC_STATUS err[] = { isc_arg_gds, isc_dsql_cursor_not_open, isc_arg_end };
-        throw FbException(&st, err);
+        throw Php_Firebird_Exception(FireBird_Fb_Logic_Exception_ce, isc_dsql_cursor_not_open);
     }
 
     if (!has_cursor) {
@@ -575,6 +575,7 @@ int Statement::fetch_next()
     return fetch_res;
 }
 
+// TODO: separate flags into enums
 void Statement::output_buffer_to_array(int flags, HashTable **hash)
 {
     zval *result;
@@ -586,7 +587,7 @@ void Statement::output_buffer_to_array(int flags, HashTable **hash)
         if (!ht_ind) alloc_ht_ind();
         *hash = zend_array_dup(ht_ind);
     } else {
-        throw Php_Firebird_Exception(zend_ce_error, "BUG: fetch method not set");
+        throw Php_Firebird_Exception(FireBird_Fb_Exception_ce, "BUG: fetch method not set");
     }
 
     try {
@@ -633,7 +634,7 @@ zend_object *Statement::date_scratch_for(const char *zone)
         zval_ptr_dtor(&arg);
         if (res == FAILURE || EG(exception)) {
             if (EG(exception)) zend_clear_exception();
-            throw Php_Firebird_Exception(zend_ce_value_error,
+            throw Php_Firebird_Exception(FireBird_Fb_Value_Exception_ce,
                 std::string("Time zone '") + zone + "' is not known to PHP");
         }
     }
@@ -644,7 +645,7 @@ zend_object *Statement::date_scratch_for(const char *zone)
 
     if (!ok) {
         zval_ptr_dtor(&dateo);
-        throw Php_Firebird_Exception(zend_ce_error, "Could not create DateTime");
+        throw Php_Firebird_Exception(FireBird_Fb_Exception_ce, "Could not create DateTime");
     }
 
     date_scratch.emplace(zone, Z_OBJ(dateo));
@@ -664,7 +665,7 @@ static void date_call(zend_object *obj, const char *name, uint32_t argc, zval *a
 
     if (EG(exception)) {
         zend_clear_exception();
-        throw Php_Firebird_Exception(zend_ce_error, std::string("DateTime::") + name + "() failed");
+        throw Php_Firebird_Exception(FireBird_Fb_Exception_ce, std::string("DateTime::") + name + "() failed");
     }
 }
 
@@ -826,7 +827,7 @@ _sql_long:
         } break;
 
         default:
-            throw Php_Firebird_Exception(zend_ce_value_error,
+            throw Php_Firebird_Exception(FireBird_Fb_Exception_ce,
                 fmt("Fetching SQL type %u (field %s) is not supported", type, out_vars[index].alias));
     }
 
@@ -1023,25 +1024,23 @@ IStatement *Statement::get()
     if (stmt) {
         return stmt;
     }
-    throw Php_Firebird_Exception(zend_ce_error, "Invalid statement pointer");
+    throw Php_Firebird_Exception(FireBird_Fb_Logic_Exception_ce, isc_bad_stmt_handle);
 }
 
 // Only cursor statements can scroll. Called after prepare(), before the first execute().
 void Statement::set_scrollable()
 {
     if (!has_cursor) {
-        const ISC_STATUS err[] = { isc_arg_gds, isc_no_cursor, isc_arg_end };
-        throw FbException(&st, err);
+        throw Php_Firebird_Exception(FireBird_Fb_Logic_Exception_ce, isc_no_cursor);
     }
     scrollable = true;
 }
 
-// Unlike get_cursor(), this reports a not executed or closed cursor the way Firebird does
+// Not executed or closed cursor reported the way Firebird does
 IResultSet *Statement::get_open_cursor()
 {
     if (!cursor) {
-        const ISC_STATUS err[] = { isc_arg_gds, isc_dsql_cursor_not_open, isc_arg_end };
-        throw FbException(&st, err);
+        throw Php_Firebird_Exception(FireBird_Fb_Logic_Exception_ce, isc_dsql_cursor_not_open);
     }
     return cursor;
 }
@@ -1061,7 +1060,7 @@ int Statement::fetch_scroll(int direction, int position)
         case FBP_SCROLL_RELATIVE: return c->fetchRelative(&st, position, out_buffer);
     }
 
-    throw Php_Firebird_Exception(zend_ce_error, "BUG: unknown fetch direction " + std::to_string(direction));
+    throw Php_Firebird_Exception(FireBird_Fb_Exception_ce, "BUG: unknown fetch direction " + std::to_string(direction));
 }
 
 bool Statement::is_bof()
@@ -1095,27 +1094,18 @@ ISC_INT64 Statement::record_count()
 
     // INF_RECORD_COUNT, 2-byte length, value
     if (resp[0] != IResultSet::INF_RECORD_COUNT) {
-        throw Php_Firebird_Exception(zend_ce_error, "Unexpected response to INF_RECORD_COUNT");
+        throw Php_Firebird_Exception(FireBird_Fb_Exception_ce, "Unexpected response to INF_RECORD_COUNT");
     }
 
     const unsigned len = static_cast<unsigned>(isc_portable_integer(resp + 1, 2));
     if (len > 8 || 3 + len > sizeof(resp)) {
-        throw Php_Firebird_Exception(zend_ce_error, "Unexpected response to INF_RECORD_COUNT");
+        throw Php_Firebird_Exception(FireBird_Fb_Exception_ce, "Unexpected response to INF_RECORD_COUNT");
     }
 
     return isc_portable_integer(resp + 3, len);
 }
 
-IResultSet *Statement::get_cursor()
-{
-    FBDEBUG("Statement::get_cursor()=%p", cursor);
-    if (cursor) {
-        return cursor;
-    }
-    throw Php_Firebird_Exception(zend_ce_error, "Invalid cursor pointer");
-}
-
-void Statement::get_var_info(int in, unsigned int index, zval *var_info)
+void Statement::get_var_info(int in, zend_long index, zval *var_info)
 {
     std::vector<firebird_var> *vars;
 
@@ -1125,8 +1115,8 @@ void Statement::get_var_info(int in, unsigned int index, zval *var_info)
         vars = &out_vars;
     }
 
-    if (index >= (*vars).size()) {
-        throw Php_Firebird_Exception(zend_ce_value_error, "Invalid var index");
+    if (index < 0 || (size_t)index >= (*vars).size()) {
+        throw Php_Firebird_Exception(FireBird_Fb_Value_Exception_ce, "Invalid var index");
     }
 
     char type_buf[64];

@@ -22,7 +22,7 @@ void Service::connect(zval *args)
     ReleasePtr<IProvider> prov(master->getDispatcher());
 
     if (!args || Z_TYPE_P(args) != IS_OBJECT || Z_OBJCE_P(args) != FireBird_Service_Connect_Args_ce) {
-        throw Php_Firebird_Exception(zend_ce_value_error, "Expected instanceof Service_Connect_Args");
+        throw Php_Firebird_Exception(FireBird_Fb_Logic_Exception_ce, "Expected instanceof Service_Connect_Args");
     }
 
     const char *service_name = fbu_read_required_string_prop(FireBird_Service_Connect_Args_ce, args, "service_name");
@@ -36,7 +36,7 @@ void Service::connect(zval *args)
 IService *Service::get()
 {
     if (srv) return srv;
-    throw Php_Firebird_Exception(zend_ce_error, "Service is not connected");
+    throw Php_Firebird_Exception(FireBird_Fb_Logic_Exception_ce, "Service is not connected");
 }
 
 void Service::disconnect()

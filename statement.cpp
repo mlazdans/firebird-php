@@ -40,7 +40,7 @@ static firebird_trans *get_stmt_trans(firebird_stmt *stmt, zval *transaction)
     firebird_trans *tr = get_firebird_trans_from_zval(transaction);
 
     if (tr->dbh != stmt->dbh) {
-        zend_value_error("Transaction belongs to a different database than the statement");
+        FBU_THROW(FireBird_Fb_Logic_Exception_ce, "Transaction belongs to a different database than the statement");
         return NULL;
     }
 
@@ -381,7 +381,10 @@ static void _FireBird_Scrollable_Cursor_fetch(zval *self, int direction, zend_lo
     int istatus;
 
     if (position < INT_MIN || position > INT_MAX) {
-        zend_argument_value_error(1, "must be between %d and %d", INT_MIN, INT_MAX);
+        const char *space;
+        const char *class_name = get_active_class_name(&space);
+        FBU_THROW(FireBird_Fb_Value_Exception_ce, "%s%s%s(): Argument #1 ($position) must be between %d and %d",
+            class_name, space, get_active_function_name(), INT_MIN, INT_MAX);
         RETURN_THROWS();
     }
 

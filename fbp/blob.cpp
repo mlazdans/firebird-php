@@ -67,7 +67,7 @@ static constexpr unsigned BLOB_CHUNK = 0xFFFF;
 void Blob::get_contents(int64_t max_len, zend_string **buf)
 {
     if (info.is_writable) {
-        throw Php_Firebird_Exception(zend_ce_error, "Attempted to read from a writable BLOB");
+        throw Php_Firebird_Exception(FireBird_Fb_Logic_Exception_ce, isc_cannot_read_new_blob);
     }
 
     int64_t remaining_len = info.total_length - info.position;
@@ -103,10 +103,6 @@ void Blob::get_contents(int64_t max_len, zend_string **buf)
 
 void Blob::put_contents(size_t buf_size, const char *buf)
 {
-    if (!info.is_writable) {
-        throw Php_Firebird_Exception(zend_ce_error, "Attempted to write to a read-only BLOB");
-    }
-
     for (size_t done = 0; done < buf_size; ) {
         unsigned chunk = static_cast<unsigned>(std::min<size_t>(buf_size - done, BLOB_CHUNK));
         get()->putSegment(&st, chunk, buf + done);
@@ -191,7 +187,7 @@ IBlob *Blob::get()
     if (blob) {
         return blob;
     }
-    throw Php_Firebird_Exception(zend_ce_error, "Invalid blob pointer");
+    throw Php_Firebird_Exception(FireBird_Fb_Logic_Exception_ce, isc_bad_segstr_handle);
 }
 
 } // namespace

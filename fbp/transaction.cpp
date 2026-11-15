@@ -25,7 +25,7 @@ Transaction::Transaction(Database &dba): dba{dba}
 void Transaction::start(const firebird_tbuilder *builder)
 {
     if (tra) {
-        throw Php_Firebird_Exception(zend_ce_error, "Transaction already started");
+        throw Php_Firebird_Exception(FireBird_Fb_Logic_Exception_ce, "Transaction already started");
     }
 
     XpbBuilderPtr tpb(build_tpb(builder));
@@ -131,7 +131,7 @@ IXpbBuilder *Transaction::build_tpb(const firebird_tbuilder *builder)
         FBDEBUG_NOFL("  isc_tpb_wait");
         FBDEBUG_NOFL("    isc_tpb_lock_timeout = %d", builder->lock_timeout);
     } else {
-        throw Php_Firebird_Exception(zend_ce_value_error, "BUG: invalid lock_timeout");
+        throw Php_Firebird_Exception(FireBird_Fb_Exception_ce, "BUG: invalid lock_timeout");
     }
 
     return tpb.release();
@@ -289,13 +289,13 @@ ITransaction *Transaction::get()
     if (tra) {
         return tra;
     }
-    throw Php_Firebird_Exception(zend_ce_error, "Invalid transaction pointer");
+    throw Php_Firebird_Exception(FireBird_Fb_Logic_Exception_ce, isc_bad_trans_handle);
 }
 
 void Transaction::set(ITransaction *new_tra)
 {
     if (tra) {
-        throw Php_Firebird_Exception(zend_ce_error, "Transaction already started");
+        throw Php_Firebird_Exception(FireBird_Fb_Logic_Exception_ce, "Transaction already started");
     }
 
     tra = new_tra;

@@ -56,83 +56,138 @@ void fbu_report_exception_as_warning(const char *file, size_t line)
 #endif
 }
 
+static std::string fbu_fb_message(ISC_STATUS code)
+{
+    const ISC_STATUS err[] = { isc_arg_gds, code, isc_arg_end };
+    const ISC_STATUS *vector = err;
+    char msg[512];
+
+    if (fb_interpret(msg, sizeof(msg), &vector)) {
+        return msg;
+    }
+
+    return "Firebird error " + std::to_string(code);
+}
+
+Php_Firebird_Exception::Php_Firebird_Exception(zend_class_entry *ce, ISC_STATUS fb_code)
+    : std::runtime_error(fbu_fb_message(fb_code)),
+    ce(ce),
+    fb_code(fb_code)
+{
+}
+
+// Instance of ce (Fb_Exception or a subclass) with message, code and the extension
+// source location set
+static void fbu_init_exception(zval *ex, zend_class_entry *ce, const char *file, size_t line,
+    const char *msg, size_t msg_len, zend_long code)
+{
+    if (!ce || !instanceof_function(ce, FireBird_Fb_Exception_ce)) {
+        ce = FireBird_Fb_Exception_ce;
+    }
+
+    object_init_ex(ex, ce);
+    zend_update_property_stringl(FireBird_Fb_Exception_ce, Z_OBJ_P(ex), "message", sizeof("message") - 1, msg, msg_len);
+    zend_update_property_long(FireBird_Fb_Exception_ce, Z_OBJ_P(ex), "code", sizeof("code") - 1, code);
+    zend_update_property_string(FireBird_Fb_Exception_ce, Z_OBJ_P(ex), "file_ext", sizeof("file_ext") - 1, file);
+    zend_update_property_long(FireBird_Fb_Exception_ce, Z_OBJ_P(ex), "line_ext", sizeof("line_ext") - 1, line);
+}
+
+void fbu_throw(zend_class_entry *ce, const char *file, size_t line, const char *format, ...)
+{
+    va_list args;
+    va_start(args, format);
+    zend_string *msg = zend_vstrpprintf(0, format, args);
+    va_end(args);
+
+    zval ex;
+    fbu_init_exception(&ex, ce, file, line, ZSTR_VAL(msg), ZSTR_LEN(msg), 0);
+    zend_string_release(msg);
+
+    zend_throw_exception_object(&ex);
+}
+
+// One Fb_Status_Item per message in a status vector. Returns the messages joined
+// with "\n" and the first item's code.
+static std::string fbu_status_items(const ISC_STATUS *vector, zval *items, zend_long *first_code)
+{
+    std::string joined;
+    char msg[1024];
+
+    array_init(items);
+
+    for (;;) {
+        // The code fb_interpret() is about to format; it skips a leading SQLSTATE too
+        if (vector[0] == isc_arg_sql_state) vector += 2;
+
+        zend_long code = 0;
+        if (vector[0] == isc_arg_gds && vector[1] == 0 && vector[2] == isc_arg_warning) {
+            code = vector[3];
+        } else if (vector[0] == isc_arg_gds || vector[0] == isc_arg_warning) {
+            code = vector[1];
+        }
+
+        ISC_LONG len = fb_interpret(msg, sizeof(msg), &vector);
+        if (!len) break;
+
+        if (first_code && zend_hash_num_elements(Z_ARRVAL_P(items)) == 0) {
+            *first_code = code;
+        }
+
+        zval item;
+        object_init_ex(&item, FireBird_Fb_Status_Item_ce);
+        zend_update_property_long(FireBird_Fb_Status_Item_ce, Z_OBJ(item), "code", sizeof("code") - 1, code);
+        zend_update_property_stringl(FireBird_Fb_Status_Item_ce, Z_OBJ(item), "message", sizeof("message") - 1, msg, len);
+        zend_hash_next_index_insert(Z_ARRVAL_P(items), &item);
+
+        if (!joined.empty()) joined += "\n";
+        joined.append(msg, len);
+    }
+
+    return joined;
+}
+
 void fbu_handle_exception(const char *file, size_t line)
 {
     auto eptr = std::current_exception();
     if (!eptr) return;
 
+    zend_class_entry *ce = FireBird_Fb_Exception_ce;
     std::string error_msg;
-    char msg[1024] = {0};
+    zend_long code = 0;
     zval ex;
-
-    object_init_ex(&ex, FireBird_Fb_Exception_ce);
-
-    zend_update_property_string(FireBird_Fb_Exception_ce,
-        Z_OBJ(ex), "file_ext", sizeof("file_ext") - 1, file);
-
-    zend_update_property_long(FireBird_Fb_Exception_ce,
-        Z_OBJ(ex), "line_ext", sizeof("line_ext") - 1, line);
 
     try {
         std::rethrow_exception(eptr);
     } catch (const FbException& e) {
-        zval errors, ferror_item;
-        HashTable *ht_errors;
-
-        array_init(&errors);
-        ht_errors = Z_ARRVAL(errors);
-
-        FB_SQLSTATE_STRING sqlstate;
-        ISC_LONG msg_len = 0;
-
         auto status = e.getStatus();
         unsigned state = status->getState();
-        unsigned states[] = {IStatus::STATE_ERRORS, IStatus::STATE_WARNINGS};
-        const ISC_STATUS* vectors[] = {status->getErrors(), status->getWarnings()};
-        ISC_LONG error_code = 0;
-        ISC_INT64 error_code_long = 0;
+        zval items, warnings;
+        FB_SQLSTATE_STRING sqlstate = {0};
 
         fb_sqlstate(sqlstate, status->getErrors());
-        zend_update_property_stringl(FireBird_Fb_Exception_ce,
-            Z_OBJ(ex), "sqlstate", sizeof("sqlstate") - 1, sqlstate, strnlen(sqlstate, sizeof(sqlstate)));
 
-        for (int i = 0; i < 2; ++i)
-        {
-            if (state & states[i])
-            {
-                const ISC_STATUS* vector = vectors[i];
-                error_code = isc_sqlcode(&vector[0]);
-                if (error_code != -999) {
-                    error_code_long = isc_portable_integer((const ISC_UCHAR*)(&vector[1]), 4);
+        if (state & IStatus::STATE_ERRORS) {
+            error_msg = fbu_status_items(status->getErrors(), &items, &code);
                 } else {
-                    error_code_long = 0;
-                }
-
-                zend_update_property_long(FireBird_Fb_Exception_ce,
-                    Z_OBJ(ex), "code", sizeof("code") - 1, error_code_long);
-
-                while((msg_len = fb_interpret(msg, sizeof(msg), &vector)) != 0) {
-                    object_init_ex(&ferror_item, FireBird_Fb_Error_ce);
-                    update_ferr_props(FireBird_Fb_Error_ce, Z_OBJ(ferror_item), msg, msg_len, error_code, error_code_long);
-                    zend_hash_next_index_insert(ht_errors, &ferror_item);
-
-                    if (!error_msg.empty())error_msg += "\n";
-                    error_msg += msg;
-
-                    error_code = isc_sqlcode(&vector[0]);
-                    if (error_code != -999) {
-                        error_code_long = isc_portable_integer((const ISC_UCHAR*)(&vector[1]), 4);
-                    } else {
-                        error_code_long = 0;
-                    }
-                }
-            }
+            array_init(&items);
         }
 
-        zend_update_property(FireBird_Fb_Exception_ce,
-            Z_OBJ(ex), "errors", sizeof("errors") - 1, &errors);
+        if (state & IStatus::STATE_WARNINGS) {
+            fbu_status_items(status->getWarnings(), &warnings, nullptr);
+                    } else {
+            array_init(&warnings);
+        }
 
-        zval_ptr_dtor(&errors);
+        fbu_init_exception(&ex, FireBird_Fb_Server_Exception_ce, file, line, error_msg.c_str(), error_msg.length(), code);
+        zend_update_property_stringl(FireBird_Fb_Server_Exception_ce, Z_OBJ(ex), "sqlstate", sizeof("sqlstate") - 1,
+            sqlstate, strnlen(sqlstate, sizeof(sqlstate)));
+        zend_update_property(FireBird_Fb_Server_Exception_ce, Z_OBJ(ex), "status", sizeof("status") - 1, &items);
+        zend_update_property(FireBird_Fb_Server_Exception_ce, Z_OBJ(ex), "warnings", sizeof("warnings") - 1, &warnings);
+        zval_ptr_dtor(&items);
+        zval_ptr_dtor(&warnings);
+
+        zend_throw_exception_object(&ex);
+        return;
 #if 0
         void* buffer[50];
         int nptrs = backtrace(buffer, 50);
@@ -145,7 +200,8 @@ void fbu_handle_exception(const char *file, size_t line)
         free(symbols);
 #endif
     } catch (const Php_Firebird_Exception& error) {
-        // NOTE: error.ce (ValueError, TypeError, ...) is not used yet, see ISSUES.md
+        ce = error.ce;
+        code = error.fb_code;
         error_msg = error.what();
     } catch (const std::bad_alloc&) {
         error_msg = "Out of memory";
@@ -155,9 +211,7 @@ void fbu_handle_exception(const char *file, size_t line)
         error_msg = "Unhandled exception";
     }
 
-    zend_update_property_stringl(FireBird_Fb_Exception_ce,
-        Z_OBJ(ex), "message", sizeof("message") - 1, error_msg.c_str(), error_msg.length());
-
+    fbu_init_exception(&ex, ce, file, line, error_msg.c_str(), error_msg.length(), code);
     zend_throw_exception_object(&ex);
 }
 
@@ -239,7 +293,7 @@ const char *fbu_read_required_string_prop(zend_class_entry *ce, zval *obj, const
     zval *val = zend_read_property(ce, Z_OBJ_P(obj), name, strlen(name), 1, &rv);
 
     if (!val || Z_TYPE_P(val) != IS_STRING || !Z_STRLEN_P(val)) {
-        throw Php_Firebird_Exception(zend_ce_value_error,
+        throw Php_Firebird_Exception(FireBird_Fb_Value_Exception_ce,
             std::string(ZSTR_VAL(ce->name)) + "::$" + name + " must be set");
     }
 
@@ -263,7 +317,7 @@ void fbu_xpb_insert_object(IXpbBuilder* xpb, zval *obj, zend_class_entry *ce,
             zend_hash_str_find_ptr(&ce->properties_info, name, strlen(name)));
 
         if (!prop_info || (prop_info->flags & ZEND_ACC_STATIC)) {
-            throw Php_Firebird_Exception(zend_ce_error,
+            throw Php_Firebird_Exception(FireBird_Fb_Exception_ce,
                 std::string("BUG: property ") + ZSTR_VAL(ce->name) + "::$" + name +
                 " does not exist. Verify xpb_zmap");
         }
@@ -284,7 +338,7 @@ void fbu_xpb_insert_object(IXpbBuilder* xpb, zval *obj, zend_class_entry *ce,
             case IS_LONG:
                 FBDEBUG("property: %s is long: `" ZEND_LONG_FMT "`", name, Z_LVAL_P(val));
                 if (Z_LVAL_P(val) < INT32_MIN || Z_LVAL_P(val) > INT32_MAX) {
-                    throw Php_Firebird_Exception(zend_ce_value_error,
+                    throw Php_Firebird_Exception(FireBird_Fb_Value_Exception_ce,
                         std::string(ZSTR_VAL(ce->name)) + "::$" + name + " is out of range");
                 }
                 xpb->insertInt(&st, xpb_zmap->tags[i], (int)Z_LVAL_P(val));
@@ -301,7 +355,7 @@ void fbu_xpb_insert_object(IXpbBuilder* xpb, zval *obj, zend_class_entry *ce,
                 FBDEBUG("property: %s is null", name);
                 break;
             default:
-                throw Php_Firebird_Exception(zend_ce_type_error,
+                throw Php_Firebird_Exception(FireBird_Fb_Value_Exception_ce,
                     std::string("Unsupported type ") + zend_get_type_by_const(Z_TYPE_P(val)) +
                     " for property " + ZSTR_VAL(ce->name) + "::$" + name);
         }
@@ -330,7 +384,7 @@ noexcept(false)
     if (fbu_is_valid_dbh(h)) {
         return FBG(db_list).get(h);
     } else {
-        throw Php_Firebird_Exception(zend_ce_error, "Invalid database handle");
+        throw Php_Firebird_Exception(FireBird_Fb_Logic_Exception_ce, isc_bad_db_handle);
     }
 }
 
@@ -345,7 +399,7 @@ noexcept(false)
     if (fbu_is_valid_svh(h)) {
         return FBG(sv_list).get(h);
     } else {
-        throw Php_Firebird_Exception(zend_ce_error, "Invalid service manager handle");
+        throw Php_Firebird_Exception(FireBird_Fb_Logic_Exception_ce, isc_bad_svc_handle);
     }
 }
 

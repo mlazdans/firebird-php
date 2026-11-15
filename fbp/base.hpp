@@ -17,10 +17,12 @@ class Php_Firebird_Exception : public std::runtime_error
 {
 public:
     zend_class_entry *ce;
+    ISC_STATUS fb_code = 0;
     explicit Php_Firebird_Exception(zend_class_entry *ce, const std::string& msg)
         : std::runtime_error(msg),
         ce(ce)
         {}
+    Php_Firebird_Exception(zend_class_entry *ce, ISC_STATUS fb_code);
 };
 
 namespace FBP

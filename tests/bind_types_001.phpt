@@ -95,27 +95,27 @@ string(10) "1234567.89"
 string(7) "1000.00"
 string(5) "12.00"
 string(11) "21474836.00"
-FireBird\Fb_Exception: Argument 1: value 21474837 is out of range for NUMERIC(9,2)
-FireBird\Fb_Exception: conversion error from string "abc"
+FireBird\Fb_Value_Exception: Argument 1: value 21474837 is out of range for NUMERIC(9,2)
+FireBird\Fb_Server_Exception: conversion error from string "abc"
 --- NUMERIC(18,9) float precision
 string(17) "1234567.891234567"
 --- INTEGER / SMALLINT / BIGINT
 int(42)
 int(7)
-FireBird\Fb_Exception: Argument 1: value 32768 is out of range for SMALLINT
+FireBird\Fb_Value_Exception: Argument 1: value 32768 is out of range for SMALLINT
 int(-9223372036854775808)
-FireBird\Fb_Exception: Argument 1: value 9223372036854775807 is out of range for NUMERIC(18,2)
-FireBird\Fb_Exception: Argument 1: cannot bind INF or NAN to INTEGER
-FireBird\Fb_Exception: Argument 1: type mismatch 'array' to SQL type 'INTEGER'
+FireBird\Fb_Value_Exception: Argument 1: value 9223372036854775807 is out of range for NUMERIC(18,2)
+FireBird\Fb_Value_Exception: Argument 1: cannot bind INF or NAN to INTEGER
+FireBird\Fb_Value_Exception: Argument 1: type mismatch 'array' to SQL type 'INTEGER'
 --- FLOAT / DOUBLE
 float(1.5)
-FireBird\Fb_Exception: Argument 1: 'abc' is not numeric
-FireBird\Fb_Exception: Argument 1: value 1.0e+300 is out of range for FLOAT
-FireBird\Fb_Exception: Argument 1: cannot bind INF or NAN to DOUBLE PRECISION
+FireBird\Fb_Value_Exception: Argument 1: 'abc' is not numeric
+FireBird\Fb_Value_Exception: Argument 1: value 1.0e+300 is out of range for FLOAT
+FireBird\Fb_Value_Exception: Argument 1: cannot bind INF or NAN to DOUBLE PRECISION
 --- date/time strings
 string(24) "2025-11-06 13:45:59.1234"
 string(24) "2025-11-06 00:00:00.0000"
-FireBird\Fb_Exception: Argument 1: could not parse 'not a date' as TIMESTAMP
+FireBird\Fb_Value_Exception: Argument 1: could not parse 'not a date' as TIMESTAMP
 string(13) "13:45:59.5000"
 string(10) "2025-11-06"
 --- zones
@@ -126,7 +126,7 @@ string(31) "2025-07-01 12:00:00.0000 +03:00"
 string(36) "2025-07-01 12:00:00.0000 Europe/Riga"
 string(31) "1970-01-01 00:00:00.0000 +00:00"
 string(20) "13:45:59.0000 +02:00"
-FireBird\Fb_Exception: Argument 1: type mismatch 'int' to SQL type 'TIME'
+FireBird\Fb_Value_Exception: Argument 1: type mismatch 'int' to SQL type 'TIME'
 --- DateTime objects
 string(41) "2025-07-01 12:00:00.5000 America/New_York"
 --- bound variables are not modified

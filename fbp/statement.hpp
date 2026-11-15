@@ -130,7 +130,6 @@ public:
     void execute(size_t trh);
     const firebird_stmt_info *get_info();
     IStatement *get();
-    IResultSet *get_cursor();
     IResultSet *get_open_cursor();
 
     void set_scrollable();

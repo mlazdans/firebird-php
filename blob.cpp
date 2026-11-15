@@ -301,7 +301,7 @@ PHP_METHOD(FireBird_Blob_Id, from_str)
     firebird_blob_id *blob_id = get_firebird_blob_id_from_zval(return_value);
 
     if (fbp_blob_id_to_quad(id_len, id, &blob_id->bl_id)) {
-        zend_throw_exception_ex(zend_ce_error, 0, "BLOB ID conversion failed");
+        FBU_THROW(FireBird_Fb_Value_Exception_ce, "BLOB ID conversion failed");
         RETURN_THROWS();
     }
 }

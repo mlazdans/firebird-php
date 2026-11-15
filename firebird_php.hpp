@@ -155,17 +155,16 @@ static_assert(                                             \
     ARRAY_SIZE(n) == ARRAY_SIZE(z),                        \
     "Array sizes do not match")
 
+#if 0
 #define update_ferr_props(ce, obj, error_msg, error_msg_len, error_code, error_code_long)                      \
     do {                                                                                                       \
         zend_update_property_stringl(ce, obj, "error_msg", sizeof("error_msg") - 1, error_msg, error_msg_len); \
         zend_update_property_long(ce, obj, "error_code", sizeof("error_code") - 1, error_code);                \
         zend_update_property_long(ce, obj, "error_code_long", sizeof("error_code_long") - 1, error_code_long); \
     } while(0)
+#endif
 
-// extern firebird_events fb_events;
-
-// extern zend_class_entry *FireBird_IError_ce;
-extern zend_class_entry *FireBird_Fb_Error_ce;
+extern zend_class_entry *FireBird_Fb_Status_Item_ce;
 extern zend_class_entry *FireBird_Var_Info_ce;
 extern zend_class_entry *FireBird_Event_ce;
 extern zend_class_entry *FireBird_Transaction_Builder_ce;
@@ -179,6 +178,9 @@ extern zend_class_entry *FireBird_Scrollable_Cursor_ce;
 extern zend_class_entry *FireBird_Blob_ce;
 extern zend_class_entry *FireBird_Blob_Id_ce;
 extern zend_class_entry *FireBird_Fb_Exception_ce;
+extern zend_class_entry *FireBird_Fb_Value_Exception_ce;
+extern zend_class_entry *FireBird_Fb_Logic_Exception_ce;
+extern zend_class_entry *FireBird_Fb_Server_Exception_ce;
 extern zend_class_entry *FireBird_Service_ce;
 extern zend_class_entry *FireBird_Service_Connect_Args_ce;
 extern zend_class_entry *FireBird_Server_Info_ce;

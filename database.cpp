@@ -330,7 +330,7 @@ PHP_METHOD(FireBird_Database, get_limbo_transactions)
     ZEND_PARSE_PARAMETERS_END();
 
     if (max_count < 1 || max_count > 0x7FFF) {
-        zend_throw_exception_ex(zend_ce_value_error, 0, "Invalid max_count argument. Valid range 1 - %d", 0x7FFF);
+        FBU_THROW(FireBird_Fb_Value_Exception_ce, "Invalid max_count argument. Valid range 1 - %d", 0x7FFF);
         RETURN_THROWS();
     }
 
