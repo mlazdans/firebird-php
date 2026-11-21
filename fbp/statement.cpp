@@ -402,45 +402,14 @@ void Statement::bind(size_t trh, zval *b_vars, unsigned int num_bind_args)
     }
 } // bind
 
-// Binds an int (UNIX timestamp, date-bearing columns only), a string (any format
-// strtotime() understands, including fractions and zones) or a DateTimeInterface.
+// Binds a string (any format strtotime() understands, including fractions and
+// zones) or a DateTimeInterface.
 void Statement::bind_datetime(zval *b_var, unsigned argn, const firebird_var &var,
     unsigned char *sqldata, const char *type_named)
 {
     auto util = master->getUtilInterface();
     const auto sqltype = var.type;
     const bool has_date = sqltype == SQL_TYPE_DATE || sqltype == SQL_TIMESTAMP || sqltype == SQL_TIMESTAMP_TZ;
-
-    if (Z_TYPE_P(b_var) == IS_LONG) {
-        if (!has_date) {
-            throw Php_Firebird_Exception(FireBird_Fb_Value_Exception_ce,
-                fmt("Argument %u: type mismatch 'int' to SQL type '%s'", argn, type_named));
-        }
-
-        time_t tt = static_cast<time_t>(Z_LVAL_P(b_var));
-        struct tm t;
-        if (!php_gmtime_r(&tt, &t)) {
-            throw Php_Firebird_Exception(FireBird_Fb_Value_Exception_ce,
-                fmt("Argument %u: could not convert timestamp " ZEND_LONG_FMT, argn, Z_LVAL_P(b_var)));
-        }
-
-        ISC_DATE date = util->encodeDate(t.tm_year + 1900, t.tm_mon + 1, t.tm_mday);
-        ISC_TIME time = util->encodeTime(t.tm_hour, t.tm_min, t.tm_sec, 0);
-
-        if (sqltype == SQL_TYPE_DATE) {
-            *reinterpret_cast<ISC_DATE*>(sqldata) = date;
-        } else if (sqltype == SQL_TIMESTAMP) {
-            auto ts = reinterpret_cast<ISC_TIMESTAMP*>(sqldata);
-            ts->timestamp_date = date;
-            ts->timestamp_time = time;
-        } else {
-            auto ts = reinterpret_cast<ISC_TIMESTAMP_TZ*>(sqldata);
-            ts->utc_timestamp.timestamp_date = date;
-            ts->utc_timestamp.timestamp_time = time;
-            ts->time_zone = 1439; // GMT: Firebird offset ids are minutes + 1439, so 0 means -23:59
-        }
-        return;
-    }
 
     zval dateo;
     ZVAL_UNDEF(&dateo);
@@ -731,12 +700,10 @@ int Statement::var_zval(zval *val, unsigned int index, int flags)
     char str_buf[255];
     int64_t long_val;
 
-    // Date/time columns: DateTime objects, or UNIX time for date-bearing types
-    // with FETCH_UNIXTIME
+    // Date/time columns: DateTime objects
     unsigned y = 0, mo = 0, d = 0, h = 0, mi = 0, sec = 0, frac = 0;
     char zone[40] = {0};
     int64_t epoch = 0;
-    const bool unixtime = (flags & FBP_FETCH_UNIXTIME) && type != SQL_TYPE_TIME && type != SQL_TIME_TZ;
 
     switch (type)
     {
@@ -799,8 +766,7 @@ _sql_long:
             return SUCCESS;
 
         case SQL_TYPE_DATE:
-            epoch = isc_to_epoch(*(ISC_DATE *)data, 0);
-            if (!unixtime) util->decodeDate(*(ISC_DATE *)data, &y, &mo, &d);
+            util->decodeDate(*(ISC_DATE *)data, &y, &mo, &d);
             break;
         case SQL_TYPE_TIME:
             util->decodeTime(*(ISC_TIME *)data, &h, &mi, &sec, &frac);
@@ -810,20 +776,14 @@ _sql_long:
             break;
         case SQL_TIMESTAMP: {
             ISC_TIMESTAMP *ts = (ISC_TIMESTAMP *) data;
-            // Zone-less: treated as UTC
-            epoch = isc_to_epoch(ts->timestamp_date, ts->timestamp_time);
-            if (!unixtime) {
-                util->decodeDate(ts->timestamp_date, &y, &mo, &d);
-                util->decodeTime(ts->timestamp_time, &h, &mi, &sec, &frac);
-            }
+            util->decodeDate(ts->timestamp_date, &y, &mo, &d);
+            util->decodeTime(ts->timestamp_time, &h, &mi, &sec, &frac);
         } break;
         case SQL_TIMESTAMP_TZ: {
             ISC_TIMESTAMP_TZ *ts = (ISC_TIMESTAMP_TZ *) data;
             // The stored instant is UTC already; the decoded fields are zone-local
             epoch = isc_to_epoch(ts->utc_timestamp.timestamp_date, ts->utc_timestamp.timestamp_time);
-            if (!unixtime) {
-                util->decodeTimeStampTz(&st, ts, &y, &mo, &d, &h, &mi, &sec, &frac, sizeof(zone), zone);
-            }
+            util->decodeTimeStampTz(&st, ts, &y, &mo, &d, &h, &mi, &sec, &frac, sizeof(zone), zone);
         } break;
 
         default:
@@ -831,11 +791,7 @@ _sql_long:
                 fmt("Fetching SQL type %u (field %s) is not supported", type, out_vars[index].alias));
     }
 
-    if (unixtime) {
-        ZVAL_LONG(val, epoch);
-    } else {
-        make_date_obj(val, type, y, mo, d, h, mi, sec, frac, zone, epoch);
-    }
+    make_date_obj(val, type, y, mo, d, h, mi, sec, frac, zone, epoch);
 
     return SUCCESS;
 }

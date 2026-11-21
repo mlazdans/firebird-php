@@ -1,5 +1,5 @@
 /* This is a generated file, edit the .stub.php file instead.
- * Stub hash: 4dd63d8a2c4ea76fa1aebfd6b5037f34c2ab05be */
+ * Stub hash: 7f5cdf8bd992039cb6f634a17c547e3ba9d8138e */
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_FireBird_get_client_version, 0, 0, IS_DOUBLE, 0)
 ZEND_END_ARG_INFO()
@@ -460,7 +460,6 @@ static const zend_function_entry class_FireBird_Blob_Id_methods[] = {
 static void register_firebird_symbols(int module_number)
 {
 	REGISTER_LONG_CONSTANT("FireBird\\FETCH_BLOB_TEXT", FBP_FETCH_BLOB_TEXT, CONST_PERSISTENT);
-	REGISTER_LONG_CONSTANT("FireBird\\FETCH_UNIXTIME", FBP_FETCH_UNIXTIME, CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("FireBird\\BLOB_TYPE_SEGMENTED", FBP_BLOB_TYPE_SEGMENTED, CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("FireBird\\BLOB_TYPE_STREAMED", FBP_BLOB_TYPE_STREAMED, CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("FireBird\\BLOB_SEEK_START", FBP_BLOB_SEEK_START, CONST_PERSISTENT);

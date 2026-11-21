@@ -10,7 +10,6 @@
 #include "../firebird_php.hpp"
 
 #define FBP_FETCH_BLOB_TEXT (1<<0)
-#define FBP_FETCH_UNIXTIME  (1<<1)
 #define FBP_FETCH_INDEXED   (1<<4)
 #define FBP_FETCH_HASHED    (1<<5)
 

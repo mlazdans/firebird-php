@@ -14,15 +14,6 @@ namespace FireBird;
 const FETCH_BLOB_TEXT = UNKNOWN;
 
 /**
- * fetch to return DATE, TIMESTAMP and TIMESTAMP WITH TIME ZONE columns as UNIX time
- * instead of DateTime objects. Zone-less values are taken as UTC. TIME columns stay
- * DateTime objects.
- * @var int
- * @cvalue FBP_FETCH_UNIXTIME
- */
-const FETCH_UNIXTIME = UNKNOWN;
-
-/**
  * Option to check if Used Blob->type is segmented.
  * @see Blob::$type
  * @var int
@@ -346,11 +337,11 @@ class Statement
      * Fetch row as object.
      *
      * Returns an object with the row information, or null if there are no more rows.
-     * Date/time columns are DateTime objects unless FETCH_UNIXTIME is given:
+     * Date/time columns are DateTime objects:
      * zone-less values in date.timezone, TIME values on 1970-01-01.
      * Errors throw Fb_Exception.
      *
-     * @see FETCH_BLOB_TEXT, FETCH_UNIXTIME
+     * @see FETCH_BLOB_TEXT
      * */
     public function fetch_object(int $flags = 0): ?object { die; }
 
@@ -358,11 +349,11 @@ class Statement
      * Fetch row as associative array.
      *
      * Returns an array with the row information, or null if there are no more rows.
-     * Date/time columns are DateTime objects unless FETCH_UNIXTIME is given:
+     * Date/time columns are DateTime objects:
      * zone-less values in date.timezone, TIME values on 1970-01-01.
      * Errors throw Fb_Exception.
      *
-     * @see FETCH_BLOB_TEXT, FETCH_UNIXTIME
+     * @see FETCH_BLOB_TEXT
      * */
     public function fetch_array(int $flags = 0): ?array { die; }
 
@@ -370,11 +361,11 @@ class Statement
      * Fetch row as indexed array.
      *
      * Returns an array with the row information, or null if there are no more rows.
-     * Date/time columns are DateTime objects unless FETCH_UNIXTIME is given:
+     * Date/time columns are DateTime objects:
      * zone-less values in date.timezone, TIME values on 1970-01-01.
      * Errors throw Fb_Exception.
      *
-     * @see FETCH_BLOB_TEXT, FETCH_UNIXTIME
+     * @see FETCH_BLOB_TEXT
      * */
     public function fetch_row(int $flags = 0): ?array { die; }
     /**
@@ -427,7 +418,7 @@ class Statement
  *
  * TODO: fetch_row/fetch_array style
  *
- * @see FETCH_BLOB_TEXT, FETCH_UNIXTIME for $flags
+ * @see FETCH_BLOB_TEXT for $flags
  */
 class Scrollable_Cursor
 {
