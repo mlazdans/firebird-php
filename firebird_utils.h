@@ -68,6 +68,7 @@ int fbu_statement_fetch_scroll(size_t dbh, size_t sth, int direction, int positi
 int fbu_statement_is_bof(size_t dbh, size_t sth, bool *result);
 int fbu_statement_is_eof(size_t dbh, size_t sth, bool *result);
 int fbu_statement_record_count(size_t dbh, size_t sth, ISC_INT64 *count);
+int fbu_statement_get_statistics(size_t dbh, size_t sth, zval *stats);
 int fbu_statement_get_var_info(size_t dbh, size_t sth, int in, zend_long index, zval *var_info);
 
 int fbu_blob_init(size_t dbh, size_t trh, size_t *blh);

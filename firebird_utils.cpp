@@ -688,6 +688,14 @@ int fbu_statement_record_count(size_t dbh, size_t sth, ISC_INT64 *count)
     fbu_ex_wrap_end();
 }
 
+int fbu_statement_get_statistics(size_t dbh, size_t sth, zval *stats)
+{
+    FBDEBUG("%s(dbh=%zu, sth=%zu)", __func__, dbh, sth);
+    fbu_ex_wrap_start();
+        get_db(dbh)->get_statement(sth)->get_statistics(stats);
+    fbu_ex_wrap_end();
+}
+
 int fbu_statement_get_var_info(size_t dbh, size_t sth, int in, zend_long index, zval *var_info)
 {
     FBDEBUG("%s(dbh=%zu, sth=%zu)", __func__, dbh, sth);

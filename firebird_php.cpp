@@ -138,6 +138,7 @@ static PHP_GSHUTDOWN_FUNCTION(firebird)
 
 zend_class_entry *FireBird_Fb_Status_Item_ce;
 zend_class_entry *FireBird_Var_Info_ce;
+zend_class_entry *FireBird_Statement_Statistics_ce;
 zend_class_entry *FireBird_Event_ce;
 zend_class_entry *FireBird_Transaction_Builder_ce;
 zend_class_entry *FireBird_Transaction_ce;
@@ -216,6 +217,7 @@ PHP_MINIT_FUNCTION(firebird)
     // FireBird_User_Info_ce = register_class_FireBird_User_Info();
     FireBird_Db_Info_ce = register_class_FireBird_Db_Info();
     FireBird_Var_Info_ce = register_class_FireBird_Var_Info();
+    FireBird_Statement_Statistics_ce = register_class_FireBird_Statement_Statistics();
 
     // register_FireBird_Event_ce();
     // register_FireBird_Multi_Transaction_ce();

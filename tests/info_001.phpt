@@ -31,7 +31,7 @@ require_once('functions.inc');
     $t->execute("CREATE TABLE C (ID INTEGER)");
     $t->commit_ret();
     foreach ([1, 2, 3] as $i) $t->query("INSERT INTO C VALUES (?)", $i);
-    $q = $t->query("UPDATE C SET ID = ID + 10 WHERE ID > 1");
+    $q = $t->query("UPDATE C SET ID = ID + 10 WHERE ID > 1")->get_statistics();
     var_dump($q->update_count, $q->insert_count, $q->affected_count);
 
     print "--- limbo list\n";

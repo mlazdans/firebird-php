@@ -15,13 +15,13 @@ require_once('functions.inc');
     $t->execute('INSERT INTO test1 VALUES (1, 100)');
     $t->execute('INSERT INTO test1 VALUES (10000, 100)');
 
-    $rs = $t->query('UPDATE test1 SET i = 10000');
+    $rs = $t->query('UPDATE test1 SET i = 10000')->get_statistics();
     var_dump($rs->affected_count);
 
-    $rs = $t->query('UPDATE test1 SET i = 10000 WHERE i = 2.0');
+    $rs = $t->query('UPDATE test1 SET i = 10000 WHERE i = 2.0')->get_statistics();
     var_dump($rs->affected_count);
 
-    $rs = $t->query('UPDATE test1 SET i =') or print "update\n";
+    $rs = $t->query('UPDATE test1 SET i =')->get_statistics();
     var_dump($rs->affected_count);
 })();
 

@@ -166,6 +166,7 @@ static_assert(                                             \
 
 extern zend_class_entry *FireBird_Fb_Status_Item_ce;
 extern zend_class_entry *FireBird_Var_Info_ce;
+extern zend_class_entry *FireBird_Statement_Statistics_ce;
 extern zend_class_entry *FireBird_Event_ce;
 extern zend_class_entry *FireBird_Transaction_Builder_ce;
 extern zend_class_entry *FireBird_Transaction_ce;

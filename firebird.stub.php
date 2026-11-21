@@ -337,14 +337,6 @@ class Statement
     public readonly int $in_vars_count;
     /** @virtual */
     public readonly int $out_vars_count;
-    /** @virtual */
-    public readonly int $insert_count;
-    /** @virtual */
-    public readonly int $update_count;
-    /** @virtual */
-    public readonly int $delete_count;
-    /** @virtual */
-    public readonly int $affected_count; // insert + update + delete
 
     public readonly Database $database;
 
@@ -407,6 +399,12 @@ class Statement
      * @see $num_vars_out
      * */
     public function get_var_info_out(int $num): Var_Info { die; }
+
+    /**
+     * Record counts of the last execution. One server round trip per call.
+     * @throws Fb_Exception
+     */
+    public function get_statistics(): Statement_Statistics { die; }
 
     /**
      * Set a cursor name for a dynamic request.
@@ -732,6 +730,15 @@ class Var_Info
     public int $length;
     public int $scale;
     public bool $is_nullable;
+}
+
+final class Statement_Statistics
+{
+    public readonly int $insert_count;
+    public readonly int $update_count;
+    public readonly int $delete_count;
+    public readonly int $select_count;
+    public readonly int $affected_count; // insert + update + delete
 }
 
 class Blob_Id

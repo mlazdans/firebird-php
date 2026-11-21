@@ -854,7 +854,6 @@ void Statement::execute(size_t trh)
         free_cursor();
         tra.execute_statement(get(), input_metadata, in_buffer, output_metadata, out_buffer);
         cursor_exhausted = false;
-        query_statistics();
     }
 
     is_executed = true;
@@ -969,21 +968,18 @@ void Statement::alloc_ht_ind()
     }
 }
 
-void Statement::query_statistics()
+void Statement::get_statistics(zval *stats)
 {
     unsigned char req[] = { isc_info_sql_records };
     unsigned char resp[64] = { 0 };
-
-    info.insert_count = 0;
-    info.update_count = 0;
-    info.delete_count = 0;
-    info.select_count = 0;
-    info.affected_count = 0;
+    ISC_UINT64 insert_count = 0, update_count = 0, delete_count = 0, select_count = 0;
 
     get()->getInfo(&st, sizeof(req), req, sizeof(resp), resp);
 
     // isc_info_sql_records, 2-byte length, then { item, 2-byte length, value } entries
-    if (resp[0] != isc_info_sql_records) return;
+    if (resp[0] != isc_info_sql_records) {
+        throw Php_Firebird_Exception(FireBird_Fb_Exception_ce, "BUG: isc_info_sql_records missing in statement info");
+    }
 
     const ISC_UCHAR *p = resp + 3;
     const ISC_UCHAR *end = resp + std::min<size_t>(3 + isc_portable_integer(resp + 1, 2), sizeof(resp));
@@ -995,10 +991,10 @@ void Statement::query_statistics()
         const ISC_UINT64 count = static_cast<ISC_UINT64>(isc_portable_integer(p, len)); p += len;
 
         switch (item) {
-            case isc_info_req_insert_count: info.insert_count += count; break;
-            case isc_info_req_update_count: info.update_count += count; break;
-            case isc_info_req_delete_count: info.delete_count += count; break;
-            case isc_info_req_select_count: info.select_count += count; break;
+            case isc_info_req_insert_count: insert_count += count; break;
+            case isc_info_req_update_count: update_count += count; break;
+            case isc_info_req_delete_count: delete_count += count; break;
+            case isc_info_req_select_count: select_count += count; break;
             default:
                 // Not sent by Firebird 5, which only reports the four counts above.
                 // Each item carries its length, so an unknown one is skipped safely.
@@ -1007,10 +1003,17 @@ void Statement::query_statistics()
     }
 
     FBDEBUG("%s: insert_count=%llu, update_count=%llu, delete_count=%llu, select_count=%llu", __func__,
-        (unsigned long long)info.insert_count, (unsigned long long)info.update_count,
-        (unsigned long long)info.delete_count, (unsigned long long)info.select_count);
+        (unsigned long long)insert_count, (unsigned long long)update_count,
+        (unsigned long long)delete_count, (unsigned long long)select_count);
 
-    info.affected_count = info.insert_count + info.update_count + info.delete_count;
+    auto obj = Z_OBJ_P(stats);
+    auto ce = FireBird_Statement_Statistics_ce;
+    zend_update_property_long(ce, obj, "insert_count", sizeof("insert_count") - 1, (zend_long)insert_count);
+    zend_update_property_long(ce, obj, "update_count", sizeof("update_count") - 1, (zend_long)update_count);
+    zend_update_property_long(ce, obj, "delete_count", sizeof("delete_count") - 1, (zend_long)delete_count);
+    zend_update_property_long(ce, obj, "select_count", sizeof("select_count") - 1, (zend_long)select_count);
+    zend_update_property_long(ce, obj, "affected_count", sizeof("affected_count") - 1,
+        (zend_long)(insert_count + update_count + delete_count));
 }
 
 const firebird_stmt_info *Statement::get_info()

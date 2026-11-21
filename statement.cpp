@@ -170,6 +170,18 @@ int FireBird_Statement_prepare(zval *self, zval *transaction, zend_string *sql)
     return SUCCESS;
 }
 
+PHP_METHOD(FireBird_Statement, get_statistics)
+{
+    ZEND_PARSE_PARAMETERS_NONE();
+
+    firebird_stmt *stmt = get_firebird_stmt_from_zval(ZEND_THIS);
+
+    object_init_ex(return_value, FireBird_Statement_Statistics_ce);
+    if (fbu_statement_get_statistics(stmt->dbh, stmt->sth, return_value)) {
+        RETURN_THROWS();
+    }
+}
+
 PHP_METHOD(FireBird_Statement, get_var_info_in)
 {
     zend_long index;
@@ -279,11 +291,7 @@ static zval* FireBird_Statement_read_property(zend_object *obj, zend_string *nam
     bool is_virtual =
         zend_string_equals_literal(name, "name") ||
         zend_string_equals_literal(name, "in_vars_count") ||
-        zend_string_equals_literal(name, "out_vars_count") ||
-        zend_string_equals_literal(name, "insert_count") ||
-        zend_string_equals_literal(name, "update_count") ||
-        zend_string_equals_literal(name, "delete_count") ||
-        zend_string_equals_literal(name, "affected_count");
+        zend_string_equals_literal(name, "out_vars_count");
 
     if (!is_virtual) {
         return zend_std_read_property(obj, name, type, cache_slot, rv);
@@ -302,16 +310,8 @@ static zval* FireBird_Statement_read_property(zend_object *obj, zend_string *nam
         ZVAL_STRING(rv, info->name ? info->name : "");
     } else if (zend_string_equals_literal(name, "in_vars_count")) {
         ZVAL_LONG(rv, info->in_vars_count);
-    } else if (zend_string_equals_literal(name, "out_vars_count")) {
-        ZVAL_LONG(rv, info->out_vars_count);
-    } else if (zend_string_equals_literal(name, "insert_count")) {
-        ZVAL_LONG(rv, info->insert_count);
-    } else if (zend_string_equals_literal(name, "update_count")) {
-        ZVAL_LONG(rv, info->update_count);
-    } else if (zend_string_equals_literal(name, "delete_count")) {
-        ZVAL_LONG(rv, info->delete_count);
     } else {
-        ZVAL_LONG(rv, info->affected_count);
+        ZVAL_LONG(rv, info->out_vars_count);
     }
 
     return rv;

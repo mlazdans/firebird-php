@@ -44,7 +44,6 @@ typedef struct firebird_stmt_info {
     unsigned int sql_len;
 
     const char *name;
-    ISC_UINT64 insert_count, update_count, delete_count, select_count, affected_count;
 
     unsigned int in_vars_count, out_vars_count;
 } firebird_stmt_info;
@@ -112,7 +111,6 @@ private:
     void make_date_obj(zval *val, unsigned type, unsigned y, unsigned mo, unsigned d,
         unsigned h, unsigned mi, unsigned sec, unsigned frac, const char *zone, int64_t epoch);
 
-    void query_statistics();
     void open_cursor(Transaction &tra);
     void free_cursor();
     Transaction &get_executed_transaction();
@@ -137,6 +135,7 @@ public:
     bool is_bof();
     bool is_eof();
     ISC_INT64 record_count();
+    void get_statistics(zval *stats);
     void get_var_info(int in, zend_long index, zval *var_info);
 };
 

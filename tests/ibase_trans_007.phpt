@@ -15,7 +15,7 @@ require_once('functions.inc');
     $t = init_tmp_db()->new_transaction();
 
     $t->execute("SET TRANSACTION");
-    $rs = $t->query("DELETE FROM TEST1");
+    $rs = $t->query("DELETE FROM TEST1")->get_statistics();
     var_dump($rs->affected_count);
     print "|---- TEST1 default transaction\n";
     dump_table_rows($def, "TEST1");
