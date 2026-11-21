@@ -520,7 +520,7 @@ function dump_rows(\FireBird\Statement $q, int $flags = 0): void
     }
 }
 
-function dump_table_rows(\FireBird\Transaction $t, $table, int $flags = 0): void
+function dump_table_rows(\FireBird\Transaction $t, string $table, int $flags = 0): void
 {
     $sql = sprintf('SELECT * FROM "%s"', $table);
 

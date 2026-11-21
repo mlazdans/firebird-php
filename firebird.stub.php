@@ -338,7 +338,7 @@ class Statement
      *
      * Returns an object with the row information, or null if there are no more rows.
      * Date/time columns are DateTime objects:
-     * zone-less values in date.timezone, TIME values on 1970-01-01.
+     * zone-less values in date.timezone, TIME values on today's date.
      * Errors throw Fb_Exception.
      *
      * @see FETCH_BLOB_TEXT
@@ -350,7 +350,7 @@ class Statement
      *
      * Returns an array with the row information, or null if there are no more rows.
      * Date/time columns are DateTime objects:
-     * zone-less values in date.timezone, TIME values on 1970-01-01.
+     * zone-less values in date.timezone, TIME values on today's date.
      * Errors throw Fb_Exception.
      *
      * @see FETCH_BLOB_TEXT
@@ -362,7 +362,7 @@ class Statement
      *
      * Returns an array with the row information, or null if there are no more rows.
      * Date/time columns are DateTime objects:
-     * zone-less values in date.timezone, TIME values on 1970-01-01.
+     * zone-less values in date.timezone, TIME values on today's date.
      * Errors throw Fb_Exception.
      *
      * @see FETCH_BLOB_TEXT

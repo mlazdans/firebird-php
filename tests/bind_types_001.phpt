@@ -67,6 +67,8 @@ function try_bind(\FireBird\Transaction $t, string $sql, mixed ...$args): void
     try_bind($t, $tz, 0);
     try_bind($t, "SELECT CAST(CAST(? AS TIME WITH TIME ZONE) AS VARCHAR(60)) FROM RDB\$DATABASE", "13:45:59 +02:00");
     try_bind($t, "SELECT CAST(? AS TIME) FROM RDB\$DATABASE", 0);
+    try_bind($t, "SELECT CAST(? AS DATE) FROM RDB\$DATABASE", 0);
+    try_bind($t, "SELECT CAST(? AS TIMESTAMP) FROM RDB\$DATABASE", 0);
 
     print "--- DateTime objects\n";
     try_bind($t, $tz, new \DateTimeImmutable("2025-07-01 12:00:00.5", new \DateTimeZone("America/New_York")));
@@ -124,9 +126,11 @@ string(31) "2025-07-01 12:00:00.0000 +05:30"
 string(31) "2025-07-01 12:00:00.0000 -03:00"
 string(31) "2025-07-01 12:00:00.0000 +03:00"
 string(36) "2025-07-01 12:00:00.0000 Europe/Riga"
-string(31) "1970-01-01 00:00:00.0000 +00:00"
+FireBird\Fb_Value_Exception: Argument 1: type mismatch 'int' to SQL type 'TIMESTAMP WITH TIME ZONE'
 string(20) "13:45:59.0000 +02:00"
 FireBird\Fb_Value_Exception: Argument 1: type mismatch 'int' to SQL type 'TIME'
+FireBird\Fb_Value_Exception: Argument 1: type mismatch 'int' to SQL type 'DATE'
+FireBird\Fb_Value_Exception: Argument 1: type mismatch 'int' to SQL type 'TIMESTAMP'
 --- DateTime objects
 string(41) "2025-07-01 12:00:00.5000 America/New_York"
 --- bound variables are not modified

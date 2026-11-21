@@ -35,7 +35,7 @@ Row data object(stdClass) {
   ["TIME_1"]=>
   object(DateTime) {
     ["date"]=>
-    string(26) "1970-01-01 15:45:59.000000"
+    string(26) "%s 15:45:59.000000"
     ["timezone_type"]=>
     int(3)
     ["timezone"]=>
@@ -62,7 +62,7 @@ Row data object(stdClass) {
   ["TIME_TZ"]=>
   object(DateTime) {
     ["date"]=>
-    string(26) "1970-01-01 15:45:59.000000"
+    string(26) "%s 15:45:59.000000"
     ["timezone_type"]=>
     int(3)
     ["timezone"]=>
@@ -99,7 +99,7 @@ Row data object(stdClass) {
   ["TIME_1"]=>
   object(DateTime) {
     ["date"]=>
-    string(26) "1970-01-01 15:45:59.000000"
+    string(26) "%s 15:45:59.000000"
     ["timezone_type"]=>
     int(3)
     ["timezone"]=>
@@ -126,7 +126,7 @@ Row data object(stdClass) {
   ["TIME_TZ"]=>
   object(DateTime) {
     ["date"]=>
-    string(26) "1970-01-01 15:45:59.000000"
+    string(26) "%s 15:45:59.000000"
     ["timezone_type"]=>
     int(3)
     ["timezone"]=>

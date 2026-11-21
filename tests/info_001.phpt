@@ -7,6 +7,8 @@ Info parsing: database info, SQLSTATE, row counts, limbo list, service users
 
 namespace FireBirdTests;
 
+use DateTime;
+
 require_once('functions.inc');
 
 (function(){
@@ -17,8 +19,9 @@ require_once('functions.inc');
     ob_start();
     $info = $db->get_info();
     var_dump(ob_get_clean());
-    $created = $t->query("SELECT MON\$CREATION_DATE FROM MON\$DATABASE")->fetch_row(\FireBird\FETCH_UNIXTIME)[0];
-    var_dump($info->creation_date === $created, $info->page_size, $info->db_sql_dialect);
+    /** @var DateTime $created */
+    $created = $t->query("SELECT MON\$CREATION_DATE FROM MON\$DATABASE")->fetch_row()[0];
+    var_dump($info->creation_date === $created->getTimestamp(), $info->page_size, $info->db_sql_dialect);
 
     print "--- SQLSTATE is five characters\n";
     try {

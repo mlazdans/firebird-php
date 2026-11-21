@@ -25,11 +25,8 @@ require_once('functions.inc');
         CAST('2025-10-26 03:30:00 Europe/Riga' AS TIMESTAMP WITH TIME ZONE) DST_END
         FROM RDB\$DATABASE";
 
-    foreach (['default' => 0, 'FETCH_UNIXTIME' => \FireBird\FETCH_UNIXTIME] as $name => $flags) {
-        print "--- $name\n";
-        foreach ($t->query($sql)->fetch_array($flags) as $k => $v) {
-            print "$k: " . (is_object($v) ? $v->format('Y-m-d H:i:s.u P e') . " ts=" . $v->getTimestamp() : var_export($v, true)) . "\n";
-        }
+    foreach ($t->query($sql)->fetch_array() as $k => $v) {
+        print "$k: " . (is_object($v) ? $v->format('Y-m-d H:i:s.u P e') . " ts=" . $v->getTimestamp() : var_export($v, true)) . "\n";
     }
 
     print "--- fetched DateTime objects bind back unchanged\n";
@@ -45,23 +42,14 @@ require_once('functions.inc');
     $t->commit();
 })();
 ?>
---EXPECT--
---- default
+--EXPECTF--
 D: 2025-07-01 00:00:00.000000 +03:00 Europe/Riga ts=1751317200
-T: 1970-01-01 13:45:59.123400 +03:00 Europe/Riga ts=38759
-TZ: 1970-01-01 13:45:59.123400 +03:00 Europe/Riga ts=38759
+T: %s 13:45:59.123400 %r[+]0[23]:00%r Europe/Riga ts=%d
+TZ: %s 13:45:59.123400 %r[+]0[23]:00%r Europe/Riga ts=%d
 TS: 2025-07-01 13:45:59.123400 +03:00 Europe/Riga ts=1751366759
 TSZ: 2025-07-01 13:45:59.123400 +03:00 Europe/Riga ts=1751366759
 OFS: 2025-01-01 00:00:00.000000 +05:30 +05:30 ts=1735669800
 DST_END: 2025-10-26 03:30:00.000000 +03:00 Europe/Riga ts=1761438600
---- FETCH_UNIXTIME
-D: 1751328000
-T: 1970-01-01 13:45:59.123400 +03:00 Europe/Riga ts=38759
-TZ: 1970-01-01 13:45:59.123400 +03:00 Europe/Riga ts=38759
-TS: 1751377559
-TSZ: 1751366759
-OFS: 1735669800
-DST_END: 1761438600
 --- fetched DateTime objects bind back unchanged
 string(36) "2025-07-01 13:45:59.1234 Europe/Riga"
 --- each value is its own object

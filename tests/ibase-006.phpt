@@ -7,6 +7,8 @@ InterBase: binding (may take a while). Ported from php-firebird.
 
 namespace FireBirdTests;
 
+use DateTime;
+
 require_once('functions.inc');
 
 (function(){
@@ -119,7 +121,7 @@ require_once('functions.inc');
     for($iter = 0; $iter < 3; $iter++) {
         /* prepare data  */
         $v_char = rand_str(1000);
-        $v_date = (int)rand_number(10,0,0);
+        $v_date = new DateTime(rand_datetime());
         $v_decimal = rand_number(12,3);
         $v_double  = rand_number(20);
         $v_float   = rand_number(7);

@@ -655,11 +655,16 @@ void Statement::make_date_obj(zval *val, unsigned type, unsigned y, unsigned mo,
         date_call(scratch, "settimestamp", 1, &arg);
         obj->time->us = usec; // setTimestamp() clears it; the offset does not depend on it
     } else {
-        // Wall-clock fields; TIME types are anchored at 1970-01-01
-        const bool has_date = type == SQL_TYPE_DATE || type == SQL_TIMESTAMP;
-        obj->time->y = has_date ? y : 1970;
-        obj->time->m = has_date ? mo : 1;
-        obj->time->d = has_date ? d : 1;
+        // Wall-clock fields; TIME types get today's date, like new DateTime('12:00')
+        if (type == SQL_TYPE_DATE || type == SQL_TIMESTAMP) {
+            obj->time->y = y;
+            obj->time->m = mo;
+            obj->time->d = d;
+        } else {
+            zval now;
+            ZVAL_LONG(&now, time(nullptr));
+            date_call(scratch, "settimestamp", 1, &now);
+        }
 
         zval args[4];
         ZVAL_LONG(&args[0], h);

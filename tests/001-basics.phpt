@@ -50,5 +50,5 @@ require_once('functions.inc');
 })();
 
 ?>
---EXPECT_EXTERNAL--
+--EXPECTF_EXTERNAL--
 001.out.txt

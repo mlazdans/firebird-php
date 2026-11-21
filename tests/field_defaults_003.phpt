@@ -16,7 +16,7 @@ require("common.inc");
 })();
 
 ?>
---EXPECT--
+--EXPECTF--
 array(8) {
   ["ID"]=>
   int(1)
@@ -33,7 +33,7 @@ array(8) {
   ["TIME_TZ"]=>
   object(DateTime) {
     ["date"]=>
-    string(26) "1970-01-01 15:45:59.000000"
+    string(26) "%s 15:45:59.000000"
     ["timezone_type"]=>
     int(3)
     ["timezone"]=>
