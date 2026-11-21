@@ -80,6 +80,35 @@ function stats(string $label, Statement $q): void
     $q->execute($t, 'r2', 100);
     stats("re-execute #2", $q);
 
+    // Single-row RETURNING: not a cursor, output comes with execute
+    $q = $t->query("INSERT INTO TEST1 (I, C) VALUES (200, 's') RETURNING I");
+    stats("insert returning", $q);
+
+    $q = $t->query("UPDATE OR INSERT INTO TEST1 (I, C) VALUES (200, 't') MATCHING (I) RETURNING I");
+    stats("upsert update", $q);
+    $q = $t->query("UPDATE OR INSERT INTO TEST1 (I, C) VALUES (201, 't') MATCHING (I) RETURNING I");
+    stats("upsert insert", $q);
+
+    // Multi-row MERGE RETURNING: 200 matches and is updated, 202 is inserted
+    $q = $t->query(<<<SQL
+        MERGE INTO TEST1 t
+        USING (SELECT 200 AS I FROM RDB\$DATABASE UNION ALL SELECT 202 FROM RDB\$DATABASE) s
+        ON t.I = s.I
+        WHEN MATCHED THEN UPDATE SET C = 'm'
+        WHEN NOT MATCHED THEN INSERT (I, C) VALUES (s.I, 'm')
+        RETURNING t.I
+        SQL
+    );
+    stats("merge returning", $q);
+    while ($q->fetch_row());
+    stats("merge fetched", $q);
+
+    // Multi-row DELETE RETURNING: 200, 201, 202
+    $q = $t->query("DELETE FROM TEST1 WHERE I >= 200 RETURNING I");
+    stats("delete returning", $q);
+    while ($q->fetch_row());
+    stats("delete fetched", $q);
+
     var_dump((new \ReflectionClass(Statement_Statistics::class))->isFinal());
 
     $q->free();
@@ -107,5 +136,12 @@ returning fetched      insert=0 update=2 delete=0 select=2 affected=2
 all together           insert=2 update=4 delete=1 select=7 affected=7
 re-execute #1          insert=0 update=3 delete=0 select=3 affected=3
 re-execute #2          insert=0 update=1 delete=0 select=1 affected=1
+insert returning       insert=1 update=0 delete=0 select=0 affected=1
+upsert update          insert=0 update=1 delete=0 select=1 affected=1
+upsert insert          insert=1 update=0 delete=0 select=0 affected=1
+merge returning        insert=1 update=1 delete=0 select=2 affected=2
+merge fetched          insert=1 update=1 delete=0 select=2 affected=2
+delete returning       insert=0 update=0 delete=3 select=3 affected=3
+delete fetched         insert=0 update=0 delete=3 select=3 affected=3
 bool(true)
 FireBird\Fb_Logic_Exception: invalid statement handle
